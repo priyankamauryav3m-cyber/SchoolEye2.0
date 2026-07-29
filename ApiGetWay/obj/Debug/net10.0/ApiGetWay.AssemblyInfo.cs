@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ApiGetWay")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40dc1cdf2dd7ae2076abfe315d610615d315329f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+573710bbb597ef77eab614178699bdad5b84f45b")]
 [assembly: System.Reflection.AssemblyProductAttribute("ApiGetWay")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ApiGetWay")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
