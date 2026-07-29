@@ -1,0 +1,200 @@
+﻿@using DomainModel.Admin
+@using DomainModel.Enum
+@using DomainModel.SchoolMaster
+@using MyApp.Common
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@using System.Linq;
+
+@using static ServerWebUI.Components.Pages.CommonPages.MessageForSelector
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title" id="exampleModalLabel">New message</h5>
+                    <button data-access="Close" @onclick="ClosePopup" type="button" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-12">
+                            <MessageForSelector @bind-Value="MessageBodys" />
+                        </div>
+                    </div>
+                    <div class="row gap-10-0 mt-4">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                            <div class="form-box">
+                                <label for="distance" class="form-label">Message Type</label>
+                                <InputSelect class="form-input" @bind-Value="sentModel.MessageType"  @bind-Value:after="OnMessageTypeChanged">
+                                    
+                                    <option value="0">Select Message Type</option>
+                                    @foreach (var msg in messagetypelist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@msg.MessageTypeId">@msg.MessageType</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="form-box">
+                                <label class="form-label">Select Text</label>
+                                <InputSelect  @bind-Value="sentModel.MessageText"  class="form-input">
+                                    <option value="" selected>Select Message</option>
+                                    @foreach (var msg in smsEmailTextlist.Where(x => x.IsValid == true))
+                                        {
+                                        <option value="@msg.SMSEmailText">@msg.SMSEmailText</option>
+                                        }
+                                    
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-12">
+                            <div class="form-box">
+                                <label for="message-text" class="form-label">Message:</label>
+                                <InputTextArea class="sms-aria form-input" rows="5" @bind-value="sentModel.MessageText"></InputTextArea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <strong>
+                            <span>
+                                %SN% : Student Name, %FN% : Father Name, %MN% : Mother Name,  %CS% : Class-Section Name ,  %ADMNO% : Student No,  %Fee% : Balance Amt,  %PN% : Period Name,  %DT% : Current Date
+                            </span>
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="form-group btn-gr d-flex align-items-center justify-content-between w-100">
+                        <div class="sms-balance">
+                            <strong>Available Balance (SMS): 44</strong>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div class="form-box">
+                                <button class="table-btn" @onclick="SendSms">
+                                    Send SMS
+                                </button>
+                            </div>
+                            <div class="form-box" @onclick="ClosePopup">
+                                <button class="table-btn">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+
+}
+<style>
+    .sms-aria {
+        height: 200px;
+    }
+</style>
+<script>
+    function openSms(mobile, message) {
+        const encodedMsg = encodeURIComponent(message);
+        window.location.href = `sms:${mobile}?body=${encodedMsg}`;
+    }
+</script>
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public bool ShowPopup { get; set; }
+    private  string? SelectedMessageType;
+    private string? SelectedMessageTemplate;
+    private string? MessageBody;
+    private  SMSSentModel sentModel=new();
+    private MessageType MessageBodys = MessageType.SMS;
+    private string SMSOrMailCode =>
+        MessageBodys switch
+        {
+            MessageType.SMS => "S",
+            MessageType.WhatsApp => "W",
+            MessageType.Email => "E",
+            _ => ""
+        };
+    private List<MessageTypeModal> messagetypelist = new();
+    private List<SmsEmailTextModel> smsEmailTextlist = new();
+    [Parameter] public List<RegistrationDto> SelectedStudents { get; set; } = new();
+    private async Task LoadData()
+    {
+        string ApiUri = "MessageType/GetMessageType";
+        messagetypelist = await httpService.Get<List<MessageTypeModal>>(ApiUri);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private void OnTemplateSelected()
+    {
+        var selected = smsEmailTextlist.FirstOrDefault(x => x.SmsEmailTextId == sentModel.MessageType);
+
+        sentModel.MessageText = selected?.SMSEmailText ?? "";
+    }
+    private async Task OnMessageTypeChanged()
+    {
+        sentModel.MessageText = ""; 
+        string api = $"MessageType/GetSMSEmailText?messageTypeId={sentModel.MessageType}";
+        smsEmailTextlist = await httpService.Get<List<SmsEmailTextModel>>(api) ?? new();
+    }
+
+    private async Task SendSms()
+    {
+        try
+        {
+            ShowPopup = false;
+            sentModel.GroupCode = "01";
+            sentModel.BranchCode = "01";
+            sentModel.SentBy = "V3M";
+            sentModel.IsValid = false;
+            sentModel.SMS_Or_Mail = SMSOrMailCode;
+            var apiResponse = await httpService.Post<ApiResponse<object>>("SendSMS/send-sms-log", sentModel);
+            if (apiResponse.Success)
+            {
+                await Alert.ShowSuccess("SMS"+Localizer["Already"]);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            sentModel = new SMSSentModel();
+            StateHasChanged();
+        }
+    
+    }
+
+
+    private async Task ClosePopup()
+    {
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+            StateHasChanged();
+    }
+}

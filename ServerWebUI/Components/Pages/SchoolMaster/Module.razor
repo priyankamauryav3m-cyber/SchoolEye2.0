@@ -1,0 +1,386 @@
+﻿@page "/module"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@using MyApp.Common
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage sessionStorage
+@using System.Text
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IStringLocalizer<Resource> Localizer
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@rendermode InteractiveServer
+@inject SweetAlertService Alert
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Module </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddNewModule" />
+             
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.MName)" Title="Module" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Module..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" Sortable="true" Class="text-center" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.IsRestricted)" Title="Restricted" Class="text-center"  Align="Align.Center">
+
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditModule(context)" OnStatusClick="() => ChangeModuleStatus(context.ModuleId, context.IsValid)" />
+                                </TemplateColumn>
+                               @* <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="action-btn-group">
+
+                                        @if (context.IsValid)
+                                        {
+                                            <button class="btn-icon edit-btn" @onclick="() => EditModule(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+
+                                            <button class="btn-icon inactive-btn" @onclick="() => ChangeModuleStatus(context.ModuleId, context.IsValid)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button disabled class="btn-icon edit-btn" @onclick="() => EditModule(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn-icon active-btn"
+                                                    @onclick="() => ChangeModuleStatus(context.ModuleId, context.IsValid)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        }
+                                    </div>
+
+                                   
+                                </TemplateColumn> *@
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((adminModule.ModuleId == 0) ? "Add Module" : "Edit Module")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@adminModule" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="adminModule.MName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Module Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => adminModule.MName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="adminModule.DisplayName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        DisplayName <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => adminModule.DisplayName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="adminModule.Description" autocomplete="off" />
+                                    <label class="floating-label">Description</label>
+                                    <ValidationMessage For="@(() => adminModule.Description)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="adminModule.DisplayOrder" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">Display Order</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="adminModule.ModuleId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (moduleList.Count > 0)
+    {
+    }
+}
+
+@code {
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string username = "";
+    private bool ShowPopup = false;
+    private bool IsLoading = false;
+    private List<SuperAdminModule> moduleList = new();
+    private SuperAdminModule adminModule = new();
+    private string oldcdataModel = "";
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private void ClosePopup()
+    {
+        adminModule = new();
+        ShowPopup = false;
+    }
+    private void AddNewModule()
+    {
+        adminModule = new();
+        ShowPopup = true;
+    }
+    protected IQueryable<SuperAdminModule> moduleQuery
+    {
+        get
+        {
+            var result = moduleList.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.MName != null && x.MName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    private async Task OnSave()
+    {
+        try
+        {
+            ShowPopup = false;
+             // adminModule.CreatedBy = username;
+            // adminModule.CreatedDate = DateTime.Now;
+        
+            if (adminModule.ModuleId > 0)
+            {
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(adminModule, oldcdataModel);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+                ShowPopup = false;
+            }
+            adminModule.IsValid = true;
+            if (adminModule.ModuleId == 0)
+            {
+                string apiUrl = "SuperAdminModule/Add_Module";
+                var apiResponse = await httpService.Post<ApiResponse<int>>(apiUrl, adminModule);
+                var responsecode = apiResponse.Data;
+                if (responsecode == -1)
+                {
+                    await Alert.ShowWarning("Module" + @Localizer["Already"]);
+                }
+                else if (responsecode >=1)
+                {
+                    await Alert.ShowSuccess("Module" + @Localizer["Inserted"]);
+                }
+            }
+            else 
+            {
+                string apiUrl = "SuperAdminModule/Add_ModuleEdit";
+                var apiResponse = await httpService.Post<ApiResponse<int>>(apiUrl, adminModule);
+                var responsecode = apiResponse.Data;
+                if (responsecode >= 1)
+                {
+                    await Alert.ShowUpdate("Module" + @Localizer["Updated"]);
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+            }
+            await LoadData();
+            adminModule = new SuperAdminModule();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    private void EditModule(SuperAdminModule superAdmin)
+    {
+            adminModule = new SuperAdminModule
+            {
+                ModuleId = superAdmin.ModuleId,
+                MName = superAdmin.MName,
+                DisplayName = superAdmin.DisplayName,
+                Description = superAdmin.Description,
+                DisplayOrder = superAdmin.DisplayOrder
+            };
+        oldcdataModel = CommonMethod.CreateSnapshot(adminModule);
+        ShowPopup = true;
+    }
+    private async Task ChangeModuleStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "SuperAdminModule/Add_ModuleDelete";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+    private  async  Task LoadData()
+    {
+        IsLoading = true;
+        string ApiUri1 = "SuperAdminModule/GetAdd_Module";
+        moduleList = await httpService.Get<List<SuperAdminModule>>(ApiUri1) ?? new();
+        IsLoading = false;
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+
+        StateHasChanged();
+    }
+}

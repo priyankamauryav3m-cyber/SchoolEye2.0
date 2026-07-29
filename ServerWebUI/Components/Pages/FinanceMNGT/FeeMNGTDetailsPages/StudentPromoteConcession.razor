@@ -1,0 +1,551 @@
+﻿@page "/PromoteStudentConcession"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using Newtonsoft.Json
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Student Promote</p>
+            </div>
+        </div>
+
+        <div class="col-6 p-2">
+            <div class="card">
+                <div class="row m-0 px-1 mt-2">
+                    <div class="col-6 col-sm-3 px-1">
+                        <div class="form-box">
+                            <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.SessionId">@data.SessionName </option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 px-1">
+                        <div class="form-box">
+                            <InputSelect @bind-Value="studentPromote.ConcessionId" class="form-input">
+                                <option value="0">AllConcessionSelected</option>
+                                @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.ConcessionId">@data.Concession </option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 px-1">
+                        <div class="form-box">
+                            <InputSelect class="form-input" @bind-Value="studentPromote.Concessiontype">
+                                <option value="" selected>Select</option>
+                                <option value="General">General</option>
+                                <option value="Student">Student</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-1 px-1">
+
+                        <div class="form-box align-items-center">
+                            <div class="d-flex gap-2">
+                                <button class="icon-btn" @onclick="SearchStudentConcessionData">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr class="mb-0 mt-2" />
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn" style="height: calc(100vh - 323px);">
+                            <QuickGrid Items="@studentmoduleQuery" Class="table" Pagination="@pagination">
+                                <TemplateColumn Class="text-center" Title="" Align="Align.Left">
+                                    <ChildContent>
+                                        <div>
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <PropertyColumn Property="@(x => x.ControlNo)" Title="Student No" Class="text-center" Sortable="true" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Student Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="StudentName..." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.ClassSection)" Title="Class Section" Align="Align.Left">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.Gender)" Class="text-center" Title="Gender" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.Concession)" Title="Concession" Align="Align.Left">
+
+                                </PropertyColumn>
+
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 p-2">
+            <div class="card">
+                <div class="row m-0 px-1 mt-2">
+                    <div class="col-6 col-sm-3 px-1">
+                        <div class="form-box">
+                            <InputSelect @bind-Value="NextCurrentSession" name="session" class="form-input">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.SessionId">@data.SessionName </option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 px-1">
+                        <div class="form-box">
+                            <InputSelect @bind-Value="promotedstudent.ConcessionId" class="form-input">
+                                <option value="0">AllConcessionSelected</option>
+                                @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.ConcessionId">@data.Concession </option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 px-1">
+                        <div class="form-box">
+                            <InputSelect class="form-input" @bind-Value="promotedstudent.Concessiontype">
+                                <option value="0" selected>Select</option>
+                                <option value="General">General</option>
+                                <option value="Student">Student</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-1 px-1">
+
+                        <div class="form-box align-items-center">
+                            <div class="d-flex gap-2">
+                                <button class="icon-btn" @onclick="SearchStudentpromotedData">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr class="mb-0 mt-2" />
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn" style="height: calc(100vh - 323px);">
+                            <QuickGrid Items="@studentpromotedmoduleQuery" Class="table" Pagination="@pagination1">
+                                <TemplateColumn Class="text-center" Title="" Align="Align.Left">
+                                    <ChildContent>
+                                        <div>
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <PropertyColumn Property="@(x => x.ControlNo)" Title="Student No" Class="text-center" Sortable="true" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Student Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="StudentName..." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.ClassSection)" Title="Class Section" Align="Align.Left">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.Gender)" Class="text-center" Title="Gender" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.Concession)" Title="Concession" Align="Align.Left">
+
+                                </PropertyColumn>
+
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination1" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center px-0">
+                <div class="col-8 p-2">
+                    <div class="d-flex align-items-center">
+                        <InputText @bind-Value="@promoteConcession.Remarks" type="text" class="form-input form-control" placeholder="Remarks" />
+                    </div>
+                </div>
+                <div class="col-4 p-2">
+                    <div class="d-flex align-items-center gap-2 justify-content-end">
+                        <button type="button" class="table-btn" @onclick="SaveTransferStudent">Promote/Demote</button>
+                    </div>
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+    @if (ShowPopup)
+    {
+        <div class="custom-modal row m-0 align-items-center">
+            <div class="col-12 col-sm-10 col-md-9 col-lg-6">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">Not Promoted Student</h5>
+                        <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <div class="modal-body">
+
+                        <div class="tab-content form-tab-count">
+                            <div class="row gap-15-0 m-0 mt-3">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg bg-light-gray">
+                                            All Student Not Available Next Session
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 p-1">
+                                <div class="card">
+                                    <div class="card-body table-card p-0 ">
+                                        <div class="quick-main">
+                                            <div class="grid-box-with-btn">
+                                                <QuickGrid Items="@MissingStudents.AsQueryable()" Class="table">
+                                                    <TemplateColumn Title="Student No" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @(string.IsNullOrWhiteSpace(context.StudentNo) ? " " : context.StudentNo)
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="Student Name" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+
+                                                </QuickGrid>
+
+                                            </div>
+                                            <div class="footer-pagination">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="welcome-text w-100">
+                                                        <Paginator State="@pagination" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        
+
+    }
+
+</div>
+
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+
+    private CustomAlert customAlert;
+    private PromoteStudent studentPromote = new();
+    private PromoteStudent promotedstudent = new();
+    private string olddesignation = "";
+    private List<ConcessionModel> concessionlist = new();
+    private List<StudentResponse> studentpromotedlist = new();
+    private List<StudentResponse> studentlist = new();
+    private List<SessionModel> sessionlist = new();
+    private string nameFilter = string.Empty;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    PaginationState pagination1   = new() { ItemsPerPage = 15 };
+    private string statusFilter = "1";
+    private bool IsLoading = true;
+    private bool ShowPopup;
+    private string branchcode;
+    private string groupcode;
+    private string UserName;
+    private string? currentUrl;
+    private long CurrentSession;
+    private long NextCurrentSession;
+    private PromoteConcessionRequest promoteConcession = new();
+    private List<MissingStudentModel> MissingStudents = new();
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        groupcode = groupResult.Value;
+        IsLoading = true;
+        string ApiUri = "FeeHead/GetFeeHeadList";
+        concessionlist = await httpService.Get<List<ConcessionModel>>("Concession/GetListConcession") ?? new();
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        IsLoading = false;
+    }
+
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        StateHasChanged();
+    }
+
+    protected IQueryable<StudentResponse> studentmoduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    protected IQueryable<StudentResponse> studentpromotedmoduleQuery
+    {
+        get
+        {
+            var result = studentpromotedlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    private async Task SaveTransferStudent()
+    {
+        try
+        {
+            var Selecteddata = studentmoduleQuery.Where(x => x.IsSelected).Select(x => x.StudentId).ToList();
+            if (Selecteddata.Count == 0)
+            {
+
+                await Alert.ShowWarning("Please select student !");
+                return;
+            }
+            else if (NextCurrentSession == 0 || NextCurrentSession <= CurrentSession)
+            {
+                await Alert.ShowWarning("Please select a next session");
+                return;
+            }
+            else if (string.IsNullOrEmpty(promoteConcession.Remarks))
+            {
+                await customAlert.ShowCustomAlert("Please enter remarks.", false);
+                return;
+            }
+            IsLoading = true;
+            promoteConcession.GroupCode = groupcode;
+            promoteConcession.BranchCode = branchcode;
+            promoteConcession.FromSessionId = CurrentSession;
+            promoteConcession.ToSessionId = NextCurrentSession;
+            promoteConcession.CreatedBy = UserName;
+            promoteConcession.StudentIds = Selecteddata;
+            string ApiUri1 = "PromoteConStudent/PromoteStudentConcession";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(ApiUri1, promoteConcession) ?? new();
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowWarning("Student Promoted Successfully !");
+                    IsLoading = false;
+                }
+                if (apiResponse.Code == 3)
+                {
+                    MissingStudents = JsonConvert.DeserializeObject<List<MissingStudentModel>>(apiResponse.Data.ToString())??new();
+                    IsLoading = false;
+                    ShowPopup = true;
+                    StateHasChanged();
+                    return;
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private async Task SearchStudentConcessionData()
+    {
+        try
+        {
+            IsLoading = true;
+            studentPromote.GroupCode = groupcode;
+            studentPromote.BranchCode = branchcode;
+            studentPromote.SessionId = CurrentSession;
+            string ApiUri1 = "PromoteConStudent/PromotionConcessionStudent";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentResponse>>>(ApiUri1, studentPromote) ?? new();
+            if (apiResponse.Success)
+            {
+                studentlist = apiResponse.Data ?? new();
+            }
+            IsLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private async Task SearchStudentpromotedData()
+    {
+        try
+        {
+            if (NextCurrentSession == 0)
+            {
+                await Alert.ShowWarning("Please select  session");
+                return;
+            }
+            IsLoading = true;
+            promotedstudent.GroupCode = groupcode;
+            promotedstudent.BranchCode = branchcode;
+            promotedstudent.SessionId = NextCurrentSession;
+            string ApiUri1 = "PromoteConStudent/PromotionConcessionStudent";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentResponse>>>(ApiUri1, promotedstudent) ?? new();
+            if (apiResponse.Success)
+            {
+                studentpromotedlist = apiResponse.Data ?? new();
+            }
+            IsLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+   
+
+
+
+
+}
+
+
+
+

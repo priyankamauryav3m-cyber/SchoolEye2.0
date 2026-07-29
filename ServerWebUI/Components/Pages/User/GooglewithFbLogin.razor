@@ -1,0 +1,87 @@
+﻿@page "/googel-facebook-login"
+@layout Layout.LoginLayout
+
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Threading.Tasks
+@using DomainModel.User
+@using Microsoft.AspNetCore.Components.Authorization
+@using MyApp.Common
+@using ServerWebUI.Components.Common
+@inject Shared.IHttpService httpService
+@inject PermissionState PermissionState
+@inject AuthenticationStateProvider AuthStateProvider
+
+@inject NavigationManager nav
+@inject HttpClient httpClient
+@inject ProtectedSessionStorage sessionStorage
+@code {
+
+  
+    private bool _processed = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_processed && firstRender)
+        {
+            _processed = true;
+
+            try
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+
+                if (user.Identity?.IsAuthenticated ?? false)
+                {
+                  var  email = user.FindFirst(ClaimTypes.Email)?.Value;
+                   
+                    var request = new
+                    {
+                        Email = email,
+
+                    };
+
+                    var response = await httpClient.PostAsJsonAsync("users/LoginGoogle", request);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var userdata = await response.Content.ReadFromJsonAsync<UserModels>();
+
+                        if (user != null)
+                        {
+                            await sessionStorage.SetAsync("userId", userdata.UserId);
+                            await sessionStorage.SetAsync("GroupCode", userdata.GroupCode);
+                            await sessionStorage.SetAsync("BranchCode", userdata.BranchCode);
+                            await sessionStorage.SetAsync("UserName", userdata.Username);
+                            await sessionStorage.SetAsync("RoleName", userdata.RoleName);
+                            await sessionStorage.SetAsync("UserType", userdata.UserType);
+                            await sessionStorage.SetAsync("RoleId", userdata.RoleId);
+                            await sessionStorage.SetAsync("authToken", userdata.Token);
+                            PermissionState.RoleId = userdata.RoleId;
+                            if (userdata.RoleName != "" && userdata.RoleName != null)
+                            {
+                                nav.NavigateTo("/" + userdata.RoleDashBoard);
+                            }
+                            else
+                            {
+                                nav.NavigateTo($"/?name=error");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        nav.NavigateTo($"/?name=error");
+                    }
+                }
+                else
+                {
+                    nav.NavigateTo($"/?name=error");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+    }
+}

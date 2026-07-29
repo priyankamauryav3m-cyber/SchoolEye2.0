@@ -1,0 +1,165 @@
+﻿@page "/month"
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Month </p>
+                <div class="d-flex gap-2">
+                    @* <button class="ui fade op-1 animated button form-btn" @onclick="AddMonthModel">
+                        <div class="visible content">Add</div>
+                        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
+                    </button> *@
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddMonthModel" />
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.MonthName)" Title="Month Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Month Name..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.MonthNo)" Class="text-center" Title="Month No" Sortable="true"  Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Class="text-center" Title="Display Order" Sortable="true" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditMonth(context)" OnStatusClick="() => ChangeMonthStatus(context.Sid, context.IsValid)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((monthModel.Sid == 0) ? "Add Month" : "Edit Month")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@monthModel" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="monthModel.MonthName" maxlength="12" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Month Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => monthModel.MonthName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="monthModel.MonthNo" maxlength="2" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Month No <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => monthModel.MonthNo)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="monthModel.DisplayOrder" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        DisplayOrder <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => monthModel.DisplayOrder)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="monthModel.Sid" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (monthlist.Count > 0)
+    {
+    }
+}
+
+
+

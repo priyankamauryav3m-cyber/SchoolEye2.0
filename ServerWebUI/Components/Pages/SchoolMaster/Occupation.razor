@@ -1,0 +1,155 @@
+﻿@page "/occupation"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Occupation </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddOccupation" />
+              
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="Occupation" Sortable="true">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Occupation..." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @context.OccupationName?.ToUpper()
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditOccupation(context)" OnStatusClick="() => ChangeOccupationStatus(context.OccupationId, context.IsValid)" />
+                                </TemplateColumn>
+                               
+                            </QuickGrid>
+                         
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((occupation.OccupationId == 0) ? "Add Occupation" : "Edit Occupation")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@occupation" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator/>
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="occupation.OccupationName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                    <label class="floating-label">
+                                        Occupation Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => occupation.OccupationName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="occupation.Type" autocomplete="off" maxlength="50" />
+                                    <label class="floating-label">
+                                        Type <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => occupation.Type)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="occupation.Remarks" autocomplete="off" />
+                                    <label class="floating-label">Remarks</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="occupation.OccupationId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (getoccupationlist.Count > 0)
+    {
+    }
+}
+
+
+
+
+
+
+

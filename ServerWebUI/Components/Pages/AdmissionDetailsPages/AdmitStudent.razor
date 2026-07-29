@@ -1,0 +1,679 @@
+﻿@page "/admitStudent"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JSs
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@inject ICommonMethod  _commonmethod
+@inject IJSRuntime JS
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+<style>
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Admit Student</p>
+                <div class="d-flex align-items-center gap-2">
+
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x=>x.IsValid==true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+
+                        <div class="position-relative">
+                            <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                @SelectedText
+                            </button>
+                            <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                                <div class="form-check">
+                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
+                                    <span> All</span>
+                                </div>
+                                @foreach (var item in classlist.Where(x => x.IsValid == true))
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" />
+                                        <span>@item.ClassName</span>
+                                    </div>
+
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByStudent" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn class="text-center" Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div>
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div>
+                                            <input type="checkbox"  @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Class="text-center" Title="Student No." Sortable="true" SortBy="@(GridSort<StudentListResponse>.ByAscending(x => x.ControlNo))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ControlNo) ? " " : context.ControlNo)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student No...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Student Name" Sortable="true" SortBy="@(GridSort<StudentListResponse>.ByAscending(x => x.StudentName))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Studentname...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Gender" Sortable="true" SortBy="@(GridSort<StudentListResponse>.ByAscending(x => x.Gender))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.Gender) ? " " : context.Gender)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Class" Sortable="true" SortBy="@(GridSort<StudentListResponse>.ByAscending(x => x.ControlNo))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                @* <TemplateColumn Title="DOB" Sortable="true" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.DateOfBirth) ? " " : context.DateOfBirth)
+                                    </ChildContent>
+                                </TemplateColumn> *@
+                                <TemplateColumn Title="Father" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FatherName) ? " " : context.FatherName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Mother" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.MotherName) ? " " : context.MotherName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Class="text-center" Title="SMS No."  Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Class="text-center" Sortable="true" Property="@(x => x.DateOfBirth)" Title="DOB" Align="Align.Center" />
+
+                                @* <TemplateColumn Title="ADM. DATE" Sortable="true" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.AdmissionDate) ? " " : context.AdmissionDate)
+                                    </ChildContent>
+                                </TemplateColumn> *@
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.AdmissionDate)" Title="ADM. DATE" Align="Align.Center" />
+
+                                <TemplateColumn Title="Distance"  Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.DistanceName) ? " " : context.DistanceName)
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    @* <AdmitChildButton ButtonText="Export" CurrentUrl="@currentUrl"  /> *@
+                    @* <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="DetailsPopupOpen">
+                            Details
+                        </button>
+                    </div> *@
+                    <div class="form-box">
+                        <button class="table-btn" type="button" @onclick="AdmitStudentDirect">
+                            New
+                        </button>
+                    </div>
+                    <AdmitChildButton ButtonText="Export" CurrentUrl="@currentUrl" Export="ExportExcel" />
+                    <AdmitChildButton ButtonText="Admission Slip" CurrentUrl="@currentUrl" Print="PrintAdmissionSlip" />
+                    <AdmitChildButton ButtonText="Reg.Form" CurrentUrl="@currentUrl" Print="PrintRegForm" />
+                    <AdmitChildButton ButtonText="Bonafide Letter" CurrentUrl="@currentUrl" Print="PrintBonafideCertificate" />
+                    @* <div class="form-box">
+                        <button class="table-btn">  Tuition Certificate </button>
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn">Defaulter Letter</button>
+                    </div>
+                     <div class="form-box">
+                        <button class="table-btn">Receipt Details</button>
+                    </div> *@
+                    @* <div class="form-box">
+                        <button class="table-btn">Character Certificate</button>
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn"> Admission Form</button>
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn"> No Objection Letter</button>
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn">Hr Meet Letter</button>
+                    </div> *@
+                    @* <div class="form-box">
+                        <button class="table-btn"> Dashboard</button>
+                    </div> *@
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">View Student</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@request" OnSubmit="SearchByStudent">
+                        <div class="row gap-10-0">
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="request.Gender" maxlength="10" required>
+                                        <option value="0">-- Select Gender --</option>
+                                        @foreach (var cs in genderModallist.Where(x => x.IsValid == true))
+                                        {
+                                            <option Value="@cs.GenderName">@cs.GenderName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Gender</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="request.SectionId" maxlength="10" required>
+                                        <option value="0">All</option>
+                                    </InputSelect>
+                                    <label class="floating-label">Section</label>
+                                </div>
+
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " type="text" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'')" @bind-Value="request.StudentName" name="" id="" />
+                                    <label class="floating-label">First Name</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="request.StudentNo" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" type="text" name="" id="" />
+                                    <label class="floating-label">Student No.</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " type="date" @ref="dateFromInput" @bind="request.AdmFromDate" @onclick='() => OpenDateFrom("DateFrom")' />
+                                    <label class="floating-label">Adm.Date From</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " type="date" @ref="dateToInput" @bind="request.AdmToDate" @onclick='() => OpenDateFrom("DateTo")' />
+                                    <label class="floating-label">Adm.Date To</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="request.ValidStatus">
+                                        <option value="0" selected>-- Select Status --</option>
+                                        <option value="1">All</option>
+                                        <option value="1">Active</option>
+                                        <option value="0">Deactive</option>
+                                    </InputSelect>
+                                    <label class="floating-label">Status</label>
+                                </div>
+
+
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group static-label">
+                                    <label for="applied" class="floating-label">Student Status</label>
+                                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                        <InputRadioGroup @bind-Value="request.StudentStatus">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("-1")" />
+                                                <label class="form-label">
+                                                    All
+                                                </label>
+                                            </div>
+
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("New")" />
+                                                <label class="form-label">
+                                                    New
+                                                </label>
+                                            </div>
+
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("Old")" />
+                                                <label class="form-label">
+                                                    Old
+                                                </label>
+                                            </div>
+                                        </InputRadioGroup>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-5">
+                                <div class="form-box-group static-label">
+                                    <label for="status" class="floating-label">Student Status</label>
+                                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                        <InputRadioGroup @bind-Value="request.OrderBy">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("1")" />
+                                                <label class="form-label">
+                                                    Order By Adm.No
+                                                </label>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("0")" />
+                                                <label class="form-label">
+                                                    Order By Class
+                                                </label>
+                                            </div>
+
+                                        </InputRadioGroup>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchByStudent" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+<AdmitChild IsVisible="@addstudent" OnClose="@ClosePopup" />
+@* <StudentViewDetails IsVisible="@OpenDetail" OnClose="@ClosePopup" /> *@
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (listResponses.Count > 0)
+    {
+    }
+}
+
+@code {
+    private bool SelectAll = true;
+    private bool IsAllSelected;
+    private bool OpenDetail;
+    public bool IsSelected { get; set; }
+    private List<BranchClassModel> classlist = new();
+    private bool IsLoading = false;
+    private List<GenderModal> genderModallist = new();
+    private List<SessionModel> sessionlist = new();
+    private StudentListRequest request = new();
+    private List<StudentListResponse> listResponses = new();
+    private List<ClassSectionModal> classsectionslist = new();
+    private bool ShowPopup = false;
+    private bool addstudent { get; set; }
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string? nameFilter;
+    private StudentListResponse? selectedRow;
+    private ElementReference dateFromInput;
+    private ElementReference dateToInput;
+    private string? sessionvalue;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? currentUrl;
+
+    private void ToggleAll()
+    {
+        foreach (var row in listResponses)   // Items = your table data
+            row.IsSelected = IsAllSelected;
+    }
+    private void ToggleSelectAll()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = SelectAll;
+        }
+    }
+    private void UpdateSelectAll()
+    {
+        SelectAll = classlist.All(x => x.IsSelected);
+    }
+
+    private string SelectedClassCodes =>
+    string.Join(",", classlist
+        .Where(x => x.IsSelected)
+        .Select(x => x.ClassCode));
+    private string SelectedText => SelectAll ? "All Class Selected" :
+        string.Join(", ", classlist .Where(x => x.IsSelected).Select(x => x.ClassName));
+    private async Task OpenDateFrom(string value)
+    {
+        if (value == "DateFrom")
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateFromInput);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateToInput);
+
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+        classsectionslist = await httpService.Get<List<ClassSectionModal>>("ClassSection/GetClassSection") ?? new();
+        StateHasChanged();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            //sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            foreach (var item in classlist)
+            {
+                item.IsSelected = true;
+            }
+            StateHasChanged();
+        }
+    }
+    protected IQueryable<StudentListResponse> moduleQuery
+    {
+        get
+        {
+            var result = listResponses.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.AdmissionNo != null && x.AdmissionNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+        request.StudentStatus = "-1";
+        request.OrderBy = "1";
+
+    }
+    private async Task PrintBonafideCertificate()
+    {
+        try
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            selectedRow = data[0];
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateBonafideLetter", selectedRow);
+            if (response.Success)
+            {
+                var pdfBytes = response.Data;
+                await JS.InvokeVoidAsync("viewPdf", pdfBytes);
+                //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+            }
+        }
+        catch
+        {
+            return;
+        }
+        finally
+        {
+            selectedRow = null;
+            StateHasChanged();
+        }
+    }
+    private async Task PrintAdmissionSlip()
+    {
+        try
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0) 
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateSlip", data);
+            if (response.Success)
+            {
+                var pdfBytes = response.Data;
+                await JS.InvokeVoidAsync("viewPdf", pdfBytes);
+                // await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+            }
+        }
+        catch
+        {
+            return;
+        }
+        finally
+        {
+            selectedRow = null;
+            StateHasChanged();
+        }
+    }
+    private async Task OnPrintClick()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0) // check if nothing is selected
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+        if (isPdf)
+        {
+           // await PrintPdfList(data);
+
+        }
+        else if (isExcel)
+        {
+
+        //    await PrintExcel(data);
+        }
+
+    }
+    private async Task PrintRegForm()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAdmissionForms", data);
+        if (response.Success)
+        {
+            var pdfBytes = response.Data;
+            await JS.InvokeVoidAsync("viewPdf", pdfBytes);
+            //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+        }
+        StateHasChanged();
+    }
+    private async Task ExportExcel()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        var response = await httpService.Post<ApiResponse<object>>("Export/ExportStudentReport", data);
+        if (response.Success)
+        {
+            var pdfBytes = response.Data;
+            await JS.InvokeVoidAsync("downloadExcel", pdfBytes, "Student.xlsx");
+            //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+        }
+        IsSelected = false;
+        StateHasChanged();
+    }
+    private async Task SearchByStudent()
+    {
+        IsLoading = true;
+        request.GroupCode = groupcode;
+        request.BranchCode = branchcode;
+        request.SessionId = CurrentSession;
+        request.ClassCode = SelectedClassCodes;
+        //if (request.AdmFromDate.HasValue && request.AdmToDate.HasValue && request.AdmFromDate.Value.Date > request.AdmToDate.Value.Date)
+        if (request.AdmFromDate.HasValue && request.AdmToDate.HasValue && request.AdmFromDate.Value.Date > request.AdmToDate.Value.Date)
+        {
+            return;
+        }
+        ShowPopup = false;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "registration/StudentList";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentListResponse>>>(apiUrl, request);
+            if (apiResponse.Success)
+            {
+                listResponses = apiResponse.Data ?? new List<StudentListResponse>();
+            }
+            else
+            {
+                listResponses = new List<StudentListResponse>();
+            }
+        }
+        catch
+        {
+            listResponses = new List<StudentListResponse>();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task AdmitStudentDirect()
+    {
+        addstudent = true;
+        StateHasChanged();
+
+    }
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+    }
+    private void DetailsPopupOpen()
+    {
+        OpenDetail = true;
+    }
+
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        addstudent = false;
+    }
+
+
+
+}

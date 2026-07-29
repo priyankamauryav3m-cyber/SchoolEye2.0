@@ -1,0 +1,197 @@
+﻿@* @page "/GoogleFB"
+@using DomainModel.User
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using ServerWebUI.Components.Common
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager nav
+@inject ProtectedSessionStorage sessionStorage
+@inject HttpClient http
+@inject IJSRuntime jsRuntime
+@inject IStringLocalizer<Resource> Localizer
+@inject PermissionState PermissionState
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+    private string? email;
+    private string? name;
+    private CustomAlert customAlert;
+    UserModels? userdata;
+    protected override async Task OnInitializedAsync()
+    {
+
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+
+                if (user.Identity?.IsAuthenticated ?? false)
+                {
+                    email = user.FindFirst(ClaimTypes.Email)?.Value;
+                    name = user.FindFirst(ClaimTypes.Name)?.Value;
+                    var request = new { Email = email };
+                    var response = await http.PostAsJsonAsync("users/LoginGoogle", request);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        userdata = await response.Content.ReadFromJsonAsync<UserModels>();
+                        if (userdata != null)
+                        {
+                            await sessionStorage.SetAsync("userId", userdata.UserId);
+                            await sessionStorage.SetAsync("GroupCode", userdata.GroupCode);
+                            await sessionStorage.SetAsync("BranchCode", userdata.BranchCode);
+                            await sessionStorage.SetAsync("UserName", userdata.Username);
+                            await sessionStorage.SetAsync("RoleName", userdata.RoleName);
+                            await sessionStorage.SetAsync("UserType", userdata.UserType);
+                            await sessionStorage.SetAsync("RoleId", userdata.RoleId);
+                            await sessionStorage.SetAsync("authToken", userdata.Token);
+                            PermissionState.RoleId = userdata.RoleId;
+                            nav.NavigateTo("/" + userdata.RoleDashBoard);
+                        }
+
+                    }
+                }
+                else
+                {
+                    nav.NavigateTo("/", true);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                Console.WriteLine("Request was cancelled");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+        }
+
+    }
+
+} *@
+
+
+@page "/GoogleFB"
+@using DomainModel.User
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using ServerWebUI.Components.Common
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager nav
+@inject ProtectedSessionStorage sessionStorage
+@inject HttpClient http
+@inject IJSRuntime jsRuntime
+@inject IStringLocalizer<Resource> Localizer
+@inject PermissionState PermissionState
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    private string? email;
+    private string? name;
+    private CustomAlert customAlert;
+    private UserModels? userdata;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get authenticated user info
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated ?? false)
+            {
+                email = user.FindFirst(ClaimTypes.Email)?.Value;
+                name = user.FindFirst(ClaimTypes.Name)?.Value;
+
+                if (!string.IsNullOrEmpty(email))
+                {
+                    var request = new { Email = email };
+
+                    // Call backend API to login
+                    var response = await http.PostAsJsonAsync("users/LoginGoogle", request);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        userdata = await response.Content.ReadFromJsonAsync<UserModels>();
+
+                        if (userdata != null)
+                        {
+                            // Use InvokeAsync to ensure JSInterop safe
+                            await InvokeAsync(async () =>
+                            {
+                                try
+                                {
+                                    await sessionStorage.SetAsync("authToken", userdata.Token);
+                                    await sessionStorage.SetAsync("userId", userdata.UserId);
+                                    await sessionStorage.SetAsync("UserName", userdata.Username);
+                                    await sessionStorage.SetAsync("GroupCode", userdata.GroupCode);
+                                    await sessionStorage.SetAsync("BranchCode", userdata.BranchCode);
+                                    await sessionStorage.SetAsync("RoleName", userdata.RoleName);
+                                    await sessionStorage.SetAsync("RoleId", userdata.RoleId);
+                                    await sessionStorage.SetAsync("UserType", userdata.UserType);
+
+                                    PermissionState.RoleId = userdata.RoleId;
+
+                                    // Navigate to user dashboard safely
+                                    var dashboardUrl = string.IsNullOrEmpty(userdata.RoleDashBoard)
+                                        ? "/"
+                                        : "/" + userdata.RoleDashBoard;
+
+                                    nav.NavigateTo(dashboardUrl);
+                                }
+                                catch (JSDisconnectedException)
+                                {
+                                    Console.WriteLine("Circuit disconnected, session storage skipped.");
+                                    nav.NavigateTo("/"); // fallback
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"SessionStorage error: {ex.Message}");
+                                    nav.NavigateTo("/"); // fallback
+                                }
+                            });
+                        }
+                        else
+                        {
+                            await customAlert.ShowCustomAlert(Localizer["User data not found"], false);
+                        }
+                    }
+                    else
+                    {
+                        await customAlert.ShowCustomAlert(Localizer["Login failed"], false);
+                    }
+                }
+                else
+                {
+                    await customAlert.ShowCustomAlert(Localizer["Email not found"], false);
+                }
+            }
+            else
+            {
+                // User not authenticated, redirect to home
+                nav.NavigateTo("/", true);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            Console.WriteLine("Request cancelled (timeout or circuit disconnect).");
+            await customAlert.ShowCustomAlert(Localizer["Request cancelled"], false);
+        }
+        catch (JSDisconnectedException)
+        {
+            Console.WriteLine("Circuit disconnected during initialization.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+            await customAlert.ShowCustomAlert(Localizer["Something went wrong"], false);
+        }
+    }
+}

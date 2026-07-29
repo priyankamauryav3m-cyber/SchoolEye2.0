@@ -1,0 +1,671 @@
+﻿@page "/feecollections"
+@using DomainModel.Admin
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@inject IHttpClientFactory ClientFactory
+@using System.Net
+@using System.Text.Json
+@inject NavigationManager Nav
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@inject ProtectedSessionStorage sessionStorage
+<section class="main-container">
+    <div class="row m-0 main-row">
+
+        <!-- Page header start -->
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Fee Collection</p>
+                <div class="d-flex gap-2">
+                    <div class="d-flex filter-commbo">
+                        <div class="ad-search">
+                            <div class="ui right action left icon input">
+                                <i class="bi bi-search icon"></i>
+                                <input type="text" class="input-box" placeholder="Search">
+
+                            </div>
+                        </div>
+                        <button class="icon-btn icon-btn-white open-popup" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                    </div>
+
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Page header end -->
+
+        <div class="left-right-content position-relative">
+            <div class="left-content row d-block">
+
+                <!-- Page filter start -->
+                <div class="col-12 p-1">
+                    <div class="page-heading px-1 py-2">
+                        <div class="row m-0 gap-7-0">
+
+                            <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                <div class="form-box">
+                                    <label for="" class="form-label">Search</label>
+                                    <input type="text" name="" id="" class="form-input">
+                                </div>
+                            </div>
+
+                            <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                <div class="form-box">
+                                    <label for="" class="form-label">Session</label>
+                                    <select name="" id="" class="form-input">
+                                        <option value="null" selected>---</option>
+                                        <option value="2025-26">2025-26</option>
+                                        <option value="2024-25">2024-25</option>
+                                        <option value="2023-24">2023-24</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                <div class="form-box">
+                                    <label for="borth" class="form-label">Receipt Date</label>
+                                    <input type="date" class="form-input">
+                                </div>
+                            </div>
+
+
+                            <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                <div class="form-box">
+                                    <label for="student-number" class="form-label">Receipt No.</label>
+                                    <input type="text" name="" id="" class="form-input" value="342412">
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                <div class="form-box">
+                                    <label for="student-type" class="form-label">Student Type</label>
+                                    <select name="" id="" class="form-input">
+                                        <option value="all" selected>All</option>
+                                        <option value="new">New</option>
+                                        <option value="old">Old</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1 d-flex align-items-end justify-content-end">
+                                <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                                    <div class="visible content">Search</div>
+                                    <div class="hidden content">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Page filter end -->
+
+                <div class="col-12 px-1">
+                    <hr class="card-hr">
+                </div>
+
+                <!-- Student details start -->
+                <div class="col-12 p-1">
+                    <div class="card p-2 pt-1">
+                        <div class="card-headline d-flex align-items-center justify-content-between">
+                            <p class="m-0 headline-text">Student Details</p>
+                            <div class="d-flex align-items-center gap-2">
+                                <label for="show-discharged" class="cursor-pointer">Show Discharged</label>
+                                <input type="checkbox" name="" id="show-discharged"
+                                       class="head-checkbox cursor-pointer">
+                            </div>
+                        </div>
+                        <div class="card-body pb-1">
+                            <div class="row gap-7-0">
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Student Name</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Class</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Roll Number</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Transport</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Concession</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Phone Number</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Hostel</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Est. Amount</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                    <div class="form-box">
+                                        <label for="borth" class="form-label">
+                                            Fee Date
+                                        </label>
+                                        <input type="date" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-8 col-sm-6 col-md-4 col-lg-4 col-xl-4 px-1">
+                                    <div class="form-box">
+                                        <label for="" class="form-label">Next Fee Remainder</label>
+                                        <input type="text" name="" id="" class="form-input">
+                                    </div>
+                                </div>
+
+                                <div class="col-4 col-sm-6 col-md-2 col-lg-2 col-xl-2 px-1 d-flex align-items-end justify-content-end">
+                                    <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                                        <div class="visible content">Update</div>
+                                        <div class="hidden content">
+                                            <i class="bi bi-cloud-check"></i>
+                                        </div>
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- Student information end -->
+                <!-- Student sibling start -->
+                <div class="col-12 p-1">
+                    <div class="card p-2 pt-1">
+                        <div class="card-headline d-flex align-items-center justify-content-between">
+                            <p class="m-0 headline-text">Sibling Information</p>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="#" class="link-primary add-btn"><i class="bi bi-plus"></i></a>
+                            </div>
+                        </div>
+                        <div class="card-body p-0 pt-1">
+                            <!-- Table start  -->
+                            <div class="table-card m-1 p-0 scrollbar-thin" style="max-height: 138px;">
+                                <table id="sibling-list-table" class="basic-table">
+                                    <thead class="list-head position-sticky top-0">
+                                        <tr class="list-head-row">
+                                            <th>Addmision Number</th>
+                                            <th>Student Name</th>
+                                            <th>Father Name</th>
+                                            <th>Class</th>
+                                            <th>Concession</th>
+                                            <th>Fee Amount</th>
+                                            <th>Fee Deposit</th>
+                                            <th>Action</th>
+                                        </tr>
+
+                                    </thead>
+                                    <tbody class="list-body">
+
+                                        <tr class="list-body-row open-popup">
+                                            <td class="text-end">15474</td>
+                                            <td class="text-left">Ramesh Kumar</td>
+                                            <td class="text-left">Amarjeet</td>
+                                            <td class="text-left">Nursery</td>
+                                            <td class="text-end">00</td>
+                                            <td class="text-end">2548.00</td>
+                                            <td class="text-end">4878.00</td>
+                                            <td class="text-center">
+                                                <div class="action-btn">
+                                                    <i class="bi bi-exclamation-circle text-prp prp-act-btn border-0"></i>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="list-body-row open-popup">
+                                            <td class="text-end">35474</td>
+                                            <td class="text-left">Mahima</td>
+                                            <td class="text-left">Amarjeet</td>
+                                            <td class="text-left">X</td>
+                                            <td class="text-end">12</td>
+                                            <td class="text-end">325.00</td>
+                                            <td class="text-end">7841.00</td>
+                                            <td class="text-center">
+                                                <div class="action-btn">
+                                                    <i class="bi bi-exclamation-circle text-prp prp-act-btn border-0"></i>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Table end  -->
+                        </div>
+
+                    </div>
+                </div>
+                <!-- Student sibling end -->
+                <!-- Payment detail start -->
+                <div class="col-12 p-1">
+                    <div class="card p-2 pt-1">
+                        <div class="card-headline d-flex align-items-center justify-content-between">
+                            <p class="m-0 headline-text">Payment Detail</p>
+                        </div>
+                        <div class="card-body p-0 pt-1">
+                            <div class="row m-0 my-1">
+                                <div class="col-3 gap-1 px-1 d-flex flex-column">
+                                    <div class="form-box">
+                                        <select name="" id="" class="form-input">
+                                            <option value="" selected>Select Fee Category</option>
+                                            <option value="main">Main</option>
+                                            <option value="main-2">Main 2</option>
+
+                                        </select>
+                                    </div>
+
+                                    <div class="form-box">
+                                        <select name="" id="" class="form-input">
+                                            <option value="" selected>Select Deposit Upto</option>
+                                            <option value="1000">1000</option>
+                                            <option value="2000">2000</option>
+                                            <option value="3000">3000</option>
+                                        </select>
+                                    </div>
+
+                                </div>
+
+                                <div class="col-9 px-1">
+
+                                    <!-- Table start  -->
+                                    <div class="table-card m-0 p-0 scrollbar-thin">
+                                        <table id="sibling-list-table"
+                                               class="unstackable ui simple-table celled table student-list-tb basic-table"
+                                               style="width:100%">
+                                            <thead class="list-head position-sticky top-0">
+                                                <tr class="list-head-row">
+                                                    <th>Balance</th>
+                                                    <th>Total</th>
+                                                    <th>Discount</th>
+                                                    <th>Fine</th>
+                                                </tr>
+
+                                            </thead>
+                                            <tbody class="list-body">
+                                                <tr class="list-body-row open-popup">
+                                                    <td class="text-end">1547.00</td>
+                                                    <td class="text-end">4578.00</td>
+                                                    <td class="text-end">10%</td>
+                                                    <td class="text-end">200.00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <!-- Table end  -->
+                                </div>
+
+                                <div class="col-12 px-1">
+                                    <hr class="card-hr">
+                                </div>
+
+                                <div class="col-12 p-0">
+                                    <div class="row m-0 gap-7-0">
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="" class="form-label">Pay Mode</label>
+                                                <select name="" id="" class="form-input">
+                                                    <option value="cash" selected>Cash</option>
+                                                    <option value="BankModeling">BankModeling</option>
+                                                    <option value="card">Card</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">T Charge</label>
+                                                <input type="text" name="" id="" class="form-input" value="100">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">Cheque Number</label>
+                                                <input type="text" name="" id="" class="form-input">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">BankModel Detail</label>
+                                                <input type="text" name="" id="" class="form-input">
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="borth" class="form-label">Pay Date</label>
+                                                <input type="date" class="form-input">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-type" class="form-label">Discount By</label>
+                                                <select name="" id="" class="form-input">
+                                                    <option value="" selected>Select</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="teacher">Teacher</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">Remarks</label>
+                                                <input type="text" name="" id="" class="form-input">
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">Tax Charge</label>
+                                                <input type="text" name="" id="" class="form-input" value="0">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">Payable Amount</label>
+                                                <input type="text" name="" id="" class="form-input" value="0">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">Received Amount</label>
+                                                <input type="text" name="" id="" class="form-input" value="0">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1">
+                                            <div class="form-box">
+                                                <label for="student-number" class="form-label">Received Amount</label>
+                                                <input type="text" name="" id="" class="form-input" value="0">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-sm-4 col-md-2 col-lg-2 col-xl-2 px-1 d-flex align-items-end justify-content-end">
+                                            <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                                                <div class="visible content">Save</div>
+                                                <div class="hidden content">
+                                                    <i class="fa fa fa-save"></i>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- Payment detail end -->
+                <!-- Student receipt start -->
+                <div class="col-12 p-1">
+                    <div class="card p-2 pt-1">
+                        <div class="card-headline d-flex align-items-center justify-content-between">
+                            <p class="m-0 headline-text">Previous Receipt of Student</p>
+                        </div>
+                        <div class="card-body p-0 pt-1">
+                            <!-- Table start  -->
+                            <div class="table-card m-1 p-0 scrollbar-thin" style="max-height: 175px;">
+                                <table id="sibling-list-table"
+                                       class="unstackable ui simple-table celled table student-list-tb basic-table"
+                                       style="width:100%">
+                                    <thead class="list-head position-sticky top-0">
+                                        <tr class="list-head-row">
+                                            <th>Receipt No.</th>
+                                            <th>Receipt Date</th>
+                                            <th>Pre. Bal.</th>
+                                            <th>Actual Fee</th>
+                                            <th>Spe. Discount</th>
+                                            <th>Fee</th>
+                                            <th>Received</th>
+                                            <th>Balance</th>
+                                            <th>Return</th>
+                                            <th>Remarks</th>
+                                            <th>Pay Mode</th>
+                                            <th>Fee Month</th>
+                                            <th>Action</th>
+                                        </tr>
+
+                                    </thead>
+                                    <tbody class="list-body">
+
+                                        <tr class="list-body-row open-popup">
+                                            <td class="text-end">15474</td>
+                                            <td class="text-end">20 Mar 24</td>
+                                            <td class="text-end">1248.00</td>
+                                            <td class="text-end">56245.00</td>
+                                            <td class="text-end">20%</td>
+                                            <td class="text-end">56245.00</td>
+                                            <td class="text-end">4878.00</td>
+                                            <td class="text-end">1245.00</td>
+                                            <td class="text-end">00.00</td>
+                                            <td class="text-left">Lorem ipsum</td>
+                                            <td class="text-left">UPI</td>
+                                            <td class="text-left">Mar-Apr</td>
+                                            <td>
+                                                <div class="action-btn">
+                                                    <i class="bi bi-trash red-act-btn"></i>
+                                                    <i class="bi bi-eye prp-act-btn"></i>
+                                                    <i class="bi bi-printer blue-act-btn"></i>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="list-body-row open-popup">
+                                            <td class="text-end">15474</td>
+                                            <td class="text-end">20 Mar 24</td>
+                                            <td class="text-end">1248.00</td>
+                                            <td class="text-end">56245.00</td>
+                                            <td class="text-end">20%</td>
+                                            <td class="text-end">56245.00</td>
+                                            <td class="text-end">4878.00</td>
+                                            <td class="text-end">1245.00</td>
+                                            <td class="text-end">00.00</td>
+                                            <td class="text-left">Lorem ipsum</td>
+                                            <td class="text-left">UPI</td>
+                                            <td class="text-left">Mar-Apr</td>
+                                            <td>
+                                                <div class="action-btn">
+                                                    <i class="bi bi-trash red-act-btn"></i>
+                                                    <i class="bi bi-eye prp-act-btn"></i>
+                                                    <i class="bi bi-printer blue-act-btn"></i>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Table end  -->
+
+                            <hr class="card-hr m-0">
+                            <div class="row m-0 mt-2">
+                                <div class="col-12 p-0 d-flex align-items-center justify-content-end gap-2">
+                                    <button class="table-btn" tabindex="0">
+                                        Export
+                                    </button>
+                                    <button class="table-btn" tabindex="0">
+                                        Print
+                                    </button>
+                                    <button class="table-btn" tabindex="0">
+                                        New
+                                    </button>
+                                    <button class="table-btn" tabindex="0">
+                                        Search
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- Student receipt end -->
+
+            </div>
+            <div class="right-link card">
+                <div class="important-link-box">
+                    <div class="important-link-head">
+                        <p class="m-0">Quick Link</p>
+                        <i class="bi bi-list" id="important-hide-btn"></i>
+                    </div>
+                    <ul class="important-ul">
+
+                        @foreach (var item in menus.OrderBy(x => x.DisplayOrder))
+                        {
+                            <li>
+                                <NavLink class="important-btn" href="@item.URL"
+                                         Match="NavLinkMatch.All">
+                                    <span>@item.DisplayName</span>
+                                    <i class="bi bi-cash-stack important-link-ico"></i>
+                                </NavLink>
+                            </li>
+                        }
+
+                     @*    <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Fee Receipt">
+                                <span>Fee Receipt</span>
+                                <i class="bi bi-cash-stack important-link-ico"></i>
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Due Payments">
+                                <span>Due Payments </span>
+                                <i class="bi bi-stopwatch important-link-ico"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Expense">
+                                <span>Expense </span>
+                                <i class="bi bi-clipboard-data important-link-ico"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Exam Schedule">
+                                <span>Exam Schedule </span>
+                                <i class="bi bi-speedometer2 important-link-ico"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Marks Entry">
+                                <span>Marks Entry </span>
+                                <i class="bi bi-file-text important-link-ico"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Performance">
+                                <span>Performance </span>
+                                <i class="bi bi-award important-link-ico"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Result Report">
+                                <span>Result Report </span>
+                                <i class="bi bi-kanban important-link-ico"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="m-0">
+                        </li>
+                        <li>
+                            <a href="#" class="important-btn" data-toggle="tooltip" data-placement="left" data-bs-original-title="Attendance">
+                                <span>Attendance </span>
+                                <i class="bi bi-bar-chart-steps important-link-ico"></i>
+                            </a>
+                        </li> *@
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+
+@code {
+
+        private bool _isFirstRender = true;
+    private List<RoleaBase> menus = new();
+    private string? roleId;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("importantLink");
+            await GetMenuMappingList();
+            StateHasChanged();
+        }
+    }
+    protected async Task GetMenuMappingList()
+    {
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
+        menus = await Http.GetFromJsonAsync<List<RoleaBase>>(apiUrl)?? new();
+    }
+}
+                        

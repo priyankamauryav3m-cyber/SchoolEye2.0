@@ -1,0 +1,53 @@
+﻿@using ServerWebUI.Components.Common
+@inject PermissionState PermissionState
+@if (ShowSaveButton)
+{
+    <button type="submit" class="ui fade op-1 animated button form-btn">
+
+        <div class="visible content justify-content-center">@ButtonText</div>
+        <div class="hidden content">
+            @if (Id == 0)
+            {
+                <i class="fa fa-save"></i>
+            }
+            else
+            {
+                <i class="bi bi-cloud-check"></i>
+            }
+        </div>
+    </button>
+}
+@if (ShowCancelButton)
+{
+    <button type="button" class="ui fade op-1 animated button btn-cancle"
+            @onclick="OnClickCancel">
+
+        <div class="visible content">@Text</div>
+        <div class="hidden content">
+            <i class="fa fa-close"></i>
+        </div>
+    </button>
+}
+
+@code {
+    [Parameter] public bool IsValid { get; set; }
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string TextSave { get; set; } = "Save";
+    [Parameter] public string TextUpdate { get; set; } = "Update";
+    [Parameter] public string Text { get; set; } = "Cancel";
+    [Parameter] public EventCallback OnClickCancel { get; set; }
+    private string ButtonText => Id == 0 ? TextSave : TextUpdate;
+    [Parameter] public bool ShowSaveButton { get; set; } = true;
+    [Parameter] public bool ShowCancelButton { get; set; } = true;
+  
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        PermissionState.OnChange -= StateHasChanged;
+    }
+}
+

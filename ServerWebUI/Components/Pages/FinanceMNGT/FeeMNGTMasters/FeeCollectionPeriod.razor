@@ -1,0 +1,1358 @@
+﻿@page "/feeCollectionPeriod"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@using System.Threading.Tasks
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@inject ICommonMethod _commonmethod
+<style>
+    .select-month thead tr:first-child th {
+        min-width: 30px;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Fee Collection Period </p>
+                <div class="d-flex gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchFeeCollection" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddFeePeriod" />
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 ">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input @bind="context.IsSelected" @onclick:stopPropagation="true" type="checkbox" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.PeriodName)" Title="Period Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Period Name..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+                                <TemplateColumn Title="Period Type" Sortable="true" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.PeriodType) ? " " : context.PeriodType)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Period Type..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+
+                                <PropertyColumn Property="@(x => x.NoOfMonth)" Title="No Of Month" Class="text-center" Align="Align.Center">
+
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick=" () => EditFeeCollection(context)" OnStatusClick="() => ChangeFeePeriodStatus(context.PeriodId, context.IsValid)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end gap-2">
+                <button @onclick="SetLetFeeData" type="button" class="table-btn">
+                    View Late Fee
+                </button>
+                <button @onclick="AddletFee" type="button" class="table-btn">
+                    Set Late Fee
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+
+@if (OpenSetletFeePopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-11">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Late Fee Configuration</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="tab-content form-tab-count">
+                        <div class="row gap-15-0 m-0 mt-3">
+
+                            <div class="col-12 col-sm-6 col-md-4 px-2">
+                                <div class="form-box">
+                                    <label for="class" class="form-label"> &nbsp; </label>
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Session : </p>
+                                        <p class="form-label">@SelectSession</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 px-2">
+                                <div class="form-box">
+                                    <label for="class" class="form-label"> Period </label>
+                                    <InputSelect @bind-Value="Searchletfeedata.PeriodId" autocomplete="off" class="form-input">
+                                        <option value="0" selected>All</option>
+                                        @foreach (var data in feeCollectionPeriodlist)
+                                        {
+                                            <option value="@data.PeriodId">@data.PeriodName</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 px-2">
+                                <div class="form-box">
+                                    <label for="class" class="form-label"> Class </label>
+                                    <InputSelect @bind-Value="Searchletfeedata.ClassCode" autocomplete="off" class="form-input">
+                                        <option value="" selected>All</option>
+                                        @foreach (var data in classlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@data.ClassCode">@data.ClassName</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 px-2">
+                                <div class="form-box">
+                                    <label for="remarks" class="form-label"> Penalty Type </label>
+                                    <InputSelect @bind-Value="Searchletfeedata.PenaltyType" autocomplete="off" class="form-input">
+                                        <option value="" selected>All</option>
+                                        <option value="1">Per Day</option>
+                                        <option value="2">Date Range+Per Day</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-2 px-2">
+                                <div class="form-box">
+                                    <label for="remarks" class="form-label">&nbsp;</label>
+                                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchLateFeeConfig" tabindex="0">
+                                        <div class="visible content">Search</div>
+                                        <div class="hidden content">
+                                            <i class="bi bi-search"></i>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="col-12 p-1">
+                            <div class="card">
+                                <div class="card-body table-card p-0 ">
+                                    <div class="quick-main">
+                                        <div class="overflow-auto scrollbar-thin" style="height: calc(100vh - 350px); min-height: 300px;">
+                                            <QuickGrid Items="@Getletfeequiery" Class="table" Pagination="@pagination">
+
+                                                <PropertyColumn Property="@(x => x.PeriodName)" Title="Period Name" Sortable="true" Align="Align.Left">
+                                                    <ColumnOptions>
+                                                        <div class="search-box">
+                                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Period Name..." />
+                                                        </div>
+                                                    </ColumnOptions>
+
+                                                </PropertyColumn>
+                                                <TemplateColumn Title="Class Name" Align="Align.Left">
+                                                    <ChildContent>
+                                                        @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
+                                                    </ChildContent>
+
+                                                </TemplateColumn>
+                                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.StartDate)" Class="text-center" Align="Align.Center" Title="Start Date">
+
+                                                </PropertyColumn>
+                                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.EndDate)" Class="text-center" Align="Align.Center" Title="End Date">
+
+                                                </PropertyColumn>
+
+                                                <PropertyColumn Property="@(x => x.Amount)" Class="text-right" Align="Align.Center" Title=" Late Fine">
+
+                                                </PropertyColumn>
+                                                <PropertyColumn Property="@(x => x.MaxLimit)" Class="text-right" Align="Align.Center" Title="Max Late Fee">
+
+                                                </PropertyColumn>
+                                                <TemplateColumn Title="Status" Align="Align.Center">
+                                                    <ColumnOptions>
+                                                        <div>
+                                                            <label>
+                                                                <input type="radio" checked="@(statusFilter == "2")" name="status" @onchange="() => FilterChangedAsync(2)" /> Both
+                                                            </label>
+                                                            <label>
+                                                                <input type="radio" checked="@(statusFilter == "1")" name="status" @onchange="() => FilterChangedAsync(1)" /> Active
+                                                            </label>
+                                                            <label>
+                                                                <input type="radio" checked="@(statusFilter == "0")" name="status" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                                            </label>
+                                                        </div>
+                                                    </ColumnOptions>
+                                                    <ChildContent>
+                                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                                        </span>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+
+                                                <TemplateColumn Align="Align.Center" Title="Action">
+                                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditLateFeeConfig(context)" OnStatusClick="() => ChangeLateFeeConfigStatus(context.Lid, context.IsValid, context.SessionId)" />
+                                                </TemplateColumn>
+                                            </QuickGrid>
+
+                                        </div>
+                                        <div class="footer-pagination">
+                                            <div class="d-flex align-items-center">
+                                                <div class="welcome-text w-100">
+                                                    <Paginator State="@pagination" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+    @if (OpenEditPopup)
+    {
+        <div class="custom-modal row m-0 align-items-center">
+            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-7">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">Modify Late Fine Configuration</h5>
+                        <button data-access="Close" type="button" @onclick="ClosePopup1" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row gap-15-0 m-0">
+                            <div class="col-12 col-sm-6  px-2">
+                                <div class="form-box">
+                                    <label for="class" class="form-label"> &nbsp; </label>
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Session : </p>
+                                        <p class="form-label">@lateFeeConfig.SessionName</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6  px-2">
+                                <div class="form-box">
+                                    <label for="class" class="form-label"> &nbsp; </label>
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Period Name : </p>
+                                        <p class="form-label">@lateFeeConfig.PeriodName</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6  px-2">
+                                <div class="form-box">
+                                    <label for="class" class="form-label"> &nbsp; </label>
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Class Name : </p>
+                                        <p class="form-label">@lateFeeConfig.ClassName</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 px-2">
+                                <div class="form-box-group">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="lateFeeConfig.StartDate" autocomplete="off" />
+                                    <label class="floating-label">Start Date</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 px-2">
+                                <div class="form-box-group">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="lateFeeConfig.EndDate" autocomplete="off" />
+                                    <label class="floating-label">End Date</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 px-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="lateFeeConfig.Amount" autocomplete="off" />
+                                    <label class="floating-label">Late Fee Amount</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <button type="button" class="ui fade op-1 animated button form-btn" @onclick="UpdateLetFeeConfig">
+                                    <div class="visible content">Update</div>
+                                    <div class="hidden content">
+                                        <i class="bi bi-cloud-check"></i>
+                                    </div>
+                                </button>
+                                <SaveUpdateButton ShowSaveButton="false" OnClickCancel="ClosePopup1" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+
+}
+
+
+@if (OpenAddLetFeePopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Add Late Fee With Class</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup1" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="overflow-auto" style="height: calc(128vh - 280px); min-height: 400px;">
+                    <div class="modal-body">
+                        <div class="tab-content form-tab-count">
+                            <EditForm Model="@feeConfigration" OnValidSubmit="OnSaveLetFeeConfiguration">
+                                <DataAnnotationsValidator />
+                                <div class="row gap-15-0 m-0 mt-2">
+                                    <div class="col-12 col-sm-6 col-md-4 px-2">
+                                        <div class="form-box">
+                                            <label for="remarks" class="form-label"> &nbsp;</label>
+
+                                            <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                <p class="form-label">Session : </p>
+                                                <p class="form-label">@SelectSession</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 px-2">
+                                        <div class="form-box">
+                                            <label for="remarks" class="form-label"> &nbsp;</label>
+
+                                            <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                <p class="form-label">Period Name : </p>
+                                                <p class="form-label">@SelectPeriodName</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputNumber class="floating-input" placeholder=" " @bind-Value="@feeConfigration.Amount" autocomplete="off" required />
+                                            <label class="floating-label">Late Fee Amount</label>
+                                        </div>
+                                        <ValidationMessage For="@(() => feeConfigration.Amount)" />
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputDate class="floating-input" placeholder=" " @bind-Value="@feeConfigration.StartDate" autocomplete="off" required />
+                                            <label class="floating-label">Start Date</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputDate class="floating-input" placeholder=" " @bind-Value="@feeConfigration.EndDate" autocomplete="off" required />
+                                            <label class="floating-label">End Date</label>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputNumber class="floating-input" placeholder=" " @bind-Value="@feeConfigration.MaxAmount" autocomplete="off" required />
+                                            <label class="floating-label">Max Late Fee</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-8 px-2">
+                                        <div class="form-box">
+                                            <label for="status" class="form-label">Penalty Type</label>
+                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                <InputRadioGroup @bind-Value="feeConfigration.PenaltyType">
+
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("1")" />
+                                                        <label class="form-label">
+                                                            Per Day
+                                                        </label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("2")" />
+                                                        <label class="form-label">
+                                                            Date Range + Per Day
+                                                        </label>
+                                                    </div>
+                                                </InputRadioGroup>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-2 px-1">
+                                        <div class="form-box">
+                                            <label for="remarks" class="form-label">&nbsp;</label>
+                                            <button type="submit" class="ui fade op-1 animated button form-btn">
+                                                <div class="visible content">Save</div>
+                                                <div class="hidden content">
+                                                    <i class="bi bi-plus"></i>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </EditForm>
+                            <div class="col-12 p-1">
+                                <div class="card">
+                                    <div class="card-body table-card p-0 ">
+                                        <div class="quick-main">
+                                            <div class="overflow-auto scrollbar-thin" style="height: calc(100vh - 350px); min-height: 300px;">
+                                                <QuickGrid Items="@getAllClasslist.AsQueryable()" Class="table" Pagination="@pagination">
+                                                    <TemplateColumn Title="" Align="Align.Center">
+                                                        <HeaderTemplate>
+                                                            <div class="d-flex align-items-center justify-content-center">
+                                                                <input @onchange="ToggleSelectAll" checked="@isAllSelected" type="checkbox" />
+                                                            </div>
+                                                        </HeaderTemplate>
+                                                        <ChildContent>
+                                                            <div class="d-flex align-items-center justify-content-center">
+                                                                <input @bind="context.IsSelected" @onclick:stopPropagation="true" disabled="@(context.IsMapped > 0)" type="checkbox" />
+                                                            </div>
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="Class Name" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
+                                                        </ChildContent>
+
+                                                    </TemplateColumn>
+                                                    <PropertyColumn Property="@(x => x.Amount)" Class="text-right" Align="Align.Center" Title=" Late Fine">
+
+                                                    </PropertyColumn>
+                                                    <TemplateColumn Title="Order" class="text-center" Align="Align.Center">
+                                                        <ChildContent>
+                                                            @(string.IsNullOrWhiteSpace(context.ClassOrder) ? " " : context.ClassOrder)
+                                                        </ChildContent>
+
+                                                    </TemplateColumn>
+                                                </QuickGrid>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (ShowPopup)
+{
+
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((feeCollectionPeriod.PeriodId == 0) ? "Add Fee Collection Period" : "Edit Fee Collection Period")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+
+                <div class="modal-body pb-0">
+                    <div class="row gap-10-0 d-flex">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2 mt-2">
+
+                            <div class="card">
+                                <div class="card-body table-card p-0">
+                                    <div class="quick-main">
+                                        <QuickGrid Items="@monthmappinglist.Where(x => x.IsValid == true).AsQueryable()" Class="table select-month" Pagination="@pagination">
+                                            <TemplateColumn Align="Align.Center" Title=" ">
+                                                <ChildContent>
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <input type="checkbox" @bind="context.IsSelected" @bind:after="(() => OnMonthChanged(context))" disabled="@(context.IsMapped == 1)"
+                                                               @onclick:stopPropagation="true" />
+                                                    </div>
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                            <PropertyColumn Property="@(x => x.MonthName)" Title="Month Name" Align="Align.Left" />
+                                        </QuickGrid>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2 mt-2">
+                            <EditForm Model="@feeCollectionPeriod" OnValidSubmit="OnSave">
+                                <div class="card">
+                                    <div class="card-body table-card ">
+                                        <DataAnnotationsValidator />
+                                        <div class="row gap-10-0">
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@CurrentSession" name="session" @bind-Value:after="GetMappingMonth">
+                                                        <option value="0" hidden=""></option>
+                                                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                                        {
+                                                            <option value="@data.SessionId">@data.SessionName </option>
+                                                        }
+                                                    </InputSelect>
+                                                    <label class="floating-label">
+                                                        Session Name
+                                                    </label>
+                                                    <ValidationMessage For="@(() => feeCollectionPeriod.SessionName)" />
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-2">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeCollectionPeriod.PeriodType" disabled="@(feeCollectionPeriod.PeriodId > 0)" @bind-Value:after="OnPeriodTypeChanged">
+                                                        <option  value="" selected >--Select--</option>
+                                                        @foreach (var data in PeriodTypeList)
+                                                        {
+                                                            <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                                        }
+                                                    </InputSelect>
+                                                    <label class="floating-label">
+                                                        Period Type <span class="required">*</span>
+                                                    </label>
+                                                    <ValidationMessage For="@(() => feeCollectionPeriod.PeriodType)" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-2">
+                                                <div class="form-box-group">
+                                                    <InputText class="floating-input" placeholder=" " @bind-Value="feeCollectionPeriod.PeriodName" autocomplete="off" />
+                                                    <label class="floating-label">
+                                                        Period Name <span class="required">*</span>
+                                                    </label>
+                                                    <ValidationMessage For="@(() => feeCollectionPeriod.PeriodName)" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-2">
+                                                <div class="form-box-group">
+                                                    <InputDate class="floating-input" placeholder=" " @bind-Value="feeCollectionPeriod.DueFrom" disabled="@(feeCollectionPeriod.PeriodId > 0)" autocomplete="off" />
+                                                    <label class="floating-label">
+                                                        Due From
+                                                    </label>
+                                                </div>
+                                            </div>
+
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-2">
+                                                <div class="form-box-group">
+                                                    <InputDate class="floating-input" placeholder=" " @bind-Value="feeCollectionPeriod.DueTo" disabled="@(feeCollectionPeriod.PeriodId > 0)" autocomplete="off" />
+                                                    <label class="floating-label">
+                                                        Due To
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-2">
+                                                <div class="form-box-group">
+                                                    <InputDate class="floating-input" placeholder=" " @bind-Value="feeCollectionPeriod.FeeDueDate" autocomplete="off" />
+                                                    <label class="floating-label">
+                                                        Fee Due Date <span class="required">*</span>
+                                                    </label>
+                                                    <ValidationMessage For="@(() => feeCollectionPeriod.FeeDueDate)" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <div class="form-group btn-gr">
+                                        <SaveUpdateButton Id="feeCollectionPeriod.PeriodId" OnClickCancel="ClosePopup" />
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </div>
+
+
+
+                    </div>
+                </div>
+
+
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (feeCollectionPeriodlist.Count > 0)
+    {
+    }
+}
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    private CustomAlert customAlert;
+    private FeeCollectionPeriodConfig feeCollectionPeriod = new();
+    private LateFeeConfigData lateFeeConfig = new();
+    private LateFeeConfigData Searchletfeedata = new();
+    private string olddesignation = "";
+    private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
+    private List<LateFeeConfigData> getLateFeelist = new();
+    private List<LateFeeConfigData> getAllClasslist = new();
+    private List<SessionModel> sessionlist = new();
+    private List<MonthModel> monthlist = new();
+    private List<FeeCollectionMonthMappingModel> monthmappinglist = new();
+    private List<PeriodMaster> PeriodTypeList = new();
+    private List<BranchClassModel> classlist = new();
+    private string nameFilter = string.Empty;
+    SearchAnyRequestModel requestModel = new();
+    ActivateModal activateModal = new();
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string statusFilter = "1";
+    private bool IsLoading = true;
+    private bool ShowPopup;
+    private string branchcode;
+    private string groupcode;
+    private string UserName;
+    private long CurrentSession;
+    private string? currentUrl;
+    private bool _disposed;
+    private List<MonthModel> moduleQuery = new();
+    private bool OpenSetletFeePopup = false;
+    private bool OpenAddLetFeePopup = false;
+    private bool OpenEditPopup = false;
+
+    private int? _quarterStartMonth = null;
+    private string? SelectSession = "";
+    private string? SelectPeriodName = "";
+    private LateFeeConfigration feeConfigration = new();
+    private SearchAnyRequestModel requerst = new();
+    public void Dispose()
+    {
+        _disposed = true;
+    }
+
+    private   bool isAllSelected = false;
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        isAllSelected = (bool)e.Value;
+        foreach (var item in getAllClasslist)
+        {
+            item.IsSelected = isAllSelected;
+        }
+    }
+    private void OnMonthChanged(FeeCollectionMonthMappingModel month)
+    {
+        if (_disposed) return;
+
+        if (feeCollectionPeriod.PeriodType != "Quarterly")
+            return;
+
+        if (month.IsSelected)
+        {
+            var sortedMonths = monthmappinglist.OrderBy(x => x.MonthIndex).Where(x => x.IsValid = true).ToList();
+            int currentIndex = sortedMonths.IndexOf(month);
+
+            foreach (var m in sortedMonths)
+            {
+                int idx = sortedMonths.IndexOf(m);
+
+                if (idx >= currentIndex && idx < currentIndex + 3)
+                {
+                    m.IsSelected = true;
+                    m.IsDisabled = false;
+                }
+                else
+                {
+                    m.IsSelected = false;
+                    m.IsDisabled = true;
+                }
+            }
+        }
+        else
+        {
+            if (!monthlist.Any(x => x.IsSelected))
+            {
+                foreach (var m in monthlist)
+                {
+                    m.IsDisabled = false;
+                }
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+    private async Task OnPeriodTypeChanged()
+    {
+        await GetMappingMonth();
+        if (_disposed) return;
+
+        if (feeCollectionPeriod.PeriodType == "Monthly")
+        {
+            foreach (var m in monthlist)
+                m.IsDisabled = false;
+
+            _quarterStartMonth = null;
+        }
+        else
+        {
+            ResetMonths();
+        }
+        InvokeAsync(StateHasChanged);
+    }
+    private void ResetMonths()
+    {
+        foreach (var m in moduleQuery)
+        {
+            m.IsSelected = false;
+            m.IsDisabled = false;
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+
+    }
+
+    protected IQueryable<FeeCollectionPeriodConfig> FilteredItems
+    {
+        get
+        {
+            var result = feeCollectionPeriodlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.PeriodName != null && x.PeriodName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.PeriodType != null && x.PeriodType.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    protected IQueryable<LateFeeConfigData> Getletfeequiery
+    {
+        get
+        {
+            var result = getLateFeelist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.PeriodName != null && x.PeriodName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            moduleQuery = monthlist.OrderBy(x => x.MonthIndex).ToList();
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private async Task SearchLateFeeConfig()
+    {
+
+        try
+        {
+            IsLoading = true;
+            //  var result = FilteredItems.Where(x => x.IsSelected).Select(x => new { x.SessionId, x.PeriodId }).FirstOrDefault();
+            Searchletfeedata.GroupCode = groupcode;
+            Searchletfeedata.BranchCode = branchcode;
+            Searchletfeedata.SessionId = CurrentSession;
+            string ApiUri = "FeeCollectionPeriodConfig/GetLateFeeConfigList";
+            getLateFeelist = await httpService.Post<List<LateFeeConfigData>>(ApiUri, Searchletfeedata) ?? new();
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    private async Task SearchFillClasses()
+    {
+
+        try
+        {
+            IsLoading = true;
+            var result = FilteredItems.Where(x => x.IsSelected).Select(x => new { x.SessionId, x.PeriodId }).FirstOrDefault();
+            feeConfigration.GroupCode = groupcode;
+            feeConfigration.BranchCode = branchcode;
+            feeConfigration.SessionId = result.SessionId;
+            feeConfigration.PeriodId = result.PeriodId;
+            string ApiUri = "FeeCollectionPeriodConfig/GetClassesList";
+            getAllClasslist = await httpService.Post<List<LateFeeConfigData>>(ApiUri, feeConfigration) ?? new();
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        finally
+        {
+            feeConfigration = new();
+            IsLoading = false;
+        }
+    }
+
+    private async Task SearchFeeCollection()
+    {
+
+        try
+        {
+            IsLoading = true;
+            requestModel.GroupCode = groupcode;
+            requestModel.BranchCode = branchcode;
+            requestModel.SessionId = CurrentSession;
+            string ApiUri = "FeeCollectionPeriodConfig/GetFeeCollectionPeriod";
+            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>(ApiUri, requestModel) ?? new();
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        IsLoading = true;
+        string ApiUri1 = "Month/GetMonth";
+        monthlist = await httpService.Get<List<MonthModel>>(ApiUri1) ?? new();
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
+        await SearchFeeCollection();
+        IsLoading = false;
+    }
+    private async Task SetLetFeeData()
+    {
+        OpenEditPopup = false;
+        var sessionName = sessionlist.Where(x => x.SessionId == CurrentSession).Select(x => x.SessionName).FirstOrDefault();
+        if (sessionName != null)
+        {
+            SelectSession = sessionName;
+        }
+        OpenSetletFeePopup = true;
+    }
+    private async Task AddletFee()
+    {
+        var data = FilteredItems.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        await SearchFillClasses();
+        var selectdata = FilteredItems.Where(x => x.IsSelected).Select(x => new { x.SessionName, x.PeriodName }).FirstOrDefault();
+        if (selectdata != null)
+        {
+            SelectSession = selectdata.SessionName;
+            SelectPeriodName = selectdata.PeriodName;
+        }
+        OpenAddLetFeePopup = true;
+    }
+    private async Task AddFeePeriod()
+    {
+        await GetMappingMonth();
+        ShowPopup = true;
+    }
+    private async Task GetMappingMonth()
+    {
+        requestModel.GroupCode = groupcode;
+        requestModel.BranchCode = branchcode;
+        requestModel.SessionId = CurrentSession;
+        requestModel.RequestName = feeCollectionPeriod.PeriodType;
+        var apiResponse = await httpService.Post<ApiResponse<List<FeeCollectionMonthMappingModel>>>("FeeCollectionPeriodConfig/GetQuarterlyMonthMapping", requestModel) ?? new();
+        if (apiResponse.Success)
+        {
+            monthmappinglist = apiResponse.Data ?? new();
+        }
+
+    }
+    private async Task OnSaveLetFeeConfiguration()
+    {
+        try
+        {
+            var classdata = string.Join(",", getAllClasslist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+            if (string.IsNullOrEmpty(classdata))
+            {
+                await customAlert.ShowCustomAlert("Please select a class.", false);
+                StateHasChanged();
+                return;
+            }
+            OpenAddLetFeePopup = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to submit late fees.");
+            if (!submit)
+            {
+                OpenAddLetFeePopup = true;
+                StateHasChanged();
+                return;
+            }
+            var data = FilteredItems?.Where(x => x.IsSelected).Select(x => x.PeriodId).FirstOrDefault();
+
+            feeConfigration.GroupCode = groupcode;
+            feeConfigration.BranchCode = branchcode;
+            feeConfigration.CreatedBy = UserName;
+            feeConfigration.SessionId = CurrentSession;
+            feeConfigration.PeriodId = data.Value;
+            feeConfigration.ClassCode = classdata;
+            string apiUrl = "FeeCollectionPeriodConfig/AddLateFeeConfigration";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, feeConfigration);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 0)
+                {
+                    await Alert.ShowWarning("Late fee" + @Localizer["Already"]);
+                }
+                else if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowSuccess("Late fee" + @Localizer["Inserted"]);
+                }
+                else if (apiResponse.Code == 2)
+                {
+                    await Alert.ShowUpdate("Late fee" + @Localizer["Updated"]);
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+                data = 0;
+                classdata = "";
+                feeConfigration = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        feeCollectionPeriod = new();
+        StateHasChanged();
+        OpenSetletFeePopup = false;
+    }
+    private void ClosePopup1()
+    {
+        lateFeeConfig = new();
+        OpenAddLetFeePopup = false;
+        OpenEditPopup = false;
+    }
+
+    private async Task OnSave()
+    {
+
+        try
+        {
+
+            ShowPopup = false;
+            if (feeCollectionPeriod.PeriodId > 0)
+            {
+                feeCollectionPeriod.MonthNos = string.Join(",", monthmappinglist.Select(x => x.MonthNo));
+                if (string.IsNullOrWhiteSpace(feeCollectionPeriod.MonthNos))
+                {
+                    await Alert.ShowWarning("Please select  month!");
+                    ShowPopup = true;
+                    StateHasChanged();
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(feeCollectionPeriod, olddesignation);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            else
+            {
+                feeCollectionPeriod.MonthNos = string.Join(",", monthmappinglist.Where(x => x.IsSelected).Select(x => x.MonthNo));
+                if (string.IsNullOrWhiteSpace(feeCollectionPeriod.MonthNos))
+                {
+                    await Alert.ShowWarning("Please select  month!");
+                    ShowPopup = true;
+                    StateHasChanged();
+                    return;
+                }
+            }
+            feeCollectionPeriod.IsValid = true;
+            feeCollectionPeriod.GroupCode = groupcode;
+            feeCollectionPeriod.BranchCode = branchcode;
+            feeCollectionPeriod.CreatedBy = UserName;
+            feeCollectionPeriod.SessionId = CurrentSession;
+            feeCollectionPeriod.QuarterName = feeCollectionPeriod.PeriodType == "Quarterly" ? "Qurt" : feeCollectionPeriod.PeriodType == "Monthly" ? "Month" : feeCollectionPeriod.PeriodType == "Custom" ? "Cus" : "";
+            feeCollectionPeriod.NoOfMonth = feeCollectionPeriod.PeriodType == "Quarterly" ? 3 : feeCollectionPeriod.PeriodType == "Custom" ? monthmappinglist.Count(x => x.IsSelected) : 1;
+
+            string apiUrl = "FeeCollectionPeriodConfig/AddUpdateFeeCollection";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, feeCollectionPeriod);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("Fee Period Name" + @Localizer["Already"]);
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Fee Period Name" + @Localizer["Inserted"]);
+            }
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Fee Period Name" + @Localizer["Updated"]);
+            }
+            else
+            {   
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await SearchFeeCollection();
+            feeCollectionPeriod = new FeeCollectionPeriodConfig();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private void EditLateFeeConfig(LateFeeConfigData item)
+    {
+        lateFeeConfig = new LateFeeConfigData
+        {
+            Lid = item.Lid,
+            PeriodId = item.PeriodId,
+            PeriodName = item.PeriodName,
+            SessionName = item.SessionName,
+            SessionId = item.SessionId,
+            ClassCode = item.ClassCode,
+            ClassName = item.ClassName,
+            StartDate = item.StartDate,
+            EndDate = item.EndDate,
+            Amount = item.Amount,
+
+        };
+        OpenEditPopup = true;
+    }
+
+    private async Task EditFeeCollection(FeeCollectionPeriodConfig item)
+    {
+        
+        feeCollectionPeriod = item;
+        await GetMappingMonth();
+        olddesignation = CommonMethod.CreateSnapshot(feeCollectionPeriod);
+        ShowPopup = true;
+    }
+    private async Task UpdateLetFeeConfig()
+    {
+        try
+        {
+            if (lateFeeConfig.Amount <= 0)
+            {
+                await customAlert.ShowCustomAlert("Please enter late fee amount.", false);
+                StateHasChanged();
+                return;
+            }
+
+            OpenEditPopup = false;
+            OpenSetletFeePopup = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to submit this record.");
+            if (!submit)
+            {
+                OpenEditPopup = false;
+                OpenSetletFeePopup = true;
+                StateHasChanged();
+                return;
+            }
+            lateFeeConfig.GroupCode = groupcode;
+            lateFeeConfig.BranchCode = branchcode;
+            lateFeeConfig.CreatedBy = UserName;
+            // feeConfigration.SessionId = CurrentSession;
+            // feeConfigration.PeriodId = data.Value;
+            // feeConfigration.ClassCode = classdata;
+
+            string apiUrl = "FeeCollectionPeriodConfig/UpdateLateFee";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, lateFeeConfig);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 0)
+                {
+                    await Alert.ShowWarning("Late fee" + @Localizer["Already"]);
+                }
+                else if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowUpdate("Late fee" + @Localizer["Updated"]);
+                    OpenSetletFeePopup = true;
+                    await SearchLateFeeConfig();
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+                // data = 0;
+                // classdata = "";
+                // feeConfigration = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+
+
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private async Task ChangeLateFeeConfigStatus(int id, bool isValid, long SessionId)
+    {
+
+        try
+        {
+            OpenSetletFeePopup = false;
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+            {
+                OpenSetletFeePopup = true;
+                StateHasChanged();
+                return;
+            }
+           
+            activateModal.Lid = id;
+            activateModal.CreatedBy = UserName;
+            activateModal.Status = isValid ? 0 : 1;
+            activateModal.SessionId = SessionId;
+            string apiUrl = "FeeCollectionPeriodConfig/ActivateDeactivateLateFeeConfig";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, activateModal);
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                {
+                    await Alert.ShowActive(Localizer["Activated"]);
+                    OpenSetletFeePopup = true;
+                }
+
+                else
+                {
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+                    OpenSetletFeePopup = true;
+                }
+
+
+                await SearchLateFeeConfig();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+
+    private async Task ChangeFeePeriodStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "FeeCollectionPeriodConfig/DeleteFeeCollection";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+}
+
+
+
+
+

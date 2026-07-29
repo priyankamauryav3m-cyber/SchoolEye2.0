@@ -1,0 +1,529 @@
+﻿@using DomainModel.Admin
+@using DomainModel.Enum
+@using DomainModel.SchoolMaster
+@using MyApp.Common
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@using System.Linq;
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title" id="exampleModalLabel">Add Registration Format</h5>
+                    <button data-access="Close" @onclick="ClosePopup" type="button" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@commonData" OnValidSubmit="OnSave">
+                    <div class="modal-body">
+                        <div class="row gap-15-0 ">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group static-label">
+
+                                    <InputSelect @bind-Value="@CurrentSession" class="floating-input">
+                                        <option value="" selected>Select Session</option>
+                                        @foreach (var msg in sessionlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@msg.SessionId">@msg.SessionName</option>
+                                        }
+
+                                    </InputSelect>
+                                    <label class="floating-label">Session</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group static-label">
+
+                                    <div class="position-relative">
+                                        <button class="form-input  w-webkit" type="button" data-bs-toggle="dropdown">
+                                            @SelectedText
+                                        </button>
+                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                                            <div class="form-check">
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
+                                                <span> All</span>
+                                            </div>
+                                            @foreach (var item in classlist.Where(x => x.IsValid == true))
+                                            {
+                                                <div class="form-check ">
+                                                    <input class="form-check-input  map-checkbox me-2" type="checkbox" @bind="item.IsSelected" />
+                                                    <span class=" me-2">@item.ClassName</span>
+                                                </div>
+
+                                            }
+                                        </div>
+
+                                    </div>
+                                    <label class="floating-label">Class Group</label>
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputText @bind-Value="commonData.Name" class="floating-input" />
+                                    <label class="floating-label">Format Name</label>
+
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputText @bind-Value="commonData.Description" class="floating-input" />
+                                    <label class="floating-label">Description</label>
+
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputDate @bind-Value="commonData.StartDate" class="floating-input" />
+                                    <label class="floating-label">Start Date </label>
+
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputDate @bind-Value="commonData.EndDate" class="floating-input" />
+                                    <label class="floating-label">End Date</label>
+
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputText @bind-Value="commonData.StartTime" class="floating-input" />
+                                    <label class="floating-label">Start Time</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <InputText @bind-Value="commonData.EndTime" class="floating-input" />
+                                    <label class="floating-label">End Time</label>
+                                </div>
+                            </div>
+                            @if (classlist.Any(x => x.IsSelected))
+                            {
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12">
+                                    <div class="row m-0">
+
+                                        <div class="col-12 col-sm-12 col-md-12 col-lg-12 p-0">
+                                            <div class="divider-box d-flex justify-content-between align-items-center">
+                                                <p class="total-text-with-bg ">
+                                                    Map CLass
+                                                </p>
+                                                <hr class="m-0 w-webkit text-light-gray op-1">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-sm-12 col-md-12 col-lg-12 p-2 group-box">
+
+                                            <div class="row">
+                                                @foreach (var item in classlist.Where(x => x.IsSelected))
+                                                {
+                                                    <div class="col-12 col-sm-6 col-md-4 col-lg-2">
+                                                        <div class="form-box-group static-label">
+                                                            <label class="floating-label">Class-@item.ClassName</label>
+                                                            <div class="border-box">
+                                                                <div class="row m-0">
+                                                                    <div class="col-6 p-0">
+                                                                        <InputNumber @bind-Value="@item.MinAge" onkeypress="return /^[0-9]$/.test(event.key)"
+                                                                                     oninput="if(this.value.length > 2) this.value = this.value.slice(0,2);"
+                                                                                     class="floating-input w-100 valid border-0" placeholder="MinAge" minlength="2" />
+                                                                    </div>
+                                                                    <div class="col-6 p-0">
+                                                                        <InputNumber @bind-Value="@item.MaxAge" onkeypress="return /^[0-9]$/.test(event.key)"
+                                                                                     oninput="if(this.value.length > 2) this.value = this.value.slice(0,2);"
+                                                                                     class="floating-input w-100 valid border-0" style=" border-left: 1px solid #646464 !important;  border-radius: 0;" placeholder="MaxAge" maxlength="2" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                }
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+         
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-12">
+                                <div class="form-box">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="border-box d-flex justify-content-center align-items-center gap-5">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputCheckbox class="form-input" @bind-Value="commonData.isEmail" />
+                                            <label class="form-label">IsEmail</label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputCheckbox class="form-input" @bind-Value="commonData.isSMS" />
+                                            <label class="form-label">IsSms</label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputCheckbox class="form-input" @bind-Value="commonData.isWhatsapp" />
+                                            <label class="form-label">IsWhatsapp</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box">
+                                    <label for="message-text" class="form-label">Email Text On Submit</label>
+                                    <InputTextArea class="sms-aria form-input" rows="4" @bind-Value="commonData.EmailText" disabled="@(!commonData.isEmail)"></InputTextArea>
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box">
+                                    <label for="message-text" class="form-label">Email Text On Payment</label>
+                                    <InputTextArea class="sms-aria form-input" rows="4" @bind-Value="commonData.EmailTextOnPayment" disabled="@(!commonData.isEmail)"></InputTextArea>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box">
+                                    <label for="message-text" class="form-label">Sms Text On Submit</label>
+                                    <InputTextArea class="sms-aria form-input" rows="4" @bind-Value="commonData.SMSText" disabled="@(!commonData.isSMS)"></InputTextArea>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box">
+                                    <label for="message-text" class="form-label">Sms Text On Payment</label>
+                                    <InputTextArea class="sms-aria form-input" @bind-Value="commonData.SMSTextOnPayment" disabled="@(!commonData.isSMS)"></InputTextArea>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box">
+                                    <label for="message-text" class="form-label">Whatsapp Text On Submit</label>
+                                    <InputTextArea class="sms-aria form-input" @bind-Value="commonData.WhatsappText" disabled="@(!commonData.isWhatsapp)"></InputTextArea>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box">
+                                    <label for="message-text" class="form-label">Whatsapp Text On Payment</label>
+                                    <InputTextArea class="sms-aria form-input" @bind-Value="commonData.WhatsappTextOnPayment" disabled="@(!commonData.isWhatsapp)"></InputTextArea>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <label class="floating-label">Registration Fee </label>
+                                    <InputText @bind-Value="commonData.RegFee" class="floating-input" />
+
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="form-box-group">
+                                    <input class="floating-input" @bind="EnteredPassword" @bind:event="oninput" />
+                                    <label class="floating-label">Password</label>
+                                    @* @if (ShowSuccess)
+                                    {
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            ✅ &nbsp; &nbsp; <strong> Incorrect Password !</strong>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                        </div>
+                                    } *@
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                    <div class="modal-footer">
+
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton OnClickCancel="ClosePopup"></SaveUpdateButton>
+                        </div>
+                    </div>
+
+                </EditForm>
+            </div>
+        </div>
+    </div>
+
+}
+<CustomAlert @ref="customAlert" Title="Alert" />
+<style>
+    .sms-aria {
+        height: 100px;
+    }
+</style>
+@code {
+    private CustomAlert customAlert;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public bool ShowPopup { get; set; }
+    [Parameter] public CommonDomainLarge commonData { get; set; }
+    private string? branchcode;
+    private string? groupcode;
+    private string? sessionvalue;
+    private long CurrentSession;
+    private string Username = "";
+    private bool SelectAll { get; set; } = false;
+    public string? WhatsappTextSubmit { get; set; }
+    public string? WhatsappTextPayment { get; set; }
+    private string? EnteredPassword;
+    private string? ErrorMessage;
+    private bool ShowSuccess;
+    //private SMScommonData commonData = new();
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    [Parameter] public List<RegistrationDto> SelectedStudents { get; set; } = new();
+    [Parameter] public string oldcdataModel { get; set; } = "";
+    private string? oldSelectedClassCodes;
+    private string SelectedClassCodes => string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+    private string agemin => string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.MinAge));
+    private string agemax => string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.MaxAge));
+    protected override void OnParametersSet()
+    {
+
+        if (!string.IsNullOrWhiteSpace(commonData.ClassCode) && commonData.FormatTypeID > 0)
+        {
+            oldSelectedClassCodes = SelectedClassCodes;
+            BindSelectedClasses(commonData.ClassCode, commonData.MinAge, commonData.MaxAge);
+        }
+    }
+    private string SelectedText
+    {
+        get
+        {
+            var selected = classlist.Where(x => x.IsSelected).ToList();
+
+            if (!selected.Any())
+                return "Select Class";
+
+            if (SelectAll)
+                return "All Selected";
+
+            return string.Join(",", selected.Select(x => x.ClassName));
+        }
+    }
+
+    private void BindSelectedClasses(string classCodes, string minAges, string maxAges)
+    {
+        if (string.IsNullOrWhiteSpace(classCodes))
+            return;
+
+        var selectedCodes = classCodes.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                     .Select(x => x.Trim())
+                                     .ToList();
+
+        var minAgeList = minAges?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => x.Trim())
+                                .ToList() ?? new();
+
+        var maxAgeList = maxAges?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => x.Trim())
+                                .ToList() ?? new();
+
+        foreach (var item in classlist)
+        {
+            int index = selectedCodes.FindIndex(x =>
+                string.Equals(x, item.ClassCode?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (index >= 0)
+            {
+                item.IsSelected = true;
+
+                // ✅ Safe assign (edit mode + add mode both handle)
+                if (index < minAgeList.Count && int.TryParse(minAgeList[index], out int min))
+                    item.MinAge = min;
+
+                if (index < maxAgeList.Count && int.TryParse(maxAgeList[index], out int max))
+                    item.MaxAge = max;
+            }
+            else
+            {
+                item.IsSelected = false;
+            }
+        }
+
+        // ✅ Maintain state
+        commonData.ClassCode = string.Join(",", selectedCodes);
+        commonData.MinAge = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.MinAge));
+        commonData.MaxAge = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.MaxAge));
+
+        SelectAll = classlist.All(x => x.IsSelected);
+    }
+    private async Task OnSave()
+    {
+
+        try
+        {
+
+            ShowPopup = false;
+            if (commonData.FormatTypeID > 0)
+            {
+                ShowPopup = false;
+                bool isSame = CommonMethod.IsEdited(commonData, oldcdataModel);
+                bool isClassChanged = oldSelectedClassCodes != SelectedClassCodes;
+
+                if (!isSame && !isClassChanged)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+
+            if (string.IsNullOrEmpty(SelectedClassCodes))
+            {
+                await customAlert.ShowCustomAlert("Please select class!.", false);
+                ShowPopup = true;
+                return;
+            }
+            else if (string.IsNullOrEmpty(commonData.Name))
+            {
+                //await Alert.ShowWarning("Please Select formate name!.");
+                await customAlert.ShowCustomAlert("Please select formate name!.", false);
+                ShowPopup = true;
+                return;
+            }
+            ShowPopup = false;
+            commonData.GroupCode = groupcode;
+            commonData.BranchCode = branchcode;
+            commonData.CreatedBy = Username;
+            commonData.SessionId = CurrentSession;
+            commonData.ClassCode = SelectedClassCodes;
+            commonData.MinAge = agemin;
+            commonData.MaxAge = agemax;
+            commonData.IsValid = true;
+            string apiurl = "Registration/AddOrUpdateFormateType";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiurl, commonData);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == -1)
+                {
+                    await Alert.ShowWarning("Reg Formate" + Localizer["Already"]);
+                    ShowPopup = true;
+                    return;
+
+                }
+                else if (apiResponse.Code == -2)
+                {
+                    await Alert.ShowWarning("This class is already assigned to another format");
+                    ShowPopup = true;
+                    return;
+                }
+                else if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowSuccess("Reg Formate" + Localizer["Inserted"]);
+                }
+                else if (apiResponse.Code == 2)
+                {
+                    await Alert.ShowUpdate("Reg Formate" + Localizer["Updated"]);
+                }
+                else
+                {
+
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+                ResetClass();
+                commonData = new();
+                ShowPopup = false;
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+
+    }
+    private void ResetClass()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = false;
+            item.MinAge = 0;
+            item.MaxAge = 0;
+        }
+        commonData = new();
+        SelectAll = false;
+
+        StateHasChanged();
+    }
+
+    private void ToggleSelectAll()
+    {
+
+        foreach (var item in classlist)
+        {
+            item.IsSelected = SelectAll;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+
+            await LoadData();
+            //sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+
+    }
+    private void CheckPassword()
+    {
+        if (EnteredPassword == "123456")
+        {
+            ShowSuccess = false;
+            ErrorMessage = "";
+            StateHasChanged();
+        }
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        Username = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri2 = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri2) ?? new();
+        StateHasChanged();
+    }
+
+
+    private async Task ClosePopup()
+    {
+        ResetClass();
+        ShowPopup = false;
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+        ResetClass();
+        commonData = new CommonDomainLarge();
+        ErrorMessage = "";
+        EnteredPassword = "";
+    }
+}

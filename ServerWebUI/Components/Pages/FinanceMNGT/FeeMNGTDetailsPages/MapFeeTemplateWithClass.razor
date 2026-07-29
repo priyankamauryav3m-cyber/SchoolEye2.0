@@ -1,0 +1,405 @@
+﻿@page "/MapFeeTemplate"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+
+
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1"> Map Fee Template With Class</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@sessionvalue" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option>@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value=searchAnyRequest.RequestId" class="form-input">
+                            <option value="0" selected>AllTemplateSelected</option>
+                            @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                            {
+                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-box">
+                        <InputSelect @bind-Value=searchAnyRequest.RequestName" class="form-input">
+                            <option value="" selected>AllClassSelected</option>
+                            @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                            {
+                                <option Value="@cs.ClassCode">@cs.ClassName</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByClassName" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="submit" @onclick="MapWithClass" class="ui fade op-1 animated button form-btn">
+                            <div class="visible content justify-content-center">Map</div>
+                            <div class="hidden content">
+                                <i class="bi bi-map"></i>
+                            </div>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+
+                                <PropertyColumn Sortable="true" Property="@(x => x.ClassName)" Title="Class">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="ClassName...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+
+                                <PropertyColumn Sortable="true" Align="Align.Left" Property="@(x => x.TemplateName)" Title="Fee Template">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="FeeTemplate...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                               
+                                <TemplateColumn Title="Action" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <div>
+                                            <button class="btn-icon inactive-btn" @onclick="()=>OnStatusClick(context)">
+                                               UnMap
+                                            </button>
+                                        </div>  
+                                    </ChildContent>
+                                </TemplateColumn>
+                                    
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+      
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Map Fee Template With Class</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@classWiseFeeTemplateModel" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row gap-10-0">
+
+                            <div class="col-12 mt-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@classWiseFeeTemplateModel.SessionId">
+                                    <option  value="" selected >--Select--</option>
+                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                    {
+                                    <option value="@data.SessionId">@data.SessionName </option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Session<span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => classWiseFeeTemplateModel.SessionId)" />
+                                </div>
+                            </div>
+                            <div class="col-12  mt-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="classWiseFeeTemplateModel.ClassCode">
+                                    <option  value="" selected >--Select--</option>
+                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                    {
+                                    <option Value="@cs.ClassCode">@cs.ClassName</option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Class Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => classWiseFeeTemplateModel.ClassCode)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12  mt-3 mb-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="classWiseFeeTemplateModel.DefaultFeeTemplateId">
+                                    <option  value="" selected >--Select--</option>
+                                    @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                                    {
+                                    <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Fee  Template Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => classWiseFeeTemplateModel.DefaultFeeTemplateId)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton  OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (classWiseFeeTemplateList.Count > 0)
+    {
+    }
+}
+
+@code {
+    private List<RegistrationDto> registrationlist = new();
+    private bool ShowPopup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string sessionvalue;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? nameFilter;
+    private string UserName;
+    private bool IsLoading = false;
+    private List<SessionModel> sessionlist = new();
+    private List<ClassWiseFeeTemplateModel> classWiseFeeTemplateList = new();
+    private ClassWiseFeeTemplateModel classWiseFeeTemplateModel = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private List<BranchClassModel> classlist = new();
+    private List<FeeTemplateModel> feeTemplatelist = new();
+    protected IQueryable<ClassWiseFeeTemplateModel> moduleQuery
+    {
+        get
+        {
+            var result = classWiseFeeTemplateList.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.ClassName != null && x.ClassName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.TemplateName != null && x.TemplateName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            
+
+            sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri = "FeeTemplate/GetFeeTemplate";
+        feeTemplatelist = await httpService.Get<List<FeeTemplateModel>>(ApiUri) ?? new();
+        string ApiUri2 = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri2) ?? new();
+        await SearchByClassName();
+        StateHasChanged();
+    }
+    private async Task OnStatusClick(ClassWiseFeeTemplateModel classWiseFee)
+    {
+
+        var submit = await Alert.ShowConfirm("Are you sure unmap this record.?");
+        if (!submit)
+            return;
+        classWiseFeeTemplateModel.SeedId = classWiseFee.SeedId;
+        classWiseFeeTemplateModel.SessionId = classWiseFee.SessionId;
+        classWiseFeeTemplateModel.ClassCode = classWiseFee.ClassCode;
+        classWiseFeeTemplateModel.DefaultFeeTemplateId = classWiseFee.DefaultFeeTemplateId;
+        classWiseFeeTemplateModel.CreatedBy = UserName;
+        classWiseFeeTemplateModel.GroupCode = groupcode;
+        classWiseFeeTemplateModel.BranchCode = branchcode;
+        string apiUrl = "MapFeeTemplateWithCourse/SaveOrUpdateClasswiseFeeTemplate";
+        var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, classWiseFeeTemplateModel);
+        var responsecode = apiResponse.Code;
+        if (responsecode == 2)
+        {
+            await Alert.ShowSuccess("Template unmap successfully!");
+        }
+        else
+        {
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+
+        await SearchByClassName();
+        classWiseFeeTemplateModel = new();
+        StateHasChanged();
+    }
+    private void MapWithClass()
+    {
+        ShowPopup=true;
+        StateHasChanged();
+        classWiseFeeTemplateModel = new();
+    }
+    private async Task OnSave()
+    {
+        try
+        {
+
+            ShowPopup = false;
+            if (classWiseFeeTemplateModel.SessionId == 0)
+            {
+                await Alert.ShowWarning("Please select a session");
+                ShowPopup = true;
+                StateHasChanged();
+                return;
+            }
+            if (classWiseFeeTemplateModel.DefaultFeeTemplateId == 0)
+            {
+                await Alert.ShowWarning("Please select a template");
+                ShowPopup = true;
+                StateHasChanged();
+                return;
+            }
+            classWiseFeeTemplateModel.CreatedBy = UserName;
+            classWiseFeeTemplateModel.GroupCode = groupcode;
+            classWiseFeeTemplateModel.BranchCode = branchcode;
+            string apiUrl = "MapFeeTemplateWithCourse/SaveOrUpdateClasswiseFeeTemplate";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, classWiseFeeTemplateModel);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("Fee Template" + @Localizer["Already"]);
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Map template successfully.!");
+            }
+
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Map Template " + @Localizer["Updated"]);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await SearchByClassName();
+            classWiseFeeTemplateModel = new();
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private void ClosePopup()
+    {
+        ShowPopup=false;
+        StateHasChanged();
+    }
+    private async Task SearchByClassName()
+    {
+        try
+        {
+            IsLoading = true;
+            searchAnyRequest.GroupCode = groupcode;
+            searchAnyRequest.BranchCode = branchcode;
+            searchAnyRequest.SessionId = CurrentSession;
+            string ApiUri2 = "MapFeeTemplateWithCourse/GetClassWiseFeeTemplate";
+            classWiseFeeTemplateList = await httpService.Post<List<ClassWiseFeeTemplateModel>>(ApiUri2, searchAnyRequest) ?? new();
+            IsLoading = false;
+        }
+        catch (Exception)
+        {
+            
+            return;
+        }
+       
+    }
+
+}
+
+

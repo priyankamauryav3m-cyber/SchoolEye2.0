@@ -1,0 +1,1882 @@
+﻿@page "/invoicegeneration"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using System.Data;
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JSs
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@inject IHttpClientFactory ClientFactory
+@inject ICommonMethod _commonmethod
+@inject IJSRuntime JS
+
+<style>
+
+    .sms-aria {
+        height: 64px;
+    }
+
+    .profile-photo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #e5e7eb;
+        background: #fff;
+    }
+
+    .field-title {
+        font-weight: 500;
+        color: #1f2937;
+    }
+
+    .field-value {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+
+    .border-column {
+        border-right: 2px solid #ccc;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        padding-left: 40px;
+    }
+
+ 
+    #splitter {
+        width: 8px;
+        cursor: col-resize;
+        background: #e5e7eb;
+        transition: .2s;
+    }
+
+        #splitter:hover {
+            background: #2563eb;
+        }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <h1 class="m-0 page-name px-1"><strong>View Invoice Dues</strong> </h1>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <select class="form-input">
+                            @foreach (var data in societyModellist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SocietyId">@data.SocietyName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" type="button" tabindex="0" @onclick="SearchStudentAdvamceData">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="split-container" id="splitContainer">
+                <div class="grid-pane" id="gridPane">
+                    <div class="card">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box-with-btn ">
+                                    <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                        <TemplateColumn Title="" class="text-center" Align="Align.Center">
+                                            <HeaderTemplate>
+                                                <div>
+                                                    <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ChildContent>
+                                                <div>
+                                                    <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Admission No" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.AdmissionNo)">
+                                            <ColumnOptions>
+                                                <div class="search-box">
+                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Admission No...." />
+                                                </div>
+                                            </ColumnOptions>
+                                            <ChildContent>
+                                                @(string.IsNullOrEmpty(context.AdmissionNo) ? " " : context.AdmissionNo)
+
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Student Name" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.StudentName)" Align="Align.Left">
+                                            <ColumnOptions>
+                                                <div class="search-box">
+                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student Name...." />
+                                                </div>
+                                            </ColumnOptions>
+                                            <ChildContent>
+                                                @(string.IsNullOrEmpty(context.StudentName) ? " " : context.StudentName)
+                                            </ChildContent>
+                                        </TemplateColumn>
+
+                                        <TemplateColumn Title="Class" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.ClassSection)" Align="Align.Left">
+                                            <ChildContent>
+                                                <div>
+                                                    @(string.IsNullOrEmpty(context.ClassSection) ? " " : context.ClassSection)
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Fee Structure" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.TemplateName)" Align="Align.Left">
+                                            <ChildContent>
+                                                <div>
+                                                    @(string.IsNullOrEmpty(context.TemplateName) ? " " : context.TemplateName)
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="text-right" Align="Align.Center">
+                                            <span>₹ @context.TotalAmount.ToString("N0")</span>
+                                        </TemplateColumn>
+
+                                    </QuickGrid>
+
+                                </div>
+                                <div class="footer-pagination">
+                                    <div class="d-flex align-items-center">
+                                        <div class="welcome-text w-100">
+                                            <Paginator State="@pagination" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="splitter" id="gridSplitter" title="Drag to resize"></div>
+
+                <div class="summary-pane" id="summaryPane">
+                    <div class="card summary-card">
+                        <div class="summary-card-title">
+                            <span>Invoice Summary</span>
+                            <button type="button" class="pin-btn" id="summaryPinBtn" title="Hide summary">
+                                <i class="bi bi-pin-angle-fill"></i>
+                            </button>
+                        </div>
+                        <div class="summary-line">
+                            <div class="summary-line-label"><i class="fa-solid fa-wallet text-blue"></i><span class="fw-bold">Total Amount</span></div>
+                            <div class="summary-line-value text-blue">₹ @TotalAmount.ToString("N2")</div>
+                        </div>
+                        <div class="summary-line">
+                            <div class="summary-line-label"><i class="fa-solid fa-percent text-green"></i><span class="fw-bold">Total Concession</span></div>
+                            <div class="summary-line-value text-green">₹ @TotalConcession.ToString("N2")</div>
+                        </div>
+                        <div class="summary-line">
+                            <div class="summary-line-label"><i class="fa-solid fa-clock-rotate-left text-orange"></i><span class="fw-bold">Total Arrear</span></div>
+                            <div class="summary-line-value text-orange">₹ @TotalArrearAmount.ToString("N2")</div>
+                        </div>
+                        <div class="summary-received">
+                            <span class="lab">Total Received</span>
+                            <span class="val">₹ @TotalReceivedAmount.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="summary-restore-btn" id="summaryRestoreBtn" title="Show summary">
+                    <i class="bi bi-pin-angle"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OpenStudentInvoicePreview">
+                            Generation Priview
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OpenStudentInvoicePreviewAndEdit">
+                            Edit Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Generate Student Fee Invoice</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                    <div class="modal-body">
+                        <div class="row gap-10-0">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box">
+                                    <label for="first-name" class="form-label">Class</label>
+                                    <div class="position-relative">
+                                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                            @SelectedText
+                                        </button>
+                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
+
+                                            <div class="form-check">
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
+
+                                                <span>All</span>
+                                            </div>
+
+                                            @foreach (var item in classlist)
+                                            {
+                                                <div class="form-check">
+
+                                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" @bind:after="GetSectionData" />
+                                                    <span>@item.ClassName</span>
+
+                                                </div>
+                                            }
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+
+                                <div class="form-box">
+                                    <label for="first-name" class="form-label">Section</label>
+                                    <div class="position-relative">
+                                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                            @SelectedSectionText
+                                        </button>
+
+                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
+
+                                            <div class="form-check">
+
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllSection" @bind:after="ToggleSelectAllSection" />
+
+                                                <span>All</span>
+
+                                            </div>
+
+                                            @foreach (var item in sectionModellist)
+                                            {
+                                                <div class="form-check">
+
+                                                    <input class="form-check-input map-checkbox"
+                                                           type="checkbox"
+                                                           @bind="item.IsSelected" />
+
+                                                    <span>@item.SectionName</span>
+
+                                                </div>
+                                            }
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
+                                        <option  value="" selected>--Select--</option>
+                                        @foreach (var data in PeriodTypeList)
+                                        {
+                                            <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Period Type</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodId">
+                                        <option  value="" selected>--Select--</option>
+                                        @foreach (var data in feeCollectionPeriodlist)
+                                        {
+                                            <option value="@data.PeriodId">@data.PeriodName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Period</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.StudentNo" autocomplete="off" />
+                                    <label class="floating-label">Student No.</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@searchModel.InvType">
+                                        <option  value="" selected>--Select--</option>
+                                        @foreach (var data in InvoiceTypelist)
+                                        {
+                                            <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Invoice Type</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentAdvamceData" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+
+@if (InvoiceEdit)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Invoice Preview</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="tab-pane tab-pane-form fade show active overflow-auto min-h-650" style="height: calc(112vh - 270px)" ;>
+
+                    <div class="modal-body">
+                        <div class="tab-content form-tab-count">
+                            <div class="row gap-10-0 form-row">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-3 mt-2">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg bg-light-gray">
+                                            Invoice Preview
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-3 mt-2">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="@SelectInvtypeId" @bind-Value:after="OpenStudentInvoicePreviewAndEdit">
+                                            <option  value="" selected>--Select--</option>
+                                            @foreach (var data in InvoiceTypelist)
+                                            {
+                                                <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
+                                            }
+                                        </InputSelect>
+                                        <label class="floating-label">Invoice Type</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                                    <div class="form-box">
+                                        <label for="first-name" class="form-label">Invoice No. :</label>
+                                        <label for="first-name" class="form-label">@InvoiceMaster.InvoiceNo</label>
+
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                                    <div class="form-box">
+                                        <label for="first-name" class="form-label">Fee Period :</label>
+                                        <label for="first-name" class="form-label"> @InvoiceMaster.PeriodName</label>
+
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                                    <div class="form-box">
+                                        <label for="first-name" class="form-label">Invoice Date :</label>
+                                        <label for="first-name" class="form-label">@InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
+
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column border-0">
+
+                                    <div class="form-box">
+                                        <label for="first-name" class="form-label">Due Date :</label>
+                                        <label for="first-name" class="form-label">@InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
+
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card shadow-sm border-0 p-3">
+
+                                        <div class="row align-items-center">
+                                            <div class="col-md-2 text-center">
+
+                                                <img src="@StudentImagePreview" class="profile-photo mb-2" />
+
+                                            </div>
+                                            <div class="col-md-10">
+                                                <div class="row g-2">
+                                                    <div class="col-md-12 ">
+                                                        <span class="fw-bold text-primary">@InvoiceMaster.StudentName</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <span class="field-title">Student No.:</span>
+                                                        <span class="field-value">@InvoiceMaster.ControlNo</span>
+                                                    </div>
+
+                                                    <div class="col-md-8">
+                                                        <span class="field-title">Session Name:</span>
+                                                        <span class="field-value">@InvoiceMaster.SessionName</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <span class="field-title">Class / Section:</span>
+                                                        <span class="field-value">@InvoiceMaster.ClassSection</span>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <span class="field-title">Fee Structure:</span>
+                                                        <span class="field-value">@SelectTemplate</span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body table-card p-0">
+                                            <div class="quick-main">
+                                                <div class="grid-box scrollbar-thin" style="max-height: 250px; min-height:100px;">
+                                                    <QuickGrid Items="@FeeHeadList.AsQueryable()" Pagination="@pagination" Class="table">
+                                                        <TemplateColumn Title="" Align="Align.Center">
+                                                            <ChildContent>
+                                                                <div>
+                                                                    <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                                </div>
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+
+                                                        <TemplateColumn Title="Fee Head" Align="Align.Left" Sortable="true" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadName)">
+
+                                                            <ChildContent>
+                                                                @(string.IsNullOrEmpty(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Month" Align="Align.Left" Sortable="true" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.MonthName)">
+
+                                                            <ChildContent>
+                                                                @(string.IsNullOrEmpty(context.MonthName) ? " " : context.MonthName)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Amount (₹)" Sortable="true" Class="text-right" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadAmount)" Align="Align.Right">
+
+                                                            <ChildContent>
+                                                                @(context.FeeHeadAmount)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+
+                                                        <TemplateColumn Title="Concession (₹)" Class="text-right" Sortable="true" Align="Align.Right">
+                                                            <ChildContent>
+                                                                <div>
+                                                                    @(context.Concession)
+                                                                </div>
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Waiver (₹)" Class="text-right" Sortable="true" Align="Align.Right">
+                                                            <ChildContent>
+                                                                <div>
+                                                                    @(context.WaiveOff)
+                                                                </div>
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Received (₹)" Class="text-right" Align="Align.Right">
+                                                            <span>@context.ReceivedAmt.ToString("N0")</span>
+                                                        </TemplateColumn>
+
+                                                    </QuickGrid>
+
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
+                                    <div class="form-box-group">
+                                        <input type="text"
+                                               class="floating-input text-end"
+                                               placeholder=" "
+                                               value="@InvoiceMaster.ArrearAmount.ToString("N2")"
+                                               readonly />
+                                        <label class="floating-label">Previous Arrear</label>
+                                    </div>
+
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
+                                    <div class="form-box-group">
+                                        <input type="text"
+                                               class="floating-input form-control text-end"
+                                               placeholder=" "
+                                               value="@InvoiceMaster.TotalAmount.ToString("N2")"
+                                               readonly />
+                                        <label class="floating-label">Total Amount</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
+                                    <div class="form-box-group">
+                                        <input type="text"
+                                               class="floating-input form-control text-end"
+                                               placeholder=" "
+                                               value="@InvoiceMaster.TotalConcession.ToString("N2")"
+                                               readonly />
+                                        <label class="floating-label">Total Concession</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
+                                    <div class="form-box-group">
+                                        <input type="text"
+                                               class="floating-input form-control text-end"
+                                               placeholder=" "
+                                               value="@InvoiceMaster.ReceivedAmount.ToString("N2")"
+                                               readonly />
+                                        <label class="floating-label">Received</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
+                                    <div class="form-box-group">
+                                        <input type="text"
+                                               class="floating-input form-control text-end fw-bold"
+                                               placeholder=" "
+                                               value="@InvoiceMaster.StudentLateFee.ToString("N2")"
+                                               readonly />
+                                        <label class="floating-label">Late Charges</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
+                                    <div class="form-box-group">
+                                        <input type="text"
+                                               class="floating-input form-control text-end fw-bold text-primary"
+                                               placeholder=" "
+                                               value="@InvoiceMaster.TotalAmount.ToString("N2")"
+                                               readonly />
+                                        <label class="floating-label text-primary">Balance</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 mt-2">
+                                    <div class="form-box-group">
+                                        <textarea type="text" class="floating-input sms-aria" placeholder=" "></textarea>
+                                        <label class="floating-label text-primary">Narration</label>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 p-3">
+                    <div class="page-heading d-flex align-items-center justify-content-end">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-box">
+                                <button type="button" class="table-btn">
+                                    Create Instalment
+                                </button>
+                            </div>
+                            <div class="form-box">
+                                <button type="button" class="table-btn" @onclick="ModifyDueDate">
+                                    Modify Due Date
+                                </button>
+                            </div>
+
+                            <div class="form-box">
+                                <button type="button" class="table-btn" @onclick="AddNewFeeHeadWithAmout">
+                                    Add Fee Head
+                                </button>
+                            </div>
+
+                            <div class="form-box">
+                                <button type="button" class="table-btn" @onclick="RemoveFeeHeadWithAmount">
+                                    Remove Fee Head
+                                </button>
+                            </div>
+
+                            <div class="form-box">
+                                <button type="button" class="table-btn">
+                                    Apply Concession
+                                </button>
+                            </div>
+
+                            <div class="form-box">
+                                <button type="button" class="table-btn">
+                                    Remove Concession
+                                </button>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    @if (ShowPopupUpdateDueDate)
+    {
+        <div class="custom-modal row m-0 align-items-center">
+            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-3">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">Modify Due Date</h5>
+                        <button data-access="Close" type="button" @onclick="CloseDueDatePopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <EditForm Model="@challanDueDate" OnValidSubmit="UpdateDueDate">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            <div class="row gap-10-0">
+                                <div class="col-12 mt-2 mb-2">
+                                    <div class="form-box-group">
+                                        <InputDate class="floating-input" placeholder=" " @bind-Value="challanDueDate.DueDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" autocomplete="off" />
+                                        <label class="floating-label">Due Date <span class="required">*</span></label>
+                                        <ValidationMessage For="@(() => challanDueDate.DueDate)" />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <SaveUpdateButton TextSave="Submit" OnClickCancel="CloseDueDatePopup" />
+
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+    @if (ShowPopupAddFeehead)
+    {
+        <div class="custom-modal row m-0 align-items-center">
+            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-6">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">Select Fee Head</h5>
+                        <button data-access="Close" type="button" @onclick="CloseFeeheadPopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <EditForm Model="@InvoiceMaster" OnValidSubmit="OnSaveFeeHeadAmount">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            <div class="card px-1 py-2 mt-2">
+                                <div class="row gap-10-0">
+                                    <div class="row m-1 gap-15-0">
+                                        <div class="col-12 px-1">
+                                            <div class="card-headline d-flex align-items-center justify-content-between pb-1 p-0 mb-0">
+                                                <p class="m-0 headline-text">Add Fee Head With Amount</p>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <InputCheckbox class="form-check-input" @bind-Value="@IsTransport" @bind-Value:after="OnTransportChanged" />
+                                                    <label for="" class="form-label mb-0">Is Transport </label>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    @if (IsTransport == true)
+                                    {
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" value="@InvoiceMaster.DistanceName" readonly disabled />
+                                                <label class="floating-label">Distance Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" value="@SelectedDistanceAmount" readonly disabled />
+                                                <label class="floating-label">Amount</label>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="SelectedFeeHeadId" @bind-Value:after="OnFeeHeadChanged">
+                                                    <option  value="" selected>--Select--</option>
+                                                    @foreach (var item in feeHeadDropdownlist)
+                                                    {
+                                                        <option value="@item.FeeHeadId">
+                                                            @item.FeeHeadName
+                                                        </option>
+                                                    }
+
+                                                </InputSelect>
+                                                <label class="floating-label">Fee Head <span class="required">*</span></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" value="@SelectedFeeHeadAmount" readonly disabled />
+                                                <label class="floating-label">Fee Head Amount<span class="required">*</span></label>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
+                                        <div class="form-box">
+                                            <div class="sef-month-grid">
+                                                @foreach (var month in MonthList)
+                                                {
+                                                    <label class="sef-month-pill">
+                                                        <input type="checkbox" @bind="month.IsSelected" disabled="@month.IsDisabled" />
+                                                        <span>@month.MonthName</span>
+                                                    </label>
+                                                }
+                                            </div>
+
+                                            @{
+                                                var selectedCount = MonthList.Count(m => m.IsSelected);
+                                                var currentHeadName = IsTransport ? InvoiceMaster.DistanceName : feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId)?.FeeHeadName;
+                                                var perMonthAmount = IsTransport ? SelectedDistanceAmount : SelectedFeeHeadAmount;
+                                                var totalPayable = selectedCount * perMonthAmount;
+                                            }
+
+                                            <div class="sef-selected-summary">
+                                                <span class="sef-sel-text">
+                                                    Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
+                                                    @if (!string.IsNullOrWhiteSpace(currentHeadName))
+                                                    {
+                                                        @: · @currentHeadName
+                                                    }
+                                                </span>
+                                                <span>
+                                                    <span class="sef-total-label">Total Payable</span>
+                                                    <span class="sef-total-value">₹ @totalPayable</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                   
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <SaveUpdateButton TextSave="Submit" OnClickCancel="CloseFeeheadPopup" />
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+
+}
+else
+{
+
+}
+
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+
+
+@code {
+    private List<MonthModel> MonthList = new();
+    private async Task OnSessionChanged()
+    {
+
+        var selectedSession = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession);
+
+        if (selectedSession == null)
+            return;
+        int startMonth = selectedSession.StartDate.Month;
+        int endMonth = selectedSession.EndDate.Month;
+        var orderedMonths = new List<MonthModel>();
+        int current = startMonth;
+        while (true)
+        {
+            orderedMonths.Add(MonthList.First(x => x.MonthNo == current)
+            );
+
+            if (current == endMonth)
+                break;
+            current++;
+
+            if (current > 12)
+                current = 1;
+        }
+        MonthList = orderedMonths;
+        StateHasChanged();
+    }
+    private async Task OnTransportChanged()
+    {
+        if (IsTransport == true)
+        {
+            var trans = transportFeelist.FirstOrDefault(x => x.DistanceId == InvoiceMaster.RouteDistance);
+            if (trans != null)
+            {
+                SelectedDistanceAmount = trans.Amount;
+            }
+            else
+            {
+                SelectedDistanceAmount = 0;
+            }
+            foreach (var month in MonthList)
+            {
+                month.IsDisabled = false;
+                month.IsSelected = false;
+            }
+            foreach (var item in transportSelectMonthlist)
+            {
+                var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
+                if (month != null)
+                {
+                    month.IsSelected = true;
+                    month.IsDisabled = true;
+                }
+            }
+            SelectedFeeHeadId = 0;
+            SelectedFeeHeadAmount = 0;
+
+        }
+        else
+        {
+            foreach (var month in MonthList)
+            {
+                month.IsDisabled = false;
+                month.IsSelected = false;
+            }
+
+        }
+
+        StateHasChanged();
+    }
+    private async Task OnFeeHeadChanged()
+    {
+        var feeHead = feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId);
+        SelectedFeeHeadAmount = feeHead?.Amount ?? 0;
+        foreach (var month in MonthList)
+        {
+            month.IsDisabled = false;
+            month.IsSelected = false;
+        }
+        var feeHeadItems = FeeHeadList.Where(x => x.FeeHeadId == SelectedFeeHeadId).ToList();
+        if (feeHeadItems.Any())
+        {
+            var applicableType = feeHeadItems.First().FeeApplicableType;
+            if (applicableType.Equals("Annual", StringComparison.OrdinalIgnoreCase) || applicableType.Equals("OneTime", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var month in MonthList)
+                {
+                    month.IsDisabled = true;
+                }
+                foreach (var item in feeHeadItems)
+                {
+                    var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
+                    if (month != null)
+                    {
+                        month.IsSelected = true;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var item in feeHeadItems)
+                {
+                    var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
+                    if (month != null)
+                    {
+                        month.IsSelected = true;
+                        month.IsDisabled = true;
+                    }
+                }
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+    private bool IsTransport;
+    private List<TransportFeeConfig> transportFeelist = new();
+    private int SelectedFeeHeadId { get; set; }
+    private decimal SelectedFeeHeadAmount { get; set; }
+    private long SelectedDistanceId { get; set; }
+    private decimal? SelectedDistanceAmount { get; set; }
+    private string StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private IBrowserFile? StudentSelectedFile;
+    private async Task OnFileStudentSelected(InputFileChangeEventArgs e)
+    {
+        StudentSelectedFile = e.File;
+        using var stream = StudentSelectedFile.OpenReadStream(5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        StudentImagePreview = $"data:{StudentSelectedFile.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        StateHasChanged();
+
+    }
+    private decimal StudentTotalAmount => FeeHeadList.Sum(x => x.FeeHeadAmount);
+    private decimal StudentTotalConcession => FeeHeadList.Sum(x => x.Concession);
+    private decimal TotalWaiver => FeeHeadList.Sum(x => x.WaiveOff);
+    private decimal TotalNetAmount => FeeHeadList.Sum(x => x.Payable);
+    private decimal TotalAmount => moduleQuery.Sum(x => x.TotalAmount);
+    private decimal TotalConcession => moduleQuery.Sum(x => x.TotalConcession);
+    private decimal TotalArrearAmount => moduleQuery.Sum(x => x.ArrearAmount);
+    private decimal TotalReceivedAmount => moduleQuery.Sum(x => x.ReceivedAmount);
+    private bool SelectAll = true;
+    private bool InvoicePreview;
+    private bool ShowPopupUpdateDueDate;
+    private bool ShowPopupAddFeehead;
+    private bool InvoiceEdit;
+    private bool SelectAllSection = true;
+    private CustomAlert customAlert;
+    private bool addstudent { get; set; }
+    private DateTime fromDate = DateTime.Now;
+    private DateTime toDate = DateTime.Now;
+    private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
+    private bool IsLoading = false;
+    private string? branchcode;
+    private string? groupcode;
+    private string? currentUrl;
+    private string? UserName;
+    private string? SelectTemplate;
+    private string? nameFilter = "";
+    private bool ShowPopup = false;
+    private string? roleId;
+    private int SelectInvtypeId = 0;
+    private long CurrentSession;
+    private SearchAnyRequestModel searchAny = new();
+    private List<BranchClassModel> classlist = new();
+    private List<GenderModal> genderModallist = new();
+    private List<SessionModel> sessionlist = new();
+    private List<SectionModel> sectionModellist = new();
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool IsAllSelected;
+    private SearchStudentBalanceDto searchModel = new();
+    private StudentInvoice studentInvoice = new();
+    private List<SearchStudentBalanceDto> studentResponselist = new();
+    private List<SocietyModel> societyModellist = new();
+    private bool ShowPopupGenerateInvoice = false;
+    private List<PeriodMaster> PeriodTypeList = new();
+    private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
+    private List<InvoiceFeeHeadModel> FeeHeadList = new();
+    private InvoiceMasterModel InvoiceMaster = new();
+    private ChallanDueDateModal challanDueDate = new();
+    private FeeHeadToStudentChallan feeHeadToStudent = new();
+    private List<InvoiceTypeModel> InvoiceTypelist = new();
+    private List<FeeHeadDropdownModel> feeHeadDropdownlist = new();
+    private List<TransportSelectMonthModel> transportSelectMonthlist = new();
+    private List<InvoiceDetailsResponse> InvoiceList = new();
+    private void ToggleAll()
+    {
+        foreach (var row in moduleQuery)
+            row.IsSelected = IsAllSelected;
+    }
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+        IsLoading = false;
+        string ApiUri3 = "Society/ListSociety";
+        societyModellist = await httpService.Get<List<SocietyModel>>(ApiUri3) ?? new();
+        PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
+        InvoiceTypelist = await httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList") ?? new();
+        MonthList = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
+        transportFeelist = await httpService.Get<List<TransportFeeConfig>>("TransportFee/GetTransport") ?? new();
+        OnClassAllChanged();
+        await SearchStudentAdvamceData();
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            foreach (var item in classlist)
+            {
+                item.IsSelected = true;
+            }
+            await LoadData();
+            await OnSessionChanged();
+            StateHasChanged();
+        }
+    }
+    protected IQueryable<SearchStudentBalanceDto> moduleQuery
+    {
+        get
+        {
+            var result = studentResponselist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+
+    private async Task SearchStudentAdvamceData()
+    {
+        ShowPopup = false;
+        searchModel.GroupCode = groupcode;
+        searchModel.BranchCode = branchcode;
+        searchModel.SessionId = CurrentSession;
+        searchModel.ClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+        searchModel.SectionId = string.Join(",", sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionId));
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "StudentFeeInvoice/GetStudentAdvanceBalance";
+            var apiResponse = await httpService.Post<ApiResponse<List<SearchStudentBalanceDto>>>(apiUrl, searchModel);
+            if (apiResponse.Success)
+            {
+                studentResponselist = apiResponse.Data ?? new List<SearchStudentBalanceDto>();
+            }
+            else
+            {
+                studentResponselist = new List<SearchStudentBalanceDto>();
+            }
+
+        }
+        catch
+        {
+            studentResponselist = new List<SearchStudentBalanceDto>();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnClassAllChanged()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = SelectAll;
+        }
+
+        await GetSectionData();
+    }
+    private async Task GetSectionData()
+    {
+        try
+        {
+            var selectedClasses = classlist.Where(x => x.IsSelected).ToList();
+
+            SelectAll = selectedClasses.Count == classlist.Count;
+            if (!selectedClasses.Any())
+            {
+                sectionModellist.Clear();
+                SelectAllSection = false;
+
+                StateHasChanged();
+                return;
+            }
+            if (selectedClasses.Count > 1)
+            {
+                sectionModellist.Clear();
+
+                SelectAllSection = true;
+
+                StateHasChanged();
+                return;
+            }
+            SelectAllSection = false;
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = selectedClasses.First().ClassCode;
+            string ApiUri = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                sectionModellist = apiResponse.Data ?? new();
+            }
+
+            StateHasChanged();
+        }
+        catch
+        {
+            return;
+        }
+    }
+    private string SelectedText
+    {
+        get
+        {
+            if (SelectAll && classlist.Any())
+                return "All";
+            var selected = classlist.Where(x => x.IsSelected).Select(x => x.ClassName).ToList();
+            if (!selected.Any())
+                return "Select Class";
+
+            return string.Join(", ", selected);
+        }
+    }
+    private string SelectedSectionText
+    {
+        get
+        {
+            if (SelectAllSection)
+                return "All";
+
+            var selected = sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionName).ToList();
+
+            if (!selected.Any())
+                return "Select Section";
+
+            return string.Join(", ", selected);
+        }
+    }
+    private void ToggleSelectAllSection()
+    {
+        foreach (var item in sectionModellist)
+        {
+            item.IsSelected = SelectAllSection;
+        }
+
+        StateHasChanged();
+    }
+    private async Task OnPeriodTypeChanged()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            searchAny.RequestName = searchModel.PeriodType;
+            if (!string.IsNullOrEmpty(searchAny.RequestName))
+            {
+
+                string ApiUri3 = "FeeCollectionPeriodConfig/GetFeeCollectionPeriod";
+                feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>(ApiUri3, searchAny) ?? new();
+            }
+            else
+            {
+                feeCollectionPeriodlist.Clear();
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+
+    }
+
+    private void OpenSearch()
+    {
+
+        ShowPopup = true;
+        StateHasChanged();
+    }
+
+    private async Task OpenStudentInvoicePreviewAndEdit()
+    {
+
+
+        try
+        {
+            IsLoading = true;
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = string.Join(",", data.Select(x => x.InvoiceId));
+            searchAny.IsActive = true;
+            searchAny.RequestName2 = "EditInvoice";
+            if (SelectInvtypeId != 0)
+            {
+                searchAny.RequestId = SelectInvtypeId;
+            }
+            var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
+            if (response.Data.Count != 0 && response.Success)
+            {
+                InvoiceList = response.Data ?? new();
+                var invoice = response.Data.FirstOrDefault() ?? new(); ;
+                InvoiceMaster = invoice?.InvoiceMaster.FirstOrDefault() ?? new();
+                FeeHeadList = invoice?.FeeHeadList ?? new();
+                SelectTemplate = moduleQuery.Where(x => x.IsSelected).Select(x => x.TemplateName).FirstOrDefault();
+                StudentImagePreview = string.IsNullOrWhiteSpace(moduleQuery.Where(x => x.IsSelected).Select(x => x.ImagePath).FirstOrDefault()) ?
+                "https://demo.schooleye.in/Images/NoPhoto.gif" : moduleQuery.Where(x => x.IsSelected).Select(x => x.ImagePath).FirstOrDefault();
+                StateHasChanged();
+            }
+            else
+            {
+                InvoiceList = new();
+                InvoiceMaster = new();
+                FeeHeadList = new();
+
+                SelectTemplate = string.Empty;
+
+                StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+        InvoiceEdit = true;
+    }
+
+    private async Task OpenStudentInvoicePreview()
+    {
+
+
+        try
+        {
+            IsLoading = true;
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = string.Join(",", data.Select(x => x.InvoiceId));
+            searchAny.IsActive = true;
+            if (SelectInvtypeId != 0)
+            {
+                searchAny.RequestId = SelectInvtypeId;
+            }
+            var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
+            if (response.Data.Count != 0 && response.Success)
+            {
+                InvoiceList = response.Data ?? new();
+                var invoice = response.Data.FirstOrDefault() ?? new(); ;
+                InvoiceMaster = invoice?.InvoiceMaster.FirstOrDefault() ?? new();
+                FeeHeadList = invoice?.FeeHeadList ?? new();
+                SelectTemplate = moduleQuery.Where(x => x.IsSelected).Select(x => x.TemplateName).FirstOrDefault();
+                StudentImagePreview = string.IsNullOrWhiteSpace(moduleQuery.Where(x => x.IsSelected).Select(x => x.ImagePath).FirstOrDefault()) ?
+                "https://demo.schooleye.in/Images/NoPhoto.gif" : moduleQuery.Where(x => x.IsSelected).Select(x => x.ImagePath).FirstOrDefault();
+                StateHasChanged();
+            }
+            else
+            {
+                InvoiceList = new();
+                InvoiceMaster = new();
+                FeeHeadList = new();
+
+                SelectTemplate = string.Empty;
+
+                StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+        InvoicePreview = true;
+    }
+    private void ClosePopup()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = false;
+        }
+
+        foreach (var item in feeCollectionPeriodlist)
+        {
+            item.IsSelected = false;
+        }
+        ShowPopup = false;
+        InvoicePreview = false;
+        InvoiceEdit = false;
+        searchModel = new();
+        ShowPopupGenerateInvoice = false;
+        feeHeadToStudent = new();
+        challanDueDate = new();
+        StateHasChanged();
+        searchAny = new();
+        SelectInvtypeId = 0;
+    }
+    private async Task CloseDueDatePopup()
+    {
+        ShowPopupUpdateDueDate = false;
+        StateHasChanged();
+    }
+    private async Task ModifyDueDate()
+    {
+        challanDueDate.DueDate = InvoiceMaster.DueDate;
+        ShowPopupUpdateDueDate = true;
+        StateHasChanged();
+    }
+    private async Task CloseFeeheadPopup()
+    {
+        ShowPopupAddFeehead = false;
+        StateHasChanged();
+    }
+    private async Task RemoveFeeHeadWithAmount()
+    {
+        try
+        {
+
+            IsLoading = true;
+            InvoiceEdit = false;
+
+            var result = FeeHeadList.Where(x => x.IsSelected).ToList();
+            if (result.Count == 0)
+            {
+                //await JS.InvokeVoidAsync("showSelectRecordAlert");
+                await customAlert.ShowCustomAlert("Please select a record !", false);
+                StateHasChanged();
+                InvoiceEdit = true;
+                return;
+
+
+            }
+            else if (result.Count > 1)
+            {
+                await customAlert.ShowCustomAlert("Please select a record !", false);
+                StateHasChanged();
+                InvoiceEdit = true;
+                return;
+            }
+            var submit = await Alert.ShowConfirm("Are you sure,you want to remove selected fee head?");
+            if (!submit)
+            {
+                InvoiceEdit = true;
+                StateHasChanged();
+                return;
+            }
+            var selecteddata = result.Select(x => new { x.FeeHeadId, x.InvoiceId, x.MonthNo }).FirstOrDefault();
+            var data = moduleQuery.Where(x => x.IsSelected).Select(x => new { x.StudentId }).FirstOrDefault();
+            if (data == null)
+            {
+                InvoiceEdit = false;
+                ShowPopupAddFeehead = false;
+                await customAlert.ShowCustomAlert("Please select student first !", false);
+                return;
+            }
+            feeHeadToStudent.InvoiceId = selecteddata.InvoiceId;
+            feeHeadToStudent.StudentId = data.StudentId;
+            feeHeadToStudent.HeadId = selecteddata.FeeHeadId;
+            feeHeadToStudent.CreatedBy = UserName;
+            feeHeadToStudent.Narration1 = "";
+            feeHeadToStudent.SelectMonthNo = selecteddata.MonthNo;
+            InvoiceEdit = false;
+            ShowPopupAddFeehead = false;
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/RemoveFeeHeadToStudentChallan", feeHeadToStudent);
+            if (response.Success && response.Code == 1)
+            {
+                await Alert.ShowSuccess("Fee head removed successfully.");
+                await OpenStudentInvoicePreviewAndEdit();
+                InvoiceEdit = true;
+                StateHasChanged();
+                feeHeadToStudent = new();
+                IsLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+            IsLoading = false;
+        }
+
+    }
+    private async Task OnSaveFeeHeadAmount()
+    {
+        try
+        {
+
+            IsLoading = true;
+
+            var data = moduleQuery.Where(x => x.IsSelected).Select(x => new { x.StudentId, x.InvoiceId }).FirstOrDefault();
+            if (data == null)
+            {
+                InvoiceEdit = false;
+                ShowPopupAddFeehead = false;
+                await customAlert.ShowCustomAlert("Please select student first !", false);
+                return;
+            }
+            feeHeadToStudent.InvoiceId = data.InvoiceId;
+            feeHeadToStudent.StudentId = data.StudentId;
+            feeHeadToStudent.HeadId = SelectedFeeHeadId;
+            feeHeadToStudent.HeadAmount = SelectedFeeHeadAmount;
+            feeHeadToStudent.CreatedBy = UserName;
+            feeHeadToStudent.Narration1 = "";
+            feeHeadToStudent.MonthNo = MonthList.Where(x => x.IsSelected && !x.IsDisabled).Select(x => x.MonthNo).ToList();
+            if (feeHeadToStudent.HeadId == 0)
+            {
+                await customAlert.ShowCustomAlert("Please select fee head name !", false);
+                return;
+            }
+            InvoiceEdit = false;
+            ShowPopupAddFeehead = false;
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/AddFeeHeadToStudentChallan", feeHeadToStudent);
+            if (response.Success && response.Code == 1)
+            {
+                await Alert.ShowSuccess("Feehead added sucessfully.");
+                await OpenStudentInvoicePreviewAndEdit();
+                await OnFeeHeadChanged();
+                InvoiceEdit = true;
+                StateHasChanged();
+                feeHeadToStudent = new();
+                IsLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+            IsLoading = false;
+        }
+        //feeHeadToStudent.MonthNo = string.Join(",", MonthList.Where(x => x.IsSelected && !x.IsDisabled).Select(x => x.MonthNo));
+
+    }
+    private async Task AddNewFeeHeadWithAmout()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            var response = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", searchAny);
+            if (response.Data.Count != 0 && response.Success)
+            {
+                feeHeadDropdownlist = response.Data ?? new();
+                StateHasChanged();
+            }
+            var data = moduleQuery.Where(x => x.IsSelected).Select(x => x.StudentId).FirstOrDefault();
+            if (data == 0)
+            {
+                InvoiceEdit = false;
+                ShowPopupUpdateDueDate = false;
+                await customAlert.ShowCustomAlert("Please select student first !", false);
+                return;
+            }
+            searchAny.StudentId = data;
+            searchAny.SessionId = CurrentSession;
+            var apiResponse = await httpService.Post<ApiResponse<List<TransportSelectMonthModel>>>("StudentFeeInvoice/GetTransportMonthWithStudent", searchAny);
+            if (apiResponse.Data.Count != 0 && apiResponse.Success)
+            {
+                transportSelectMonthlist = apiResponse.Data ?? new();
+                StateHasChanged();
+            }
+            ShowPopupAddFeehead = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+            IsLoading = false;
+        }
+    }
+    private async Task UpdateDueDate()
+    {
+
+        try
+        {
+            IsLoading = true;
+
+            var data = moduleQuery.Where(x => x.IsSelected).Select(x => x.InvoiceId).FirstOrDefault();
+            if (data == 0)
+            {
+                InvoiceEdit = false;
+                ShowPopupUpdateDueDate = false;
+                await customAlert.ShowCustomAlert("Please select student first !", false);
+                return;
+            }
+
+            challanDueDate.GroupCode = groupcode;
+            challanDueDate.BranchCode = branchcode;
+            challanDueDate.UpdatedBy = UserName;
+            challanDueDate.InvoiceId = data;
+            InvoiceEdit = false;
+            ShowPopupUpdateDueDate = false;
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/StudentUpdateInvoiceDue", challanDueDate);
+            if (response.Code == 1 && response.Success)
+            {
+                await Alert.ShowSuccess("Invoice due date has been updated successfully..");
+                // searchAny.RequestName= challanDueDate.InvoiceId.ToString();
+                await OpenStudentInvoicePreviewAndEdit();
+                InvoiceEdit = true;
+                StateHasChanged();
+                challanDueDate = new();
+                IsLoading = false;
+            }
+            IsLoading = false;
+
+        }
+        catch (Exception ex)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+            IsLoading = false;
+        }
+    }
+}
+
+
+
+
+@if (InvoicePreview)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Invoice Preview</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-3 mt-2">
+                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                <p class="total-text-with-bg bg-light-gray">
+                                    Invoice Preview
+                                </p>
+                                <hr class="m-0 w-webkit text-light-gray op-1">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-3 ">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="@SelectInvtypeId" @bind-Value:after="OpenStudentInvoicePreview">
+                                    <option  value="" selected>--Select--</option>
+                                    @foreach (var data in InvoiceTypelist)
+                                    {
+                                        <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Invoice Type</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Invoice No. :</label>
+                                <label for="first-name" class="form-label">@InvoiceMaster.InvoiceNo</label>
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Fee Period :</label>
+                                <label for="first-name" class="form-label"> @InvoiceMaster.PeriodName</label>
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Invoice Date :</label>
+                                <label for="first-name" class="form-label">@InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Due Date :</label>
+                                <label for="first-name" class="form-label">@InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
+
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0 p-3">
+
+                                <div class="row align-items-center">
+                                    <div class="col-md-2 text-center">
+
+                                        <img src="@StudentImagePreview" class="profile-photo mb-2" />
+
+                                    </div>
+                                    <div class="col-md-10">
+                                        <div class="row g-2">
+                                            <div class="col-md-12 ">
+                                                <span class="fw-bold text-primary">@InvoiceMaster.StudentName</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <span class="field-title">Admission No.:</span>
+                                                <span class="field-value">@InvoiceMaster.ControlNo</span>
+                                            </div>
+
+                                            <div class="col-md-8">
+                                                <span class="field-title">Roll No.:</span>
+                                                <span class="field-value">@InvoiceMaster.ControlNo</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <span class="field-title">Class / Section:</span>
+                                                <span class="field-value">@InvoiceMaster.ClassSection</span>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <span class="field-title">Fee Structure:</span>
+                                                <span class="field-value">@SelectTemplate</span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body table-card p-0">
+                                    <div class="quick-main">
+                                        <div class="grid-box scrollbar-thin" style="max-height: 250px; min-height:100px;">
+                                            <QuickGrid Items="@FeeHeadList.AsQueryable()" Pagination="@pagination" Class="table">
+
+                                                <TemplateColumn Title="Fee Head" Align="Align.Left" Sortable="true" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadName)">
+
+                                                    <ChildContent>
+                                                        @(string.IsNullOrEmpty(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Amount (₹)" Sortable="true" Class="text-right" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadAmount)" Align="Align.Right">
+
+                                                    <ChildContent>
+                                                        @(context.FeeHeadAmount)
+                                                    </ChildContent>
+                                                </TemplateColumn>
+
+                                                <TemplateColumn Title="Concession (₹)" Class="text-right" Sortable="true" Align="Align.Right">
+                                                    <ChildContent>
+                                                        <div>
+                                                            @(context.Concession)
+                                                        </div>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Waiver (₹)" Class="text-right" Sortable="true" Align="Align.Right">
+                                                    <ChildContent>
+                                                        <div>
+                                                            @(context.WaiveOff)
+                                                        </div>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Net Amount (₹)" Class="text-right" Align="Align.Right">
+                                                    <span>@context.Payable.ToString("N0")</span>
+                                                </TemplateColumn>
+
+                                            </QuickGrid>
+
+                                        </div>
+                                        <table class="table table-bordered mb-0">
+                                            <tfoot>
+                                                <tr class="table-primary fw-bold">
+                                                    <td style="width:15%">Total</td>
+                                                    <td class="text-end" style="width:15%">@StudentTotalAmount.ToString("N2")</td>
+                                                    <td class="text-end" style="width:15%">@StudentTotalConcession.ToString("N2")</td>
+                                                    <td class="text-end" style="width:15%">@TotalWaiver.ToString("N2")</td>
+                                                    <td class="text-end" style="width:15%">@TotalNetAmount.ToString("N2")</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                       
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+    (function() {
+        function initSplitter() {
+            var container = document.getElementById('splitContainer');
+            var gridPane = document.getElementById('gridPane');
+            var splitter = document.getElementById('gridSplitter');
+            if (!container || !gridPane || !splitter || splitter.dataset.bound === '1') return;
+            splitter.dataset.bound = '1';
+
+            var dragging = false;
+
+            splitter.addEventListener('mousedown', function(e) {
+                dragging = true;
+                splitter.classList.add('active');
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!dragging) return;
+                var rect = container.getBoundingClientRect();
+                var newWidth = e.clientX - rect.left;
+                var minWidth = 320;
+                var maxWidth = rect.width - 230;
+                if (newWidth < minWidth) newWidth = minWidth;
+                if (newWidth > maxWidth) newWidth = maxWidth;
+                gridPane.style.flex = '0 0 ' + newWidth + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (!dragging) return;
+                dragging = false;
+                splitter.classList.remove('active');
+                document.body.style.userSelect = '';
+            });
+        }
+
+        function initSummaryPin() {
+            var pinBtn = document.getElementById('summaryPinBtn');
+            var restoreBtn = document.getElementById('summaryRestoreBtn');
+            var summaryPane = document.getElementById('summaryPane');
+            var splitter = document.getElementById('gridSplitter');
+            var gridPane = document.getElementById('gridPane');
+            if (!pinBtn || !restoreBtn || !summaryPane || !splitter || !gridPane) return;
+            if (pinBtn.dataset.bound === '1') return;
+            pinBtn.dataset.bound = '1';
+
+            function collapseSummary() {
+                summaryPane.classList.add('collapsed');
+                splitter.classList.add('hidden-splitter');
+                restoreBtn.classList.add('show');
+                gridPane.style.flex = '1 1 auto';
+                gridPane.style.maxWidth = '100%';
+            }
+
+            function expandSummary() {
+                summaryPane.classList.remove('collapsed');
+                splitter.classList.remove('hidden-splitter');
+                restoreBtn.classList.remove('show');
+                gridPane.style.flex = '0 0 76%';
+                gridPane.style.maxWidth = '88%';
+            }
+
+            pinBtn.addEventListener('click', collapseSummary);
+            restoreBtn.addEventListener('click', expandSummary);
+        }
+
+        function initAll() {
+            initSplitter();
+            initSummaryPin();
+        }
+
+        initAll();
+        document.addEventListener('DOMContentLoaded', initAll);
+        setInterval(initAll, 1000);
+    })();
+</script>
+

@@ -1,0 +1,519 @@
+﻿@page "/maptransport"
+@using DomainModel.Admin
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@inject IHttpClientFactory ClientFactory
+@using System.Net
+@using System.Text.Json
+@inject NavigationManager Nav
+@inject IStringLocalizer<Resource> Localizer
+@using DomainModel.SchoolMaster
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject ICommonMethod _commonmethod
+@inject SweetAlertService Alert
+@inject ProtectedSessionStorage sessionStorage
+
+<style>
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 70px;
+    }
+
+    .sms-aria {
+        height: 80px !important;
+    }
+</style>
+<section class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Map Transport</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+
+                        <InputSelect @bind-Value="transportSearch.IsTransportSelected"  class="form-input">
+                            <option value="0">AllTransportSelected</option>
+                            <option value="1">School Transport</option>
+                            <option value="2">Private Van</option>
+                            <option value="3">Parents</option>
+                            <option value="4">Self</option>
+                            <option value="5">Rickshaw</option>
+                            <option value="6">Auto</option>
+                            <option value="7">Cycle</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input @onchange="ToggleSelectAll" checked="@isAllSelected" type="checkbox" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input @bind="context.IsSelected" @onclick:stopPropagation="true" type="checkbox" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Class="text-right" Title="Roll No." Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="studentNoFilter" @bind:event="oninput" placeholder="Student No..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Left" Property="@(x => x.StudentName)" Title="Student Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student Name..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Align="Align.Center" Sortable="true" Property="@(x => x.Gender)" Title="Gender" />
+                                <TemplateColumn Sortable="true" SortBy="@(GridSort<TransportStudentDataModel>.ByAscending(x => x.ClassSection))"
+                                    Title="Class Section" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassSection) ? " " : context.ClassSection)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Route Distance" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.DistanceName) ? " " : context.DistanceName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Route Name" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.RouteName) ? " " : context.RouteName)
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                @* <PropertyColumn Format="dd/MM/yyyy" Align="Align.Center" Property="@(x => x.TransportAppliedFrom)" Title="Tpt.App.Date" /> *@
+                                <TemplateColumn Title="Address" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.CurrentAddress) ? " " : context.CurrentAddress)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Transport Status" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.TptStatus) ? " " : context.TptStatus)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="text-center">
+                                            @if (context.IsTransportRequired == 1)
+                                            {
+                                                <img class="grid-status" src="/images/status-success.png" />
+                                            }
+                                            else
+                                            {
+                                                <img class="grid-status" src="/images/status-false.png" />
+                                            }
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    @* <button type="button" class="table-btn" @onclick="PrintDateWise">Print DateWise</button>
+                    <button type="button" class="table-btn" @onclick="RouteDistanceSummary">Route Distance Summary</button>
+                    <button type="button" class="table-btn" @onclick="DefaulterList">Defaulter List</button>
+                    <button type="button" class="table-btn" @onclick="Details">Details</button> *@
+                    <button type="button" class="table-btn" @onclick="StudentMapWithTransport">Map Transport With Student</button>
+                    <button type="button" class="table-btn" @onclick="Print">Print</button>
+                    <button type="button" class="table-btn" @onclick="PrintTptInfo">Print Tpt. Info</button>
+          
+                </div>
+            </div>
+        </div>
+
+        @if (ShowPopupOnSearch)
+        {
+            <div class="custom-modal row m-0">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+                    <div class="modal-content clearfix main-popup ">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Search Student</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row gap-10-0">
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="transportSearch.ClassCode" @bind-Value:after="GetSectionData">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                        {
+                                        <option Value="@cs.ClassCode">@cs.ClassName </option>
+                                        }
+                                        </InputSelect>
+                                        <label class="floating-label">Class</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="transportSearch.SectionId">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var cs in sectionModellist)
+                                        {
+                                        <option Value="@cs.SectionId">@cs.SectionName </option>
+                                        }
+                                        </InputSelect>
+                                        <label class="floating-label">Section</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="transportSearch.Gender">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var cs in genderModallist.Where(x => x.IsValid == true))
+                                        {
+                                        <option Value="@cs.GenderName">@cs.GenderName</option>
+                                        }
+                                        </InputSelect>
+                                        <label class="floating-label">Gender</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="transportSearch.RouteDistanceId" name="" id="">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var data in distancelist.Where(x=>x.IsValid==true))
+                                        {
+                                        <option value="@data.DistanceId">@data.DistanceName</option>
+                                        }
+                                        </InputSelect>
+                                        <label class="floating-label">Route Distance</label>
+                                    </div>
+                                </div>
+
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group">
+                                        <InputText class="floating-input" placeholder=" "  @bind-Value="transportSearch.StudentNo" />
+                                        <label class="floating-label">Transport Type</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group">
+                                        <InputText class="floating-input" placeholder=" " @bind-Value="transportSearch.FirstName" autocomplete="off" />
+                                        <label class="floating-label">Student Name</label>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                                <div class="visible content">Search</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+
+    </div>
+</section>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+<MapTransportWithStudent IsVisible="@OpenMapTransportStudent" CurrentSessionData="@CurrentSession" SetStudentMapTransportList="@SelectStudentMapTransport" OnSaveSuccess="@SearchStudentData" CurrectUrl="@currentUrl" OnClose="@ClosePopup" />
+
+
+@code{
+    private bool ShowPopup;
+    private bool ShowPopupOnSearch;
+    private List<RoleaBase> menus = new();
+    private string? roleId;
+    PaginationState pagination = new() { ItemsPerPage = 30 };
+    private string sessionvalue;
+    private string? branchcode;
+    private string? groupcode;
+    private string? nameFilter;
+    private bool isAllSelected = false;
+    private bool OpenMapTransportStudent = false;
+    private string UserName;
+    private bool IsLoading = false;
+    private string studentNoFilter = "";
+    private string olddesignation = "";
+    private long CurrentSession;
+    private string currentUrl = "";
+    private List<GenderModal> genderModallist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionModellist = new();
+    private List<TransportFeeConfig> distancelist = new();
+    private List<TransportStudentDataModel> transportStudentlistdata = new();
+    private List<SessionModel> sessionlist = new();
+    private SearchAnyRequestModel searchAny = new();
+    private List<TransportStudentDataModel> SelectStudentMapTransport = new();
+    private TransportSearchModel transportSearch = new();
+
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        isAllSelected = (bool)e.Value;
+
+        foreach (var item in moduleQuery)
+        {
+            item.IsSelected = isAllSelected;
+        }
+    }
+    void PrintDateWise() { }
+    void RouteDistanceSummary() { }
+    void DefaulterList() { }
+    void Details() { }
+
+    private async Task Print()
+    {
+        try
+        {
+
+            if (transportSearch.IsTransportSelected == 0)
+            {
+                await Alert.ShowWarning("Please select transport type first.");
+                return;
+            }
+            IsLoading = true;
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/PrintStudentTransportExcelData", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
+                IsLoading = false;
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+        StateHasChanged();
+    }
+    private async Task StudentMapWithTransport()
+    {
+        var selectedData = moduleQuery.Where(x => x.IsSelected).ToList();
+
+        if (selectedData.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        SelectStudentMapTransport = selectedData;
+        OpenMapTransportStudent = true;
+        StateHasChanged();
+    }
+    void PrintTptInfo() { }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("importantLink");
+
+            sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<TransportStudentDataModel> moduleQuery
+    {
+        get
+        {
+            var result = transportStudentlistdata.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    protected async Task LoadData()
+    {
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
+        menus = await httpService.Get<List<RoleaBase>>(apiUrl) ?? new();
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+        string ApiUri2 = $"TransportFee/GetMapAmountDistance?SessionId={CurrentSession}";
+        distancelist = await httpService.Get<List<TransportFeeConfig>>(ApiUri2) ?? new();
+        await SearchStudentData();
+    }
+    private async Task GetSectionData()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = transportSearch.ClassCode;
+            string ApiUri1 = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                sectionModellist = apiResponse.Data ?? new();
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    public async Task SearchStudentData()
+    {
+        try
+        {
+            IsLoading = true;
+            transportSearch.GroupCode = groupcode;
+            transportSearch.BranchCode = branchcode;
+            transportSearch.SessionId = CurrentSession;
+            string ApiUri1 = "MapTransport/GetAllStudentData";
+            var apiResponse = await httpService.Post<ApiResponse<List<TransportStudentDataModel>>>(ApiUri1, transportSearch) ?? new();
+            if (apiResponse.Success)
+            {
+                transportStudentlistdata = apiResponse.Data ?? new();
+            }
+            IsLoading = false;
+            ShowPopupOnSearch = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private void OpenMapTransport()
+    {
+        ShowPopup = true;
+        StateHasChanged();
+
+    }
+    private void OpenSearch()
+    {
+        ShowPopupOnSearch = true;
+        StateHasChanged();
+
+    }
+    private void ClosePopup()
+    {
+
+        ShowPopup = false;
+        ShowPopupOnSearch = false;
+        OpenMapTransportStudent = false;
+        isAllSelected = false;
+        StateHasChanged();
+    }
+}

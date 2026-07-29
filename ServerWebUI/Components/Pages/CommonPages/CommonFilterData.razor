@@ -1,0 +1,319 @@
+﻿@page "/CheckFilterData"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Search Student</p>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+     
+    </div>
+</div>
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
+            <div class="modal-content clearfix main-popup overflow-visible">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search Student</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="date from" class="form-label">Admission No</label>
+                                <input type="text" placeholder="Search admission no....." class="form-input" />
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="student-name" class="form-label">Student No.</label>
+                                <input type="text" placeholder="Search student no....." class="form-input" />
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Student  Name</label>
+                                <input type="text" placeholder="Search student name....." class="form-input">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="student-name" class="form-label">Class</label>
+                                <div class="position-relative">
+                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                        @SelectedText
+                                    </button>
+                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
+                                        <div class="form-check">
+                                            <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
+                                            <span> All</span>
+                                        </div>
+                                        @foreach (var item in classlist.Where(x => x.IsValid == true))
+                                        {
+                                            <div class="form-check">
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" />
+                                                <span>@item.ClassName</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Common Phone No.</label>
+                                <input type="text" placeholder="Search phone no....." class="form-input">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Current Addres</label>
+                                <input type="text" placeholder="Search current address....." class="form-input">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="date from" class="form-label">Date From</label>
+                                <input type="date" @ref="dateFromInput" class="form-input" @onclick='() => OpenDateFrom("DateFrom")' />
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="date to" class="form-label">Date To</label>
+                                <input type="date" @ref="dateToInput" class="form-input" @onclick='() => OpenDateFrom("DateTo")' />
+
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="student-name" class="form-label">Gender</label>
+                                <select class="form-input">
+                                    <option value="0">Select</option>
+                                    @foreach (var data in genderModallist)
+                                    {
+                                        <option value="@data.GenderName">@data.GenderName</option>
+
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Period Type</label>
+                                <InputSelect @bind-Value="searchAny.BranchCode" class="form-input">
+                                    <option value="" selected>--Select--</option>
+                                    @foreach (var data in PeriodTypeList)
+                                    {
+                                        <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+
+                       
+                     
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+
+    
+
+    
+    private long selectedStudentId;
+
+    public class StudentModel
+    {
+        public long StudentId { get; set; }
+        public string StudentNo { get; set; }
+        public string AdmissionNo { get; set; }
+        public string StudentName { get; set; }
+        public string ClassName { get; set; }
+        public bool IsSelected { get; set; }
+    }
+    private List<StudentModel> Students = new()
+    {
+        new() { StudentId = 1, StudentNo = "ST001", AdmissionNo = "ADM001", StudentName = "Nilesh", ClassName = "Class10-A" },
+        new() { StudentId = 2, StudentNo = "ST002", AdmissionNo = "ADM002", StudentName = "Rahul", ClassName = "Class10-A" },
+        new() { StudentId = 3, StudentNo = "ST003", AdmissionNo = "ADM003", StudentName = "Amit", ClassName = "Class10-B" },
+        new() { StudentId = 4, StudentNo = "ST004", AdmissionNo = "ADM004", StudentName = "Vikas", ClassName = "Class10-B" },
+        new() { StudentId = 5, StudentNo = "ST005", AdmissionNo = "ADM005", StudentName = "Ankit", ClassName = "Class11-A" },
+        new() { StudentId = 6, StudentNo = "ST006", AdmissionNo = "ADM006", StudentName = "Deepak", ClassName = "Class11-A" },
+        new() { StudentId = 7, StudentNo = "ST007", AdmissionNo = "ADM007", StudentName = "Rohit", ClassName = "Class11-B" },
+        new() { StudentId = 8, StudentNo = "ST008", AdmissionNo = "ADM008", StudentName = "Mohit", ClassName = "Class11-B" },
+        new() { StudentId = 9, StudentNo = "ST009", AdmissionNo = "ADM009", StudentName = "Saurabh", ClassName = "Class12-A" },
+        new() { StudentId = 10, StudentNo = "ST010", AdmissionNo = "ADM010", StudentName = "Pankaj", ClassName = "Class12-A" },
+        new() { StudentId = 11, StudentNo = "ST011", AdmissionNo = "ADM011", StudentName = "Shubham", ClassName = "Class12-B" },
+        new() { StudentId = 12, StudentNo = "ST012", AdmissionNo = "ADM012", StudentName = "Manish", ClassName = "Class12-B" },
+        new() { StudentId = 13, StudentNo = "ST013", AdmissionNo = "ADM013", StudentName = "Arjun", ClassName = "Class9-A" },
+        new() { StudentId = 14, StudentNo = "ST014", AdmissionNo = "ADM014", StudentName = "Karan", ClassName = "Class9-A" },
+        new() { StudentId = 15, StudentNo = "ST015", AdmissionNo = "ADM015", StudentName = "Rakesh", ClassName = "Class9-B" },
+        new() { StudentId = 16, StudentNo = "ST016", AdmissionNo = "ADM016", StudentName = "Ajay", ClassName = "Class9-B" },
+        new() { StudentId = 17, StudentNo = "ST017", AdmissionNo = "ADM017", StudentName = "Vivek", ClassName = "Class8-A" },
+        new() { StudentId = 18, StudentNo = "ST018", AdmissionNo = "ADM018", StudentName = "Yash", ClassName = "Class8-A" },
+        new() { StudentId = 19, StudentNo = "ST019", AdmissionNo = "ADM019", StudentName = "Nitin", ClassName = "Class8-B" },
+        new() { StudentId = 20, StudentNo = "ST020", AdmissionNo = "ADM020", StudentName = "Harsh", ClassName = "Class8-B" }
+    };
+
+    private string searchText = "";
+    private string selectedStudentName = "";
+    private bool ShowPopup = false;
+    private string RegMode = "";
+    private ElementReference dateFromInput;
+    private ElementReference dateToInput;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? currentUrl;
+    private bool SelectAll = true;
+    private bool IsAllSelected;
+    private List<BranchClassModel> classlist = new();
+    private bool IsLoading = false;
+    private List<GenderModal> genderModallist = new();
+    private List<SessionModel> sessionlist = new();
+    private SearchAnyRequestModel searchAny = new();
+    private List<PeriodMaster> PeriodTypeList = new();
+    private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
+    private void ToggleSelectAll()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = SelectAll;
+        }
+    }
+   
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+    }
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+        PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+           
+
+           
+            //sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            foreach (var item in classlist)
+            {
+                item.IsSelected = true;
+            }
+            StateHasChanged();
+        }
+    }
+    private IEnumerable<StudentModel> FilteredStudents =>
+       string.IsNullOrWhiteSpace(searchText)
+           ? Students
+           : Students.Where(x =>
+               (x.StudentName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (x.StudentNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (x.AdmissionNo?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (x.ClassName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    
+    private void SelectStudent(StudentModel student)
+    {
+        selectedStudentId = student.StudentId;
+        selectedStudentName = student.StudentName;
+    }
+    private string SelectedTextData
+    {
+        get
+        {
+            var selected = Students.Where(x => x.IsSelected).ToList();
+
+            if (!selected.Any())
+                return "Select Student";
+
+            if (selected.Count <= 4)
+                return string.Join(", ", selected.Select(x => x.StudentNo));
+
+            return string.Join(", ", selected.Take(4).Select(x => x.StudentNo))
+                   + $" +{selected.Count - 4} More";
+        }
+    }
+    private async Task OpenDateFrom(string value)
+    {
+        if (value == "DateFrom")
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateFromInput);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateToInput);
+
+        }
+    }
+    private string SelectedText => SelectAll ? "All Class Selected" :
+     string.Join(", ", classlist.Where(x => x.IsSelected).Select(x => x.ClassName));
+}

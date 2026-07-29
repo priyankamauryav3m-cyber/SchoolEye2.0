@@ -1,0 +1,436 @@
+﻿@page "/ViewFeeTaking"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Set Fee Taking Methoud</p>
+                <div class="d-flex align-items-center gap-2">
+
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId" >@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value=gridRequest.RequestId" class="form-input">
+                            <option value="0" selected>Select-Template</option>
+                            @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                            {
+                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByTemplateName" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+
+                                @foreach (var prop in columns)
+                                {
+                                    if (prop == "Id" || prop == "FeeHeadId")
+                                    {
+                                        continue;
+                                    }
+                                    <TemplateColumn Title="@prop" Align="Align.Center">
+                                        <ChildContent>
+
+                                            @{
+                                                string feeHeadId = context.TryGetProperty("FeeHeadId", out var fId) ? fId.ToString() : "0";
+                                                string key = $"{feeHeadId}_{prop}";
+                                                string idKey = $"{feeHeadId}_Id";
+                                                string feeType = context.TryGetProperty("FeeType", out var ft) ? ft.ToString() : "";
+                                                var filledCount = inputValues.Where(x => x.Key.StartsWith($"{feeHeadId}_") && x.Key != idKey && int.TryParse(x.Value, out var v) && v > 0).Count();
+                                                var currentValue = inputValues.TryGetValue(key, out var val) ? val : "0";
+                                                int.TryParse(currentValue, out var currentNum);
+                                                bool isDisabled = false;
+
+                                                if (feeType == "OneTime" || feeType == "Annual")
+                                                {
+                                                    if (filledCount >= 1 && currentNum == 0)
+                                                    {
+                                                        isDisabled = true;
+                                                    }
+                                                }
+                                                else if (feeType == "Quarterly")
+                                                {
+                                                    if (filledCount >= 3 && currentNum == 0)
+                                                    {
+                                                        isDisabled = true;
+                                                    }
+                                                }
+
+                                              
+                                                if (!inputValues.ContainsKey(idKey))
+                                                {
+                                                    if (context.TryGetProperty("Id", out var idVal))
+                                                    {
+                                                        inputValues[idKey] = idVal.ToString();
+                                                    }
+                                                    else
+                                                    {
+                                                        inputValues[idKey] = "0";
+                                                    }
+                                                }
+                                                if (!inputValues.ContainsKey(key))
+                                                {
+                                                    if (context.TryGetProperty(prop, out var jsonValue))
+                                                    {
+                                                        inputValues[key] = jsonValue.ToString();
+                                                    }
+                                                    else
+                                                    {
+                                                        inputValues[key] = "";
+                                                    }
+                                                }
+                                                else if (prop == "Fee Head" || prop == "FeeType")
+                                                {
+                                                    @inputValues[key]
+                                                }
+                                                else
+                                                {
+                                                    <div class="input-group">
+                                                        <span class="input-group-text" id="basic-addon1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-currency-rupee" viewBox="0 0 16 16">
+                                                                <path d="M4 3.06h2.726c1.22 0 2.12.575 2.325 1.724H4v1.051h5.051C8.855 7.001 8 7.558 6.788 7.558H4v1.317L8.437 14h2.11L6.095 8.884h.855c2.316-.018 3.465-1.476 3.688-3.049H12V4.784h-1.345c-.08-.778-.357-1.335-.793-1.732H12V2H4z"></path>
+                                                            </svg>
+                                                        </span>
+                                                        <InputText @bind-Value="inputValues[key]" class="grid-input" disabled="@isDisabled" autocomplete="off"  oninput="this.value = this.value.replace(/[^0-9]/g, '')" onkeyup="if(parseInt(this.value) > 10000) this.value = 10000" onblur="if(this.value === '') this.value = '0'" placeholder="Amount" />
+                                                    </div>
+                                                }
+                                            }
+
+
+
+                                        </ChildContent>
+
+                                    </TemplateColumn>
+                                }
+
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="submit" @onclick="SaveOrUpdateTempalte" class="ui fade op-1 animated button form-btn">
+
+                            <div class="visible content">Update</div>
+                            <div class="hidden content">
+                                <i class="bi bi-cloud-check"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    
+}
+@code {
+    bool isDisabled = false;
+    private Dictionary<string, string> inputValues = new();
+    private bool showModal { get; set; }
+    private bool IsLoading = false;
+    private bool ShowPopup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string? sessionvalue;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? nameFilter;
+    private string? UserName;
+    private List<SessionModel> sessionlist = new();
+    private List<FeeHeadModel> feeHeadlist = new();
+    private List<dynamic> feetakinglist = new();
+    private SearchAnyRequestModel gridRequest = new();
+    private FeeTakingMethod feeTaking = new();
+    private List<FeeTemplateModel> feeTemplatelist = new();
+    private IQueryable<JsonElement> moduleQuery;
+    List<JsonElement> gridData;
+    private List<JsonElement> originalGridData;
+    List<string> columns = new();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            StateHasChanged();
+        }
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri = "FeeHead/GetFeeHeadList";
+        feeHeadlist = await httpService.Get<List<FeeHeadModel>>(ApiUri) ?? new();
+        string ApiUri2 = "FeeTemplate/GetFeeTemplate";
+        feeTemplatelist = await httpService.Get<List<FeeTemplateModel>>(ApiUri2) ?? new();
+
+        StateHasChanged();
+    }
+
+    private List<JsonElement> ConvertToJsonElementList(Dictionary<string, string> inputValues)
+    {
+
+        var result = inputValues.GroupBy(x => x.Key.Split('_')[0])
+            .Select(g =>
+            {
+                var dict = new Dictionary<string, object>();
+
+                dict["FeeHeadId"] = int.Parse(g.Key);
+
+                foreach (var item in g)
+                {
+                    var parts = item.Key.Split('_');
+                    string month = parts[1];
+
+                    if (!string.IsNullOrWhiteSpace(item.Value))
+                    {
+                        dict[month] = item.Value;
+                    }
+                }
+
+                return dict;
+            })
+            .ToList();
+        var json = JsonSerializer.Serialize(result);
+        return JsonSerializer.Deserialize<List<JsonElement>>(json);
+    }
+    Dictionary<string, object> NormalizeObject(JsonElement element)
+    {
+        var dict = new Dictionary<string, object>();
+
+        foreach (var prop in element.EnumerateObject().OrderBy(p => p.Name)) 
+        {
+            dict[prop.Name] = prop.Value.ToString();
+        }
+
+        return dict;
+    }
+    private async Task SaveOrUpdateTempalte()
+    {
+
+        try
+        {
+            if (gridRequest.RequestId == 0)
+            {
+                await Alert.ShowWarning("Please select template!");
+                return;
+            }
+            foreach (var key in inputValues.Keys.ToList())
+            {
+                if (string.IsNullOrWhiteSpace(inputValues[key]))
+                {
+                    inputValues[key] = "0";
+                }
+            }
+            var newData = ConvertToJsonElementList(inputValues);
+
+            var oldData = originalGridData ?? new List<JsonElement>();
+
+            var normalizedOld = oldData.Select(x => NormalizeObject(x)).OrderBy(x => Convert.ToInt32(x["FeeHeadId"])).ToList();
+
+            var normalizedNew = newData.Select(x => NormalizeObject(x)).OrderBy(x => Convert.ToInt32(x["FeeHeadId"])).ToList();
+
+            var oldJson = JsonSerializer.Serialize(normalizedOld);
+            var newJson = JsonSerializer.Serialize(normalizedNew);
+            IsLoading = true;
+            if (oldJson == newJson)
+            {
+                await Alert.ShowWarning("No Change Detected");
+                IsLoading = false;
+                StateHasChanged();
+                return;
+            }
+            
+            feeTaking.SessionId = CurrentSession;
+            feeTaking.GroupCode = groupcode;
+            feeTaking.BranchCode = branchcode;
+            feeTaking.CreatedBy = UserName;
+            feeTaking.FeeTemplateID = gridRequest.RequestId;
+            feeTaking.IsValid = true;
+            feeTaking.GridData = ConvertToJsonElementList(inputValues);
+            string apiUrl = "SetFeeTakingMethod/SaveFeeTakingMethod";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, feeTaking);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Set Fee Taking" + @Localizer["Inserted"]);
+                StateHasChanged();
+                IsLoading = false;
+
+            }
+            else if (responsecode == -2)
+            {
+                await Alert.ShowWarning("Set Fee Taking" + @Localizer["Already"]);
+                StateHasChanged();
+                IsLoading = false;
+            }
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Set Fee Taking" + @Localizer["Updated"]);
+                StateHasChanged();
+                IsLoading = false;
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                StateHasChanged();
+                IsLoading = false;
+            }
+    
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+
+    }
+    private async Task Searchdata()
+    {
+
+        gridRequest.GroupCode = groupcode;
+        gridRequest.BranchCode = branchcode;
+        gridRequest.SessionId = CurrentSession;
+        string ApiUri2 = "SetFeeTakingMethod/GetFeeHeadsOfTemplate";
+        var apiResponse = await httpService.Post<ApiResponse<List<JsonElement>>>(ApiUri2, gridRequest) ?? new();
+        if (apiResponse.Success && apiResponse.Data != null)
+        {
+            gridData = apiResponse.Data;
+            var json = JsonSerializer.Serialize(gridData);
+            originalGridData = JsonSerializer.Deserialize<List<JsonElement>>(json);
+        }
+        else
+        {
+            gridData = null;
+        }
+        if (gridData != null && gridData.Any())
+        {
+            columns = gridData.First().EnumerateObject().Select(p => p.Name).ToList();
+        }
+        else
+        {
+            columns = new List<string>();
+        }
+        moduleQuery = gridData.AsQueryable();
+        StateHasChanged();
+    }
+    private async Task SearchByTemplateName()
+    {
+        try
+        {
+            if (gridRequest.RequestId == 0)
+            {
+                await Alert.ShowWarning("Please select template!");
+                return;
+            }
+            IsLoading = true;
+            await Searchdata();
+            await Searchdata();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+
+            StateHasChanged();
+        }
+    }
+
+}
+

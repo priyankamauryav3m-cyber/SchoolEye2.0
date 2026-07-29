@@ -1,0 +1,108 @@
+﻿@using ServerWebUI.Components.Common
+@inject PermissionState PermissionState
+@if (ShowAdmit)
+{
+    <div class="form-box">
+        <button type="button" class="table-btn" @onclick="AdmitClick">
+            @ButtonText
+        </button>
+    </div>
+}
+
+@if (ShowPrint)
+{
+    <div class="form-box">
+        <button type="button" class="table-btn" @onclick="AdmitClick">
+            @ButtonText
+        </button>
+    </div>
+  
+}
+@if (ShowExport)
+{
+    <div class="form-box">
+        <button type="button" class="table-btn" @onclick="AdmitClick">
+            @ButtonText
+        </button>
+    </div>
+}
+@if (ShowEdit)
+{
+
+    <button type="button" class="ui animated button form-btn backBtn" @onclick="AdmitClick">
+        <div class="visible content">@ButtonText</div>
+        <div class="hidden content">
+            <i class="bi bi-pencil"></i>
+        </div>
+    </button>
+}
+
+
+
+
+
+@code {
+
+    [Parameter] public EventCallback AdmitClicked { get; set; }
+    [Parameter] public EventCallback Print { get; set; }
+    [Parameter] public EventCallback Export { get; set; }
+    [Parameter] public EventCallback Modifiy { get; set; }
+
+    [Parameter] public string CurrentUrl { get; set; }
+    [Parameter] public string ButtonText { get; set; } = "Print";
+    private bool ShowAdmit => AdmitClicked.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.IsAdd);
+    private bool ShowPrint => Print.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.IsPrint);
+    private bool ShowExport => Export.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.IsExportToExcel);
+    private bool ShowEdit => Modifiy.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.IsModifiy);
+
+    private async Task AdmitClick()
+    {
+        if (AdmitClicked.HasDelegate)
+        {
+            await AdmitClicked.InvokeAsync(null);
+        }
+        else if (Print.HasDelegate)
+        {
+            await Print.InvokeAsync(null);
+        }
+        else if (Export.HasDelegate)
+        {
+            await Export.InvokeAsync(null);
+        }
+        else if (Modifiy.HasDelegate)
+        {
+            await Modifiy.InvokeAsync(null);
+        }
+        else
+        {
+
+        }
+    }
+    // private async Task AdmitClickedClicks()
+    // {
+    //     if (Print.HasDelegate)
+    //     {
+    //         await Print.InvokeAsync(null);
+    //     }
+    // }
+    // private async Task ClickedToExport()
+    // {
+    //     if (Export.HasDelegate)
+    //     {
+    //         await Export.InvokeAsync(null);
+    //     }
+    // }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        PermissionState.OnChange -= StateHasChanged;
+    }
+
+
+
+}

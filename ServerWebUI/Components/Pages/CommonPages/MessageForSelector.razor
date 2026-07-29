@@ -1,0 +1,25 @@
+﻿@using DomainModel.Enum
+<div class="form-box">
+    <label class="form-label">@Label</label>
+    <div class="border-box d-flex justify-content-center align-items-center gap-4 p-2">
+        <InputRadioGroup @bind-Value="Value">
+            <div class="d-flex align-items-center gap-1">
+                <InputRadio Value="MessageType.SMS" />
+                <label class="form-label mb-0">SMS</label>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <InputRadio Value="MessageType.WhatsApp" />
+                <label class="form-label mb-0">WhatsApp</label>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <InputRadio Value="MessageType.Email" />
+                <label class="form-label mb-0">Email</label>
+            </div>
+        </InputRadioGroup>
+    </div>
+</div>
+@code {
+    [Parameter] public string Label { get; set; } = "Message For";
+    [Parameter] public MessageType Value { get; set; }
+    [Parameter] public EventCallback<MessageType> ValueChanged { get; set; }
+}

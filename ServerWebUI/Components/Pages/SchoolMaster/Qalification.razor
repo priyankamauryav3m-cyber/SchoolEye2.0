@@ -1,0 +1,141 @@
+﻿@page "/qualification"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Qualification </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddQualifiaction" />
+                   
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="Qualification" Sortable="true" SortBy="GridSort<Qualification>.ByAscending(x => x.QualificationName)" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Qualification..." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @context.QualificationName?.ToUpper()
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditQualificaion(context)" OnStatusClick="() => ChangeQualificationStatus(context.QualificationId, context.IsValid)" />
+                                </TemplateColumn>
+
+                            </QuickGrid>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-pagination">
+                <div class="d-flex align-items-center">
+                    <div class="welcome-text w-100">
+                        <Paginator State="@pagination" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((qualification.QualificationId == 0) ? "Add Qualifiaction" : "Edit Qualifiaction")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@qualification" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="qualification.QualificationName" autocomplete="off" maxlength="50" />
+                                    <label class="floating-label">
+                                        Qualification Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => qualification.QualificationName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="qualification.Remarks" autocomplete="off" maxlength="100" />
+                                    <label class="floating-label">Remarks</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="qualification.QualificationId" OnClickCancel="ClosePopup" />
+                           
+                        
+                        </div>
+                    </div>
+
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (getqualificationlist.Count > 0)
+    {
+    }
+}
+
+

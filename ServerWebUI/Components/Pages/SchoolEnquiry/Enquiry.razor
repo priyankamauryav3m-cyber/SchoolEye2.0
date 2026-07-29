@@ -1,0 +1,1094 @@
+﻿@page "/enquiry"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.AdmissionDetailsPages
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+</style>
+<section class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Enquiry
+                    @* <NavigationPage /> *@
+                </p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddEnquiry" />
+           
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input @bind="context.IsSelected" @onclick:stopPropagation="true" type="checkbox" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.EnquiryNo)" Sortable="true" Title="Enq No." Class="text-center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="EnquiryNo...." />
+                                        </div>
+                                    </ColumnOptions>
+                                    </PropertyColumn>
+                                <PropertyColumn Sortable="true" Property="@(x => x.StudentFirstName)" Title="Student Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Studentname...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <TemplateColumn Title="Father Name" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.FatherName)" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FatherName) ? " " : context.FatherName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Fathername..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Contact No."  Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.MobileNo) ? " " : context.MobileNo)
+                                    </ChildContent> 
+
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.Gender)" Sortable="true" Title="Gender" />
+                                <TemplateColumn Title="Class Name" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.FatherName)" Align="Align.Center" Class="text-center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.DateOfBirth)" Class="text-center" Align="Align.Center" Title="Date Of Birth" />
+                                <PropertyColumn Format="dd-MM-yyyy" Align="Align.Center" Class="text-center" Property="@(x => x.EnquiryDate)" Title="Applied Date" />
+                                <TemplateColumn Title="Followup Date" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.FatherName)" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.NextFollowupDate) ? " " : context.NextFollowupDate)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                     <TemplateColumn Align="Align.Center" Title="Action">
+                                    @* <ActionButtonGroup  CurrentUrl="@currentUrl" OnEditClick="() => EditEnqiry(context)"  /> *@
+                                         <div class="action-btn-group">
+                                        <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit"  @onclick="() => EditEnqiry(context)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+
+                                        <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Followup" @onclick="() => AddFollowup(context)">
+                                            <i class="bi bi-hand-index-thumb"></i>
+                                    </button>
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+
+
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="NewRegistrations">
+                            New Registration
+                        </button>
+                    </div>
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText=" Export To Excel" Export="ExpotToExcel" />
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print Summary" Export="PrintExcelSummary" />
+
+                    @* <div class="form-box">
+                        <button class="table-btn" @onclick="ExpotToExcel">
+                            Export To Excel
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="PrintExcelSummary">
+                            Print Summary
+                        </button>
+                    </div> *@
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</section>
+@if (ShowPopupEnquery)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-sm-12 col-md-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((enquiryModel.EnquiryId == 0) ? "Add New Enquiry" : "Edit Enquiry")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@enquiryModel" OnValidSubmit="OnSaveEnquiry">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row gap-22-0">
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@CurrentSession">
+                                    <option  value="" selected >--Select--</option>
+                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                    {
+                                    <option value="@data.SessionId">@data.SessionName </option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Session</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="enquiryModel.EnquiryDate" />
+                                    <label class="floating-label">Enq. Date <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.EnquiryDate)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="enquiryModel.ClassCode" autocomplete="off">
+                                    <option  value="" selected >--Select--</option>
+                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                    {
+                                    <option Value="@cs.ClassCode">@cs.ClassName</option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Class Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.ClassCode)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="enquiryModel.Gender" maxlength="10">
+                                    <option  value="" selected >--Select--</option>
+                                    @foreach (var cs in genderModallist.Where(x => x.IsValid == true))
+                                    {
+                                    <option Value="@cs.GenderName">@cs.GenderName</option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Gender <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.Gender)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.StudentFirstName" autocomplete="off" maxlength="100" onkeypress="return /^[a-zA-Z]$/.test(event.key)" />
+                                    <label class="floating-label">Student First Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.StudentFirstName)" />
+                                </div>
+                            </div>
+
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.StudentMiddleName" autocomplete="off" maxlength="100" onkeypress="return /^[a-zA-Z]$/.test(event.key)" />
+                                    <label class="floating-label">Student Middle Name</label>
+                                </div>
+                            </div>
+
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.StudentLastName" autocomplete="off" maxlength="100" onkeypress="return /^[a-zA-Z]$/.test(event.key)" />
+                                    <label class="floating-label">Student Last Name</label>
+                                </div>
+                            </div>
+
+
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="enquiryModel.DateOfBirth" max="@DateTime.Today.ToString("dd-MM-yyyy")" autocomplete="off" />
+                                    <label class="floating-label">Date Of Birth</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.MobileNo" autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10" />
+                                    <label class="floating-label">Mobile No. <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.MobileNo)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.FatherName" autocomplete="off" maxlength="100" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" />
+                                    <label class="floating-label">Father's Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.FatherName)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.MotherName" autocomplete="off" maxlength="100" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" />
+                                    <label class="floating-label">Mother's Name</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.AlternateContactNo" autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10" />
+                                    <label class="floating-label">Alternate No.</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.Email" autocomplete="off" />
+                                    <label class="floating-label">E-Mail Id</label>
+                                    <ValidationMessage For="@(() => enquiryModel.Email)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-8">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input"  @bind-Value="enquiryModel.Address" autocomplete="off"></InputText>
+                                    <label class="floating-label">Address <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.Address)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.SourceOfEnquiry" autocomplete="off" maxlength="100" />
+                                    <label class="floating-label">Source of Enquiry</label>
+                                </div>
+                            </div>  
+
+                              
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-8">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input"  @bind-Value="enquiryModel.Remarks" autocomplete="off"></InputText>
+                                    <label class="floating-label">Remark</label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="enquiryModel.EnquiryId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (ShowPopupFollowup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-sm-12 col-md-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Followup For</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                @if (ShowSuccess)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        ✅ &nbsp; &nbsp; <strong> Followup submit successfully !</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+
+                        <div class="col-12 col-sm-6 col-md-6">
+                            <div class="form-box">
+                                <div class="border-box d-flex justify-content-between align-items-center p-2">
+                                    <label class="d-flex align-items-center form-label">Enquiry No : </label>
+                                    <label class="d-flex align-items-center form-label">@enquiryModel.EnquiryNo</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-6">
+                            <div class="form-box">
+                                <div class="border-box d-flex justify-content-between align-items-center p-2">
+                                    <label class="d-flex align-items-center form-label">Student Name : </label>
+                                    <label class="d-flex align-items-center form-label">@enquiryModel.StudentFirstName</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-6">
+                            <div class="form-box">
+                                <div class="border-box d-flex justify-content-between align-items-center p-2">
+                                    <label class="d-flex align-items-center form-label">Contact No : </label>
+                                    <label class="d-flex align-items-center form-label">@enquiryModel.MobileNo</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-6">
+                            <div class="form-box">
+                                <div class="border-box d-flex justify-content-between align-items-center p-2">
+                                    <label class="d-flex align-items-center form-label">Followup date : </label>
+                                    <label class="d-flex align-items-center form-label">@addFollowup.FollowupDate?.ToString("dd-MM-yyyy")</label>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="col-12">
+                            <hr class="my-1" />
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box">
+                                <label for="" class="form-label">Interest Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="@addFollowup.FollowupStatus">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                Interested
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("2")" />
+                                            <label class="form-label">
+                                                Most Interested
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                Not Interested
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box">
+                                <label for="" class="form-label">Interaction</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="@addFollowup.InteractionVia">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                By Call
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                By SMS
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("2")" />
+                                            <label class="form-label">
+                                                By Email
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box-group">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="addFollowup.NextFollowupDate" />
+                                <label class="floating-label">Next Followup Date</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="addFollowup.Remarks" autocomplete="off" />
+                                <label class="floating-label">Followup Remark <span class="required">*</span></label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <hr class="my-1" />
+                        </div>
+                        <div class="col-12">
+                            <div class="table-card m-1 p-0 scrollbar-thin" style="max-height: 250px; min-height:100px;">
+                                <QuickGrid Items="@followupQueryable" Pagination="@pagination" Class="table">
+                                    @{
+                                        int srNo = 1;
+                                    }
+                                    <TemplateColumn Title="Sr No." Class="text-center" Align="Align.Center">
+                                        <ChildContent>
+                                            @(srNo++)
+                                        </ChildContent>
+                                    </TemplateColumn>
+
+                                    <PropertyColumn Align="Align.Center" Class="text-center" Property="@(x => x.FollowUpDate)" Title="Followup Date">
+                                    </PropertyColumn>
+                                    <TemplateColumn Title="Remarks" Align="Align.Center">
+                                        <ChildContent>
+                                            @(string.IsNullOrWhiteSpace(context.FollowUpRemark) ? " " : context.FollowUpRemark)
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Next Followup Date" Class="text-center" Align="Align.Center">
+                                        <ChildContent>
+                                            @(string.IsNullOrWhiteSpace(context.NextDate) ? " " : context.NextDate)
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    <PropertyColumn Property="@(x => x.InteractionVia)" Class="text-center" Align="Align.Center" Title="Interaction" />
+                                    <PropertyColumn Property="@(x => x.FollowupStatusName)" Class="text-center" Align="Align.Center" Title="Interest" />
+
+                                </QuickGrid>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="submit" class="ui fade op-1 animated button form-btn" @onclick="OnSaveFolloup">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content">
+                                <i class="fa fa-save"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+}
+
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search New Registration</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="requestlist.StudentName" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" />
+                                <label class="floating-label">Student First Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="requestlist.FromDate" />
+                                <label class="floating-label">Date From</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="requestlist.ToDate" />
+                                <label class="floating-label">Date To</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="requestlist.MobileNo" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                <label class="floating-label">Mobile No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="requestlist.AppliedFrom">
+                                <option value="-1" selected>Online/Offline</option>
+                                <option value="1=">Online</option>
+                                <option value="0">Offline</option>
+                                </InputSelect>
+                                <label class="floating-label">Applied From</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group">
+                                <label for="sibling" class="floating-label">Followup Status</label>
+                                <select class="floating-input">
+                                    <option value="-1" selected>All</option>
+                                    <option value="2">Most Interested</option>
+                                    <option value="1">Interested</option>
+                                    <option value="0">Not Interested</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="form-box-group static-label">
+                                <label for="applied" class="floating-label">Date Apply As</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="requestlist.DateWorkAs">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                Enquiry
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                Followup
+                                            </label>
+                                        </div>
+
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (OpenRegPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-sm-12 col-md-10">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">New Registration</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+
+                <div class="modal-body">
+                    <RegistrationForm classs=""  IncomingData="@SeletedData" OnOpen="OpenPopup" OnClose="@ClosePopup"></RegistrationForm>
+                </div>
+            </div>
+        </div>
+    </div>
+  
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+   
+}
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    private CustomAlert customAlert;
+    private bool IsLoading = false;
+    private CountryModel country = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private EnquiryListResponse enquiryModel = new();
+    private EnquiryListResponse SeletedData = new();
+    private AddFollowupRequest addFollowup = new();
+    private EnquiryRequestDto requestlist = new();
+    private List<FollowupDetailsResponse> followupDetaillist = new();
+    private List<EnquiryListResponse> enquiryList = new();
+    private List<CountryModel> countrylist = new();
+    // private List<EnquiryModel> enquirList = new();
+    private bool ShowPopup = false;
+    private bool ShowPopupEnquery = false;
+    private bool ShowPopupFollowup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<GenderModal> genderModallist = new();
+    string nameFilter = string.Empty;
+    private string EnquiryId = string.Empty;
+    private int SelectEnquiryId ;
+    private string statusFilter = "1";
+    private string UserName;
+    private string? branchcode;
+    private string? groupcode;
+    private string olddesignation = "";
+    private long CurrentSession;
+    private string? currentUrl;
+    private bool ShowSuccess;
+    private bool OpenRegPopup;
+    private IQueryable<FollowupDetailsResponse> followupQueryable => followupDetaillist?.AsQueryable();
+    private void OpenPopup()
+    {
+        OpenRegPopup = true;
+    }
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+    }
+    private async Task NewRegistrations()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        SeletedData = moduleQuery.Where(x => x.IsSelected).FirstOrDefault();
+        if (SeletedData == null)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+       // SelectEnquiryId = SeletedData.EnquiryId;
+        OpenRegPopup = true;
+
+
+    }
+    private async Task OnSaveEnquiry()
+    {
+        try
+        {
+            ShowPopupEnquery = false;
+
+            if (enquiryModel.EnquiryId > 0)
+            {
+
+                ShowPopupEnquery = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopupEnquery = true;
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(enquiryModel, olddesignation);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopupEnquery = true;
+                    return;
+                }
+            }
+            if (enquiryModel.EnquiryId == 0)
+            {
+                var submit = await Alert.ShowConfirm("Are you sure, you want to submit records?");
+                if (!submit)
+                    return;
+            }
+            ShowPopupEnquery = false;
+            enquiryModel.CreatedBy = UserName;
+            enquiryModel.GroupCode = groupcode;
+            enquiryModel.BranchCode = branchcode;
+            enquiryModel.SessionId = CurrentSession;
+            enquiryModel.IsOnline = 1;
+            string apiUrl = "Enquiry/AddOrUpdateEnquiry";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, enquiryModel);
+            if (apiResponse.Success && apiResponse.Code == 1)
+            {
+                await Alert.ShowMessage($"Enquiry submit successfully! <br/>" + $"<b>Enquiry No:</b> {apiResponse.Data}");
+            }
+            else if (apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("Enquiry" + @Localizer["Updated"]);
+            }
+            else if (apiResponse.Code == -2)
+            {
+                await Alert.ShowSuccess("Enquiry" + @Localizer["Admin"]);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+            enquiryModel=new();
+            await LoadData();
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchStudent()
+    {
+
+        requestlist.GroupCode = groupcode;
+        requestlist.BranchCode = branchcode;
+        requestlist.SessionId = CurrentSession;
+        IsLoading = true;
+        ShowPopup = false;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "Enquiry/GetEnquiryList";
+            var apiResponse = await httpService.Post<ApiResponse<List<EnquiryListResponse>>>(apiUrl, requestlist);
+            if (apiResponse.Success)
+            {
+                enquiryList = apiResponse.Data ?? new List<EnquiryListResponse>();
+            }
+            else
+            {
+                enquiryList = new List<EnquiryListResponse>();
+            }
+        }
+        catch
+        {
+            enquiryList = new List<EnquiryListResponse>();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+    }
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri2) ?? new();
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        var dashboard = await sessionStorage.GetAsync<string>("Dashboard");
+        PermissionState.DashboardUrl = "/" + dashboard.Value;
+        IsLoading = false;
+
+
+    }
+    protected IQueryable<EnquiryListResponse> moduleQuery
+    {
+        get
+        {
+            var result = enquiryList.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.EnquiryNo != null && x.EnquiryNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.StudentFirstName != null && x.StudentFirstName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+             (x.FatherName != null && x.FatherName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase))
+                );
+
+            }
+            return result;
+        }
+    }
+
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void AddEnquiry()
+    {
+        ShowPopupEnquery = true;
+        enquiryModel = new();
+
+    }
+    private async Task AddFollowup(EnquiryListResponse enquiry)
+    {
+        IsLoading = true;
+        enquiryModel = enquiry;
+        EnquiryId = enquiry.EnquiryId.ToString();
+        await GetFollowupStudent();
+        IsLoading = false;
+        ShowPopupFollowup = true;
+    }
+    private async Task GetFollowupStudent()
+    {
+         ShowPopupFollowup = true;
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.RequestName = EnquiryId;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "Enquiry/GetFollowupDetails";
+            var apiResponse = await httpService.Post<ApiResponse<List<FollowupDetailsResponse>>>(apiUrl, searchAnyRequest);
+            if (apiResponse.Success)
+            {
+                followupDetaillist = apiResponse.Data ?? new List<FollowupDetailsResponse>();
+            }
+            else
+            {
+                followupDetaillist = new List<FollowupDetailsResponse>();
+            }
+        }
+        catch
+        {
+            followupDetaillist = new List<FollowupDetailsResponse>();
+        }
+        finally
+        {
+            addFollowup = new();
+            StateHasChanged();
+        }
+
+    }
+    private async Task PrintExcelSummary()
+    {
+        try
+        {
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnquerySummary", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "StudentSummary.xlsx");
+                //await JS.InvokeVoidAsync("openExcelDirect", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task ExpotToExcel()
+    {
+        try
+        {
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnqueryListExcel", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
+                //await JS.InvokeVoidAsync("openExcelDirect", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task OnSaveFolloup()
+    {
+
+        try
+        {
+
+            ShowPopupFollowup = false;
+            addFollowup.CreatedBy = UserName;
+            addFollowup.GroupCode = groupcode;
+            addFollowup.BranchCode = branchcode;
+            addFollowup.BranchCode = branchcode;
+            addFollowup.NeverCall ="0" ;
+            addFollowup.EnquiryId = EnquiryId;
+            if (addFollowup.NextFollowupDate.HasValue && addFollowup.NextFollowupDate.Value.Date < DateTime.Today)
+            {
+                await customAlert.ShowCustomAlert("Not select a previous date !", false);
+                addFollowup.NextFollowupDate = DateTime.Today;
+                return;
+            }
+            if (string.IsNullOrEmpty(addFollowup.Remarks))
+            {
+                await customAlert.ShowCustomAlert("Followup  remarks  cannot be blank.", false);
+                return;
+            }
+            string apiUrl = "Enquiry/AddFollowup";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, addFollowup);
+            if (apiResponse.Code == 2 && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Followup submit successfully");
+                await GetFollowupStudent();
+            }
+            else if (apiResponse.Code == -1)
+            {
+                ShowPopupFollowup = false;
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+            else
+            {
+                ShowPopupFollowup = false;
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            // addFollowup = new();
+            StateHasChanged();
+        }
+    }
+
+    private void EditEnqiry(EnquiryListResponse enquiry)
+    {
+        enquiryModel = enquiry;
+        // enquiryModel = new EnquiryListResponse
+        // {
+        //     EnquiryId = enquiry.EnquiryId,
+        //    SessionId=enquiry.SessionId,
+        //    EnquiryDate =enquiry.EnquiryDate,
+        //    ClassCode=enquiry.ClassCode,
+        //    Gender=enquiry.Gender,
+        //     StudentFirstName = enquiry.StudentFirstName,
+        //     StudentMiddleName = enquiry.StudentMiddleName,
+        //     StudentLastName = enquiry.StudentLastName,
+        //     DateOfBirth = enquiry.DateOfBirth,
+        //    MobileNo=enquiry.MobileNo,
+        //     FatherName = enquiry.FatherName,
+        //     MotherName = enquiry.MotherName,
+        //    AlternateContactNo=enquiry.MobileNo,
+        //    Email=enquiry.Email,
+        //    Address=enquiry.Address,
+        //    SourceOfEnquiry=enquiry.SourceOfEnquiry,
+        //    Remarks=enquiry.Remarks,
+        // };
+        olddesignation = CommonMethod.CreateSnapshot(enquiryModel);
+        ShowPopupEnquery = true;
+    }
+
+    private void ClosePopup()
+    {
+
+        ShowPopup = false;
+        ShowPopupEnquery = false;
+        ShowPopupFollowup = false;
+        enquiryModel = new();
+        OpenRegPopup = false;
+    }
+   
+}
+

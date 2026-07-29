@@ -1,0 +1,58 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager nav
+@rendermode   InteractiveServer
+
+<div class="page">
+    <div>
+        <MainHeader />
+    </div>
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main id="main" class="main">
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+
+
+@code{
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        if (nav.Uri.Contains("verifyotppage", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (!await UserIsAuthenticated())
+        {
+            nav.NavigateTo("/", true);   // Login Page
+        }
+    }
+    // private async Task<bool> UserIsAuthenticated()
+    // {
+    //     var token = await GetSessionToken();
+    //     return !string.IsNullOrWhiteSpace(token);
+    // }
+
+    private async Task<string?> GetSessionToken()
+    {
+        var loginName = await sessionStorage.GetAsync<string>("UserName");
+        string LoginName = loginName.Value;
+        if (!loginName.Success || string.IsNullOrWhiteSpace(loginName.Value))
+            return null;
+
+        return loginName.Value;
+      //  return string.IsNullOrEmpty(LoginName) ? null : LoginName;
+    }
+    private async Task<bool> UserIsAuthenticated()
+    {
+        var token = await sessionStorage.GetAsync<string>("authToken");
+
+        return token.Success &&
+               !string.IsNullOrWhiteSpace(token.Value);
+    }
+}

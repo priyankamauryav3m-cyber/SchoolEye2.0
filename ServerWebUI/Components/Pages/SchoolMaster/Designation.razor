@@ -1,0 +1,349 @@
+﻿@page "/designation"
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using MyApp.Common
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject IStringLocalizer<Resource> Localizer
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+@inject ICommonMethod CommonMethod
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Designation </p>
+                <div class="d-flex gap-2">
+
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddDesignation" />
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.DesignationName)" Title="Designation" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Designation ..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditDesignation(context)" OnStatusClick="() => ChangeDesignationStatus(context.DesignationId, context.IsValid)" />
+                                </TemplateColumn>
+
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((designation.DesignationId == 0) ? "Add designation" : "Edit designation")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@designation" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="designation.DesignationName" maxlength="100" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Designation Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => designation.DesignationName)" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="designation.DesignationId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (designationlist.Count > 0)
+    {
+    }
+}
+
+
+@code{
+    private bool IsLoading = true;
+    private DesignationModel designation = new();
+    private string olddesignation = "";
+    private List<DesignationModel> designationlist = new();
+    private bool ShowPopup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string? groupcode;
+    private string currentUrl;
+    private string UserName;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            var username = await sessionStorage.GetAsync<string>("UserName");
+            UserName = username.Value;
+            StateHasChanged();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+    private async Task LoadData()
+    {
+
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        IsLoading = true;
+        string ApiUri = "designation/GetDesignation";
+        designationlist = await httpService.Get<List<DesignationModel>>(ApiUri) ?? new();
+        IsLoading = false;
+    }
+
+    protected IQueryable<DesignationModel> FilteredItems
+    {
+        get
+        {
+            var result = designationlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.DesignationName != null && x.DesignationName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.Remarks != null && x.Remarks.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid == true || s.IsValid == true);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => s.IsValid == false || s.IsValid == false);
+            }
+            return result;
+        }
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void AddDesignation()
+    {
+        designation = new();
+        ShowPopup = true;
+    }
+
+    private async Task OnSave()
+    {
+
+        try
+        {
+            if (designation.DesignationId > 0)
+            {
+
+
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(designation, olddesignation);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+            ShowPopup = false;
+            designation.IsValid = true;
+            designation.CreatedBy = UserName;
+            designation.CreatedDate = DateTime.Now;
+            designation.GroupCode = groupcode;
+
+            var tokenResult = await sessionStorage.GetAsync<string>("authToken");
+            string tokenValue = tokenResult.Value;
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenValue);
+            string apiUrl = "designation/AddOrUpdateDesignation";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, designation);
+
+            if (designation.DesignationId >= 0)
+            {
+                if (apiResponse.Success)
+                {
+                    var responsecode = apiResponse.Code;
+                    if (responsecode == 0)
+                    {
+                        await Alert.ShowWarning("Designation" + @Localizer["Already"]);
+                    }
+                    else if (responsecode == 1)
+                    {
+                        await Alert.ShowSuccess("Designation" + @Localizer["Inserted"]);
+                    }
+                    else if (responsecode == 2)
+                    {
+                        await Alert.ShowSuccess("Designation" + @Localizer["Updated"]);
+                    }
+                    else
+                    {
+                        await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                    }
+
+                    await LoadData();
+                    designation = new DesignationModel();
+                }
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+
+
+    }
+    private void EditDesignation(DesignationModel item)
+    {
+        designation = new DesignationModel
+        {
+            DesignationId = item.DesignationId,
+            DesignationName = item.DesignationName
+        };
+        olddesignation = CommonMethod.CreateSnapshot(designation);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        designation = new DesignationModel();
+        ShowPopup = false;
+        StateHasChanged();
+    }
+    private async Task ChangeDesignationStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "designation/DeleteDesignation";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+
+}

@@ -1,0 +1,2624 @@
+﻿@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ServerWebUI.Components.Common
+@inject ICommonMethod _commonmethod
+@using System.Net
+@using System.Drawing;
+@using System.Text.Json
+@using MyApp.Common
+@using System.Text.RegularExpressions
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject IWebHostEnvironment env
+@rendermode InteractiveServer
+
+@if (IsVisible)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">View Student Details</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 tabination-row">
+                        <div class="col-12 p-0">
+                            <div class="form-tab">
+                                @if (ShowSuccess)
+                                {
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        ✅ &nbsp; &nbsp; <strong>  Data updated successfully !</strong>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                }
+                                <ul id="form-tab-ul" class="form-tab-ul nav nav-tab-5">
+                                    <li>
+                                        <a href="javascript:void(0)"
+                                           class="tab-link @(ActiveTab == "personal-details" ? "active" : "")"
+                                           @onclick='() => SetTab("personal-details")'>
+                                            Personal Details
+                                        </a>
+
+                                    </li>
+                                    <li>
+                                        <a href="javascript:void(0)"
+                                           class="tab-link @(ActiveTab == "parents-details" ? "active" : "")"
+                                           @onclick='() => SetTab("parents-details")'>
+                                            Parents Details
+                                        </a>
+
+                                    </li>
+
+                                    <li>
+                                        <a href="javascript:void(0)"
+                                           class="tab-link @(ActiveTab == "address-details" ? "active" : "")"
+                                           @onclick='() => SetTab("address-details")'>
+                                            Address Details
+                                        </a>
+
+                                    </li>
+                                    <li>
+                                        <a href="javascript:void(0)"
+                                           class="tab-link @(ActiveTab == "sibling-details" ? "active" : "")"
+                                           @onclick='() => SetTab("sibling-details")'>
+                                            Sibling Details
+                                        </a>
+
+                                    </li>
+                                    <li>
+                                        <a href="javascript:void(0)"
+                                           class="tab-link @(ActiveTab == "other-details" ? "active" : "")"
+                                           @onclick='() => SetTab("other-details")'>
+                                            Other Details
+                                        </a>
+
+                                    </li>
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="row my-2 w-webkit text-light-gray">
+                    <div class="row m-0 mt-2">
+                        <div class="col-12 p-1">
+                            <div class="tab-content form-tab-count">
+                                @*   ---------------------------------- Start personal-details ---------------------------------------------  *@
+
+                                <div class="tab-pane tab-pane-form fade @(ActiveTab == "personal-details" ? "show active" : "")" id="personal-details">
+
+                                    <EditForm Model="@viewchildDetails" OnValidSubmit="Childsdetails">
+                                        <DataAnnotationsValidator />
+                                        <fieldset disabled="@_childFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px);">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.FirstName" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="100" />
+                                                        <label class="floating-label">First Name<sup class="text-red fw-bold">*</sup></label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.FirstName)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.MiddleName" onkeypress="return /^[a-z A-Z]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Middle Name</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastName" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="100" />
+                                                        <label class="floating-label">Last Name</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Gender">
+                                                        <option value="" selected>--Select--</option>
+                                                        @if (genderlist != null)
+                                                        {
+                                                        foreach (var cls in genderlist)
+                                                        {
+                                                        <option value="@cls.GenderName">@cls.GenderName</option>
+                                                        }
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">Gender <sup class="text-red fw-bold">*</sup></label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.Gender)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="viewchildDetails.DateOfBirth" autocomplete="off" maxlength="12" @bind-Value:after="OnDOBChanged" />
+                                                        <label class="floating-label">Date of Birth <sup class="text-red fw-bold">*</sup></label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.DateOfBirth)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.ClassSection" autocomplete="off" readonly maxlength="20" />
+                                                        <label class="floating-label">Class|Section</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.BloodGroup" maxlength="10" autocomplete="off" />
+                                                        <label class="floating-label">Blood Group</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Nationality">
+                                                        <option value="0">--Select--</option>
+                                                        @if (countrylist != null)
+                                                        {
+                                                        foreach (var cls in countrylist)
+                                                        {
+                                                        <option value="@cls.CountryId">@cls.CountryName</option>
+                                                        }
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">Nationality <sup class="text-red fw-bold">*</sup></label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.Nationality)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.SocialCategory">
+                                                        <option value="0">-- Select--</option>
+                                                        @foreach (var cs in categories)
+                                                        {
+                                                        <option Value="@cs.CategoryId">@cs.CategoryName</option>
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">Category</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Religion">
+                                                        <option value="0" selected>--Select--</option>
+                                                        @if (religionlist != null)
+                                                        {
+                                                        foreach (var cls in religionlist)
+                                                        {
+                                                        <option value="@cls.ReligionId">@cls.ReligionName</option>
+                                                        }
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">Religion</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Background">
+                                                        <option value="0">-- Select --</option>
+                                                        <option value="1">Rural</option>
+                                                        <option value="2">Urban</option>
+                                                        </InputSelect>
+                                                        <label class="floating-label">Background</label>
+                                                    </div>
+                                                </div>
+
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.MotherTongue">
+                                                        <option value="0">-- Select Tongue ---</option>
+                                                        @foreach (var cls in mstMotherlist)
+                                                        {
+                                                        <option value="@cls.TongueId">@cls.TongueName</option>
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">Mother Tongue</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.HouseNo">
+                                                        <option value="0">Select</option>
+                                                        <option value="3">ganga house</option>
+                                                        <option value="4">godavari house </option>
+                                                        <option value="2">narmada house</option>
+                                                        <option value="1">yamuna house </option>
+                                                        </InputSelect>
+                                                        <label class="floating-label">House</label>
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AdmissionNo" maxlength="10" autocomplete="off" />
+                                                        <label class="floating-label">Admission No</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AadhaarNo" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                        <label class="floating-label">Aadhaar No</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.FirstName" maxlength="50" onkeypress="return /^[a-z A-Z]$/.test(event.key)" autocomplete="off" />
+                                                        <label class="floating-label">Child Name (as per aadhar)</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.IsTransportRequired">
+                                                        <option value="0" seleted>Select</option>
+                                                        <option value="1">School Transport</option>
+                                                        <option value="2">Private Van</option>
+                                                        <option value="3">Parents</option>
+                                                        <option value="4">Self</option>
+                                                        <option value="5">Rickshaw</option>
+                                                        <option value="6">Auto</option>
+                                                        <option value="7">Cycle</option>
+                                                        </InputSelect>
+                                                        <label class="floating-label">Using Transport</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.RouteDistance">
+                                                        <option value="0">-- Select Distance --</option>
+                                                        @foreach (var cs in distanceslist)
+                                                        {
+                                                        <option Value="@cs.DistanceId">@cs.DistanceName</option>
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">Route Distance</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="viewchildDetails.TransportAppliedFrom" autocomplete="off" />
+                                                        <label class="floating-label">Applied Date</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.SocialCategory">
+                                                        <option value="0">-- No Item ---</option>
+                                                        </InputSelect>
+                                                        <label class="floating-label">Student Category</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputNumber class="floating-input" placeholder=" " @bind-Value="viewchildDetails.EWSId" maxlength="20" autocomplete="off" />
+                                                        <label class="floating-label">EWS ID/RTE</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Caste" maxlength="20" autocomplete="off" />
+                                                        <label class="floating-label">Caste</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <label for="sibling" class="floating-label">Route Name</label>
+                                                        <div class="border-box d-flex justify-content-center align-items-center p-2 gap-2">
+                                                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value="viewchildDetails.IsHostelRequired"></InputCheckbox>
+                                                                <label class="d-flex align-items-center form-label">
+                                                                    Using Hostel
+                                                                </label>
+                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value="viewchildDetails.IsSMSRequired"></InputCheckbox>
+                                                                <label class="d-flex align-items-center form-label">
+                                                                    Is SMS Allowed
+                                                                </label>
+                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value="viewchildDetails.IsEmailRequired"></InputCheckbox>
+                                                                <label class="d-flex align-items-center form-label">
+                                                                    IS E-Mail Allowed
+                                                                </label>
+                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value="viewchildDetails.IsDisability"></InputCheckbox>
+                                                                <label class="d-flex align-items-center form-label">
+                                                                    IS Disability
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AdmissionClass" maxlength="10" autocomplete="off" />
+                                                        <label class="floating-label">Admission Class</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AdmissionDate" autocomplete="off" />
+                                                        <label class="floating-label">Admission Date</label>
+                                                    </div>
+                                                </div>
+
+                                                  
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.NatureOfDisability" maxlength="30" autocomplete="off" />
+                                                        <label class="floating-label">Nature Of Disability</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="viewchildDetails.WithdrawalDate" autocomplete="off" />
+                                                        <label class="floating-label">Date Of Withdrawal</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.StateCode" maxlength="20" autocomplete="off" />
+                                                        <label class="floating-label">State Code</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.GSRNNo" maxlength="20" autocomplete="off" />
+                                                        <label class="floating-label">G-SRN No.</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.ApaarId" maxlength="20" autocomplete="off" />
+                                                        <label class="floating-label">ApparId</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.PENNo" maxlength="20" autocomplete="off" />
+                                                        <label class="floating-label">PEN No.</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.CBSEGamesId" maxlength="30" autocomplete="off" />
+                                                        <label class="floating-label">CBSE Games Id</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.FamilyId" maxlength="10" autocomplete="off" />
+                                                        <label class="floating-label">Family Id</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.EmailId" maxlength="50" autocomplete="off" />
+                                                        <label class="floating-label">Student Email</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.MobileNo" maxlength="10" autocomplete="off" />
+                                                        <label class="floating-label">Student Mobile No.</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">Bank Details : -</p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-10 px-0">
+                                                    <div class="row m-0">
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.StudentBankName" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Bank Name</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.StudentBankName)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.StudentBankAccount" autocomplete="off" maxlength="30" />
+                                                                <label class="floating-label">Account No.</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.StudentBankAccount)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.IFSC" autocomplete="off" maxlength="20" />
+                                                                <label class="floating-label">IFSC Code</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.IFSC)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AccountHolderName" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Account Holder Name</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.AccountHolderName)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                                <p class="total-text-with-bg bg-light-gray">Previous Academic Details : -</p>
+                                                                <hr class="m-0 w-webkit text-light-gray op-1">
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastSchool" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Last School</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastSchool)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastSchoolAddress" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">School Address</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastSchoolAddress)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastSchoolBoard" autocomplete="off" maxlength="20" />
+                                                                <label class="floating-label">Board</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastSchoolBoard)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastClassStudied" autocomplete="off" maxlength="30" />
+                                                                <label class="floating-label">Class Studied</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastClassStudied)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastAcademicSession" autocomplete="off" maxlength="10" />
+                                                                <label class="floating-label">Academic Session</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastAcademicSession)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastSchoolResult" autocomplete="off" maxlength="10" />
+                                                                <label class="floating-label">Result</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastSchoolResult)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputNumber class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Percentage" autocomplete="off" maxlength="3" />
+                                                                <label class="floating-label">Percentage</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.Percentage)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.LastSchoolTcNo" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Tc. No.</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.LastSchoolTcNo)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputDate class="floating-input" placeholder=" " @bind-Value="viewchildDetails.TcDate" autocomplete="off" maxlength="30" />
+                                                                <label class="floating-label">Tc. Date</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.TcDate)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Attendance" autocomplete="off" maxlength="10" />
+                                                                <label class="floating-label">Attendance</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.Attendance)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.Subjects" autocomplete="off" maxlength="30" />
+                                                                <label class="floating-label">Subjects</label>
+                                                                <ValidationMessage For="@(() => viewchildDetails.Subjects)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.IsTCAttach" autocomplete="off">
+                                                                <option value="0">No</option>
+                                                                <option value="1">Yes</option>
+                                                                </InputSelect>
+                                                                <label class="floating-label">Is TC attached?</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="viewchildDetails.IsSubjectApproved" autocomplete="off">
+                                                                <option value="0">No</option>
+                                                                <option value="1">Yes</option>
+                                                                </InputSelect>
+                                                                <label class="floating-label">Is Subject Approved?</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-2 px-0">
+                                                    <div class="row m-0">
+                                                        <div class="col-12 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
+                                                                <label for="image" class="floating-label">Student Image</label>
+                                                                <div class="border-box h-auto p-1">
+                                                                    <img src="@ImagePreview" class="w-100" alt="Photo" />
+                                                                    <InputFile id="studentImage" OnChange="OnFileStudentSelected" class="w-100" accept="image/*" style="display:none" />
+                                                              
+                                                                    <div class="action-btn-group  d-flex gap-2 mt-2  justify-content-around p-1">
+                                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("studentImage")'>
+                                                                            <i class="bi bi-upload"></i>
+                                                                        </button>
+                                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("Student")'>
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </fieldset>
+                                        <hr class="row m-0 my-2 w-webkit text-light-gray">
+                                        <div class="row m-0">
+                                            <div class="col-12 p-0 mt-1 d-flex align-items-end justify-content-end">
+                                                <div class="tab-buttons d-flex gap-2">
+
+                                                    @if (_childFormDisabled)
+                                                    {
+                                                        <AdmitChildButton CurrentUrl="@UrlData" ButtonText="Edit" Modifiy="() => childDisEnableform(false)" />
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => childDisEnableform(true)" />
+                                                    }
+                                                    <button type="submit" class="ui animated button form-btn nextBtn"
+                                                            tabindex="0">
+                                                        <div class="visible content">@buttontitle</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-arrow-right"></i>
+                                                        </div>
+                                                    </button>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </EditForm>
+
+
+                                </div>
+
+                                <div class="tab-pane tab-pane-form fade @(ActiveTab == "parents-details" ? "show active" : "")" id="parents-details">
+                                    <EditForm Model="@parentsDetails" OnValidSubmit="ParentsDetails">
+                                        <fieldset disabled="@_parentsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px);">
+                                            <div class=" row m-0 form-row">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Father Information
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-10 px-0">
+                                                    <div class="row m-0">
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-2 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherTitle">
+                                                                <option value="null">-- Select --</option>
+                                                                <option value="Mr">Mr.</option>
+                                                                <option value="Mrs">Mrs.</option>
+                                                                </InputSelect>
+                                                                <label class="floating-label">Title</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">First Name</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="13" />
+                                                                <label class="floating-label">SMS Mobile <span class="required">*</span></label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherEMail" autocomplete="off" maxlength="150" />
+                                                                <label class="floating-label">Email Id</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherDOB" autocomplete="off" />
+                                                                <label class="floating-label">DOB</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAadhaarNo" onkeypress="return  /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Aadhaar No.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherQualification">
+                                                                <option value="0" selected>--Select--</option>
+                                                                @if (qulifationlist != null)
+                                                                {
+                                                                foreach (var cls in qulifationlist)
+                                                                {
+                                                                <option value="@cls.QualificationId">@cls.QualificationName</option>
+                                                                }
+                                                                }
+                                                                </InputSelect>
+                                                                <label class="floating-label">Qualification</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOccupation">
+                                                                <option value="0" selected>--Select--</option>
+                                                                @foreach (var cs in getoccupationlist)
+                                                                {
+                                                                <option Value="@cs.OccupationId">@cs.OccupationName</option>
+                                                                }
+                                                                </InputSelect>
+                                                                <label class="floating-label">Occupation</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherDesignation" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="80" />
+                                                                <label class="floating-label">Designation</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOccupationOther" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="80" />
+                                                                <label class="floating-label">Other Occupation</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOrganisation" autocomplete="off" maxlength="150" />
+                                                                <label class="floating-label">Organization</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeAddress" autocomplete="off" maxlength="150" />
+                                                                <label class="floating-label">Office Address</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Office Contact No.</label>
+                                                            </div>
+                                                        </div>
+
+                                                         
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherCollege" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">College</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputNumber class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAnnualIncome" autocomplete="off" maxlength="18" />
+                                                                <label class="floating-label">Annual Income</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Contact No.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAchievement" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">Achievement</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                                <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
+                                                                    <InputRadioGroup @bind-Value="parentsDetails.ContactEmail">
+                                                                        <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                            <InputRadio Value="@("Father")" />
+                                                                            <label class="d-flex align-items-center form-label">
+                                                                                Use Father's Info
+                                                                            </label>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                            <InputRadio Value="@("Mother")" />
+                                                                            <label class="d-flex align-items-center form-label">
+                                                                                Use Mother's Info
+                                                                            </label>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                            <InputRadio Value="@("Other")" />
+                                                                            <label class="d-flex align-items-center form-label">
+                                                                                Use Other
+                                                                            </label>
+                                                                        </div>
+                                                                    </InputRadioGroup>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+
+                                                  
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-12 col-md-2 px-0">
+                                                    <div class="row m-0">
+                                                        <div class="col-12 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <label for="image" class="floating-label">Father Image</label>
+                                                                <div class="border-box h-auto p-1">
+                                                                    <img src="@FatherImagePreview" class="w-100" alt="Photo" />
+                                                                    <InputFile id="fatherImage" OnChange="OnFileFatherSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                    <div  class="action-btn-group justify-content-around p-1">
+                                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("fatherImage")'>
+                                                                            <i class="bi bi-upload"></i>
+                                                                        </button>
+                                                                        <button  type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("Father")'>
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Mother Information
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-10 px-0">
+                                                    <div class="row m-0">
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-2 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherTitle">
+                                                                <option value="null" selected>-- Select --</option>
+                                                                <option value="Mr">Mr.</option>
+                                                                <option value="Mrs">Mrs.</option>
+                                                                </InputSelect>
+                                                                <label class="floating-label">Title</label>
+                                                            </div>
+                                                        </div>
+
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">Mother Name</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherName)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherDOB" autocomplete="off" />
+                                                                <label class="floating-label">DOB</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherDOB)" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAadhaarNo" onkeypress="return  /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Aadhaar No.</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherQualification">
+                                                                <option value="0" selected>--Select--</option>
+                                                                @if (qulifationlist != null)
+                                                                {
+                                                                foreach (var cls in qulifationlist)
+                                                                {
+                                                                <option value="@cls.QualificationId">@cls.QualificationName</option>
+                                                                }
+                                                                }
+                                                                </InputSelect>
+                                                                <label class="floating-label">Qualification</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOccupation">
+                                                                <option value="0" selected>--Select--</option>
+                                                                @foreach (var cs in getoccupationlist)
+                                                                {
+                                                                <option Value="@cs.OccupationId">@cs.OccupationName</option>
+                                                                }
+                                                                </InputSelect>
+                                                                <label class="floating-label">Occupation</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherOccupation)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherDesignation" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="80" />
+                                                                <label class="floating-label">Designation</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherDesignation)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOccupationOther" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="80" />
+                                                                <label class="floating-label">Other Occupation</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherDesignation)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOrganisation" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">Organization</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherOrganisation)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeAddress" autocomplete="off" maxlength="150" />
+                                                                <label class="floating-label">Office Address</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherOfficeAddress)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Office Contact No.</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherOfficeContactNo)" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherCollege" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">College</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherCollege)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputNumber class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAnnualIncome" autocomplete="off" maxlength="18" />
+                                                                <label class="floating-label">Annual Income</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherAnnualIncome)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherEMail" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">Email Id</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherEMail)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <label class="floating-label">Contact No.</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherContactNo)" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                            <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAchievement" autocomplete="off" maxlength="100" />
+                                                                <label class="floating-label">Achievement</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherAchievement)" />
+                                                            </div>
+                                                        </div>
+
+                                                            
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-md-2 px-0">
+                                                    <div class="row m-0">
+                                                        <div class="col-12 px-1 mt-3">
+                                                            <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                                <label for="image" class="floating-label">Mother Image</label>
+                                                                <div class="border-box h-auto p-1">
+                                                                    <img src="@MotherImagePreview" class="w-100" alt="Photo" />
+                                                                    <InputFile id="motherImage" OnChange="OnFileMotherSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                    <div class="action-btn-group  d-flex gap-2 mt-2  justify-content-around p-1">
+                                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("motherImage")'>
+                                                                            <i class="bi bi-upload"></i>
+                                                                        </button>
+                                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("Mother")'>
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                       
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </fieldset>
+                                        <hr class="row m-0 my-2 w-webkit text-light-gray">
+                                        <div class="row m-0">
+                                            <div class="col-12 p-0 mt-1 d-flex align-items-end justify-content-end">
+                                                <div class="tab-buttons d-flex gap-2">
+
+                                                    @if (_parentsFormDisabled)
+                                                    {
+                                                        <button type="button" class="ui animated button form-btn backBtn"
+                                                                tabindex="0" @onclick='() => SetTab("personal-details")'>
+                                                            <div class="visible content">Back</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-left"></i>
+                                                            </div>
+                                                        </button>
+
+                                                        
+                                                        <AdmitChildButton CurrentUrl="@UrlData" ButtonText="Edit" Modifiy="() => parentsDisEnableform(false)" />
+
+
+
+                                                    }
+                                                    else
+                                                    {
+                                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => parentsDisEnableform(true)" />
+
+
+                                                    }
+                                                    <button type="submit" class="ui animated button form-btn nextBtn"
+                                                            tabindex="0">
+                                                        <div class="visible content">@buttontitle</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-arrow-right"></i>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </EditForm>
+                                </div>
+
+                                @*   ---------------------------------- Start address-details ---------------------------------------------  *@
+
+                                <div class="tab-pane tab-pane-form fade @(ActiveTab == "address-details" ? "show active" : "")" id="address-details">
+                                    <EditForm Model="@addressDetails" OnValidSubmit="Addressdetails" FormName="AddressForm">
+                                        <DataAnnotationsValidator />
+                                        <fieldset disabled="@_AddressFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px);">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Details of contact person in case of emergency
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
+                                                            <InputRadioGroup @bind-Value="SelectedAddressTo" @bind-Value:after="OnAddressToChanged">
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Father")" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Use Father's Info
+                                                                    </label>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Mother")" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Use Mother's Info
+                                                                    </label>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Other")" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Use Other
+                                                                    </label>
+                                                                </div>
+                                                            </InputRadioGroup>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <label class="floating-label">Name<sup class="text-red fw-bold">*</sup></label>
+                                                        <ValidationMessage For="@(() => addressDetails.EmergencyPersonName)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonRelationShip" onkeypress="return /^[a-z A-Z]$/.test(event.key)" autocomplete="off" maxlength="50" disabled readonly />
+                                                        <label class="floating-label">Relationship<sup class="text-red fw-bold">*</sup></label>
+                                                        <ValidationMessage For="@(() => addressDetails.EmergencyPersonRelationShip)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <label class="floating-label">Contact No.</label>
+                                                        <ValidationMessage For="@(() => addressDetails.EmergencyPersonContactNo)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonAddress" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Address</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Current Address :-
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <label for="sibling" class="floating-label">Address To</label>
+                                                        <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
+                                                            <InputRadioGroup @bind-Value="addressDetails.AddressTo">
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Student")" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Student
+                                                                    </label>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Father")" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Father
+                                                                    </label>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Mother")" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Mother
+                                                                    </label>
+                                                                </div>
+                                                            </InputRadioGroup>
+
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.Line1" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Line - 1</label>
+                                                        <ValidationMessage For="@(() => addressDetails.Line1)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.Line2" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Line - 2</label>
+                                                        <ValidationMessage For="@(() => addressDetails.Line2)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.ContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <label class="floating-label">Contact No.</label>
+                                                        <ValidationMessage For="@(() => addressDetails.ContactNo)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="6" />
+                                                        <label class="floating-label">PinCode</label>
+                                                        <ValidationMessage For="@(() => addressDetails.PinCode)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Permanent Address
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <label for="sibling" class="floating-label">Address To</label>
+                                                        <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
+                                                            <InputRadioGroup @bind-Value="addressPermanent.AddressTo" disabled="@IsSameAsCurrent">
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Student")" disabled="@IsSameAsCurrent" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Student
+                                                                    </label>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Father")" disabled="@IsSameAsCurrent" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Father
+                                                                    </label>
+                                                                </div>
+                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <InputRadio Value="@("Mother")" disabled="@IsSameAsCurrent" />
+                                                                    <label class="d-flex align-items-center form-label">
+                                                                        Mother
+                                                                    </label>
+                                                                </div>
+                                                            </InputRadioGroup>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <div class="border-box d-flex justify-content-center align-items-center p-2 gap-2">
+                                                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value:after="OnCheckboxChanged" @bind-Value="IsSameAsCurrent"></InputCheckbox>
+                                                                <label class="d-flex align-items-center form-label">
+                                                                    As Current
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PermanentLine1" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Line - 1</label>
+                                                        <ValidationMessage For="@(() => addressDetails.PermanentLine1)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.Line2" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Line - 2</label>
+                                                        <ValidationMessage For="@(() => addressPermanent.Line2)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.ContactNo" disabled="@IsSameAsCurrent" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <label class="floating-label">Contact</label>
+                                                        <ValidationMessage For="@(() => addressPermanent.ContactNo)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 mt-3">
+                                                    <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="6" />
+                                                        <label class="floating-label">Pincode</label>
+                                                        <ValidationMessage For="@(() => addressPermanent.PinCode)" />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </fieldset>
+                                        <hr class="row m-0 my-2 w-webkit text-light-gray">
+                                        <div class="row m-0">
+                                            <div class="col-12 p-0 mt-1 d-flex align-items-end justify-content-end">
+                                                <div class="tab-buttons d-flex gap-2">
+                                                    @if (_AddressFormDisabled)
+                                                    {
+                                                        <button type="button" class="ui animated button form-btn backBtn"
+                                                                tabindex="0" @onclick='() => SetTab("parents-details")'>
+                                                            <div class="visible content">Back</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-left"></i>
+                                                            </div>
+                                                        </button>
+
+                                                        <AdmitChildButton CurrentUrl="@UrlData" ButtonText="Edit" Modifiy="() => addressDisEnableform(false)" />
+
+                                                    }
+                                                    else
+                                                    {
+                                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => addressDisEnableform(true)" />
+
+
+                                                    }
+                                                    <button type="submit" class="ui animated button form-btn nextBtn"
+                                                            tabindex="0">
+                                                        <div class="visible content">@buttontitle</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-arrow-right"></i>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </EditForm>
+                                </div>
+                                @*   ---------------------------------- End address-details ---------------------------------------------  *@
+                                <div class="tab-pane tab-pane-form fade @(ActiveTab == "sibling-details" ? "show active" : "")" id="sibling-details">
+                                    <EditForm Model="@siblingDetails" OnValidSubmit="ContinuSiblingDetails" FormName="SiblingForm" Context="siblingformContext">
+                                        <DataAnnotationsValidator />
+                                        <fieldset disabled="@_SiblingFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px);">
+                                            <div class="row gap-10-0 form-row">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Sibling Detail :-
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 mt-3">
+                                                    <div class="form-box-group static-label @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="schoolbranchcode" autocomplete="off" maxlength="10">
+                                                        <option value="0">-- Select Branch --</option>
+                                                        @foreach (var cs in branchlist)
+                                                        {
+                                                        <option Value="@cs.BranchCode">@cs.BranchName</option>
+                                                        }
+                                                        </InputSelect>
+                                                        <label class="floating-label">School Branch</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                                    <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="searchAnyRequest.RequestName" autocomplete="off" />
+                                                        <label class="floating-label">Sibling ID</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-1 mt-3">
+                                                    <div class="form-box-group static-label @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchSiblingData" tabindex="0">
+                                                            <div class="visible content">Search</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-search"></i>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 mt-3">
+                                                    <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.StudentName" autocomplete="off" />
+                                                        <label class="floating-label">Name</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                                    <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.FatherName" autocomplete="off" />
+                                                        <label class="floating-label">Father Name</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                                    <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.ClassName" autocomplete="off" />
+                                                        <label class="floating-label">Class</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-1">
+                                                    <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.SectionName" autocomplete="off" " />
+                                                        <label class="floating-label">Section</label>
+
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 ">
+                                                    <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.MotherName" autocomplete="off" />
+                                                        <label class="floating-label">Mother Name</label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-0 mt-3">
+                                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                    <p class="total-text-with-bg bg-light-gray">
+                                                        Sibling List :-
+                                                    </p>
+                                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-12 d-flex align-items-center justify-content-end">
+                                                    <div class="form-box w-fit @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <button type="button" class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="AddSiblingData">
+                                                            <div class="visible content">Add New</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-plus"></i>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-12 p-1">
+                                                    <div class="card @(_SiblingFormDisabled == true ? "disabled" : "")">
+                                                        <div class="card-body table-card p-0">
+                                                            <div class="quick-main">
+                                                                <div class="h-auto">
+                                                                    <QuickGrid Items="@siblingDetaillist.AsQueryable()" Class="table">
+                                                                        <PropertyColumn Property="@(x => x.ControlNo)" Class="text-center" Title="Sibling Id" Align="Align.Center">
+                                                                        </PropertyColumn>
+                                                                        <PropertyColumn Property="@(x => x.StudentName)" Title="Name" Align="Align.Left">
+                                                                        </PropertyColumn>
+                                                                        <PropertyColumn Property="@(x => x.ClassName)" Class="text-center" Title="Class" Align="Align.Center">
+                                                                        </PropertyColumn>
+                                                                        <PropertyColumn Property="@(x => x.SectionName)" Class="text-center" Title="Section" Align="Align.Center">
+                                                                        </PropertyColumn>
+                                                                        <TemplateColumn Title="Action" Class="text-center" Align="Align.Center">
+                                                                            <ChildContent Context="item">
+                                                                                <div class="action-btn-group">
+                                                                                    <button type="button"
+                                                                                            class="btn-icon inactive-btn"
+                                                                                            @onclick="async () => await DeleteSibling(item.StudentId)">
+                                                                                        <i class="bi bi-x-lg"></i>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </ChildContent>
+                                                                        </TemplateColumn>
+                                                                    </QuickGrid>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                        </fieldset>
+                                        <hr class="row m-0 my-2 w-webkit text-light-gray">
+                                        <div class="row m-0">
+                                            <div class="col-12 p-0 mt-1 d-flex align-items-end justify-content-end">
+                                                <div class="tab-buttons d-flex gap-2">
+
+                                                    @if (_SiblingFormDisabled)
+                                                    {
+                                                        <button type="button" class="ui animated button form-btn backBtn"
+                                                                tabindex="0" @onclick='() => SetTab("address-details")'>
+                                                            <div class="visible content">Back</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-left"></i>
+                                                            </div>
+                                                        </button>
+
+                                                                            
+                                                        <AdmitChildButton CurrentUrl="@UrlData" ButtonText="Edit" Modifiy="() => SiblingDisEnableform(false)" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => SiblingDisEnableform(true)" />
+                                                    }
+                                                    <button type="submit" class="ui animated button form-btn nextBtn"
+                                                            tabindex="0">
+                                                        <div class="visible content">@buttontitle</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-arrow-right"></i>
+                                                        </div>
+                                                    </button>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </EditForm>
+                                </div>
+                                @*   ---------------------------------- Start other-details ---------------------------------------------  *@
+
+                                <div class="tab-pane tab-pane-form fade @(ActiveTab == "other-details" ? "show active" : "")" id="other-details">
+                                    <EditForm Model="@studentpassportdetails" OnValidSubmit="OtherDetails" FormName="PassportForm" Context="otherformContext">
+                                        <DataAnnotationsValidator />
+                                        <fieldset disabled="@_OtherFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px);">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Passport Details : -
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1  mt-3">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <input type="checkbox" class="form-input" />
+                                                                <label class="form-label">
+                                                                    Is Foreign Student
+                                                                </label>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.PassportNo" autocomplete="off" maxlength="20" />
+                                                        <label class="floating-label">Passport No.</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.PassportType">
+                                                        <option value="0">-- No Item --</option>
+                                                        </InputSelect>
+                                                        <label class="floating-label">Passport type.</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.PassportIssueDate" autocomplete="off" />
+                                                        <label class="floating-label">Issue Date</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.PassportExpiryDate" autocomplete="off" />
+                                                        <label class="floating-label">Expiry Date</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <InputCheckbox type="checkbox" @bind-Value="studentpassportdetails.VisaRegistrationRequired" class="form-input" />
+                                                                <label class="form-label">
+                                                                    Is Registration Required
+                                                                </label>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Visa Details : -
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.VisaNo" autocomplete="off" maxlength="20" />
+                                                        <label class="floating-label">Visa  No.</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.VisaType">
+                                                        <option value="0">-- Select --</option>
+                                                        <option value="1">Student</option>
+                                                        <option value="2">Study Visa</option>
+                                                        <option value="3">Visitor</option>
+                                                        </InputSelect>
+                                                        <label class="floating-label">Type of visa</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.VisaIssueDate" autocomplete="off" />
+                                                        <label class="floating-label">Issue Date</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.VisaExpiryDate" autocomplete="off" />
+                                                        <label class="floating-label">Expiry Date</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <InputCheckbox type="checkbox" @bind-Value="studentpassportdetails.VisaRegistrationRequired" class="form-input" />
+                                                                <label class="form-label">
+                                                                    Is Registration Required
+                                                                </label>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-1 ">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.SpecialComments" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Special Comment</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 mt-3">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg bg-light-gray">
+                                                            Recommendation Details : -
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.RecommendationBy" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Recommended By</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.EmployeeApproched" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <label class="floating-label">Employee Approached</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <label for="image" class="floating-label">Recommendation document </label>
+                                                        <InputFile OnChange="RecommendationFileSelected" class="form-input" accept="image/*" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                                                    <div class="form-box-group static-label @(_OtherFormDisabled == true ? "disabled" : "")">
+                                                        <div class="d-flex gap-3">
+                                                            @if (!string.IsNullOrEmpty(RecommendationPreview))
+                                                            {
+                                                                <img src="@RecommendationPreview" class="form-input" style="width:221px;object-fit:cover;border:1px solid #7e7a7a; border-radius: 3px;" />
+                                                            }
+                                                            else
+                                                            {
+
+                                                            }
+                                                            @if (RecoSelectedFile != null || string.IsNullOrEmpty(studentpassportdetails.RecommendationDocFile))
+                                                            {
+                                                                <div class="action-btn-group">
+                                                                    <button class="btn-icon inactive-btn" style="height:36px;width:36px" @onclick='() => DeleteImage("Recommendation")'>
+                                                                        <i class="bi bi-x-lg"></i>
+                                                                    </button>
+                                                                </div>
+
+                                                            }
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </fieldset>
+                                        <hr class="row m-0 my-2 w-webkit text-light-gray">
+                                        <div class="row m-0">
+                                            <div class="col-12 p-0 mt-1 d-flex align-items-end justify-content-end">
+                                                <div class="tab-buttons d-flex gap-2">
+
+                                                    @if (_OtherFormDisabled)
+                                                    {
+                                                        <button type="button" class="ui animated button form-btn backBtn"
+                                                                tabindex="0" @onclick='() => SetTab("sibling-details")'>
+                                                            <div class="visible content">Back</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-left"></i>
+                                                            </div>
+                                                        </button>
+
+                                                        <AdmitChildButton CurrentUrl="@UrlData" ButtonText="Edit" Modifiy="() => OtherDisEnableform(false)" />
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => OtherDisEnableform(true)" />
+                                                    }
+                                                    <button type="submit" class="ui animated button form-btn nextBtn"
+                                                            tabindex="0">
+                                                        <div class="visible content">@buttontitle</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-arrow-right"></i>
+                                                        </div>
+                                                    </button>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </EditForm>
+                                </div>
+                                @*   ---------------------------------- End other-details ---------------------------------------------  *@
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    public class ImageSize
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
+    private IBrowserFile? StudentSelectedFile;
+    private IBrowserFile? FatherSelectedFile;
+    private IBrowserFile? MotherSelectedFile;
+    private IBrowserFile? RecoSelectedFile;
+    private string RecommendationPreview = "";
+    private string ImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string MotherImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string FatherImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private ProfileImageModal profileImageremove = new();
+    private async Task RecommendationFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        const long maxFileSize = 200 * 1024;
+
+        if (file.Size > maxFileSize)
+        {
+            await customAlert.ShowCustomAlert("File size can not be greater than 200 KB", false);
+            StateHasChanged();
+            RecoSelectedFile = null;
+            return;
+        }
+        RecoSelectedFile = file;
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxFileSize).CopyToAsync(ms);
+        RecommendationPreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        StateHasChanged();
+
+
+    }
+    private async Task OnFileStudentSelected(InputFileChangeEventArgs e)
+    {
+        StudentSelectedFile = e.File;
+        using var stream = StudentSelectedFile.OpenReadStream(5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+
+        await stream.CopyToAsync(ms);
+
+        ImagePreview = $"data:{StudentSelectedFile.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        StateHasChanged();
+
+
+    }
+    private async Task OnFileMotherSelected(InputFileChangeEventArgs e)
+    {
+        MotherSelectedFile = e.File;
+        using var stream = MotherSelectedFile.OpenReadStream(5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+
+        await stream.CopyToAsync(ms);
+
+        MotherImagePreview = $"data:{MotherSelectedFile.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        StateHasChanged();
+
+
+    }
+    private async Task OnFileFatherSelected(InputFileChangeEventArgs e)
+    {
+        FatherSelectedFile = e.File;
+        using var stream = FatherSelectedFile.OpenReadStream(5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+
+        await stream.CopyToAsync(ms);
+
+        FatherImagePreview = $"data:{FatherSelectedFile.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        StateHasChanged();
+
+    }
+    private async Task OpenFilePicker(string fileId)
+    {
+        await JS.InvokeVoidAsync("openFilePicker", fileId);
+    }
+    private async Task DeleteImage(string imagefor)
+    {
+        IsVisible = false;
+        var submit = await Alert.ShowConfirm("Are you sure, you want to remove this image?");
+        if (!submit)
+        {
+            IsVisible = true;
+            StateHasChanged();
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            profileImageremove.GroupCode = groupcode;
+            profileImageremove.BranchCode = branchcode;
+            profileImageremove.SessionId = SessionId;
+            profileImageremove.StudentId = StudentId;
+            profileImageremove.ImageFor = imagefor;
+            profileImageremove.UpdatedBy = username;
+            var apiresponse = await httpService.Post<ApiResponse<string>>("ViewStudent/RemoveProfileImage", profileImageremove);
+            if (apiresponse.Success && apiresponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Image removed successfully.");
+                profileImageremove = new();
+                IsLoading = false;
+                await LoadData();
+                IsVisible = true;
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("showErrorAlert", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+    }
+    private string _originalSnapshot = "";
+    private string _originalparents = "";
+    private string _originalsibling = "";
+    private string _originaladdress = "";
+    private string _originaladdressp = "";
+    private string _originalOther = "";
+    private Dictionary<string, ElementReference> fieldRefs = new();
+    private CustomAlert customAlert;
+    private string? SelectedClass { get; set; }
+    private string? Selectedgender { get; set; }
+    private string? Selectedcountry { get; set; }
+    private string? Selectedreligion { get; set; }
+    private string schoolbranchcode;
+    private bool checkbox { get; set; }
+    private bool IsGirl { get; set; }
+    private bool ShowSuccess;
+    bool IsSameAsCurrent;
+    private bool IsLoading = false;
+    private bool childhave = false;
+    public string? SelectedGender { get; set; }
+    private string? datecalulate = "";
+    private bool _childFormDisabled = true;
+    private bool _parentsFormDisabled = true;
+    private bool _SiblingFormDisabled = true;
+    private bool _AddressFormDisabled = true;
+    private bool _OtherFormDisabled = false;
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public long StudentId { get; set; }
+    [Parameter] public long SessionId { get; set; }
+    [Parameter] public string CurrectUrl { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    private string? PreviousTab;
+    Stack<string> TabHistory = new();
+    List<string> Tabs = new()
+    {
+        "personal-details",
+        "parents-details",
+        "address-details",
+        "sibling-details",
+        "other-details"
+    };
+    int CurrentTabIndex = 0;
+    string ActiveTab => Tabs[CurrentTabIndex];
+    private string SelectedAddressTo = "Father";
+    string buttontitle => ActiveTab == "other-details" ? "Submit" : "Continue";
+    private StudentViewDetailsModel viewchildDetails = new();
+    private AddSiblingRequest addSibling = new();
+    private StudentParentDetailsModel parentsDetails = new();
+    private SiblingDetailsModel siblingDetails = new();
+    private StudentAddressDetailsModel addressDetails = new();
+    private StudentAddressDetailsModel addressPermanent = new();
+    private List<OccupationModal> getoccupationlist = new();
+    private List<SiblingDetailsModel> siblingDetaillist = new();
+    private List<MstMotherTongue> mstMotherlist = new();
+    private List<MstPassportTypeName> mstPassportlist = new();
+    private List<MstVisaType> mstVisaslist = new();
+    private List<CategoryModal> categories = new();
+    private StudentPassportVisaModel studentpassportdetails = new();
+    private List<BranchClassModel> classlist = new();
+    private List<MstDistance> distanceslist = new();
+    private ElementReference dobWrappers;
+    private List<GenderModal> genderlist = new();
+    private List<CountryModel> countrylist = new();
+    private List<ReligionMaster> religionlist = new();
+    private List<Qualification> qulifationlist = new();
+    private List<BranchNameMst> branchlist = new();
+    private string? branchcode;
+    private string? groupcode;
+    private string? UrlData;
+    private string? username;
+    private SearchAnyRequestModel searchAnyRequest = new();
+    protected override void OnInitialized()
+    {
+        _originalSnapshot = CreateSnapshot(viewchildDetails);
+        UrlData = CurrectUrl;
+    }
+    private bool IsEdited(object obj, string datamatch)
+    {
+        if (datamatch == "")
+            return false;
+
+        return CreateSnapshot(obj) != datamatch;
+    }
+    private string CreateSnapshot(object obj)
+    {
+        return System.Text.Json.JsonSerializer.Serialize(
+            obj,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = false
+            });
+    }
+    private void OnAddressToChanged()
+    {
+        if (SelectedAddressTo == "Father")
+        {
+            addressDetails.EmergencyPersonName = parentsDetails.FatherName;
+            addressDetails.EmergencyPersonRelationShip = "Father";
+            addressDetails.EmergencyPersonContactNo = parentsDetails.FatherContactNo;
+            addressDetails.EmergencyPersonAddress = parentsDetails.EmergencyPersonAddress;
+        }
+        else if (SelectedAddressTo == "Mother")
+        {
+            addressDetails.EmergencyPersonName = parentsDetails.MotherName;
+            addressDetails.EmergencyPersonRelationShip = "Mother";
+            addressDetails.EmergencyPersonContactNo = parentsDetails.MotherContactNo;
+            addressDetails.EmergencyPersonAddress = parentsDetails.EmergencyPersonAddress;
+        }
+        else
+        {
+            addressDetails.EmergencyPersonName = string.Empty;
+            addressDetails.EmergencyPersonRelationShip = string.Empty;
+            addressDetails.EmergencyPersonContactNo = string.Empty;
+            addressDetails.EmergencyPersonAddress = string.Empty;
+        }
+    }
+    private void OnDOBChanged()
+    {
+        try
+        {
+            if (!viewchildDetails.DateOfBirth.HasValue)
+                return;
+            if (viewchildDetails.DateOfBirth <= DateTime.Today)
+            {
+                if (viewchildDetails.DateOfBirth == null)
+                {
+                    datecalulate = "";
+                    return;
+                }
+                var dateOfBirth = Convert.ToDateTime(viewchildDetails.DateOfBirth);
+                datecalulate = _commonmethod.CalculateAge(dateOfBirth);
+            }
+            else
+            {
+                customAlert.ShowCustomAlert("Please choose the correct Date of Birth.", false);
+                viewchildDetails.DateOfBirth = null;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task ClosePopup()
+    {
+
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+        CurrentTabIndex = 0;
+        ResetForm();
+
+        StateHasChanged();
+    }
+    private void ResetForm()
+    {
+        viewchildDetails = new();
+        parentsDetails = new();
+        siblingDetails = new();
+        addressDetails = new();
+        studentpassportdetails = new();
+    }
+    private async Task SetTab(string newTab)
+    {
+        try
+        {
+            int index = Tabs.IndexOf(newTab);
+            if (index < 0 || index == CurrentTabIndex)
+                return;
+
+            CurrentTabIndex = index;
+            await TabnextPreviuos();
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+    private async Task SaveByActiveTab()
+    {
+        try
+        {
+
+            if (CurrentTabIndex < Tabs.Count - 1)
+            {
+                CurrentTabIndex++;
+                await TabnextPreviuos();
+                StateHasChanged();
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+    private async Task TabnextPreviuos()
+    {
+        try
+        {
+            switch (ActiveTab)
+            {
+                case "personal-details":
+                    viewchildDetails = await httpService.Post<StudentViewDetailsModel>("ViewStudent/GetStudentPersonalDetails", searchAnyRequest) ?? new();
+                    ImagePreview = string.IsNullOrEmpty(viewchildDetails.ImagePath) ? "https://demo.schooleye.in/Images/NoPhoto.gif" : viewchildDetails.ImagePath;
+                    break;
+                case "parents-details":
+                    parentsDetails = await httpService.Post<StudentParentDetailsModel>("ViewStudent/GetStudentParentDetails", searchAnyRequest) ?? new();
+                    MotherImagePreview = string.IsNullOrEmpty(parentsDetails.MotherImagePath)? "https://demo.schooleye.in/Images/NoPhoto.gif": parentsDetails.MotherImagePath;
+                    FatherImagePreview = string.IsNullOrEmpty(parentsDetails.FatherImagePath) ? "https://demo.schooleye.in/Images/NoPhoto.gif" : parentsDetails.FatherImagePath;
+                    break;
+                case "address-details":
+                    addressDetails = await GetAddressAsync("C");
+                    addressPermanent = await GetAddressAsync("P");
+                    addressPermanent.AddressType = addressPermanent != null ? "C" : null;
+                    IsSameAsCurrent = CreateSnapshot(addressDetails) == CreateSnapshot(addressPermanent) ? true : false;
+                    if (IsSameAsCurrent)
+                    {
+                        addressDetails.PermanentLine1 = addressPermanent.Line1;
+                    }
+                    addressPermanent.AddressType = addressPermanent != null ? "P" : null;
+                    break;
+                case "sibling-details":
+                    searchAnyRequest.BranchCode = branchcode;
+                    siblingDetails = await httpService.Post<SiblingDetailsModel>("ViewStudent/GetSiblingDetails", searchAnyRequest) ?? new();
+                    break;
+                case "other-details":
+                    studentpassportdetails = await httpService.Post<StudentPassportVisaModel>("ViewStudent/GetStudentOtherDetail", searchAnyRequest) ?? new();
+                    if (viewchildDetails != null)
+                    {
+                        studentpassportdetails.SpecialComments = viewchildDetails.SpecialComments;
+                        studentpassportdetails.RecommendationBy = viewchildDetails.RecommendationBy;
+                        studentpassportdetails.EmployeeApproched = viewchildDetails.EmployeeApproched;
+                        RecommendationPreview = viewchildDetails.RecommendationDocFile;
+                    }
+                    break;
+
+            }
+            childDisEnableform(true);
+            parentsDisEnableform(true);
+            addressDisEnableform(true);
+            SiblingDisEnableform(true);
+            OtherDisEnableform(true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        if (StudentId != 0)
+        {
+            searchAnyRequest.StudentId = StudentId;
+            searchAnyRequest.SessionId = SessionId;
+            await LoadData();
+            OnDOBChanged();
+        }
+    }
+    private async Task SearchSiblingData()
+    {
+
+        try
+        {
+            searchAnyRequest.BranchCode = schoolbranchcode;
+            if (string.IsNullOrEmpty(schoolbranchcode))
+            {
+                await customAlert.ShowCustomAlert("Please select school branch !", false);
+                StateHasChanged();
+                return;
+            }
+            else if (string.IsNullOrEmpty(searchAnyRequest.RequestName))
+            {
+                await customAlert.ShowCustomAlert("Please enter sibling id !", false);
+                StateHasChanged();
+                return;
+            }
+            var apiResponse = await httpService.Post<ApiResponse<SiblingDetailsModel>>("ViewStudent/GetSiblingDetails", searchAnyRequest) ?? new();
+            if (apiResponse.Success)
+            {
+                siblingDetails = apiResponse.Data;
+            }
+
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task DeleteSibling(long studentId)
+    {
+
+        try
+        {
+
+            searchAnyRequest.StudentId = studentId;
+            IsVisible = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to delete the sibling ?");
+            if (!submit)
+            {
+                IsVisible = true;
+                StateHasChanged();
+                return;
+            }
+            var apiresponse = await httpService.Post<ApiResponse<string>>("ViewStudent/DeleteSiblingData", searchAnyRequest) ?? new();
+            if (apiresponse.Success)
+            {
+                await Alert.ShowDeactive(Localizer["Deleted"]);
+                StateHasChanged();
+                await LoadData();
+                IsVisible = true;
+            }
+
+
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var userResult = await sessionStorage.GetAsync<string>("UserName");
+        username = userResult.Value;
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        siblingDetaillist = await httpService.Post<List<SiblingDetailsModel>>("ViewStudent/GetSiblingList", searchAnyRequest) ?? new();
+        viewchildDetails = await httpService.Post<StudentViewDetailsModel>("ViewStudent/GetStudentPersonalDetails", searchAnyRequest) ?? new();
+        parentsDetails = await httpService.Post<StudentParentDetailsModel>("ViewStudent/GetStudentParentDetails", searchAnyRequest) ?? new();
+        ImagePreview = string.IsNullOrEmpty(viewchildDetails.ImagePath) ? "https://demo.schooleye.in/Images/NoPhoto.gif" : viewchildDetails.ImagePath;
+        _originalSnapshot = CreateSnapshot(viewchildDetails);
+        string ApiUri = "occupation/AllOccupation";
+        getoccupationlist = await httpService.Get<List<OccupationModal>>(ApiUri) ?? new();
+        mstPassportlist = await httpService.Get<List<MstPassportTypeName>>("ClassSection/GetPassportTypeName") ?? new();
+        mstVisaslist = await httpService.Get<List<MstVisaType>>("ClassSection/GetVisaType") ?? new();
+        mstMotherlist = await httpService.Get<List<MstMotherTongue>>("ClassSection/GetMstMotherTongue") ?? new();
+        categories = await httpService.Get<List<CategoryModal>>("ClassSection/GetCategory") ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        distanceslist = await httpService.Get<List<MstDistance>>("ClassSection/GetDistance") ?? new();
+        qulifationlist = await httpService.Get<List<Qualification>>("Qualification/GetQualification") ?? new();
+        genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
+        countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
+        religionlist = await httpService.Get<List<ReligionMaster>>("Religion/AllReligion") ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+    }
+    private async Task Childsdetails()
+    {
+        try
+        {
+            if (StudentSelectedFile != null)
+            {
+                string extension = Path.GetExtension(StudentSelectedFile.Name);
+                string fileName = $"{Guid.NewGuid()}{extension}";
+                string folderPath = Path.Combine(env.WebRootPath, "StudentImagePath");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+                string filePath = Path.Combine(folderPath, fileName);
+                await using var fs = new FileStream(filePath, FileMode.Create);
+                await StudentSelectedFile.OpenReadStream(5 * 1024 * 1024).CopyToAsync(fs);
+                viewchildDetails.ImagePath = $"/StudentImagePath/{fileName}";
+                ImagePreview = viewchildDetails.ImagePath;
+            }
+            if (IsEdited(viewchildDetails, _originalSnapshot))
+            {
+                viewchildDetails.StudentId = StudentId;
+                viewchildDetails.CreatedBy = username;
+                viewchildDetails.GroupCode = groupcode;
+                viewchildDetails.BranchCode = branchcode;
+                viewchildDetails.SessionId = SessionId;
+
+                string apiUrl = "ViewStudent/UpdateStudentPersonalDetails";
+                var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, viewchildDetails);
+                if (apiResponse.Success && apiResponse.Code == 2)
+                {
+                    ShowSuccess = true;
+                    StateHasChanged();
+                    await Task.Delay(3000);
+                    ShowSuccess = false;
+
+                }
+
+            }
+            childDisEnableform(true);
+            await SaveByActiveTab();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    private async Task ParentsDetails()
+    {
+        try
+        {
+            if (FatherSelectedFile != null)
+            {
+                string extension = Path.GetExtension(FatherSelectedFile.Name);
+                string fileName = $"{Guid.NewGuid()}{extension}";
+                string folderPath = Path.Combine(env.WebRootPath, "FatherImagePath");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+                string filePath = Path.Combine(folderPath, fileName);
+                await using var fs = new FileStream(filePath, FileMode.Create);
+                await FatherSelectedFile.OpenReadStream(5 * 1024 * 1024).CopyToAsync(fs);
+                parentsDetails.FatherImagePath = $"/FatherImagePath/{fileName}";
+                FatherImagePreview = parentsDetails.FatherImagePath;
+            }
+            if (MotherSelectedFile != null)
+            {
+                string extension = Path.GetExtension(MotherSelectedFile.Name);
+                string fileName = $"{Guid.NewGuid()}{extension}";
+                string folderPath = Path.Combine(env.WebRootPath, "MotherImagePath");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+                string filePath = Path.Combine(folderPath, fileName);
+                await using var fs = new FileStream(filePath, FileMode.Create);
+                await MotherSelectedFile.OpenReadStream(5 * 1024 * 1024).CopyToAsync(fs);
+                parentsDetails.MotherImagePath = $"/MotherImagePath/{fileName}";
+                MotherImagePreview = parentsDetails.MotherImagePath;
+            }
+            if (IsEdited(parentsDetails, _originalparents))
+            {
+                parentsDetails.StudentId = StudentId;
+                parentsDetails.CreatedBy = username;
+                parentsDetails.GroupCode = groupcode;
+                parentsDetails.BranchCode = branchcode;
+                parentsDetails.SessionId = SessionId;
+
+                string apiUrl = "ViewStudent/SaveStudentParentDetails";
+                var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, parentsDetails);
+                if (apiResponse.Success && apiResponse.Code == 2)
+                {
+                    ShowSuccess = true;
+                    StateHasChanged();
+                    await Task.Delay(3000);
+                    ShowSuccess = false;
+                }
+
+
+            }
+            parentsDisEnableform(true);
+            await SaveByActiveTab();
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+
+
+    }
+    private async Task ContinuSiblingDetails()
+    {
+        try
+        {
+            // if (IsEdited(pointsCriteria, _originalsibling))
+            // {
+            //      pointsCriteria.RegistrationNo = StudentNo;
+            //     pointsCriteria.CreatedBy = username;
+            //     pointsCriteria.GroupCode = groupcode;
+            //     pointsCriteria.BranchCode = branchcode;
+            //     pointsCriteria.SessionName = SessionName;
+            //     pointsCriteria.IsGirlChildOnly = IsGirl;
+            //     string apiUrl = "Registration/registrationInformation";
+            //     var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, pointsCriteria);
+
+            //     ShowSuccess = true;
+            //     StateHasChanged();
+            //     await Task.Delay(3000);
+            //     ShowSuccess = false;
+
+            // }
+            SiblingDisEnableform(true);
+            await SaveByActiveTab();
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+
+
+
+    }
+    private async Task Addressdetails()
+    {
+        try
+        {
+            if ((IsEdited(addressDetails, _originaladdress)) || (IsEdited(addressPermanent, _originaladdress)))
+            {
+                addressDetails.StudentId = StudentId;
+                addressDetails.CreatedBy = username;
+                addressDetails.GroupCode = groupcode;
+                addressDetails.BranchCode = branchcode;
+                addressDetails.SessionId = SessionId;
+                var list = new List<StudentAddressDetailsModel>();
+                if (addressDetails != null)
+                {
+                    addressDetails.AddressType = "C";
+                    list.Add(addressDetails);
+                    if (IsSameAsCurrent)
+                    {
+
+                        list.Add(new StudentAddressDetailsModel
+                        {
+
+                            AddressType = "P",
+                            AddressTo = addressDetails.AddressTo,
+                            ContactNo = addressDetails.ContactNo,
+                            PinCode = addressDetails.PinCode,
+                            Line1 = addressDetails.Line1,
+                            Line2 = addressDetails.Line2,
+                            CreatedBy = username,
+                            GroupCode = groupcode,
+                            StudentId = StudentId,
+                            SessionId = SessionId,
+                            BranchCode = branchcode,
+                            PermanentLine1 = addressDetails.Line1,
+                            EmergencyPersonAddress = addressDetails.EmergencyPersonAddress,
+                            EmergencyPersonName = addressDetails.EmergencyPersonName,
+                            EmergencyPersonContactNo = addressDetails.EmergencyPersonContactNo,
+                            EmergencyPersonRelationShip = addressDetails.EmergencyPersonRelationShip
+
+                        });
+                    }
+                    else
+                    {
+                        if (addressPermanent != null)
+                        {
+                            addressPermanent.AddressType = "P";
+                            list.Add(addressPermanent);
+                        }
+
+                    }
+                }
+                bool isSaved = false;
+                string apiUrl = "ViewStudent/SaveStudentAddress";
+                foreach (var item in list)
+                {
+                    var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, item);
+                    if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
+                    {
+                        isSaved = true;
+                    }
+                    else
+                    {
+                        isSaved = false;
+                        break;
+                    }
+
+                }
+                if (isSaved)
+                {
+                    ShowSuccess = true;
+                    StateHasChanged();
+                    await Task.Delay(3000);
+                    ShowSuccess = false;
+                }
+                else
+                {
+                    return;
+                }
+
+              
+            }
+            addressDisEnableform(true);
+            await SaveByActiveTab();
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task<StudentAddressDetailsModel> GetAddressAsync(string addressType)
+    {
+        try
+        {
+            searchAnyRequest.RequestName = addressType;
+            var apiResponse = await httpService.Post<ApiResponse<StudentAddressDetailsModel>>("ViewStudent/GetStudentAddressDetails", searchAnyRequest) ?? new();
+            if (apiResponse.Success == true && apiResponse.Data != null)
+            {
+                return apiResponse.Data;
+            }
+
+            return new StudentAddressDetailsModel();
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+        finally
+        {
+            searchAnyRequest.RequestName = "";
+            StateHasChanged();
+        }
+
+
+    }
+    private void childDisEnableform(bool flag)
+    {
+        _childFormDisabled = flag;
+        _originalSnapshot = CreateSnapshot(viewchildDetails);
+    }
+    private void parentsDisEnableform(bool flag)
+    {
+        _parentsFormDisabled = flag;
+        _originalparents = CreateSnapshot(parentsDetails);
+    }
+    private void SiblingDisEnableform(bool flag)
+    {
+        _SiblingFormDisabled = flag;
+        _originalsibling = CreateSnapshot(siblingDetails);
+    }
+    private void addressDisEnableform(bool flag)
+    {
+        _AddressFormDisabled = flag;
+        _originaladdress = CreateSnapshot(addressDetails);
+        _originaladdressp = CreateSnapshot(addressPermanent);
+    }
+    private bool HasValue(FamilyDetails f)
+    {
+        return
+            !string.IsNullOrWhiteSpace(f.FamilyChildName) ||
+            !string.IsNullOrWhiteSpace(f.FamilyChildSchool) ||
+            !string.IsNullOrWhiteSpace(f.FamilyChildclass);
+    }
+    private void OtherDisEnableform(bool flag)
+    {
+
+        _OtherFormDisabled = flag;
+        _originalOther = CreateSnapshot(studentpassportdetails);
+    }
+    private async Task OtherDetails()
+    {
+        try
+        {
+            if (RecoSelectedFile != null)
+            {
+                string extension = Path.GetExtension(RecoSelectedFile.Name);
+                string fileName = $"{Guid.NewGuid()}{extension}";
+                string folderPath = Path.Combine(env.WebRootPath, "Recommendation");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+                string filePath = Path.Combine(folderPath, fileName);
+                await using var fs = new FileStream(filePath, FileMode.Create);
+                await RecoSelectedFile.OpenReadStream(5 * 1024 * 1024).CopyToAsync(fs);
+                studentpassportdetails.RecommendationDocFile = $"/Recommendation/{fileName}";
+                studentpassportdetails.RecommendationDocPath = filePath;
+            }
+            if (IsEdited(studentpassportdetails, _originalOther))
+            {
+                studentpassportdetails.GroupCode = groupcode;
+                studentpassportdetails.BranchCode = branchcode;
+                studentpassportdetails.StudentId = StudentId;
+                studentpassportdetails.CreatedBy = username;
+                string apiUrl = "ViewStudent/SavePassportDetails";
+                var apiresponse = await httpService.Post<ApiResponse<string>>(apiUrl, studentpassportdetails);
+                if (apiresponse.Success && apiresponse.Code == 1)
+                {
+                    ShowSuccess = true;
+                    StateHasChanged();
+                    await Task.Delay(3000);
+                    ShowSuccess = false;
+                }
+
+              
+            }
+            OtherDisEnableform(true);
+            await SaveByActiveTab();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+
+            return;
+        }
+
+       
+
+    }
+    private async Task OnCheckboxChanged()
+    {
+        try
+        {
+            if (IsSameAsCurrent)
+            {
+                addressPermanent.ContactNo = addressDetails.ContactNo;
+                addressPermanent.AddressTo = addressDetails.AddressTo;
+                addressPermanent.Line2 = addressDetails.Line2;
+                addressDetails.PermanentLine1 = addressDetails.Line1;
+                addressPermanent.Line1 = addressDetails.Line1;
+                addressPermanent.PinCode = addressDetails.PinCode;
+
+            }
+            else
+            {
+                addressPermanent.ContactNo = null;
+                addressPermanent.AddressTo = null;
+                addressPermanent.Line2 = null;
+                addressPermanent.Line1 = null;
+                addressDetails.PermanentLine1 = null;
+                addressPermanent.PinCode = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            return;
+
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    private async Task AddSiblingData()
+    {
+        try
+        {
+            addSibling.GroupCode = groupcode;
+            addSibling.BranchCode = branchcode;
+            addSibling.ParentStudentId = StudentId;
+            addSibling.ChildStudentId = siblingDetails.StudentId;
+            if (string.IsNullOrEmpty(schoolbranchcode))
+            {
+                await customAlert.ShowCustomAlert("Please select school branch !", false);
+                StateHasChanged();
+                return;
+            }
+            else if (string.IsNullOrEmpty(searchAnyRequest.RequestName))
+            {
+                await customAlert.ShowCustomAlert("Please enter sibling id !", false);
+                StateHasChanged();
+                return;
+            }
+            else if (addSibling.ChildStudentId == 0)
+            {
+                await customAlert.ShowCustomAlert("Please search a record first .", false);
+                StateHasChanged();
+                return;
+            }
+            IsVisible = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to add sibling?");
+            if (!submit)
+            {
+                IsVisible = true;
+                StateHasChanged();
+                return;
+            }
+            string apiurl = "ViewStudent/AddUpdateSibling";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiurl, addSibling);
+            if (apiResponse.Success)
+            {
+
+                if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowSuccess("sibling saved successfully !");
+                    addSibling = new();
+                    StateHasChanged();
+                    await LoadData();
+                    IsVisible = true;
+
+                }
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+}

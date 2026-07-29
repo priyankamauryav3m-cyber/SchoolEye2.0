@@ -1,0 +1,845 @@
+﻿@page "/rolemaster"
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@using MyApp.Common
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage sessionStorage
+@using System.Text
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime jsRuntime
+@inject IStringLocalizer<Resource> Localizer
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject SweetAlertService Alert
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+<style>
+    .feature-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 8px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #6b7a85;
+        background: #f3f5ff;
+        border: 1px solid #d6ddff;
+        border-radius: 6px;
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+
+    .quickgrid thead th:last-child {
+        justify-content: left !important;
+    }
+
+    :root {
+        --map-primary: #1E8FD3;
+        --map-primary-dark: #146da3;
+        --map-primary-soft: rgba(30, 143, 211, 0.08);
+        --map-primary-soft-2: rgba(30, 143, 211, 0.14);
+        --map-success: #16a34a;
+        --map-success-soft: rgba(22, 163, 74, 0.08);
+        --map-border: #e4e9ef;
+        --map-text: #37474f;
+        --map-text-soft: #6b7a85;
+    }
+
+
+
+    .map-box {
+        border: 1px solid var(--map-border);
+        border-radius: 7px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(20, 40, 60, 0.05);
+    }
+
+  
+
+    .map-top-header p {
+        color: #fff;
+        font-size: 13.5px;
+        font-weight: 600;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+        .map-top-header p span {
+            font-weight: 400;
+            text-transform: none;
+            opacity: .85;
+        }
+
+    .map-menu {
+        background: #f6f8fa;
+        padding: 16px;
+        max-height: 52vh;
+        overflow-y: auto;
+    }
+
+        .map-menu::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .map-menu::-webkit-scrollbar-thumb {
+            background: #cfd8e0;
+            border-radius: 8px;
+        }
+
+            .map-menu::-webkit-scrollbar-thumb:hover {
+                background: var(--map-primary);
+            }
+
+ 
+
+    .tree {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        color: var(--map-text);
+        cursor: auto;
+    }
+
+        .tree:before,
+        .tree li:before {
+            content: none;
+        }
+
+        .tree li {
+            position: relative;
+            animation: mapItemIn .22s ease both;
+        }
+
+        .tree .tree {
+            display: none;
+            margin-top: 8px;
+            margin-left: 14px;
+            padding: 10px 10px 2px 18px;
+            border-left: 2px dashed #d7e2ea;
+        }
+
+            .tree .tree.d-flex {
+                flex-direction: column;
+            }
+
+    .main-menu {
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .main-menu:before,
+        .main-menu > li:before {
+            content: none;
+            width: 0;
+        }
+
+        .main-menu > li {
+            border: 1px solid var(--map-border);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(20, 40, 60, 0.04);
+            transition: box-shadow .2s ease, border-color .2s ease;
+        }
+
+            .main-menu > li:hover {
+                box-shadow: 0 4px 14px rgba(20, 40, 60, 0.08);
+            }
+
+        /* feature-level cards, sit inside a module's nested .tree */
+        .main-menu .tree > li {
+            border: 1px solid var(--map-border);
+            border-radius: 7px;
+            background: #fbfcfd;
+            margin-bottom: 8px;
+        }
+
+            .main-menu .tree > li:last-child {
+                margin-bottom: 0;
+            }
+
+ 
+    /* =========================================================
+           Branch — base row style (module + feature rows)
+           ========================================================= */
+
+    .branch {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: transparent;
+        padding: 12px 14px;
+        font-size: 15px;
+        color: var(--map-text);
+        font-weight: 600;
+        border-radius: 7px;
+        cursor: auto;
+        gap: 10px;
+        transition: background-color .2s ease;
+    }
+
+        .branch:hover {
+            background-color: #f4f8fb;
+        }
+
+    .saved-highlight {
+        background-color: var(--map-success-soft) !important;
+        border-left: 3px solid var(--map-success);
+    }
+
+
+    .active-tree > .branch {
+        background: var(--map-primary-soft);
+        color: var(--map-primary-dark);
+        border-radius: 7px;
+    }
+
+    .open-menu {
+        cursor: pointer;
+        transition: transform .15s ease, color .15s ease;
+        color: var(--map-text-soft);
+        font-weight: 500;
+        font-size: 14px;
+        margin-left: 2px;
+        white-space: nowrap;
+    }
+
+        .open-menu:hover {
+            color: var(--map-primary);
+        }
+
+   
+
+    .menu-name span {
+        color: var(--map-text-soft);
+        font-weight: 600;
+        font-size: 15px;
+        margin-left: 2px;
+    }
+
+    .menu-name .toggle-icon {
+        color: var(--map-text-soft);
+        font-size: 13px;
+        margin-right: 4px;
+        width: 12px;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .menu-name .folder-icon {
+        color: #f0a545;
+        font-size: 15px;
+        margin-right: 6px;
+    }
+
+    /* the bi-plus-lg expand icon */
+    .branch .bi-plus-lg {
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #eef3f7;
+        color: var(--map-primary-dark);
+        font-size: 12px;
+        transition: background-color .18s ease, color .18s ease, transform .18s ease;
+    }
+
+        .branch .bi-plus-lg:hover {
+            background: var(--map-primary);
+            color: #fff;
+            transform: scale(1.08);
+        }
+
+ 
+    /* =========================================================
+           Checkboxes — shared everywhere via .map-checkbox
+           ========================================================= */
+
+    .map-checkbox {
+        border-radius: 4px !important;
+        border: 1px solid #90a4ae;
+        margin: 0;
+        width: 16px !important;
+        height: 16px !important;
+        accent-color: var(--map-primary) !important;
+        cursor: pointer;
+        transition: transform .12s ease;
+    }
+
+        .map-checkbox:checked[type=checkbox] {
+            background-color: var(--map-primary);
+            border-color: var(--map-primary);
+            transform: scale(1.05);
+        }
+
+        .map-checkbox:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+ 
+    /* =========================================================
+           Activity row — identified purely by its existing class combo
+           ".branch.d-flex.justify-content-between" (unique to activity rows)
+           ========================================================= */
+
+    .branch.d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid var(--map-border);
+        border-radius: 8px;
+        padding: 12px 14px;
+    }
+
+        .branch.d-flex.justify-content-between:hover {
+            box-shadow: 0 2px 10px rgba(20, 40, 60, 0.06);
+        }
+
+        /* highlight the whole activity card once it's turned on */
+        .branch.d-flex.justify-content-between:has(> .gap-2 > .map-checkbox:checked) {
+            border-color: var(--map-primary);
+            background: linear-gradient(180deg, var(--map-primary-soft) 0%, #fff 70px);
+        }
+
+        /* the name+checkbox row inside the activity card */
+        .branch.d-flex.justify-content-between > .gap-2 {
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--map-border);
+        }
+
+    
+
+            .branch.d-flex.justify-content-between > .gap-2:has(.map-checkbox:checked) > span {
+                color: var(--map-primary-dark);
+            }
+
+    @@media (min-width: 992px) {
+        .branch.d-flex.justify-content-between {
+            flex-direction: row;
+            align-items: center;
+            gap: 18px;
+        }
+
+            .branch.d-flex.justify-content-between > .gap-2 {
+                flex: 0 0 230px;
+                padding-bottom: 0;
+                border-bottom: none;
+                border-right: 1px dashed var(--map-border);
+                padding-right: 14px;
+            }
+    }
+
+
+
+
+    .branch.d-flex.justify-content-between .gap-1 {
+        background: #f6f8fa;
+        border: 1px solid #acc6e4;
+        border-radius: 20px;
+        padding: 4px 10px;
+        transition: background-color .18s ease, border-color .18s ease;
+    }
+
+        .branch.d-flex.justify-content-between .gap-1 .form-label {
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--map-text-soft);
+            cursor: pointer;
+            transition: color .18s ease;
+        }
+
+
+
+   
+
+        .branch.d-flex.justify-content-between .gap-1:has(.map-checkbox:disabled) {
+            opacity: .5;
+        }
+
+ 
+
+
+    @@keyframes mapItemIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+ 
+
+
+    @@media (max-width: 767px) {
+        .map-menu {
+            padding: 10px;
+            max-height: 60vh;
+        }
+
+        .branch {
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        .tree .tree {
+            margin-left: 8px;
+            padding-left: 12px;
+        }
+
+        .d-flex.gap-3.flex-wrap {
+            grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+            gap: 10px 14px !important;
+        }
+    }
+
+    @@media (max-width: 420px) {
+        .d-flex.gap-3.flex-wrap {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Role</p>
+                <div class="d-flex gap-2">
+                    @* <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddsuperAdmin" /> *@
+                    <button class="ui fade op-1 animated button form-btn" @onclick="AddsuperAdmin" tabindex="0">
+                        <div class="visible content justify-content-center">Add</div>
+                        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="Role" Sortable="true" SortBy="GridSort<SuperAdminDomain>.ByAscending(x => x.RoleName)">
+                                    <ChildContent>
+                                        <span class="@(context.IsSaved ? "saved-highlight" : "")">
+                                            @context.RoleName
+                                        </span>
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Role..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" Sortable="true" Class="text-center" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="action-btn-group">
+
+                                        @if (context.IsValid)
+                                        {
+                                            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditsuperAdmin(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+
+                                            <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                            <button class="btn-icon active-btn  custom-tooltip " data-tooltip="Menu Activity"
+                                                    @onclick="() => OpenAdmin(context)">
+                                                <i class="bi bi-collection"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button disabled class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditsuperAdmin(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn-icon active-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                            <button disabled class="btn-icon active-btn custom-tooltip " data-tooltip="Menu Activity"
+                                                    @onclick="() => OpenAdmin(context)">
+                                                <i class="bi bi-collection"></i>
+                                            </button>
+                                        }
+                                    </div>
+
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((superAdmin.RoleId == 0) ? "Add Role" : "Edit Role")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@superAdmin" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row gap-10-0">
+
+                            <div class="col-12">
+                                <div class="form-box">
+                                    <label class="form-label">Role Name <span class="required">*</span></label>
+                                    <InputText type="text" class="form-input" @bind-Value="superAdmin.RoleName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <ValidationMessage For="@(() => superAdmin.RoleName)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <div class="form-box">
+                                    <label class="form-label">
+                                        Description <span class="text-danger">*</span>
+                                    </label>
+
+                                    <InputTextArea class="form-input" rows="3" @bind-Value="superAdmin.RoleDescripation" />
+                                    <ValidationMessage For="@(() => superAdmin.RoleDescripation)" />
+                                </div>
+                            </div>
+                            <div class="col-12 mt-3 ">
+                                <div class="form-box">
+                                    <label class="form-label">DashBoard Name<span class="required">*</span></label>
+
+                                    <InputSelect class="form-input" @bind-Value="superAdmin.DashBoardId">
+                                        <option value="0">-Select Dasboard-</option>
+                                        @foreach (var data in dashboardlist)
+                                        {
+                                            <option value="@data.DashBoardId">@data.DisplayName</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => superAdmin.DashBoardId)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-3 mb-2">
+                                <div class="form-box">
+                                    <label class="form-label">Display Order </label>
+                                    <InputNumber class="form-input" @bind-Value="superAdmin.DisplayOrder" onkeypress="return /^[0-9]$/.test(event.key)" />
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="superAdmin.RoleId" OnClickCancel="ClosePopup" />
+
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowPopupAdmin)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-11">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Menu Activity</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@controlAccess" OnSubmit="OnSuperAdminSave">
+                    <div class="modal-body">
+                        <input type="hidden" name="__RequestVerificationToken" />
+                        <div class="form-row row gap-10-0 pl-3 fix-row-div">
+                            <div class="col-12 col-sm-6 col-md-6 d-flex align-items-center mt-3">
+                                <div class="border-box-sec w-webkit">
+                                    <p class="fw-bold m-0 fts-14 cl-gray">
+                                        Role Name :
+                                        <span>@SelectedRoleName</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-6 mt-3">
+                                <form class="expanding-search-form">
+                                    <input id="global-search" type="search" placeholder="Search by module name..." class="form-input w-webkit" @bind="SearchText" @bind:event="oninput" />
+                                </form>
+                            </div>
+                            <div class="col-12">
+                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                    <p class="total-text-with-bg">
+                                        Role Mapping
+                                    </p>
+                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="map-box">
+                                    <div class="row m-0 map-top-header">
+                                        <div class="col-6 d-flex align-items-center justify-content-center">
+                                            <p class="m-0">
+                                                Modules
+                                                @if (!string.IsNullOrEmpty(SelectedFeatureName))
+                                                {
+                                                    <span> / @SelectedFeatureName</span>
+                                                }
+
+                                                @if (!string.IsNullOrEmpty(SelectedActivityName))
+                                                {
+                                                    <span> / Activity</span>
+                                                }
+                                            </p>
+                                        </div>
+                                        <div class="col-6 d-flex align-items-center justify-content-center">
+                                            <p class="m-0">
+                                                Action
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="map-menu">
+                                        <ul class="tree main-menu">
+
+                                            @foreach (var module in FilteredModules)
+                                            {
+                                                <li>
+                                                    <div class="branch @(module.IsSaved ? "saved-highlight" : "")">
+                                                        <span class="menu-name open-menu" @onclick="UpdateFeaturesName">
+
+                                                            <i class="fa fa-plus-square toggle-icon"></i>
+                                                            <i class="fa fa-folder folder-icon"></i>
+
+                                                            <span class="module-name">@module.MName</span>
+                                                            @if (module.Features?.Any() == true)
+                                                            {
+                                                                <p class="feature-chip">
+                                                                    @module.Features.Count Features
+                                                                </p>
+                                                            }
+
+                                                        </span>
+
+                                                        @if (module.Features != null && module.Features.Any())
+                                                        {
+                                                            <i class="bi bi-plus-lg open-menu" @onclick="UpdateFeaturesName"></i>
+                                                        }
+
+                                                    </div>
+
+                                                    @if (module.IsExpanded && module.Features?.Any() == true)
+
+                                                    {
+                                                        <ul class="tree">
+
+                                                            @for (int f = 0; f < module.Features.Count; f++)
+
+                                                            {
+
+                                                                var feature = module.Features[f];
+                                                                <li>
+                                                                    <div class="branch @(feature.IsSaved ? "saved-highlight" : "")">
+                                                                        <div class="d-flex align-items-center gap-2">
+
+                                                                            <input type="checkbox" class="form-check-input map-checkbox" @bind="feature.IsSelected" @bind:after="() => OnFeatureChecked(feature)" />
+
+                                                                            <span class="menu-name open-menu" @onclick="UpdateActivityName">
+
+                                                                                <i class="fa fa-plus-square toggle-icon"></i>
+                                                                                <i class="fa fa-folder folder-icon"></i>
+
+                                                                                @* (@ToRoman(f + 1)) *@
+                                                                                @feature.FeaturesName
+
+                                                                                @if (feature.Activites?.Any() == true)
+                                                                                {
+                                                                                    
+                                                                                    <p class="feature-chip">
+                                                                                        @feature.Activites.Count Activity
+                                                                                    </p>
+                                                                                }
+
+
+
+
+                                                                            </span>
+
+                                                                        </div>
+                                                                        @if (feature.Activites != null && feature.Activites.Any())
+                                                                        {
+                                                                            <i class="bi bi-plus-lg open-menu" @onclick="UpdateActivityName"></i>
+                                                                        }
+                                                                    </div>
+
+                                                                    @if (feature.IsExpanded && feature.Activites?.Any() == true)
+
+                                                                    {
+                                                                        <ul class="tree">
+
+                                                                            @foreach (var act in feature.Activites)
+
+                                                                            {
+                                                                                <li>
+                                                                                    <div class="branch d-flex align-items-center justify-content-between">
+
+                                                                                        <div class="d-flex align-items-center gap-2">
+                                                                                            <input type="checkbox" class="form-check-input map-checkbox" @bind="act.IsSelected" />
+
+                                                                                            <span class="menu-name open-menu">@act.ActivityName</span>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex gap-3 flex-wrap">
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsAdd" />
+                                                                                                <label class="form-label m-0">Add</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsModifiy" />
+                                                                                                <label class="form-label m-0">Modify</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsPrint" />
+                                                                                                <label class="form-label m-0">Print</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsExportToExcel" />
+                                                                                                <label class="form-label m-0 text-nowrap">Export</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsPII" />
+                                                                                                <label class="form-label m-0">PII</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action1" />
+                                                                                                <label class="form-label m-0">Action-1</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action2" />
+                                                                                                <label class="form-label m-0">Action-2</label>
+                                                                                            </div>
+
+                                                                                            <div class="d-flex align-items-center gap-1">
+                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action3" />
+                                                                                                <label class="form-label m-0">Action-3</label>
+                                                                                            </div>
+
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </li>
+
+                                                                            }
+                                                                        </ul>
+
+                                                                    }
+                                                                </li>
+
+                                                            }
+                                                        </ul>
+
+                                                    }
+                                                </li>
+
+                                            }
+                                        </ul>
+
+
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <span class="total_text">
+                            Total Modules : @TotalModuleCount
+                        </span>
+                        <div class="form-group btn-gr">
+                            <button type="submit" class="ui fade op-1 animated button form-btn">
+                                <div class="visible content">Save</div>
+                                <div class="hidden content">
+                                    <i class="fa fa-save"></i>
+                                </div>
+                            </button>
+
+                            <button type="button" @onclick="ClosePopup" class="ui fade op-1 animated button btn-cancle">
+                                <div class="visible content">Cancel</div>
+                                <div class="hidden content">
+                                    <i class="fa fa-close"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class=" grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+
+    </div>
+
+}
+else
+{
+
+}

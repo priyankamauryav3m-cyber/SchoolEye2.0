@@ -1,0 +1,919 @@
+﻿@page "/StudentDashboard"
+@using DomainModel.Common
+@using DomainModel
+@using Microsoft.Extensions.Localization
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@using Newtonsoft.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage sessionStorage
+@using System.Text
+@inject IWebHostEnvironment env
+@using System.Text.RegularExpressions;
+@using ServerWebUI.Components.AlertComponent
+@inject IStringLocalizer<Resource> Localizer
+@*@using DomainModel.Registration
+@using DomainModel.ComprehensiveExamination
+@using DomainModel.SuperAdmin
+@using DomainModel.Masters
+@using ApplicationInterface.ComprehensiveExamination *@
+@inject IJSRuntime JS
+<section class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-xxl-3 col-lg-6 col-sm-6 col-12 d-flex p-2">
+            <div class="card flex-fill animate-card link-card">
+                <div class="card-body">
+                    <a href="javascript:void(0)">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar avatar-xl p-1">
+                                <img src="https://preskool.dreamstechnologies.com/html/template/assets/img/icons/student.svg"
+                                     alt="img">
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between flex-fill">
+                                <div>
+                                    <p class="total-text-with-bg mb-2">Total Students</p>
+                                    <h2 class="counter">3654</h2>
+                                </div>
+                                <div class="circle-progress" data-value="80">
+                                    <span class="progress-left">
+                                        <span class="progress-bar border-success"
+                                              style="transform: rotate(108deg);"></span>
+                                    </span>
+                                    <span class="progress-right">
+                                        <span class="progress-bar border-success"
+                                              style="transform: rotate(180deg);"></span>
+                                    </span>
+                                    <div class="progress-value">90%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between border-top mt-4 pt-3">
+                            <p class="mb-0 active_fonts">
+                                Active : <span>3643</span>
+                            </p>
+                            <span class="text-light">|</span>
+                            <p class="active_fonts">Inactive : <span>11</span></p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Total students end -->
+        <!-- Transport user start -->
+        <div class="col-xxl-3 col-lg-6 col-sm-6 col-12 d-flex p-2">
+            <div class="card flex-fill animate-card link-card">
+                <div class="card-body">
+                    <a href="javascript:void(0)">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar avatar-xl p-1">
+                                <img src="https://preskool.dreamstechnologies.com/html/template/assets/img/icons/teacher.svg"
+                                     alt="img">
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between flex-fill">
+                                <div>
+                                    <p class="total-text-with-bg mb-2">Transport User</p>
+                                    <h2 class="counter">284</h2>
+                                </div>
+                                <div class="circle-progress" data-value="65">
+                                    <span class="progress-left">
+                                        <span class="progress-bar border-info"
+                                              style="transform: rotate(54deg);"></span>
+                                    </span>
+                                    <span class="progress-right">
+                                        <span class="progress-bar border-info"
+                                              style="transform: rotate(180deg);"></span>
+                                    </span>
+                                    <div class="progress-value">65%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between border-top mt-4 pt-3">
+                            <p class="mb-0 active_fonts">Active : <span>254</span></p>
+                            <span class="text-light">|</span>
+                            <p class="active_fonts">Inactive : <span>30</span></p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Transport user end -->
+        <!-- Total staff start -->
+        <div class="col-xxl-3 col-lg-6 col-sm-6 col-12 d-flex p-2">
+            <div class="card flex-fill animate-card link-card">
+                <div class="card-body">
+                    <a href="javascript:void(0)">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar avatar-xl p-1">
+                                <img src="https://preskool.dreamstechnologies.com/html/template/assets/img/icons/staff.svg"
+                                     alt="img">
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between flex-fill">
+                                <div>
+                                    <p class="total-text-with-bg mb-2">Total Staff</p>
+                                    <h2 class="counter">162</h2>
+                                </div>
+                                <div class="circle-progress" data-value="30">
+                                    <span class="progress-left">
+                                        <span class="progress-bar border-warning"></span>
+                                    </span>
+                                    <span class="progress-right">
+                                        <span class="progress-bar border-warning"
+                                              style="transform: rotate(108deg);"></span>
+                                    </span>
+                                    <div class="progress-value">30%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between border-top mt-4 pt-3">
+                            <p class="mb-0 active_fonts">Active : <span>161</span></p>
+                            <span class="text-light">|</span>
+                            <p class="active_fonts">Inactive : <span>02</span></p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Total staff end -->
+        <!-- EWS start -->
+        <div class="col-xxl-3 col-lg-6 col-sm-6 col-12 d-flex p-2">
+            <div class="card flex-fill animate-card link-card">
+                <div class="card-body">
+                    <a href="javascript:void(0)">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="avatar avatar-xl p-1">
+                                <img src="https://preskool.dreamstechnologies.com/html/template/assets/img/icons/subject.svg"
+                                     alt="img">
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between flex-fill">
+                                <div>
+                                    <p class="total-text-with-bg mb-2">Ews</p>
+                                    <h2 class="counter">82</h2>
+                                </div>
+
+                                <div class="circle-progress" data-value="80">
+                                    <span class="progress-left">
+                                        <span class="progress-bar border-danger"></span>
+                                    </span>
+                                    <span class="progress-right">
+                                        <span class="progress-bar border-danger"
+                                              style="transform: rotate(170deg);"></span>
+                                    </span>
+                                    <div class="progress-value">43%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between border-top mt-4 pt-3">
+                            <p class="mb-0 active_fonts">Active : <span>81</span></p>
+                            <span class="text-light">|</span>
+                            <p class="active_fonts">Inactive : <span>01</span></p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- EWS end -->
+        <!-- Calendar Start -->
+        <div class="col-xxl-4 col-lg-6 col-sm-12 col-12 d-flex p-2">
+            <div class="card flex-fill">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="total-text">Schedules</p>
+                    </div>
+                    <a href="javascript:void(0)" class="link-primary add-btn"><i class="bi bi-plus"></i> New </a>
+                </div>
+
+                <div class="card-body calendar-box">
+                    <table class="calendar">
+                        <thead class="weeks">
+                            <tr class="calendar-header cl-heder-tr">
+                                <th class="week-head">
+                                    <div class="icons">
+                                        <i id="prev" class="bi bi-chevron-left"></i>
+                                    </div>
+                                </th>
+                                <th class="week-head" colspan="5">
+                                    <p class="current-date"></p>
+                                </th>
+                                <th class="week-head">
+                                    <div class="icons">
+                                        <i id="next" class="bi bi-chevron-right"></i>
+                                    </div>
+                                </th>
+                            </tr>
+                            <tr class="cl-heder-tr">
+                                <th class="week-name">Sun</th>
+                                <th class="week-name">Mon</th>
+                                <th class="week-name">Tue</th>
+                                <th class="week-name">Wed</th>
+                                <th class="week-name">Thu</th>
+                                <th class="week-name">Fri</th>
+                                <th class="week-name">Sat</th>
+                            </tr>
+                        </thead>
+                        <tbody class="days"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Calendar end -->
+        <!-- Other information start -->
+        <div class="col-xxl-4 col-lg-6 col-sm-12 col-12 d-flex p-2">
+            <div class="card flex-fill">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="total-text">Other Information</p>
+                    </div>
+                    <a href="javascript:void(0)" class="link-primary add-btn"><i class="bi bi-plus"></i></a>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="row m-0 event-wrapper event-scroll h-100">
+                        <div class="col-12 d-flex flex-column p-2 information-card mt-2 gap-1">
+                            <div class="d-flex justify-content-between">
+                                <p class="mb-2 total_text">Total Concession</p>
+                                <div class="filter">
+                                    <a class="icon" href="javascript:void(0)" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow filter-cal">
+                                        <li>
+                                            <a class="dropdown-item">Today</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Month</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Year</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-end justify-content-between">
+                                <h2 class="counter p-1">25,000,02</h2>
+                                <span class="badge badge-soft-success">
+                                    <i class="ti ti-chart-line me-1"></i>1.5%
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-12 d-flex flex-column p-2 information-card mt-2 gap-1">
+                            <div class="d-flex justify-content-between">
+                                <p class="mb-2 total_text">Pre Session Advance</p>
+                                <div class="filter">
+                                    <a class="icon" href="javascript:void(0)" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow filter-cal">
+                                        <li>
+                                            <a class="dropdown-item">Today</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Month</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Year</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-end justify-content-between">
+                                <h2 class="counter p-1">4,56,64</h2>
+                                <span class="badge badge-soft-danger">
+                                    <i class="ti ti-chart-line me-1"></i>1.2%
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-12 d-flex flex-column p-2 information-card mt-2 gap-1">
+                            <div class="d-flex justify-content-between">
+                                <p class="mb-2 total_text">Total Outstanding</p>
+                                <div class="filter">
+                                    <a class="icon" href="javascript:void(0)" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow filter-cal">
+                                        <li>
+                                            <a class="dropdown-item">Today</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Month</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Year</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-end justify-content-between">
+                                <h2 class="counter p-1">1,23,56</h2>
+                                <span class="badge badge-soft-yellow">
+                                    <i class="ti ti-chart-line me-1"></i>2.5%
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-12 d-flex flex-column p-2 information-card mt-2 gap-1">
+                            <div class="d-flex justify-content-between">
+                                <p class="mb-2 total_text">Today's Collection</p>
+                                <div class="filter">
+                                    <a class="icon" href="javascript:void(0)" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow filter-cal">
+                                        <li>
+                                            <a class="dropdown-item">Today</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Month</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item">This Year</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-end justify-content-between">
+                                <h2 class="counter p-1">2,52,45</h2>
+                                <span class="badge badge-soft-purple">
+                                    <i class="ti ti-chart-line me-1"></i>24.3%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      
+        <div class="col-12 p-0 footer-section">
+            <div class="footer d-flex align-items-center justify-content-center justify-content-sm-between">
+                <a href="javascript:void(0)" class="m-0 footer-text primary-link primary-link-white">
+                    © 2025 | Powered by V3M
+                    Technologies
+                </a>
+                <div class="d-flex gap-3">
+                    <a href="https://schooleye.in/Terms-and-conditions.html" target="_blank"
+                       class="m-0 footer-text primary-link primary-link-white">
+                        Terms &
+                        Conditions
+                    </a>
+                    <a href="https://schooleye.in/Terms-and-conditions.html" target="_blank"
+                       class="m-0 footer-text primary-link primary-link-white">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+        <!-- Footer end  -->
+    </div>
+
+</section>
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+
+@code {
+    private CustomAlert customAlert;
+
+    private DateTime fromDate = DateTime.Now;
+    private DateTime toDate = DateTime.Now;
+    // private DomainModel.Registration.RegistrationDomain? selectedRegistrationDomain;
+    // private DomainModel.Registration.SearchRegistrationDomain? SearchRegisterDomain;
+    // protected List<DomainModel.Registration.RegistrationDomain> RegistrationList = new();
+    // protected List<DomainModel.ComprehensiveExamination.ComprehensiveExaminationDomain> comprehensiveExaminationList = new();
+    // private DomainModel.ComprehensiveExamination.ComprehensiveExaminationDomain? selectedCompExamDomain;
+    // private DomainModel.ComprehensiveExamination.SearchComprehensiveDomain? searchComprehensiveDomain;
+    // protected List<DomainModel.SpectacleBooking.SpectaclePrescribedPatientList> spectacleBookingList = new();
+    // private DomainModel.SpectacleBooking.SearchSpectacleBooking? searchSpectacleBookingDomain;
+
+
+    private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
+    private bool IsLoading = false;
+    string fromDateString = "", toDateString = "";
+    private string areaId = "";
+    private string inputvalofMedicalNo = "";
+    private string inputValueofPhoneNo = "";
+    private string inputValOfPatientname = "";
+    private string spectcleStatusSelectedValueHandover = "2";
+    private string spectcleStatusSelectedValuePrescribe = "1";
+    private bool IsCheckedDate = true;
+    private int totalRegistation = 0;
+    private int totalClincalExamination = 0;
+    private string DurationEnrollmentType = "";
+    private string DurationExaminationType = "";
+    private string DurationofSpectacles = "";
+    private string screeningTypeSelectedValue = "2";
+    private int totalSpectaclesHandover = 0;
+    private int totalSpectaclesPrescribe = 0;
+    private string inputValueofExaminName = "";
+
+    protected async Task GetRegistrationList(string areaId, string medicalNo = "", string phoneNo = "", string patientName = "",
+    bool IsCheckedDate = true, string Fromdate = "", string Todate = "")
+    {
+        try
+        {
+
+            medicalNo = string.IsNullOrEmpty(medicalNo) ? "0" : medicalNo;
+            phoneNo = string.IsNullOrEmpty(phoneNo) ? "0" : phoneNo;
+            areaId = string.IsNullOrEmpty(areaId) ? "0" : areaId;
+            patientName = string.IsNullOrEmpty(patientName) ? "0" : patientName;
+            Fromdate = string.IsNullOrEmpty(Fromdate) ? "0" : Fromdate;
+            Todate = string.IsNullOrEmpty(Todate) ? "0" : Todate;
+            int IsCheckedDateValue = IsCheckedDate ? 1 : 0;
+
+            // var grpId = await sessionStorage.GetAsync<int>("GroupId");
+            // int groupId = grpId.Value;
+            // var grpcode = await sessionStorage.GetAsync<string>("GroupCode");
+            // string groupCode = grpcode.Value;
+            // var username = await sessionStorage.GetAsync<string>("UserName");
+            // string UserName = username.Value;
+            // var vcId = await sessionStorage.GetAsync<int>("VCId");
+            // int VcId = vcId.Value;
+            // var vcCode = await sessionStorage.GetAsync<string>("VCCode");
+            // string VcCode = vcCode.Value;
+            // var hospitalId = await sessionStorage.GetAsync<int>("HospitalId");
+            // int HospitalId = hospitalId.Value;
+            // var hospitalCode = await sessionStorage.GetAsync<string>("HospitalCode");
+            // string HospitalCode = hospitalCode.Value;
+
+            // SearchRegisterDomain ??= new SearchRegistrationDomain();
+            // SearchRegisterDomain.MedicalNo = medicalNo;
+            // SearchRegisterDomain.PhoneNumber = phoneNo;
+            // SearchRegisterDomain.PatientName = patientName;
+            // SearchRegisterDomain.FromDate = Fromdate;
+            // SearchRegisterDomain.ToDate = Todate;
+            // SearchRegisterDomain.VisionCenterCode = VcCode;
+            // SearchRegisterDomain.VisionCenterId = VcId.ToString();
+            // SearchRegisterDomain.HospitalId = HospitalId.ToString();
+            // SearchRegisterDomain.AreaId = areaId;
+            // SearchRegisterDomain.GroupCode = groupCode;
+            // SearchRegisterDomain.IsCheckedDate = IsCheckedDateValue;
+
+            var tokenResult = await sessionStorage.GetAsync<string>("authToken");
+            string tokenValue = tokenResult.Value;
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenValue);
+
+            // string apiUrl = $"APIRegistration/GetEnrolledPatient?GroupCode={SearchRegisterDomain.GroupCode}&VisionCenterCode={SearchRegisterDomain.VisionCenterCode}&VisionCenterId={SearchRegisterDomain.VisionCenterId}&HospitalId={SearchRegisterDomain.HospitalId}&MedicalNo={SearchRegisterDomain.MedicalNo}&PhoneNumber={SearchRegisterDomain.PhoneNumber}&PatientName={SearchRegisterDomain.PatientName}&AreaId={SearchRegisterDomain.AreaId}&FromDate={SearchRegisterDomain.FromDate}&ToDate={SearchRegisterDomain.ToDate}&IsCheckedDate={SearchRegisterDomain.IsCheckedDate}";
+            // HttpMethod method = HttpMethod.Get;
+            // var request = new HttpRequestMessage(method, apiUrl)
+            //     {
+            //         Content = new StringContent(JsonConvert.SerializeObject(SearchRegisterDomain), Encoding.UTF8, "application/json")
+            //     };
+
+            // var response = await Http.GetAsync(apiUrl);
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     var responseBodyJson = await response.Content.ReadAsStringAsync();
+            //     RegistrationList = JsonConvert.DeserializeObject<List<DomainModel.Registration.RegistrationDomain>>(responseBodyJson);
+
+
+            //     totalRegistation = RegistrationList.Count();
+
+            //     StateHasChanged();
+            // }
+
+        }
+        catch (Exception ex)
+        {
+            await customAlert.ShowCustomAlert(@Localizer["Admin"], false);
+        }
+    }
+    private async void SearchRegistrationListToday(bool isCheckedDate)
+    {
+
+        if (isCheckedDate)
+        {
+            fromDateString = fromDate == DateTime.MinValue ? DateTime.Now.ToString("yyyy/MM/dd") : fromDate.ToString("yyyy/MM/dd");
+            toDateString = toDate == DateTime.MinValue ? DateTime.Now.ToString("yyyy/MM/dd") : toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = DateTime.Now.ToString("yyyy/MM/dd");
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationEnrollmentType = "Today";
+        await GetRegistrationList(areaId, inputvalofMedicalNo, inputValueofPhoneNo, inputValOfPatientname, isCheckedDate, fromDateString, toDateString);
+
+        StateHasChanged();
+    }
+
+    private async void SearchRegistrationListMonth(bool isCheckedDate)
+    {
+        if (isCheckedDate)
+        {
+            fromDateString = new DateTime(fromDate.Year, fromDate.Month, 1).ToString("yyyy/MM/dd");
+            toDateString = toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy/MM/dd");
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationEnrollmentType = "Month";
+        await GetRegistrationList(areaId, inputvalofMedicalNo, inputValueofPhoneNo, inputValOfPatientname, isCheckedDate, fromDateString, toDateString);
+
+        StateHasChanged();
+
+
+
+
+    }
+    private async void SearchRegistrationListYear(bool isCheckedDate)
+    {
+        if (isCheckedDate)
+        {
+            fromDateString = new DateTime(fromDate.Year, 1, 1).ToString("yyyy/MM/dd"); // First day of the current year for fromDate
+            toDateString = toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy/MM/dd"); // First day of the current year
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationEnrollmentType = "Year";
+        await GetRegistrationList(areaId, inputvalofMedicalNo, inputValueofPhoneNo, inputValOfPatientname, isCheckedDate, fromDateString, toDateString);
+        StateHasChanged();
+    }
+
+    protected async Task GetComprehensiveExamList(string medicalNo, string phoneNO = "", string screeningType = "", string examinName = "",
+    bool IsCheckedDate = true, string FromdatePres = "", string TodatePres = "")
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            examinName = string.IsNullOrEmpty(examinName) ? "0" : Regex.Replace(examinName.Trim(), @"\s+", " ");
+
+            phoneNO = string.IsNullOrEmpty(phoneNO) ? "0" : phoneNO.Trim();
+            screeningType = string.IsNullOrEmpty(screeningType) ? "-1" : screeningType.Trim();
+            // spectecleStatus = string.IsNullOrEmpty(spectecleStatus) ? "4" : spectecleStatus.Trim();
+            FromdatePres = string.IsNullOrEmpty(FromdatePres) ? "0" : FromdatePres.Trim();
+            TodatePres = string.IsNullOrEmpty(TodatePres) ? "0" : TodatePres.Trim();
+            medicalNo = string.IsNullOrEmpty(medicalNo) ? "0" : medicalNo.Trim();
+
+            int isPrescribeCheckedValue = IsCheckedDate == true ? 1 : 0;
+
+            // searchComprehensiveDomain ??= new SearchComprehensiveDomain();
+            // searchComprehensiveDomain.PhoneNo = phoneNO;
+            // searchComprehensiveDomain.ScreeningSatus = int.Parse(screeningType);
+            // searchComprehensiveDomain.PatientName = examinName;
+            // searchComprehensiveDomain.IsCheckedDate = isPrescribeCheckedValue;
+            // searchComprehensiveDomain.MedicalNo = medicalNo;
+            // searchComprehensiveDomain.FromDate = FromdatePres;
+            // searchComprehensiveDomain.ToDate = TodatePres;
+
+            // var grpcode = await sessionStorage.GetAsync<string>("GroupCode");
+            // string groupCode = grpcode.Value;
+            // var vcId = await sessionStorage.GetAsync<int>("VCId");
+            // int VcId = vcId.Value;
+            // var vcCode = await sessionStorage.GetAsync<string>("VCCode");
+            // string VcCode = vcCode.Value;
+            // var hospitalId = await sessionStorage.GetAsync<int>("HospitalId");
+            // int HospitalId = hospitalId.Value;
+
+            // searchComprehensiveDomain.GroupCode = groupCode;
+            // searchComprehensiveDomain.VisionCenter_Id = VcId;
+            // searchComprehensiveDomain.VisionCenter_Code = VcCode;
+            // searchComprehensiveDomain.Hospital_Id = HospitalId;
+
+            var tokenResult = await sessionStorage.GetAsync<string>("authToken");
+            string tokenValue = tokenResult.Value;
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenValue);
+
+            // string apiUrl = $"API/ComprehensiveExamination/GetPatientComprehensiveList?" +
+            //     $"GroupCode={searchComprehensiveDomain.GroupCode}&" +
+            //     $"VisionCenter_Id={searchComprehensiveDomain.VisionCenter_Id}&" +
+            //     $"VisionCenter_Code={searchComprehensiveDomain.VisionCenter_Code}&" +
+            //     $"Hospital_Id={searchComprehensiveDomain.Hospital_Id}&" +
+            //     $"MedicalNo={searchComprehensiveDomain.MedicalNo}&" +
+            //     $"ScreeningSatus={searchComprehensiveDomain.ScreeningSatus}&" +
+            //     $"PatientName={searchComprehensiveDomain.PatientName}&" +
+            //     $"PhoneNo={searchComprehensiveDomain.PhoneNo}&" +
+            //     $"IsCheckedDate={searchComprehensiveDomain.IsCheckedDate}&" +
+            //     $"FromDate={searchComprehensiveDomain.FromDate}&" +
+            //     $"Todate={searchComprehensiveDomain.ToDate}";
+
+
+
+            // var response = await Http.GetAsync(apiUrl);
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     var responseBodyJson = await response.Content.ReadAsStringAsync();
+            //     comprehensiveExaminationList = JsonConvert.DeserializeObject<List<DomainModel.ComprehensiveExamination.ComprehensiveExaminationDomain>>(responseBodyJson);
+
+            //     totalClincalExamination = comprehensiveExaminationList.Count();
+            // }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // await customAlert.ShowCustomAlert($"An unexpected error occurred: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async void SearchComprehensiveExamListToday(bool isCheckedDate)
+    {
+
+        if (isCheckedDate)
+        {
+            fromDateString = fromDate == DateTime.MinValue ? DateTime.Now.ToString("yyyy/MM/dd") : fromDate.ToString("yyyy/MM/dd");
+            toDateString = toDate == DateTime.MinValue ? DateTime.Now.ToString("yyyy/MM/dd") : toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = DateTime.Now.ToString("yyyy/MM/dd");
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationExaminationType = "Today";
+
+        await GetComprehensiveExamList(inputvalofMedicalNo, inputValueofPhoneNo, screeningTypeSelectedValue, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+
+        StateHasChanged();
+    }
+    private async void SearchComprehensiveExamListMonth(bool isCheckedDate)
+    {
+
+        if (isCheckedDate)
+        {
+            fromDateString = new DateTime(fromDate.Year, fromDate.Month, 1).ToString("yyyy/MM/dd");
+            toDateString = toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy/MM/dd");
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationExaminationType = "Month";
+
+        await GetComprehensiveExamList(inputvalofMedicalNo, inputValueofPhoneNo, screeningTypeSelectedValue, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+
+        StateHasChanged();
+    }
+    private async void SearchComprehensiveExamListYear(bool isCheckedDate)
+    {
+
+        if (isCheckedDate)
+        {
+            fromDateString = new DateTime(fromDate.Year, 1, 1).ToString("yyyy/MM/dd"); // First day of the current year for fromDate
+            toDateString = toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy/MM/dd"); // First day of the current year
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationExaminationType = "Year";
+
+        await GetComprehensiveExamList(inputvalofMedicalNo, inputValueofPhoneNo, screeningTypeSelectedValue, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+
+        StateHasChanged();
+    }
+
+    protected async Task GetSpecBookingListHandover(string medicalNo, string phoneNO = "", string spectecleStatus = "", string examinName = "",
+    bool IsPrescribeChecked = false, string FromdatePres = "", string TodatePres = "")
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            examinName = string.IsNullOrEmpty(examinName) ? "0" : Regex.Replace(examinName.Trim(), @"\s+", " ");
+
+            phoneNO = string.IsNullOrEmpty(phoneNO) ? "0" : phoneNO.Trim();
+            spectecleStatus = string.IsNullOrEmpty(spectecleStatus) ? "0" : spectecleStatus.Trim();
+            FromdatePres = string.IsNullOrEmpty(FromdatePres) ? "0" : FromdatePres.Trim();
+            TodatePres = string.IsNullOrEmpty(TodatePres) ? "0" : TodatePres.Trim();
+            medicalNo = string.IsNullOrEmpty(medicalNo) ? "0" : medicalNo.Trim();
+            if (spectecleStatus == "0")
+            {
+                await customAlert.ShowCustomAlert(@Localizer["SpectacleStatus"], false);
+                return;
+            }
+
+            //  int isPrescribeCheckedValue = IsPrescribeChecked == true ? 1 : 0;
+
+            // searchSpectacleBookingDomain ??= new DomainModel.SpectacleBooking.SearchSpectacleBooking();
+            // searchSpectacleBookingDomain.PhoneNo = phoneNO;
+            // searchSpectacleBookingDomain.SpectacleStatus = int.Parse(spectecleStatus);
+            // searchSpectacleBookingDomain.PatientName = examinName;
+            // searchSpectacleBookingDomain.IsCheckedDate = isPrescribeCheckedValue;
+            // searchSpectacleBookingDomain.MedicalNo = medicalNo;
+
+            // var grpcode = await sessionStorage.GetAsync<string>("GroupCode");
+            // string groupCode = grpcode.Value;
+            // var vcId = await sessionStorage.GetAsync<int>("VCId");
+            // int VcId = vcId.Value;
+            // var vcCode = await sessionStorage.GetAsync<string>("VCCode");
+            // string VcCode = vcCode.Value;
+            // var hospitalId = await sessionStorage.GetAsync<int>("HospitalId");
+            // int HospitalId = hospitalId.Value;
+
+            // searchSpectacleBookingDomain.GroupCode = groupCode;
+            // searchSpectacleBookingDomain.VisionCenter_Id = VcId;
+            // searchSpectacleBookingDomain.VisionCenter_Code = VcCode;
+            // searchSpectacleBookingDomain.Hospital_Id = HospitalId;
+            // searchSpectacleBookingDomain.FromDate = FromdatePres;
+            // searchSpectacleBookingDomain.ToDate = TodatePres;
+            var tokenResult = await sessionStorage.GetAsync<string>("authToken");
+            string tokenValue = tokenResult.Value;
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenValue);
+
+            // string apiUrl = $"API/SpectacleBooking/GetSpectaclePrescribedPatient?" +
+            //     $"GroupCode={searchSpectacleBookingDomain.GroupCode}&" +
+            //     $"VisionCenter_Id={searchSpectacleBookingDomain.VisionCenter_Id}&" +
+            //     $"VisionCenter_Code={searchSpectacleBookingDomain.VisionCenter_Code}&" +
+            //     $"Hospital_Id={searchSpectacleBookingDomain.Hospital_Id}&" +
+            //     $"MedicalNo={searchSpectacleBookingDomain.MedicalNo}&" +
+            //     // $"ScreeningSatus={searchSpectacleBookingDomain.ScreeningSatus}&" +
+            //     $"PatientName={searchSpectacleBookingDomain.PatientName}&" +
+            //     $"PhoneNo={searchSpectacleBookingDomain.PhoneNo}&" +
+            //     $"IsCheckedDate={searchSpectacleBookingDomain.IsCheckedDate}&" +
+            //     $"FromDate={searchSpectacleBookingDomain.FromDate}&" +
+            //     $"Todate={searchSpectacleBookingDomain.ToDate}&" +
+            //     $"SpectacleStatus={searchSpectacleBookingDomain.SpectacleStatus}";
+
+
+            // var response = await Http.GetAsync(apiUrl);
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     var responseBodyJson = await response.Content.ReadAsStringAsync();
+            //     spectacleBookingList = JsonConvert.DeserializeObject<List<DomainModel.SpectacleBooking.SpectaclePrescribedPatientList>>(responseBodyJson);
+            //     totalSpectaclesHandover = spectacleBookingList.Count();
+            // }
+
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // await customAlert.ShowCustomAlert($"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    protected async Task GetSpecBookingListPrescribe(string medicalNo, string phoneNO = "", string spectecleStatus = "", string examinName = "",
+    bool IsPrescribeChecked = false, string FromdatePres = "", string TodatePres = "")
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            examinName = string.IsNullOrEmpty(examinName) ? "0" : Regex.Replace(examinName.Trim(), @"\s+", " ");
+
+            phoneNO = string.IsNullOrEmpty(phoneNO) ? "0" : phoneNO.Trim();
+            spectecleStatus = string.IsNullOrEmpty(spectecleStatus) ? "0" : spectecleStatus.Trim();
+            FromdatePres = string.IsNullOrEmpty(FromdatePres) ? "0" : FromdatePres.Trim();
+            TodatePres = string.IsNullOrEmpty(TodatePres) ? "0" : TodatePres.Trim();
+            medicalNo = string.IsNullOrEmpty(medicalNo) ? "0" : medicalNo.Trim();
+            if (spectecleStatus == "0")
+            {
+                await customAlert.ShowCustomAlert(@Localizer["SpectacleStatus"], false);
+                return;
+            }
+
+            // int isPrescribeCheckedValue = IsPrescribeChecked == true ? 1 : 0;
+
+            // searchSpectacleBookingDomain ??= new DomainModel.SpectacleBooking.SearchSpectacleBooking();
+            // searchSpectacleBookingDomain.PhoneNo = phoneNO;
+            // searchSpectacleBookingDomain.SpectacleStatus = int.Parse(spectecleStatus);
+            // searchSpectacleBookingDomain.PatientName = examinName;
+            // searchSpectacleBookingDomain.IsCheckedDate = isPrescribeCheckedValue;
+            // searchSpectacleBookingDomain.MedicalNo = medicalNo;
+
+            // var grpcode = await sessionStorage.GetAsync<string>("GroupCode");
+            // string groupCode = grpcode.Value;
+            // var vcId = await sessionStorage.GetAsync<int>("VCId");
+            // int VcId = vcId.Value;
+            // var vcCode = await sessionStorage.GetAsync<string>("VCCode");
+            // string VcCode = vcCode.Value;
+            // var hospitalId = await sessionStorage.GetAsync<int>("HospitalId");
+            // int HospitalId = hospitalId.Value;
+
+            // searchSpectacleBookingDomain.GroupCode = groupCode;
+            // searchSpectacleBookingDomain.VisionCenter_Id = VcId;
+            // searchSpectacleBookingDomain.VisionCenter_Code = VcCode;
+            // searchSpectacleBookingDomain.Hospital_Id = HospitalId;
+            // searchSpectacleBookingDomain.FromDate = FromdatePres;
+            // searchSpectacleBookingDomain.ToDate = TodatePres;
+            var tokenResult = await sessionStorage.GetAsync<string>("authToken");
+            string tokenValue = tokenResult.Value;
+
+            Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenValue);
+
+            // string apiUrl = $"API/SpectacleBooking/GetSpectaclePrescribedPatient?" +
+            //     $"GroupCode={searchSpectacleBookingDomain.GroupCode}&" +
+            //     $"VisionCenter_Id={searchSpectacleBookingDomain.VisionCenter_Id}&" +
+            //     $"VisionCenter_Code={searchSpectacleBookingDomain.VisionCenter_Code}&" +
+            //     $"Hospital_Id={searchSpectacleBookingDomain.Hospital_Id}&" +
+            //     $"MedicalNo={searchSpectacleBookingDomain.MedicalNo}&" +
+            //     // $"ScreeningSatus={searchSpectacleBookingDomain.ScreeningSatus}&" +
+            //     $"PatientName={searchSpectacleBookingDomain.PatientName}&" +
+            //     $"PhoneNo={searchSpectacleBookingDomain.PhoneNo}&" +
+            //     $"IsCheckedDate={searchSpectacleBookingDomain.IsCheckedDate}&" +
+            //     $"FromDate={searchSpectacleBookingDomain.FromDate}&" +
+            //     $"Todate={searchSpectacleBookingDomain.ToDate}&" +
+            //     $"SpectacleStatus={searchSpectacleBookingDomain.SpectacleStatus}";
+
+
+            // var response = await Http.GetAsync(apiUrl);
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     var responseBodyJson = await response.Content.ReadAsStringAsync();
+            //     spectacleBookingList = JsonConvert.DeserializeObject<List<DomainModel.SpectacleBooking.SpectaclePrescribedPatientList>>(responseBodyJson);
+            //     totalSpectaclesPrescribe = spectacleBookingList.Count();
+            // }
+
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // await customAlert.ShowCustomAlert($"An unexpected error occurred: {ex.Message}");
+        }
+    }
+    private async void SearchSpectaclesBookingListToday(bool isCheckedDate)
+    {
+
+        if (isCheckedDate)
+        {
+            fromDateString = fromDate == DateTime.MinValue ? DateTime.Now.ToString("yyyy/MM/dd") : fromDate.ToString("yyyy/MM/dd");
+            toDateString = toDate == DateTime.MinValue ? DateTime.Now.ToString("yyyy/MM/dd") : toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = DateTime.Now.ToString("yyyy/MM/dd");
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationofSpectacles = "Today";
+        await GetSpecBookingListHandover(inputvalofMedicalNo, inputValueofPhoneNo, spectcleStatusSelectedValueHandover, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+        await GetSpecBookingListPrescribe(inputvalofMedicalNo, inputValueofPhoneNo, spectcleStatusSelectedValuePrescribe, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+        StateHasChanged();
+    }
+    private async void SearchSpectaclesBookingListMonth(bool isCheckedDate)
+    {
+
+
+        if (isCheckedDate)
+        {
+            fromDateString = new DateTime(fromDate.Year, fromDate.Month, 1).ToString("yyyy/MM/dd");
+            toDateString = toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy/MM/dd");
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationofSpectacles = "Month";
+        await GetSpecBookingListHandover(inputvalofMedicalNo, inputValueofPhoneNo, spectcleStatusSelectedValueHandover, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+        await GetSpecBookingListPrescribe(inputvalofMedicalNo, inputValueofPhoneNo, spectcleStatusSelectedValuePrescribe, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+        StateHasChanged();
+    }
+
+    private async void SearchSpectaclesBookingListYear(bool isCheckedDate)
+    {
+
+
+        if (isCheckedDate)
+        {
+            fromDateString = new DateTime(fromDate.Year, 1, 1).ToString("yyyy/MM/dd"); // First day of the current year for fromDate
+            toDateString = toDate.ToString("yyyy/MM/dd");
+        }
+        else
+        {
+            fromDateString = new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy/MM/dd"); // First day of the current year
+            toDateString = DateTime.Now.ToString("yyyy/MM/dd");
+        }
+        DurationofSpectacles = "Year";
+        await GetSpecBookingListHandover(inputvalofMedicalNo, inputValueofPhoneNo, spectcleStatusSelectedValueHandover, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+        await GetSpecBookingListPrescribe(inputvalofMedicalNo, inputValueofPhoneNo, spectcleStatusSelectedValuePrescribe, inputValueofExaminName, isCheckedDate, fromDateString, toDateString);
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initCalendar");
+            try
+            {
+                SearchRegistrationListToday(true);
+                SearchComprehensiveExamListToday(true);
+                SearchSpectaclesBookingListToday(true);
+            }
+            catch (Exception ex)
+            {
+                // Console.WriteLine($"An error occurred: {ex.Message}");
+                // Optionally handle the error (e.g., show an alert or log it)
+            }
+            finally
+            {
+                StateHasChanged();
+            }
+        }
+    }
+}

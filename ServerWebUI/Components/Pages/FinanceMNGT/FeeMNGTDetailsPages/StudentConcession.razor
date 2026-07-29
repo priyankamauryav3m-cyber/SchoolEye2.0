@@ -1,0 +1,1734 @@
+﻿@page "/studentconcession"
+@using DomainModel.Admin
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@inject IHttpClientFactory ClientFactory
+@using System.Net
+@using System.Text.Json
+@inject NavigationManager Nav
+@inject IStringLocalizer<Resource> Localizer
+@using DomainModel.SchoolMaster
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject ICommonMethod _commonmethod
+@inject SweetAlertService Alert
+@inject ProtectedSessionStorage sessionStorage
+<style>
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 80px;
+    }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .status {
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .completed {
+        background-color: #9BE9A8;
+        color: #006B21;
+    }
+
+    .blocked {
+        background-color: #FF9E8F;
+        color: #8B0000;
+    }
+
+    .progress {
+        background-color: #FFE082;
+        color: #9A6700;
+    }
+
+    .grid-input {
+        width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+</style>
+<section class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Student Concession</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value="concessionFilterDto.ConcessionId" class="form-input">
+                            <option value="0">AllConcessionSelected</option>
+                            @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.ConcessionId">@data.Concession </option>
+                            }
+                        </InputSelect>
+                    </div>  
+                        
+
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentDataMapConcession" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input @bind="context.IsSelected" @onclick:stopPropagation="true" type="checkbox" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Class="text-right" Title="Roll No." Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="studentNoFilter" @bind:event="oninput" placeholder="Student No..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Left" Property="@(x => x.StudentName)" Title="Student Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student Name..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <TemplateColumn Title="Concession" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.Concession) ? " " : context.Concession)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Class Section" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassSection) ? " " : context.ClassSection)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Valid From" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ValidFrom) ? " " : context.ValidFrom)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Valid UpTo" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ValidUpto) ? " " : context.ValidUpto)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Remarks" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.Remarks) ? " " : context.Remarks)
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ChildContent>
+
+                                        <div class="text-center">
+
+                                            @if (context.Status == 1)
+                                            {
+                                                <span class="badge rounded-pill bg-success"> Completed </span>
+                                            }
+                                            else if (context.Status == 2)
+                                            {
+                                                <span class="badge rounded-pill bg-danger"> Rejected</span>
+                                            }
+                                            else if (context.Status == 0)
+                                            {
+                                                <span class="badge rounded-pill bg-warning text-dark">Pending... </span>
+                                            }
+
+                                        </div>
+
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Action" Align="Align.Center">
+                                    <div class="action-btn-group">
+
+                                        <button class="btn-icon check-btn" disabled="@(context.Status == 2)" @onclick="() => OpenApproveData(context)">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </button>
+
+                                        <button class="btn-icon  edit-btn" @onclick="() => ViewDetail(context)">
+                                            <i class="bi bi-info-circle"></i>
+                                        </button>
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="table-btn" @onclick="PrintDateWise">Concession Summary</button>
+                    <button type="button" class="table-btn" @onclick="RouteDistanceSummary">Concession Given</button>
+                    <button type="button" class="table-btn" @onclick="MapConcessionWithStudent">Map Concession</button>
+                    <button type="button" class="table-btn">Concession Detail</button>
+                    <button type="button" class="table-btn"> Concession Records</button>
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print " Export="ConcessionExpotToExcel" />
+
+                </div>
+            </div>
+        </div>
+
+        @if (ShowPopupOnSearch)
+        {
+            <div class="custom-modal row m-0">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+                    <div class="modal-content clearfix main-popup ">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Search Student</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row gap-10-0">
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="concessionFilterDto.ClassCode" @bind-Value:after="GetSectionData">
+                                            <option value="" selected>--Select--</option>
+                                            @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                            {
+                                                <option Value="@cs.ClassCode">@cs.ClassName </option>
+                                            }
+                                        </InputSelect>
+                                        <label class="floating-label">Class</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="concessionFilterDto.SectionId">
+                                            <option value="" selected>--Select--</option>
+                                            @foreach (var cs in sectionModellist)
+                                            {
+                                                <option Value="@cs.SectionId">@cs.SectionName </option>
+                                            }
+                                        </InputSelect>
+                                        <label class="floating-label">Section</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <label for="status" class="floating-label">Concession Status</label>
+                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                            <InputRadioGroup @bind-Value="concessionFilterDto.ConStatus">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="@("3")" />
+                                                    <label class="form-label">
+                                                        All
+                                                    </label>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="@("1")" />
+                                                    <label class="form-label">
+                                                        Approved
+                                                    </label>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="@("0")" />
+                                                    <label class="form-label">
+                                                        Not Approved
+                                                    </label>
+                                                </div>
+                                            </InputRadioGroup>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                    <div class="form-box-group static-label">
+                                        <label for="status" class="floating-label">Student  Status</label>
+                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                            <InputRadioGroup @bind-Value="concessionFilterDto.StudentStatus">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="@("-1")" />
+                                                    <label class="form-label">
+                                                        All
+                                                    </label>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="@("1")" />
+                                                    <label class="form-label">
+                                                        Active
+                                                    </label>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="@("0")" />
+                                                    <label class="form-label">
+                                                        Deactive
+                                                    </label>
+                                                </div>
+                                            </InputRadioGroup>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentDataMapConcession" tabindex="0">
+                                <div class="visible content">Search</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+
+        @if (OpenConcession)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-@(isViewMode ? "9" : "12")">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Student Concession</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <div class="overflow-auto" style="height: calc(128vh - 280px); min-height: 400px;">
+                            <div class="modal-body">
+
+                                <div class="tab-content form-tab-count">
+                                    <div class="row gap-10-0 mt-3">
+
+                                        <div class="col-12 col-sm-6 col-md-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" @bind="selectedData.SessionName" readonly disabled />
+                                                <label class="floating-label">Session Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " type="text" @bind-Value="selectedData.StudentName" readonly disabled />
+                                                <label class="floating-label">Student Name</label>
+                                            </div>
+
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" @bind="selectedData.ClassName" readonly disabled />
+                                                <label class="floating-label">Class</label>
+                                            </div>
+
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" @bind="selectedData.SectionName" readonly disabled />
+                                                <label class="floating-label">Section</label>
+                                            </div>
+
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-3">
+                                            <div class="form-box-group">
+                                                <InputDate class="floating-input" placeholder=" " @bind-Value="@concessionDto.FromDate" readonly disabled />
+                                                <label class="floating-label">From Date</label>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-3">
+                                            <div class="form-box-group">
+                                                <InputDate class="floating-input" placeholder=" " @bind-Value="@concessionDto.ToDate" />
+                                                <label class="floating-label">To Date</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-2">
+                                            <div class="form-box-group">
+                                                <input type="search" class="floating-input" placeholder=" "  @bind="@studentNoFilter"  />
+                                                <label class="floating-label">Student No.</label>
+                                                @if (_showDropdown && filteredStudents.Any())
+                                                {
+                                                    <div class="dropdown-box">
+                                                        <div class="dropdown-header">
+                                                            <div class="col-4"><b>Student No</b></div>
+                                                            <div class="col-6"><b>Student Name</b></div>
+                                                            <div class="col-2"><b>Class</b></div>
+                                                        </div>
+                                                        @foreach (var item in filteredStudents)
+                                                        {
+                                                            <div class="dropdown-item search-item"
+                                                                 @onclick="() => SelectStudent(item)">
+
+                                                                <div class="col-4">@item.ControlNo</div>
+                                                                <div class="col-6">@item.StudentName</div>
+                                                                <div class="col-2">@item.ClassName</div>
+
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-1">
+                                            <div class="form-box-group static-label">
+                                                <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                                                    <div class="visible content">Search</div>
+                                                    <div class="hidden content">
+                                                        <i class="bi bi-search"></i>
+                                                    </div>
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+                                        @if (isViewMode == true)
+                                        {
+                                            <div class="col-12 col-sm-6 col-md-3">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="SelectedConType" disabled="@isViewMode">
+                                                        <option value="" selected>--Select--</option>
+                                                        @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                                                        {
+                                                            <option value="@data.Type">@data.Type </option>
+                                                        }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Concession Type</label>
+                                                </div>
+                                            </div>
+
+                                        }
+                                        else
+                                        {
+                                            <div class="col-12 col-sm-6 col-md-3">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="ConcessionId" @bind-Value:after="GetConcessionData">
+                                                        <option value="" selected>--Select--</option>
+                                                        @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                                                        {
+                                                            <option value="@data.ConcessionId" style="@(data.Type == "General" ? "color:red;" : "")">
+                                                                @data.Concession
+                                                                @(data.Type == "General" ? " (General)" : "")
+
+                                                            </option>
+                                                        }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Concession</label>
+                                                </div>
+                                            </div>
+
+                                        }
+
+                                    </div>
+                                    <div class="quick-main mt-4">
+                                        <div class="grid-box-with-btn">
+                                            @if (isViewMode == true)
+                                            {
+                                                <QuickGrid Items="@MappedconcessionQueryable" Class="table">
+                                                    <TemplateColumn Title="Concession" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @{
+                                                                var firstItem = context.FirstOrDefault();
+                                                            }
+
+                                                            @if (firstItem != null)
+                                                            {
+                                                                @(string.IsNullOrWhiteSpace(firstItem.ConcessionName) ? " " : firstItem.ConcessionName)
+                                                            }
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="Fee Head" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @foreach (var item in context)
+                                                            {
+                                                                <div class="m-0">
+                                                                    @(string.IsNullOrWhiteSpace(item.FeeHeadName) ? " " : item.FeeHeadName)
+                                                                </div>
+
+                                                                @if (item != context.Last())
+                                                                {
+                                                                    <hr class="my-1 row-tb" />
+                                                                }
+                                                            }
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="VALUE (% OR AMOUNT)" Class="text-right" Align="Align.Center">
+                                                        <ChildContent>
+                                                            @foreach (var item in context)
+                                                            {
+                                                                <div class="m-0 ">
+                                                                    @(item.ConcessionType == 0 ? $"{item.ConcessionValue:0}%" : $"{item.ConcessionValue}")
+                                                                </div>
+
+                                                                @if (item != context.Last())
+                                                                {
+                                                                    <hr class="my-1 row-tb" />
+                                                                }
+                                                            }
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="Approve Remarks" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @foreach (var item in context)
+                                                            {
+                                                                <div class="m-0 ">
+                                                                    @(string.IsNullOrWhiteSpace(item.ApproveRemarks) ? " " : item.ApproveRemarks)
+                                                                </div>
+
+                                                                @if (item != context.Last())
+                                                                {
+                                                                    <hr class="my-1 row-tb" />
+                                                                }
+                                                            }
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                                        <ChildContent>
+                                                            @{
+                                                                var firstItem = context.FirstOrDefault();
+                                                            }
+
+                                                            @if (firstItem != null)
+                                                            {
+                                                                @if (firstItem.Status == 0)
+                                                                {
+                                                                    <span class="badge rounded-pill bg-warning text-dark">Pending... </span>
+                                                                }
+                                                                else if (firstItem.Status == 1)
+                                                                {
+                                                                    <span class="badge rounded-pill bg-success"> Approved </span>
+                                                                }
+                                                                else if (firstItem.Status == 2)
+                                                                {
+                                                                    <span class="badge rounded-pill bg-danger"> Rejected</span>
+                                                                }
+                                                            }
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+
+                                                    
+                                                </QuickGrid>
+                                            }
+                                            else
+                                            {
+                                                <QuickGrid Items="@ConcessionmoduleQuery" Pagination="@MapConpagination" Class="table">
+                                                    <TemplateColumn Class="text-center" Title="" Align="Align.Left">
+                                                        <ChildContent>
+                                                            <div>
+                                                                <input type="checkbox" @bind="context.IsSelected" disabled="@IsGeneralSelected" @onclick:stopPropagation="true" />
+                                                            </div>
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+
+                                                    <TemplateColumn Title="FEE HEAD" Align="Align.Left">
+                                                        <ChildContent>
+                                                            @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+
+                                                    <TemplateColumn Title="TYPE(% OR AMOUNT)" Class="text-center" Align="Align.Center">
+                                                        <ChildContent>
+                                                            <div>
+                                                                <input type="checkbox" @bind="context.IsSelectedPersentage" disabled="@IsGeneralSelected" @onclick:stopPropagation="true" />
+                                                            </div>
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="VALUE (% OR AMOUNT)" Align="Align.Center">
+                                                        <ChildContent>
+
+
+                                                            <input type="text" value="@context.ConcessionApplicable" disabled="@IsGeneralSelected" @oninput="(e => OnValueChanged(e, context))" maxlength="@(context.IsSelectedPersentage ? 6 : 3)"
+                                                                   onkeypress="return /^[0-9]$/.test(event.key)" placeholder="@(context.IsSelectedPersentage ? "Enter Amount" : "Enter % (Max 100)")" class="grid-input w-100" />
+
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                </QuickGrid>
+                                            }
+                                        </div>
+                                        <div class="footer-pagination">
+                                            <div class="d-flex align-items-center">
+                                                <div class="welcome-text w-100">
+                                                    <Paginator State="@MapConpagination" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if (isViewMode == true && concessionRemarks.Status == "1")
+                                    {
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-7 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="@concessionDto.Remarks" autocomplete="off" />
+                                                <label class="floating-label">Remarks</label>
+                                            </div>
+                                        </div>
+
+                                    }
+                                    else if (isViewMode == true && concessionRemarks.Status == "2" || concessionRemarks.Status == "0")
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-7 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="@concessionDto.Remarks" autocomplete="off" />
+                                                <label class="floating-label">Remarks</label>
+                                            </div>
+                                        </div>
+                                        <strong>Note: If Type checkbox is checked then concession is in amount. If unchecked then concession is in percentage(%)</strong>
+                                    }
+                                    <div class="modal-footer">
+
+                                        <div class="form-group btn-gr">
+                                            @if (isViewMode == true && concessionRemarks.Status == "1")
+                                            {
+                                                <button type="button" class="ui fade op-1 animated button form-btn" @onclick="UpdateConcessionRemarks">
+
+                                                    <div class="visible content">Update</div>
+                                                    <div class="hidden content">
+                                                        <i class="fa fa-save"></i>
+                                                    </div>
+                                                </button>
+                                            }
+                                            else if (isViewMode == true && concessionRemarks.Status == "2" || concessionRemarks.Status == "0")
+                                            {
+
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SaveConcession">
+
+                                                    <div class="visible content">Add Concession</div>
+                                                    <div class="hidden content">
+                                                        <i class="fa fa-save"></i>
+                                                    </div>
+                                                </button>
+                                            }
+
+
+                                            <SaveUpdateButton ShowSaveButton="false" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                        </div>
+                                    </div>
+
+                                    
+                                </div>
+                            </div>
+
+                            @if (OpenConcessionDetails)
+                            {
+                                <div id="section4">
+                                    <div class="modal-body">
+                                        <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-4">
+                                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                <p class="total-text-with-bg bg-light-gray">
+                                                    Map Concession Details
+                                                </p>
+                                                <hr class="m-0 w-webkit text-light-gray op-1">
+                                            </div>
+                                        </div>
+
+                                        <div class="tab-content form-tab-count">
+                                            <div class="row mt-4">
+
+                                                <div class="col-12 p-1">
+                                                    <div class="card">
+                                                        <div class="card-body table-card p-0">
+                                                            <div class="quick-main">
+                                                                <div class="grid-box-with-btn">
+                                                                    <QuickGrid Items="@concessionQueryable" Class="table">
+
+
+                                                                        <TemplateColumn Title="Concession" Align="Align.Left">
+                                                                            <ChildContent>
+                                                                                @(string.IsNullOrWhiteSpace(context.ConcessionName) ? " " : context.ConcessionName)
+                                                                            </ChildContent>
+                                                                        </TemplateColumn>
+                                                                        <TemplateColumn Title="Fee Head" Align="Align.Left">
+                                                                            <ChildContent>
+                                                                                @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                                            </ChildContent>
+                                                                        </TemplateColumn>
+                                                                        <TemplateColumn Class="text-right" Title="Type(% Or Amount)" Align="Align.Center">
+                                                                            <ChildContent>
+                                                                                <span>
+                                                                                    @(!context.IsAmount ? $"₹ {context.Amount}" : $"{context.Amount} %")
+                                                                                </span>
+
+                                                                            </ChildContent>
+                                                                        </TemplateColumn>
+                                                                        <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.FromDate)" Class="text-center" Title="From Date" Align="Align.Center">
+                                                                        </PropertyColumn>
+                                                                        <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.ToDate)" Class="text-center" Title="To Date" Align="Align.Center">
+                                                                        </PropertyColumn>
+                                                                        <TemplateColumn Title="Type" Align="Align.Left">
+                                                                            <ChildContent>
+                                                                                @(string.IsNullOrWhiteSpace(context.ConcType) ? " " : context.ConcType)
+                                                                            </ChildContent>
+                                                                        </TemplateColumn>
+                                                                        <TemplateColumn Title="Action" Align="Align.Center">
+                                                                            <ChildContent>
+
+                                                                                <div class="action-btn-group">
+                                                                                    @if (context.ConcType != "General")
+                                                                                    {
+                                                                                        <button class="btn-icon inactive-btn" @onclick='@(() => UnMapConcession(context.ConcessionId))'>
+                                                                                            <i class="bi bi-x-lg"></i>
+                                                                                        </button>
+                                                                                    }
+                                                                                </div>
+
+                                                                            </ChildContent>
+                                                                        </TemplateColumn>
+                                                                    </QuickGrid>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 p-1">
+                                                    <div class="page-heading d-flex align-items-center justify-content-end">
+
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="form-box">
+                                                                <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSaveConcessionWithStudent">
+                                                                    <div class="visible content">Submit</div>
+                                                                    <div class="hidden content">
+                                                                        <i class="fa fa-save"></i>
+                                                                    </div>
+                                                                </button>
+
+                                                            </div>
+                                                            <div class="form-box">
+                                                                <button type="button" class="ui fade op-1 animated button btn-cancle"
+                                                                        @onclick="OnClickReset">
+                                                                    <div class="visible content">Reset</div>
+                                                                    <div class="hidden content">
+                                                                        <i class="fa fa-close"></i>
+                                                                    </div>
+                                                                </button>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        }
+
+    
+        @if (OpenApproveDetails)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-10 col-md-9 col-lg-8">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Concession Details</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <div class="modal-body">
+
+                            <div class="tab-content form-tab-count">
+                                <div class="row gap-15-0 m-0 mt-3">
+                                    <div class="col-12 col-sm-6 col-md-4 px-1">
+                                        <div class="form-box-group static-label">
+                                            <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                <p class="form-label">Student No : </p>
+                                                <p class="form-label">@studentNoFilter</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 px-1">
+                                        <div class="form-box-group static-label">
+                                            <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                <p class="form-label">Student Name : </p>
+                                                <p class="form-label">@StudentName</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-12 col-md-4 px-1">
+                                        <div class="form-box-group static-label">
+                                            <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                <p class="form-label">Class Section : </p>
+                                                <p class="form-label">@ClassSection</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-3">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg bg-light-gray">
+                                            Map Concession Approval
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+                                <div class="quick-main mt-3">
+                                    <div class="grid-box-with-btn">
+
+                                        <QuickGrid Items="@MappedconcessionQueryable" Class="table">
+                                            <TemplateColumn Title="Concession" Align="Align.Left">
+                                                <ChildContent>
+                                                    @{
+                                                        var firstItem = context.FirstOrDefault();
+                                                    }
+
+                                                    @if (firstItem != null)
+                                                    {
+                                                        @(string.IsNullOrWhiteSpace(firstItem.ConcessionName) ? " " : firstItem.ConcessionName)
+                                                    }
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="Fee Head" Align="Align.Left">
+                                                <ChildContent>
+                                                    @foreach (var item in context)
+                                                    {
+                                                        <div class="m-0">
+                                                            @(string.IsNullOrWhiteSpace(item.FeeHeadName) ? " " : item.FeeHeadName)
+                                                        </div>
+
+                                                        @if (item != context.Last())
+                                                        {
+                                                            <hr class="my-1 row-tb" />
+                                                        }
+                                                    }
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="VALUE (% OR AMOUNT)" Class="text-right" Align="Align.Center">
+                                                <ChildContent>
+                                                    @foreach (var item in context)
+                                                    {
+                                                        <div class="m-0 ">
+                                                            @(item.ConcessionType == 0 ? $"{item.ConcessionValue:0}%" : $"{item.ConcessionValue}")
+                                                        </div>
+
+                                                        @if (item != context.Last())
+                                                        {
+                                                            <hr class="my-1 row-tb" />
+                                                        }
+                                                    }
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="Status" Align="Align.Center">
+                                                <ChildContent>
+                                                    @{
+                                                        var firstItem = context.FirstOrDefault();
+                                                    }
+
+                                                    @if (firstItem != null)
+                                                    {
+                                                        @if (firstItem.Status == 0)
+                                                        {
+                                                            <span class="badge rounded-pill bg-warning text-dark">Pending... </span>
+                                                        }
+                                                        else if (firstItem.Status == 1)
+                                                        {
+                                                            <span class="badge rounded-pill bg-success"> Approved </span>
+                                                        }
+                                                        else if (firstItem.Status == 2)
+                                                        {
+                                                            <span class="badge rounded-pill bg-danger"> Rejected</span>
+                                                        }
+                                                    }
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="Action" Align="Align.Center">
+                                                <ChildContent>
+
+                                                    @{
+                                                        var firstItem = context.FirstOrDefault();
+                                                    }
+
+                                                    @if (firstItem != null)
+                                                    {
+                                                        <div class="action-btn-group">
+
+                                                            @if (firstItem.Status == 0)
+                                                            {
+                                                                <button class="btn-icon check-btn"
+                                                                        @onclick="() => CheckAndApprove(firstItem)">
+                                                                    Approve
+                                                                </button>
+
+                                                                <button class="btn-icon inactive-btn"
+                                                                        @onclick="() => UnMapConData(firstItem)">
+                                                                    Reject
+                                                                </button>
+                                                            }
+                                                            else if (firstItem.Status == 1)
+                                                            {
+                                                                <button class="btn-icon inactive-btn"
+                                                                        @onclick="() => UnMapConData(firstItem)">
+                                                                    Reject
+                                                                </button>
+                                                            }
+                                                            else if (firstItem.Status == 2)
+                                                            {
+                                                                <button class="btn-icon inactive-btn" disabled>
+                                                                    Rejected
+                                                                </button>
+                                                            }
+
+                                                        </div>
+                                                    }
+                                                </ChildContent>
+                                            </TemplateColumn>
+
+                                        </QuickGrid>
+
+                                    </div>
+
+                                </div>
+                                <div class="col-12 ">
+                                    <div class="form-box-group">
+                                        <InputText class="floating-input" placeholder=" " @bind-Value="@concessionManage.ApproveRemarks" autocomplete="off" required />
+                                        <label class="floating-label">Remarks <span class="required">*</span></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        }
+
+
+    </div>
+</section>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+    private bool _showDropdown = true;
+    bool isViewMode = false;
+    private CustomAlert customAlert;
+    private bool ShowPopup;
+
+    private bool ShowPopupOnSearch;
+    private bool OpenConcessionDetails;
+    private bool OpenApproveDetails;
+    private bool OpenConcession;
+    private string? roleId;
+    PaginationState pagination = new() { ItemsPerPage = 30 };
+    PaginationState MapConpagination = new() { ItemsPerPage = 10 };
+    private string sessionvalue;
+    private string? branchcode;
+    private string? groupcode;
+    private string? nameFilter;
+    private bool isAllSelected = false;
+    private string UserName;
+    private bool IsLoading = false;
+    private string studentNoFilter = "";
+    private string StudentName = "";
+    private string ClassSection = "";
+    private string SelectedConType = "";
+    private string olddesignation = "";
+    private string currentUrl = "";
+    private long SelectStudentId;
+    private long CurrentSession;
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionModellist = new();
+    private List<StudentWithConcessionDto> studentWithConcessionlist = new();
+    private List<StudentWithConcessionDto> Searchstudentlist = new();
+    private List<StudentMappedConcessionDto> mappedConcessionlist = new();
+    private StudentMappedConcessionDto mappedConcessionDto = new();
+    private StudentWithConcessionDto selectedData = new();
+    private ConcessionManageRequest concessionManage = new();
+    private UnMapConcessionRequest unMapConcession = new();
+    private StudentConcessionDto concessionDto = new();
+    private List<SessionModel> sessionlist = new();
+    private SearchAnyRequestModel searchAny = new();
+    private StudentConcessionFilterDto concessionFilterDto = new();
+    private StudentConcessionRemarks concessionRemarks = new();
+    private List<ConcessionModel> concessionlist = new();
+    private List<CommonDomain> feeHeadlist = new();
+    public string SelectedConcessionIds { get; set; } = "";
+    public int ConcessionId { get; set; } = 0;
+    public int SelectConcessionId { get; set; } = 0;
+    public class ConcessionTempModel
+    {
+        public string? ConcessionId { get; set; }
+        public string? ConcessionName { get; set; }
+        public string ConcType { get; set; }
+        public string? FeeHeadId { get; set; }
+        public int ConcStudId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public bool IsAmount { get; set; }
+        public decimal Amount { get; set; }
+        public bool IsChecked { get; set; }
+    }
+    List<ConcessionTempModel> concessionTempList = new();
+    IQueryable<ConcessionTempModel> concessionQueryable => concessionTempList.AsQueryable();
+
+    private IQueryable<IGrouping<int, StudentMappedConcessionDto>> MappedconcessionQueryable =>
+        mappedConcessionlist
+            .GroupBy(x => x.ConcStudId)
+            .AsQueryable();
+    // IQueryable<IGrouping<string, StudentMappedConcessionDto>> MappedconcessionQueryable=> mappedConcessionlist.GroupBy(x => x.ConcessionName + "_" + x.ConcStudId) .AsQueryable();
+    private bool IsGeneralSelected => concessionlist.FirstOrDefault(x => x.ConcessionId == ConcessionId)?.Type?.Equals("General", StringComparison.OrdinalIgnoreCase) == true;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private async Task CheckAndApprove(StudentMappedConcessionDto firstItem)
+    {
+
+        int approvedCount = MappedconcessionQueryable.SelectMany(x => x).Count(x => x.Status == 1);
+        if (approvedCount > 2)
+        {
+            OpenApproveDetails = false;
+            await Alert.ShowWarning("Only two concessions can be assigned to a student.");
+            OpenApproveDetails = true;
+            return;
+        }
+
+        await ApproveData(firstItem);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("importantLink");
+            sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    protected async Task LoadData()
+    {
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        concessionlist = await httpService.Get<List<ConcessionModel>>("Concession/GetListConcession") ?? new();
+
+
+    }
+    // private void OnValueChanged(ChangeEventArgs e, CommonDomain context)
+    // {
+    //     if (decimal.TryParse(e.Value?.ToString(), out var value))
+    //     {
+
+    //         if (!context.IsSelectedPersentage)
+    //         {
+    //             if (value > 100)
+    //                 value = 0;
+    //         }
+    //         context.ConcessionApplicable = value;
+    //     }
+    //     else
+    //     {
+    //         context.ConcessionApplicable = 0;
+    //     }
+    // }
+    private async Task OnValueChanged(ChangeEventArgs e, CommonDomain context)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), out decimal value))
+            return;
+        if (context.IsSelectedPersentage)
+        {
+            if (value > context.FeeHeadAmount)
+            {
+                await customAlert.ShowCustomAlert($"Amount cannot exceed Fee Head Amount ({context.FeeHeadAmount})", false);
+                context.ConcessionApplicable = 0;
+                return;
+            }
+        }
+        else
+        {
+            if (value > 100)
+            {
+                value = 0;
+            }
+        }
+
+        context.ConcessionApplicable = value;
+    }
+    private async Task OnInputChange(ChangeEventArgs e)
+    {
+        await SearchStudentData();
+        studentNoFilter = e.Value?.ToString();
+
+        _showDropdown = !string.IsNullOrWhiteSpace(studentNoFilter);
+    }
+    protected IQueryable<CommonDomain> ConcessionmoduleQuery
+    {
+        get
+        {
+            var result = feeHeadlist.AsQueryable();
+            return result;
+        }
+    }
+    protected IQueryable<StudentWithConcessionDto> filteredStudents
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(studentNoFilter))
+                return Enumerable.Empty<StudentWithConcessionDto>().AsQueryable();
+
+            return Searchstudentlist
+                .Where(x =>
+                    (x.StudentName?.Contains(studentNoFilter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (x.ControlNo?.Contains(studentNoFilter, StringComparison.OrdinalIgnoreCase) ?? false)
+                )
+                .AsQueryable();
+        }
+    }
+    protected IQueryable<StudentWithConcessionDto> moduleQuery
+    {
+        get
+        {
+            var result = studentWithConcessionlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    private async Task MapConcessionWithStudent()
+    {
+        concessionRemarks.Status = "";
+        isViewMode = false;
+        OpenConcession = true;
+        StateHasChanged();
+
+    }
+    private async Task ViewDetail(StudentWithConcessionDto item)
+    {
+
+        isViewMode = true;
+        _showDropdown = false;
+        concessionRemarks.Status = item.Status.ToString();
+        concessionManage.StudentId = item.StudentId;
+        concessionManage.SessionId = item.SessionId;
+        await GetMappedStudent();
+        concessionRemarks.StudentId = item.StudentId;
+        SelectedConType = item.ConcessionType;
+        concessionRemarks.ConcStudId = item.ConcStudId;
+        selectedData.SessionName = item.SessionName;
+        studentNoFilter = item.ControlNo;
+        selectedData.StudentName = item.StudentName;
+        selectedData.ClassName = item.ClassSection;
+        concessionDto.Remarks = item.Remarks;
+        selectedData.SectionName = item.SectionName;
+        ConcessionId = item.ConcessionId;
+        OpenConcession = true;
+
+    }
+    private async Task UnMapConData(StudentMappedConcessionDto item)
+    {
+
+       
+        if (string.IsNullOrEmpty(concessionManage.ApproveRemarks))
+        {
+            await customAlert.ShowCustomAlert("Please enter  remarks.", false);
+            StateHasChanged();
+            return;
+
+        }
+        OpenApproveDetails = false;
+        var submit = await Alert.ShowConfirm("Are you sure, you want to unmap this concession?");
+        if (!submit)
+        {
+            OpenApproveDetails = true;
+            StateHasChanged();
+            return;
+        }
+
+
+        unMapConcession.GroupCode = groupcode;
+        unMapConcession.BranchCode = branchcode;
+        unMapConcession.CreatedBy = UserName;
+        unMapConcession.ApproveBy = UserName;
+        unMapConcession.ConcessionId = item.ConcessionId;
+        unMapConcession.SessionId = item.SessionId;
+        unMapConcession.StudentId = item.StudentId;
+        unMapConcession.ConcStudId = item.ConcStudId;
+        unMapConcession.ApproveRemarks = concessionManage.ApproveRemarks;
+        string ApiUri1 = "Concession/UnMapConcession";
+        var apiResponse = await httpService.Post<ApiResponse<object>>(ApiUri1, unMapConcession);
+        if (apiResponse.Success)
+        {
+            if (apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("concession unmap successfully.");
+                await GetMappedStudent();
+                OpenApproveDetails = true;
+                unMapConcession = new();
+                concessionManage.ApproveRemarks = "";
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                OpenApproveDetails = false;
+            }
+            StateHasChanged();
+        }
+        else
+        {
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            OpenApproveDetails = false;
+        }
+    }
+    private async Task ApproveData(StudentMappedConcessionDto item)
+    {
+
+        if (string.IsNullOrEmpty(concessionManage.ApproveRemarks))
+        {
+            await customAlert.ShowCustomAlert("Please enter  remarks.", false);
+            StateHasChanged();
+            OpenApproveDetails = true;
+            return;
+
+        }
+        OpenApproveDetails = false;
+        var submit = await Alert.ShowConfirm("Are you sure, you want to approve this concession?");
+        if (!submit)
+        {
+            OpenApproveDetails = true;
+            StateHasChanged();
+            return;
+        }
+        await JS.InvokeVoidAsync("showProcessingAlert");
+        concessionManage.GroupCode = groupcode;
+        concessionManage.BranchCode = branchcode;
+        concessionManage.CreatedBy = UserName;
+        concessionManage.ApproveBy = UserName;
+        concessionManage.ConcStudId = item.ConcStudId;
+        concessionManage.SessionId = item.SessionId;
+        concessionManage.StudentId = item.StudentId;
+        string ApiUri1 = "Concession/manage-concession-approval";
+        var apiResponse = await httpService.Post<ApiResponse<object>>(ApiUri1, concessionManage);
+        await Task.Delay(2000);
+        await JS.InvokeVoidAsync("closeSwal");
+        if (apiResponse.Success)
+        {
+            if (apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("concession approved successfully.");
+                await GetMappedStudent();
+                concessionManage.ApproveRemarks = "";
+                OpenApproveDetails = true;
+                //concessionManage = new();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                OpenApproveDetails = false;
+            }
+            StateHasChanged();
+        }
+    }
+    private async Task GetMappedStudent()
+    {
+        try
+        {
+            await SearchStudentDataMapConcession();
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = concessionManage.SessionId;
+            searchAny.RequestId = Convert.ToInt32(concessionManage.StudentId);
+            string ApiUri1 = "Concession/GetStudentMappedConcession";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentMappedConcessionDto>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                mappedConcessionlist = apiResponse.Data ?? new();
+
+            }
+            //SelectConcessionId = mappedConcessionlist.Where(x => x.Status == 1) .Select(x => x.ConcessionId).FirstOrDefault();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task OpenApproveData(StudentWithConcessionDto item)
+    {
+        try
+        {
+            concessionManage = new();
+            OpenApproveDetails = true;
+            studentNoFilter = item.ControlNo;
+            StudentName = item.StudentName;
+            ClassSection = item.ClassSection;
+            concessionManage.SessionId = item.SessionId;
+            concessionManage.StudentId = item.StudentId;
+            await GetMappedStudent();
+
+
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task UnMapConcession(string concessionId)
+    {
+        var item = concessionTempList.FirstOrDefault(x => x.ConcessionId == concessionId);
+
+        if (item != null)
+        {
+            concessionTempList.Remove(item);
+            return;
+        }
+    }
+    private async Task OnClickReset()
+    {
+        concessionTempList.Clear();
+        StateHasChanged();
+    }
+
+    private async void GetConcessionData()
+    {
+        if (ConcessionId == 0)
+        {
+            feeHeadlist = new List<CommonDomain>();
+            return;
+        }
+        isViewMode = false;
+        string ApiUri1 = $"Registration/FeeHeadConcession?groupCode={groupcode}&branchCode={branchcode}&sessionId={CurrentSession}&concessionId={ConcessionId}&isMappedOnly={0}";
+        feeHeadlist = await httpService.Get<List<CommonDomain>>(ApiUri1) ?? new();
+        foreach (var item in feeHeadlist)
+        {
+            int.TryParse(item.ConcessionType, out int type);
+            bool hasValue = item.ConcessionApplicable > 0;
+            item.IsSelectedPersentage = (hasValue && type == 1);
+            item.IsSelected = hasValue;
+        }
+        StateHasChanged();
+
+    }
+    private async Task SaveConcession()
+    {
+        if (selectedData.StudentId == 0 || selectedData.SessionId == 0)
+        {
+            await customAlert.ShowCustomAlert("Please search and select a student before proceeding.", false);
+            return;
+        }
+        if (string.IsNullOrEmpty(concessionDto.Remarks))
+        {
+            await customAlert.ShowCustomAlert("Please enter remarks.", false);
+            return;
+        }
+        var names = concessionlist.Where(x => x.ConcessionId == ConcessionId).Select(x => x.Concession).FirstOrDefault();
+        var SelectType = concessionlist.Where(x => x.ConcessionId == ConcessionId).Select(x => x.Type).FirstOrDefault();
+        var selectedRows = ConcessionmoduleQuery.Where(x => x.IsSelected).ToList();
+        if (selectedRows.Count == 0)
+        {
+            await customAlert.ShowCustomAlert("Please select record  first !", false);
+            return;
+        }
+        else if (selectedRows[0].ConcessionApplicable == null)
+        {
+            await customAlert.ShowCustomAlert("Please enter amount or percentage !", false);
+            return;
+        }
+
+        foreach (var row in selectedRows)
+        {
+            var temp = new ConcessionTempModel
+            {
+                ConcType = SelectType,
+                ConcessionName = names,
+                FeeHeadId = row.FeeHeadId,
+                FeeHeadName = row.FeeHeadName,
+                FromDate = row.FromDate,
+                ToDate = row.ToDate,
+                IsAmount = !row.IsSelectedPersentage,
+                Amount = row.ConcessionApplicable ?? 0,
+                ConcessionId = ConcessionId.ToString()
+            };
+
+            concessionTempList.Add(temp);
+
+        }
+
+        ConcessionId = 0;
+        SelectedConcessionIds = "";
+        OpenConcessionDetails = true;
+
+        try
+        {
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("scrollToElement", "section4");
+            StateHasChanged();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        feeHeadlist.Clear();
+        OpenConcession = true;
+        StateHasChanged();
+    }
+    private async Task UpdateConcessionRemarks()
+    {
+        try
+        {
+
+            OpenConcession = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to update remarks?");
+            if (!submit)
+            {
+                OpenConcession = true;
+                StateHasChanged();
+                return;
+            }
+            concessionRemarks.GroupCode = groupcode;
+            concessionRemarks.BranchCode = branchcode;
+            concessionRemarks.CreatedBy = UserName;
+            concessionRemarks.Remarks = concessionDto.Remarks;
+            string ApiUri1 = "Concession/UpdateStudentConcessionRemark";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(ApiUri1, concessionRemarks);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 1)
+                {
+                    OpenConcession = false;
+                    await Alert.ShowSuccess($"Student remark {Localizer["Updated"]}");
+
+                }
+                else if (apiResponse.Code == 2 && apiResponse.Success)
+                {
+                    await Alert.ShowSuccess($"Student concession {Localizer["Updated"]}");
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+                studentNoFilter = "";
+                selectedData = new();
+                concessionDto = new();
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task OnSaveConcessionWithStudent()
+    {
+        try
+        {
+
+            // var selectedList = concessionTempList.Where(x => x.IsChecked).ToList();
+            // if (!selectedList.Any())
+            // {
+            //     await customAlert.ShowCustomAlert("Please select at least one concession.", false);
+            //     return;
+            // }
+
+            OpenConcession = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to map selected concession?");
+            if (!submit)
+            {
+                OpenConcession = true;
+                StateHasChanged();
+                return;
+            }
+            concessionDto.GroupCode = groupcode;
+            concessionDto.BranchCode = branchcode;
+            concessionDto.SessionId = selectedData.SessionId;
+            concessionDto.StudentId = selectedData.StudentId;
+            concessionDto.ClassCode = selectedData.ClassCode;
+            concessionDto.CreatedBy = UserName;
+            concessionDto.ConcessionIds = concessionTempList.Select(x => Convert.ToInt32(x.ConcessionId)).Distinct().ToList();
+            concessionDto.FeeHeadList = concessionTempList.Select(x => new FeeHeadDto { FeeHeadId = Convert.ToInt32(x.FeeHeadId), ConcStudId = x.ConcStudId, ConcessionId = Convert.ToInt32(x.ConcessionId), ConcessionType = !x.IsAmount ? 1 : 0, ConcessionValue = x.Amount }).ToList();
+            string ApiUri1 = "Concession/AddStudentConcession";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(ApiUri1, concessionDto);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 1)
+                {
+                    OpenConcession = false;
+                    await Alert.ShowSuccess("Concession mapped successfully.");
+                    studentNoFilter = "";
+                    selectedData = new();
+                    concessionDto = new();
+                    concessionTempList.Clear();
+                    OpenConcessionDetails = false;
+
+                }
+                else if (apiResponse.Code == -2 && apiResponse.Success)
+                {
+                    await Alert.ShowWarning("Concession limit exceeded. Maximum allowed is 100%.");
+                    OpenConcessionDetails = true;
+                    return;
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                    studentNoFilter = "";
+                    selectedData = new();
+                    concessionDto = new();
+                    concessionTempList.Clear();
+                    OpenConcessionDetails = false;
+                }
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task ConcessionExpotToExcel()
+    {
+        try
+        {
+            await SearchStudentDataMapConcession();
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GetStudentConcessionExcelData", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
+                //await JS.InvokeVoidAsync("openExcelDirect", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task GetSectionData()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = concessionFilterDto.ClassCode;
+            string ApiUri1 = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                sectionModellist = apiResponse.Data ?? new();
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private async Task SearchStudentDataMapConcession()
+    {
+        try
+        {
+            IsLoading = true;
+            concessionFilterDto.GroupCode = groupcode;
+            concessionFilterDto.BranchCode = branchcode;
+            concessionFilterDto.SessionId = CurrentSession;
+            string ApiUri1 = "Concession/GetStudentMapConcession";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentWithConcessionDto>>>(ApiUri1, concessionFilterDto) ?? new();
+            if (apiResponse.Success)
+            {
+                studentWithConcessionlist = apiResponse.Data ?? new();
+            }
+            IsLoading = false;
+            ShowPopupOnSearch = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private async Task SearchStudentData()
+    {
+        try
+        {
+            _showDropdown = true;
+            IsLoading = true;
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            searchAny.RequestName = studentNoFilter;
+            //searchAny.RequestName2 = studentNoFilter;
+            string ApiUri1 = "Concession/GetStudentData";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentWithConcessionDto>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                Searchstudentlist = apiResponse.Data ?? new();
+            }
+            IsLoading = false;
+            ShowPopupOnSearch = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private void SelectStudent(StudentWithConcessionDto item)
+    {
+        studentNoFilter = item.ControlNo;
+
+        _showDropdown = false;
+
+        selectedData = new StudentWithConcessionDto
+        {
+            SessionName = item.SessionName,
+            SessionId = item.SessionId,
+            StudentId = item.StudentId,
+            StudentName = item.StudentName,
+            ClassName = item.ClassName,
+            ClassCode = item.ClassCode,
+            SectionName = item.SectionName,
+            ControlNo = item.ControlNo
+        };
+    }
+    private void OpenSearch()
+    {
+        ShowPopupOnSearch = true;
+        StateHasChanged();
+
+    }
+    private void ClosePopup()
+    {
+        concessionRemarks.Status = "";
+        ShowPopupOnSearch = false;
+        OpenConcession = false;
+        selectedData = new();
+        isViewMode = false;
+        concessionDto = new();
+        concessionTempList.Clear();
+        OpenConcessionDetails = false;
+        studentNoFilter = "";
+        OpenApproveDetails = false;
+        feeHeadlist.Clear();
+        ConcessionId = 0;
+    }
+
+    void PrintDateWise() { }
+    void RouteDistanceSummary() { }
+
+}
+

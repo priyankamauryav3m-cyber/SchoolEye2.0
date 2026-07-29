@@ -1,0 +1,361 @@
+﻿@page "/feeheadconcession"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        width: 0px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .grid-input {
+        width: 100%;
+        box-sizing: border-box;
+        display: block;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Concession </p>
+                <div class="d-flex gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+
+                        <InputSelect @bind-Value="searchAnyRequest.RequestId" @bind-Value:after="OnChangeData" class="form-input">
+                            <option value="0">Select Concession</option>
+                            @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.ConcessionId">@data.Concession </option>
+                            }
+
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 ">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@ConcessionmoduleQuery" Class="table" Pagination="@pagination">
+
+                                <TemplateColumn Title="" Class="text-center" Align="Align.Center">
+
+                                    <ChildContent>
+                                        <div>
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="FEE HEAD" Sortable="true" SortBy="GridSort<CommonDomain>.ByAscending(x=>x.FeeHeadName)" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="text" @bind="nameFilter" @bind:event="oninput" placeholder="Fee Head......" />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="TYPE(% OR AMOUNT)" Class="text-center" Sortable="true" Align="Align.Center">
+                                    <ChildContent>
+                                        <div>
+                                            <input type="checkbox" @bind="context.IsSelectedPersentage" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="VALUE (% OR AMOUNT)" Sortable="true" Align="Align.Center">
+                                    <ChildContent>
+
+                                        <input type="text" value="@context.ConcessionApplicable" @oninput="(e => OnValueChanged(e, context))" maxlength="@(context.IsSelectedPersentage ? 6 : 3)"
+                                               onkeypress="return /^[0-9]$/.test(event.key)" placeholder="@(context.IsSelectedPersentage ? "Enter Amount" : "Enter % (Max 100)")" class="grid-input" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSave">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content">
+                                <i class="fa fa-save"></i>
+                            </div>
+                        </button>
+
+                    </div>
+
+                
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+@code {
+    private ConcessionModel concessionModel = new();
+    private ConcessionFeehead Feeheadconcesssion = new();
+    private CommonDomain commonDomain = new();
+
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private string olddesignation = "";
+    private List<ConcessionModel> concessionlist = new();
+    private List<CommonDomain> feeHeadlist = new();
+    private List<SessionModel> sessionlist = new();
+    private string nameFilter = string.Empty;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string statusFilter = "1";
+    private bool IsLoading = true;
+    private bool ShowPopup;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+    private string? currentUrl;
+    private long CurrentSession;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private void OnChangeData()
+    {
+        if (searchAnyRequest.RequestId == 0)
+        {
+            feeHeadlist = new List<CommonDomain>();
+            return;
+        }
+    }
+    private async Task OnValueChanged(ChangeEventArgs e, CommonDomain context)
+    {
+        // if (decimal.TryParse(e.Value?.ToString(), out var value))
+        // {
+
+        //     if (!context.IsSelectedPersentage)
+        //     {
+        //         if (value > 100)
+        //             value = 0;
+        //     }
+        //     context.ConcessionApplicable = value;
+        // }
+        // else
+        // {
+        //     context.ConcessionApplicable = 0;
+        // }
+        if (!decimal.TryParse(e.Value?.ToString(), out decimal value))
+            return;
+        if (context.IsSelectedPersentage)
+        {
+            if (value > context.FeeHeadAmount)
+            {
+                await Alert.ShowWarning($"Amount cannot exceed Fee Head Amount ({context.FeeHeadAmount})");
+                context.ConcessionApplicable = 0;
+                return;
+            }
+        }
+        else
+        {
+            if (value > 100)
+            {
+                value = 0;
+            }
+        }
+
+        context.ConcessionApplicable = value;
+    }
+    private void AddConcessionModel()
+    {
+        concessionModel = new();
+        ShowPopup = true;
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        concessionModel = new();
+        StateHasChanged();
+    }
+    protected IQueryable<CommonDomain> ConcessionmoduleQuery
+    {
+        get
+        {
+            var result = feeHeadlist.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(nameFilter))
+            {
+                result = result.Where(x => x.FeeHeadName.Contains(nameFilter, StringComparison.OrdinalIgnoreCase));
+            }
+            return result;
+        }
+    }
+    private async Task OnSave()
+    {
+        try
+        {
+            var selectedList = ConcessionmoduleQuery
+            .Where(x => x.IsSelected)
+            .Select(x => new ConcessionFeehead
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                ConcessionId = searchAnyRequest.RequestId,
+
+                FeeHeadId = Convert.ToInt32(x.FeeHeadId),
+
+                ConcessionType = x.IsSelectedPersentage ? 1 : 0,
+
+                ConcessionValue = x.ConcessionApplicable.Value,
+
+                CreatedBy = UserName
+            })
+            .ToList();
+            string apiUrl = "Concession/add-or-update-feehead-concession";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, selectedList);
+            if (apiResponse.Code == 1 && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Fee head concession mapped successfully.");
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchStudentData()
+    {
+        try
+        {
+            if (searchAnyRequest.RequestId == 0)
+            {
+                //feeHeadlist = new List<CommonDomain>();
+                await Alert.ShowWarning("Please select a concession. ");
+                return;
+            }
+            IsLoading = true;
+            string ApiUri1 = $"Registration/FeeHeadConcession?groupCode={groupcode}&branchCode={branchcode}&sessionId={CurrentSession}&concessionId={searchAnyRequest.RequestId}&isMappedOnly={0}";
+            feeHeadlist = await httpService.Get<List<CommonDomain>>(ApiUri1) ?? new();
+            foreach (var item in feeHeadlist)
+            {
+                int.TryParse(item.ConcessionType, out int type);
+                bool hasValue = item.ConcessionApplicable > 0;
+                item.IsSelectedPersentage = (hasValue && type == 1);
+                item.IsSelected = hasValue;
+            }
+            IsLoading = false;
+
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        IsLoading = true;
+        string ApiUri = "Concession/GetListConcession";
+        concessionlist = await httpService.Get<List<ConcessionModel>>(ApiUri) ?? new();
+        IsLoading = false;
+    }
+
+
+}
+
+
+
+

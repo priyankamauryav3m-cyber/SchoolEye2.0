@@ -1,0 +1,456 @@
+﻿@page "/verifyotppage"
+@layout LoginLayout
+@using ServerWebUI.Components.Layout
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IConfiguration Configuration
+@inject Shared.IHttpService httpService
+@using Microsoft.AspNetCore.WebUtilities;
+@using System.Security.Claims
+@using System.Text.Json
+@inject HttpClient httpClient
+@using DomainModel.User
+@using MyApp.Common
+@inject SweetAlertService Alert
+@using System.Timers;
+
+@inject IHttpClientFactory HttpClientFactory
+
+<section class="verification-section">
+    <div class="otp-card-container">
+        <div class="left-panel">
+            <div class="illustration-wrapper">
+                <img src="https://img.freepik.com/free-vector/two-factor-authentication-concept-illustration_114360-5488.jpg"
+                     alt="Two Step Security 3D Illustration"
+                     class="illustration-img" />
+            </div>
+        </div>
+        <div class="right-panel">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    @if (IsOtpSent)
+                    {
+                        <a @onclick="BackToSelectMode" class="text-decoration-none text-muted" style="cursor: pointer; font-size: 13px; font-weight: 600;">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Change Option
+                        </a>
+                    }
+                    else
+                    {
+                        <div></div> <!-- Spacer -->
+                    }
+
+                    <div class="header-tag">
+                        <i class="fa-solid fa-shield-halved"></i> Secure Verification
+                    </div>
+                </div>
+
+                <div class="icon-badge">
+                    🔒
+                </div>
+                <div class="title-area">
+                    <h2>Two-Step Verification</h2>
+
+                    @if (!IsOtpSent)
+                    {
+                        <p>Select where you would like to receive your 6-digit verification code:</p>
+                    }
+                    else
+                    {
+                        <p>
+                            Enter the 6-digit code sent to<br />
+                            <strong class="text-primary">
+                                @(SelectedType == "Email" ? MaskEmail(Email) : MaskMobile(Mobile))
+                            </strong>
+                        </p>
+                    }
+                </div>
+
+                @if (!IsOtpSent)
+                {
+                    <EditForm Model="@sendOtpRequest" OnSubmit="SendOtpEmailWithPhone">
+                        <div class="options-group">
+                            <InputRadioGroup TValue="string" @bind-Value="SelectedType">
+
+                                <div class="option-card">
+                                    <InputRadio TValue="string" Value='"Email"' id="radio-email" class="form-check-input" />
+                                    <label class="option-label" for="radio-email">
+                                        <i class="fa-solid fa-envelope me-2 text-primary"></i>
+                                        Email: @MaskEmail(Email)
+                                    </label>
+                                </div>
+
+                                <div class="option-card">
+                                    <InputRadio TValue="string" Value='"Mobile"' id="radio-mobile" class="form-check-input" />
+                                    <label class="option-label" for="radio-mobile">
+                                        <i class="fa-solid fa-mobile-screen-button me-2 text-primary"></i>
+                                        Mobile: @MaskMobile(Mobile)
+                                    </label>
+                                </div>
+
+                            </InputRadioGroup>
+                        </div>
+
+                        <button class="btn-main" type="submit">
+                            <span>Send OTP</span> <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </EditForm>
+                }
+                else
+                {
+                   
+                    <div class="mb-3">
+                        <input class="form-control otp-input-single"
+                               value="@otpdata"
+                               @oninput="OnOtpInput"
+                               onkeypress="return /^[0-9]$/.test(event.key)"
+                               maxlength="6"
+                               inputmode="numeric"
+                               placeholder="••••••"
+                               autofocus />
+
+                        @if (!string.IsNullOrWhiteSpace(OtpError))
+                        {
+                            <div class="text-danger mt-2 otp-error-shake text-center">
+                                <small><strong>@OtpError</strong></small>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Timer / Resend Links (1:30 Mint / 90 Seconds Timer) -->
+                    <div class="timer-text mb-3">
+                        @if (SecondsLeft > 0)
+                        {
+                            <span><i class="fa-regular fa-clock me-1"></i> Resend OTP in (@TimeLeft)</span>
+                        }
+                        else
+                        {
+                            <span>Didn't receive code? </span>
+                            <a @onclick="ResendOtp" class="resend-link">Resend OTP</a>
+                        }
+                    </div>
+
+                    <!-- Verify Button -->
+                    @if (!string.IsNullOrWhiteSpace(otpdata) && otpdata.Length == 6)
+                    {
+                        <button class="btn-verify-success" type="button" @onclick="VerifyOtpData" disabled="@isVerifying">
+                            @if (isVerifying)
+                            {
+                                <div class="loading-text-container">
+                                    <div class="loader-spinner"></div>
+                                    <span>Logging in...</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span><i class="fa-solid fa-check-circle me-1"></i> Verify & Continue</span>
+                            }
+                        </button>
+                    }
+                }
+            </div>
+
+            <!-- Bottom Information Notice Card -->
+            <div class="info-box">
+                <div class="info-icon"><i class="fa-solid fa-circle-info"></i></div>
+                <div class="info-text">
+                    <h5>Why do we need this?</h5>
+                    <p>This extra step helps us protect your account and ensure it's really you logging in.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer Branding -->
+    <div class="footer">
+        <div class="footer-security">
+            <i class="fa-solid fa-lock"></i> Your security is our priority
+        </div>
+        <div>&copy; 2025 eSchoolERP. All rights reserved.</div>
+    </div>
+</section>
+
+@code {
+    private int UserId;
+    private string Email = "";
+    private string Mobile = "";
+    private string SelectedType = "Email";
+    private string otpdata = "";
+    private string OtpError = "";
+    private bool IsVerifyClicked = false;
+    private SendOtpRequest sendOtpRequest = new();
+    private VerifyOtpRequestDto verifyOtpRequestDto = new();
+
+    // 1.30 Minutes Timer = 90 Seconds
+    private int SecondsLeft = 90;
+    private bool IsOtpSent = false;
+
+    // Time format 01:30
+    private string TimeLeft => $"{SecondsLeft / 60:D2}:{SecondsLeft % 60:D2}";
+    private Timer? timer;
+
+    private void OnOtpInput(ChangeEventArgs e)
+    {
+        otpdata = e.Value?.ToString() ?? "";
+
+        if (IsVerifyClicked)
+        {
+            if (string.IsNullOrWhiteSpace(otpdata))
+                OtpError = "Please enter OTP.";
+            else
+                OtpError = "";
+        }
+    }
+    private void BackToSelectMode()
+    {
+        // Stop the active timer
+        timer?.Stop();
+        IsOtpSent = false;
+        otpdata = "";
+        OtpError = "";
+        IsVerifyClicked = false;
+    }
+    private string MaskEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return "";
+
+        var parts = email.Split('@');
+
+        if (parts.Length != 2)
+            return email;
+
+        var name = parts[0];
+
+        if (name.Length <= 6)
+            return name.Substring(0, Math.Min(2, name.Length)) + "*****@" + parts[1];
+
+        return name.Substring(0, 2) +
+               "*****" +
+               name.Substring(name.Length - 4) +
+               "@" + parts[1];
+    }
+
+    private string MaskMobile(string mobile)
+    {
+        if (string.IsNullOrWhiteSpace(mobile))
+            return "";
+
+        if (mobile.Length < 4)
+            return "******";
+
+        return "******" + mobile[^4..];
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var branchResult = await sessionStorage.GetAsync<int>("userId");
+            UserId = branchResult.Value;
+            var emailvalue = await sessionStorage.GetAsync<string>("Email");
+            Email = emailvalue.Value;
+            var mobileno = await sessionStorage.GetAsync<string>("MobileNo");
+            Mobile = mobileno.Value;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SendOtpEmailWithPhone()
+    {
+        sendOtpRequest.UserId = UserId;
+
+        if (SelectedType == "Email")
+        {
+            if (string.IsNullOrWhiteSpace(Email))
+            {
+                await Alert.ShowWarning("Email address is not available.");
+                return;
+            }
+            sendOtpRequest.SendTo = Email;
+        }
+        else if (SelectedType == "Mobile")
+        {
+            if (string.IsNullOrWhiteSpace(Mobile))
+            {
+                await Alert.ShowWarning("Mobile number is not available.");
+                return;
+            }
+            sendOtpRequest.SendTo = Mobile;
+        }
+        else
+        {
+            await Alert.ShowWarning("Please select Email or Mobile No.");
+            return;
+        }
+
+        await JS.InvokeVoidAsync("showProcessingAlert");
+        var response = await httpService.Post<ApiResponse<string>>("users/SendOtp", sendOtpRequest);
+
+        if (response.Success && response.Code == 1)
+        {
+            await Task.Delay(2000);
+            await JS.InvokeVoidAsync("closeSwal");
+            IsOtpSent = true;
+            StartTimer();
+            sendOtpRequest = new();
+        }
+        else if (response.Code == 2)
+        {
+            await Alert.ShowWarning(response.Message);
+        }
+        else
+        {
+            return;
+        }
+    }
+    private bool isVerifying = false;
+    private async Task VerifyOtpData()
+    {
+        try
+        {
+            IsVerifyClicked = true;
+            if (string.IsNullOrWhiteSpace(otpdata))
+            {
+                OtpError = "Please enter the OTP.";
+                return;
+            }
+
+            verifyOtpRequestDto.UserId = UserId;
+            verifyOtpRequestDto.OtpCode = otpdata;
+
+            if (verifyOtpRequestDto.OtpCode.Length != 6)
+            {
+                await Alert.ShowWarning("Please enter a valid 6-digit OTP.");
+                return;
+            }
+
+            // Start Loading State
+            isVerifying = true;
+            StateHasChanged();
+
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "DeviceToken");
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                verifyOtpRequestDto.DeviceToken = Guid.Parse(token);
+            }
+
+            var response = await httpService.Post<ApiResponse<UserModels>>("users/VerifyOtp", verifyOtpRequestDto);
+
+            switch (response.Code)
+            {
+                case 1:
+                    if (response.Success && response.Data != null)
+                    {
+                        var user = response.Data;
+                        await JS.InvokeAsync<string>("localStorage.setItem", "authToken", user.Token);
+                        await sessionStorage.SetAsync("authToken", user.Token);
+                        var dashboard = await sessionStorage.GetAsync<string>("Dashboard");
+
+                        // Success hone par hi form reset hoga
+                        verifyOtpRequestDto.OtpCode = "";
+                        otpdata = "";
+                        OtpError = "";
+                        IsOtpSent = false;
+
+                        if (dashboard.Success && !string.IsNullOrWhiteSpace(dashboard.Value))
+                        {
+                            Nav.NavigateTo("/" + dashboard.Value, true);
+                        }
+                        else
+                        {
+                            Nav.NavigateTo("/", true);
+                        }
+                    }
+                    break;
+
+                case 2:
+                case 3:
+                    OtpError = response.Message; // Screen par error dikhayega
+                    //await Alert.ShowWarning(response.Message);
+                    otpdata = "";
+                    break;
+
+                case 4:
+                    OtpError = response.Message;
+                    otpdata = "";
+                   // await Alert.ShowError(response.Message);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            OtpError = "Something went wrong. Please try again.";
+        }
+        finally
+        {
+            // Sirf loading stop karenge, IsOtpSent ko touch nahi karenge
+            isVerifying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ResendOtp()
+    {
+        var request = new ResendOtpRequestDto
+        {
+            UserId = UserId,
+            SendTo = SelectedType == "Email" ? Email : Mobile
+        };
+
+        await JS.InvokeVoidAsync("showProcessingAlert");
+        var response = await httpService.Post<ApiResponse<string>>("users/ResendOtp", request);
+
+        if (response.Success && response.Code == 1)
+
+        {
+            await Task.Delay(2000);
+            await JS.InvokeVoidAsync("closeSwal");
+            await Alert.ShowSuccess(response.Message);
+            StartTimer();
+        }
+        else
+        {
+            await Alert.ShowWarning(response.Message);
+        }
+    }
+
+    private void StartTimer()
+    {
+        // Set to 90 seconds (1 minute 30 seconds)
+        SecondsLeft = 90;
+
+        timer?.Dispose();
+
+        timer = new Timer(1000);
+        timer.Elapsed += async (_, _) =>
+        {
+            if (SecondsLeft > 0)
+            {
+                SecondsLeft--;
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                timer.Stop();
+            }
+        };
+
+        timer.Start();
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

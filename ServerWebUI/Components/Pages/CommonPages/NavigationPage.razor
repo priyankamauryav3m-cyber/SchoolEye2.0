@@ -1,0 +1,52 @@
+﻿@inject NavigationManager Nav
+@inject PermissionState PermissionState
+
+<div class="breadcrumb-custom">
+
+    @foreach (var item in BreadCrumbs)
+    {
+        if (item.IsCurrent)
+        {
+            <span class="current">@item.Text</span>
+        }
+        else if (!string.IsNullOrWhiteSpace(item.Url))
+        {
+            <a href="@item.Url">@item.Text</a>
+            <span> / </span>
+        }
+        else
+        {
+            <span>@item.Text</span>
+            <span> / </span>
+        }
+    }
+
+</div>
+
+@code {
+
+    List<BreadcrumbItem> BreadCrumbs = new();
+
+    protected override void OnInitialized()
+    {
+        Load();
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    void OnLocationChanged(
+        object? sender,
+        Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        Load();
+        InvokeAsync(StateHasChanged);
+    }
+
+    void Load()
+    {
+        var path = "/" +
+            Nav.ToBaseRelativePath(Nav.Uri);
+
+        BreadCrumbs =
+            PermissionState.GetBreadcrumb(path);
+    }
+}

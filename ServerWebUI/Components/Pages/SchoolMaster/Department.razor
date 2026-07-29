@@ -1,0 +1,181 @@
+﻿@page "/department"
+@* @attribute [Authorize] *@
+@using Microsoft.AspNetCore.Authorization
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using MyApp.Common
+@inject ICommonMethod CommonMethod
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@inject IStringLocalizer<Resource> Localizer
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Department </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddDepartment" />
+
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <TemplateColumn Title="Department" Sortable="true" SortBy="GridSort<DepartmentModel>.ByAscending(x=>x.DepartmentName)" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Department ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @(string.IsNullOrEmpty(context.DepartmentName) ? " " : context.DepartmentName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Class="text-right" Title="Department Code" Sortable="true" SortBy="GridSort<DepartmentModel>.ByAscending(x => x.DepartmentName)" Align="Align.Center">
+
+                                     <ChildContent>
+                                            @(string.IsNullOrEmpty(context.DepartmentCode)?" ":context.DepartmentCode)
+                                     </ChildContent>
+                                     </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => Editdepartment(context)" OnStatusClick="() => ChangeDepartmentStatus(context.DepartmentId, context.IsValid)" />
+                                </TemplateColumn>
+                              
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((department.DepartmentId == 0) ? "Add Department" : "Edit Department")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@department" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="department.DepartmentName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Department Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => department.DepartmentName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="department.DepartmentCode" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Department Code <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => department.DepartmentCode)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="department.DepartmentId" OnClickCancel="ClosePopup" />
+                           
+                          
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+}
+
+@* 
+ @code{
+    async Task AddDepartment()
+    {
+        department = new DepartmentModel();   // reset model
+        await JS.InvokeVoidAsync("showModal", "addModal");
+    }
+
+    // async Task Editdepartment(DepartmentModel dept)
+    // {
+    //     department = dept;
+    //     await JS.InvokeVoidAsync("showModal", "addModal");
+    // }
+
+    // async Task OnSave()
+    // {
+    //     // 👉 save / update logic
+
+    //     await JS.InvokeVoidAsync("hideModal", "addModal");
+    // }
+ } *@
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (departmentlist.Count > 0)
+    {
+    }
+}
+

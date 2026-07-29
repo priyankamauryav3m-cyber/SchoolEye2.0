@@ -1,0 +1,665 @@
+﻿@page "/MapPeriodtypewithstudent"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+
+
+<style>
+
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 70px;
+    }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">
+                    Map Student With Fee Period Type
+                </p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrecntSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value="iMSWFTPeriod.TemplateId" class="form-input">
+                            <option value="0" selected>AllTemplateSelected</option>
+                            @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                            {
+                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentFeeHead" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input @onchange="ToggleSelectAll" checked="@isAllSelected" type="checkbox" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Left" Property="@(x => x.StudentName)" Title="Student Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentName...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Center" Class="text-center" Property="@(x => x.PeriodType)" Title="Period Type" />
+                                <TemplateColumn Title="Fee Template Name" Sortable="true" SortBy="@(GridSort<IMSWFTPeriodType>.ByAscending(x => x.StudentFeeTemplateName))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StudentFeeTemplateName) ? " " : context.StudentFeeTemplateName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="TemplateName...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Left" SortBy="@(GridSort<IMSWFTPeriodType>.ByAscending(x => x.ClassSection))" Title="Class Section">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassSection) ? " " : context.ClassSection)
+                                    </ChildContent>
+                                </TemplateColumn>
+
+
+
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+
+                        <AdmitChildButton ButtonText="Export To Excel" CurrentUrl="@currentUrl" Export="ExportToExcel" />
+                    </div>
+                    <div class="form-box">
+                        <button type="button" @onclick="MapTemplateAndPeriod" class="table-btn">
+                            Map Period/Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search Student Map Period Type</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="iMSWFTPeriod.ClassCode" @bind-Value:after="GetSectionData">
+                                <option  value="" selected>--Select--</option>
+                                @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                {
+                                <option Value="@cs.ClassCode">@cs.ClassName</option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Class</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="iMSWFTPeriod.SectionId">
+                                <option  value="" selected>--Select--</option>
+                                @foreach (var cs in sectionModellist)
+                                {
+                                <option Value="@cs.SectionId">@cs.SectionName </option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Section</label>
+                            </div>
+                        </div>
+
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="iMSWFTPeriod.PeriodType">
+                                <option  value="" selected>--Select--</option>
+                                @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                                {
+                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Period Type</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="iMSWFTPeriod.StudentNo" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="iMSWFTPeriod.StudentName" />
+                                <label class="floating-label">Student Name</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentFeeHead" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (showModal)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Map Fee Period And Template Type</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 ">
+                            <div class="form-box">
+                                <label for="status" class="form-label">Mapping Type</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="StatusType">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                Period Type
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("-1")" />
+                                            <label class="form-label">
+                                                Fee Template Type
+                                            </label>
+                                        </div>
+
+                                    </InputRadioGroup>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (StatusType == "1")
+                        {
+                            <div class="col-12">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="mapFeePeriodWithStudent.PeriodType">
+                                        <option  value="" selected>--Select--</option>
+                                    <option value="Monthly">Monthly</option>
+                                    <option value="Quarterly">Quarterly</option>
+                                    <option value="Half-Yearly">Half-Yearly</option>
+                                    <option value="Yearly">Yearly</option>
+                                    <option value="Custom">Custom</option>
+                                    </InputSelect>
+                                    <label class="floating-label">Period Type</label>
+                                </div>
+                            </div>
+                        }
+                        @if (StatusType == "-1")
+                        {
+                            <div class="col-12">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="mapFeePeriodWithStudent.TemplateId">
+                                    <option  value="" selected>--Select--</option>
+                                    @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                                    {
+                                    <option value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Fee Template Name</label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        @if (StatusType == "1")
+                        {
+                            <button type="button" class="ui fade op-1 animated button form-btn" @onclick='() => OnSubmitMapTemplateAndPeriod("Period")'>
+                                <div class="visible content">Map Period</div>
+                                <div class="hidden content">
+                                    <i class="fa fa-save"></i>
+                                </div>
+                            </button>
+                        }
+                        @if (StatusType == "-1")
+                        {
+                            <button type="button" class="ui fade op-1 animated button form-btn" @onclick='() => OnSubmitMapTemplateAndPeriod("Template")'>
+                                <div class="visible content">Map Template</div>
+                                <div class="hidden content">
+                                    <i class="fa fa-save"></i>
+                                </div>
+                            </button>
+                        }
+                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@ClosePopup" />
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (iMSWFTPeriodlist.Count > 0)
+    {
+    }
+}
+
+@code {
+    private bool showModal = false;
+    private string statusFilter = "1";
+    private string StatusType = "1";
+    private string value = "";
+    private bool ShowPopup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string sessionvalue;
+    private long CurrecntSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? nameFilter;
+    private string UserName;
+    private bool IsLoading = false;
+    private string olddesignation = "";
+    private List<SessionModel> sessionlist = new();
+    private List<IMSWFTPeriodType> iMSWFTPeriodlist = new();
+    private SearchAnyRequestModel gridRequest = new();
+    private MapFeePeriodWithStudentModel mapFeePeriodWithStudent = new();
+    private IMSWFTPeriodType iMSWFTPeriod = new();
+    private List<BranchClassModel> classlist = new();
+    private List<FeeTemplateModel> feeTemplatelist = new();
+    private List<SectionModel> sectionModellist = new();
+    private bool isAllSelected = false;
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        isAllSelected = (bool)e.Value;
+
+        foreach (var item in moduleQuery)
+        {
+            item.IsSelected = isAllSelected;
+        }
+    }
+    protected IQueryable<IMSWFTPeriodType> moduleQuery
+    {
+        get
+        {
+            var result = iMSWFTPeriodlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                   (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) || 
+                (x.StudentFeeTemplateName != null && x.StudentFeeTemplateName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+
+            sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrecntSession = await _commonmethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportToExcel()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        var response = await httpService.Post<ApiResponse<object>>("Export/ExportStudentPeriod", data);
+        if (response.Success)
+        {
+            var pdfBytes = response.Data;
+            await JS.InvokeVoidAsync("downloadExcel", pdfBytes, "Student.xlsx");
+            //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+        }
+        //IsSelected = false;
+        StateHasChanged();
+    }
+    private async Task GetSectionData()
+    {
+        try
+        {
+            gridRequest.GroupCode = groupcode;
+            gridRequest.BranchCode = branchcode;
+            gridRequest.RequestName = iMSWFTPeriod.ClassCode;
+            string ApiUri1 = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, gridRequest) ?? new();
+            if (apiResponse.Success)
+            {
+                sectionModellist = apiResponse.Data ?? new();
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private async Task OnSubmitMapTemplateAndPeriod(string value)
+    {
+
+        try
+        {
+
+            ShowPopup = false;
+            showModal = false;
+
+            if (string.IsNullOrEmpty(mapFeePeriodWithStudent.TemplateId))
+            {
+                if (StatusType == "-1")
+                {
+                    await Alert.ShowWarning("Please select template!");
+                    showModal = true;
+                    return;
+                }
+            }
+            if (string.IsNullOrEmpty(mapFeePeriodWithStudent.PeriodType))
+            {
+                if (StatusType == "1")
+                {
+                    await Alert.ShowWarning("Please select period type!");
+                    showModal = true;
+                    return;
+                }
+            }
+            bool isSaved = false;
+            IsLoading = true;
+            mapFeePeriodWithStudent.GroupCode = groupcode;
+            mapFeePeriodWithStudent.BranchCode = branchcode;
+            mapFeePeriodWithStudent.CreatedBy = UserName;
+            mapFeePeriodWithStudent.SessionId = CurrecntSession;
+            var selectedStudents = moduleQuery.Where(x => x.IsSelected).ToList();
+            foreach (var student in selectedStudents)
+            {
+                mapFeePeriodWithStudent.StudentId = student.StudentId;
+                mapFeePeriodWithStudent.StudentNo = student.StudentNo;
+
+                if (value == "Template")
+                {
+                    string apiUrl = "MSWFTPeriodTypeWithTemplate/MapFeeTemplateWithStudent";
+
+                    var response = await httpService.Post<ApiResponse<object>>( apiUrl, mapFeePeriodWithStudent);
+
+                    if (response != null && response.Success && response.Code == 1)
+                    {
+                        isSaved = true;
+                    }
+                    else
+                    {
+                        isSaved = false;
+                        break;
+                    }
+                }
+                else if (value == "Period")
+                {
+                    string apiUrl = "MSWFTPeriodTypeWithTemplate/MapFeePeriodWithStudent";
+
+                    var response = await httpService.Post<ApiResponse<object>>(apiUrl, mapFeePeriodWithStudent);
+
+                    if (response != null && response.Success && response.Code == 1)
+                    {
+                        isSaved = true;
+                    }
+                    else
+                    {
+                        isSaved = false;
+                        break;
+                    }
+                }
+            }
+            if (value == "Template")
+            {
+                await Alert.ShowSuccess("Template Type Mapped Successfully!.");
+                IsLoading = false;
+                StateHasChanged();
+
+            }
+            else if (value == "Period")
+            {
+                await Alert.ShowSuccess("Period Type Mapped Successfully!.");
+                IsLoading = false;
+                StateHasChanged();
+            }
+            else
+            {
+                return;
+            }
+        
+            mapFeePeriodWithStudent = new();
+            StatusType = "1";
+            IsLoading = false;
+            await SearchStudentFeeHead();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        showModal = false;
+        gridRequest = new();
+        iMSWFTPeriod = new();
+        sectionModellist.Clear();
+        mapFeePeriodWithStudent = new();
+        StatusType = "1";
+        StateHasChanged();
+    }
+    private async Task MapTemplateAndPeriod()
+    {
+        var studentNos = moduleQuery.Where(x => x.IsSelected).Select(x => x.StudentNo).ToList();
+        if (studentNos.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        // else if (studentNos.Count > 1)
+        // {
+        //     await JS.InvokeVoidAsync("showSelectRecordAlert");
+        //     return;
+        // }
+        showModal = true;
+        StateHasChanged();
+        mapFeePeriodWithStudent = new();
+    }
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+        StateHasChanged();
+        sectionModellist.Clear();
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        string ApiUri2 = "FeeTemplate/GetFeeTemplate";
+        feeTemplatelist = await httpService.Get<List<FeeTemplateModel>>(ApiUri2) ?? new();
+        await SearchStudentFeeHead();
+        StateHasChanged();
+    }
+    private async Task SearchStudentFeeHead()
+    {
+        try
+        {
+            ShowPopup = false;
+            IsLoading = true;
+            iMSWFTPeriod.GroupCode = groupcode;
+            iMSWFTPeriod.BranchCode = branchcode;
+            iMSWFTPeriod.SessionId = CurrecntSession;
+            string ApiUri2 = "MSWFTPeriodTypeWithTemplate/GetIMSWFTPeriodType";
+            iMSWFTPeriodlist = await httpService.Post<List<IMSWFTPeriodType>>(ApiUri2, iMSWFTPeriod) ?? new();
+            IsLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+
+    }
+
+}
+
+
+

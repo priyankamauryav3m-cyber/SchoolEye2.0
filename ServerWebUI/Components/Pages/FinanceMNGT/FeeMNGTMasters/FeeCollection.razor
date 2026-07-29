@@ -1,0 +1,198 @@
+﻿@* @page "/feeCollection"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Fee Collection </p>
+                <div class="d-flex gap-2">
+              
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddFeeCollection" />
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.Amount)" Title="Amount" Sortable="true" Class="text-right" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Fee Amount ..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditFeeCollection(context)" OnStatusClick="() => ChangeFeeCollectionStatus(context.Sid, context.IsValid)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((feeCollection.Sid == 0) ? "Add Fee Collection" : "Edit Fee Collection")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@feeCollection" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeCollection.SessionId" name="session">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@data.SessionId">@data.SessionName </option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Session Name</label>
+                                    <ValidationMessage For="@(() => feeCollection.SessionName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeCollection.FeeHeadId">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var cs in feeHeadlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option Value="@cs.FeeHeadId">@cs.FeeHeadName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Fee Head Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeCollection.FeeHeadId)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeCollection.ClassCode">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option Value="@cs.ClassCode">@cs.ClassName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Class Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeCollection.ClassCode)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeCollection.MonthNo" autocomplete="off" required>
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var mon in monthlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@mon.MonthNo"> @mon.MonthName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Month No. <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeCollection.MonthNo)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="feeCollection.Amount" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Amount <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeCollection.Amount)" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="feeCollection.Sid" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    
+}
+
+
+
+ *@
+

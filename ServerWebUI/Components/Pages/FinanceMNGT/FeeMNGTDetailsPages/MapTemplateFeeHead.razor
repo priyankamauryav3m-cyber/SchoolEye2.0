@@ -1,0 +1,754 @@
+﻿@page "/MappedTemplateFeeHead"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+
+ 
+<style>
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1"> Map Template Fee Heads</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="form-box">
+                        <InputSelect @bind-Value=gridRequest.FeeHeadId" class="form-input">
+                            <option value="0" selected>AllFeeHeadSelected</option>
+                            @foreach (var cs in feeHeadlist.Where(x => x.IsValid == true))
+                            {
+                                <option Value="@cs.FeeHeadId">@cs.FeeHeadName</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchMapTemplate" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="MapTemplateWithFeeHead">
+                            <div class="visible content justify-content-center">Add</div>
+                            <div class="hidden content">
+                                <i class="bi bi-plus-lg"></i>
+                            </div>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+
+
+                                <PropertyColumn Sortable="true" Align="Align.Left" Property="@(x => x.FeeHeadName)" Title="Fee Head">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="FeeHead...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Left" Property="@(x => x.TemplateName)" Title="Fee Template">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="FeeTemplate...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+                                <PropertyColumn Sortable="true" Property="@(x => x.FeeHeadType)" Title="Head Type" Class="text-center" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="HeadType...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+                              
+                                <PropertyColumn Align="Align.Center" Class="text-right" Property="@(x => x.Amount)" Title="Amount" />
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent Context="row">
+                                        <span class="@GetStatusClass(row.IsValid)">
+                                            @(row.IsValid ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup CurrentUrl="@currentUrl" IsValid="context.IsValid" OnEditClick="() => EditMapTemplate(context)" OnStatusClick="() => ChangeMapTemplateStatus(context.TemplateFeeId, context.IsValid)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@if (showModal)
+{
+    <div class="custom-modal align-items-center row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 @(classFeeHeads.ClassFeeId == 0 ? "col-xl-9" : "col-xl-7")">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((classFeeHeads.ClassFeeId == 0) ? "Mapped Fee Head With Template" : "Edit Fee Head With Template")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="@classFeeHeads.SessionId" name="session" @bind-Value:after='() => SearchMapSessionFeeHead("WithSession")'>
+                                <option  value="" selected >--Select--</option>
+                                @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Session Name</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="classFeeHeads.FeeHeadId" @bind-Value:after="GetTemplateData">
+                                <option  value="" selected >--Select--</option>
+                                @foreach (var cs in detSessionlist.Where(x => x.IsValid == true))
+                                {
+                                <option Value="@cs.FeeHeadId">@cs.FeeHeadName</option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Fee Head Name</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputNumber class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" min="0" @bind-Value="classFeeHeads.Amount" />
+                                <label class="floating-label">Amount<span class="required">*</span></label>
+                            </div>
+                        </div>
+
+
+                        @if (classFeeHeads.TemplateFeeId == 0)
+                        {
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body table-card p-0">
+                                        <div class="quick-main">
+                                            <div class="grid-box-with-btn">
+                                                <QuickGrid Items="@TemplatleQuery" Class="table">
+
+                                                    <TemplateColumn Title="" Align="Align.Center">
+                                                        <HeaderTemplate>
+                                                            <div class="d-flex align-items-center justify-content-center">
+                                                                <input @onchange="ToggleSelectAll" checked="@isAllSelected" type="checkbox" @onclick:stopPropagation="true" />
+                                                            </div>
+                                                        </HeaderTemplate>
+                                                        <ChildContent>
+                                                            <div class="d-flex align-items-center justify-content-center">
+
+                                                                <input type="checkbox" @bind="@context.IsSelected" @onclick:stopPropagation="true" />
+                                                            </div>
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+
+                                                    <TemplateColumn Title="Fee Template Name" Sortable="true" Align="Align.Left">
+                                                        <ColumnOptions>
+                                                            <div class="search-box">
+                                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="FeeTemplate...." />
+                                                            </div>
+                                                        </ColumnOptions>
+                                                        <ChildContent>
+                                                            @(string.IsNullOrWhiteSpace(context.TemplateName) ? " " : context.TemplateName)
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Title="Amount" Class="text-center" Align="Align.Center">
+                                                        <ChildContent>
+                                                            @context.FeeHeadAmount
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+
+                                                    <TemplateColumn Title="Display Order" Class="text-center" Align="Align.Center">
+                                                        <ChildContent>
+                                                            @context.DisplayOrder
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                </QuickGrid>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- ✅ EDIT MODE → DROPDOWN -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="classFeeHeads.FeeTemplateID">
+                                    <option  value="" selected >--Select--</option>
+                                    
+                                    @foreach (var item in feeTemplatelist.Where(x => x.IsValid == true))
+                                    {
+                                    <option value="@item.FeeTemplateId">@item.TemplateName</option>
+                                    }
+                                    </InputSelect>
+                                    <label class="floating-label">Template</label>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSubmitMapTemplate">
+                            <div class="visible content justify-content-center">Save</div>
+                            <div class="hidden content">
+                                <i class="fa fa-save"></i>
+                            </div>
+                        </button>
+                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@ClosePopup" />
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search Mapped Fee Heads</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect @bind-Value=gridRequest.FeeHeadType" class="form-input">
+                                <option value="0" selected>All</option>
+                                @foreach (var cs in feeHeadlist.Where(x => x.IsValid == true))
+                                {
+                                <option Value="@cs.FeeHeadType">@cs.FeeHeadType </option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Fee Head Type</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect @bind-Value=gridRequest.TemplateId" class="form-input">
+                                <option value="0" selected>All</option>
+                                @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                                {
+                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Fee Template</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="status" class="form-label">Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="gridRequest.Status">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("-1")" />
+                                            <label class="form-label">
+                                                All
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                Active
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                Deactivated
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchMapTemplate" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    private CustomAlert customAlert;
+    private bool showModal = false;
+    private bool showstudent { get; set; }
+    private string statusFilter = "1";
+    private bool ShowPopup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string sessionvalue;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? nameFilter;
+    private string UserName;
+    private bool IsLoading = false;
+    private string olddesignation = "";
+    private List<SessionModel> sessionlist = new();
+    private List<FeeHeadModel> feeHeadlist = new();
+    private List<ClassFeeHeadsModel> feetemplatelist = new();
+    private FeeHeadTemplateRequest gridRequest = new();
+    private ClassFeeHeadsModel classFeeHeads = new();
+    private List<BranchClassModel> classlist = new();
+    private List<FeeTemplateModel> feeTemplatelist = new();
+    private List<FeeHeadTemplatesListModel> feeHeadTemplatesLists = new();
+    private List<DetSessionModel> detSessionlist = new();
+    SearchAnyRequestModel searchAny = new();
+    private bool isAllSelected = false;
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        isAllSelected = (bool)e.Value;
+
+        foreach (var item in TemplatleQuery)
+        {
+            item.IsSelected = isAllSelected;
+        }
+    }
+    protected IQueryable<ClassFeeHeadsModel> moduleQuery
+    {
+        get
+        {
+            var result = feetemplatelist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                   (x.FeeHeadType != null && x.FeeHeadType.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                 (x.TemplateName != null && x.TemplateName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    protected IQueryable<FeeHeadTemplatesListModel> TemplatleQuery
+    {
+        get
+        {
+            var result = feeHeadTemplatesLists.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.TemplateName != null && x.TemplateName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+
+            return result;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+
+            StateHasChanged();
+        }
+    }
+    private async Task GetTemplateData()
+    {
+        try
+        {
+            gridRequest.GroupCode = groupcode;
+            gridRequest.BranchCode = branchcode;
+            gridRequest.SessionId = classFeeHeads.SessionId;
+            string ApiUri1 = "ViewTemplateFeeHead/GetFeeHeadTemplatesList";
+            feeHeadTemplatesLists = await httpService.Post<List<FeeHeadTemplatesListModel>>(ApiUri1, gridRequest) ?? new();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private async Task OnSubmitMapTemplate()
+    {
+
+        try
+        {
+
+            if (classFeeHeads.SessionId == 0)
+            {
+                await customAlert.ShowCustomAlert("Please select Session.", false);
+                return;
+            }
+            if (classFeeHeads.FeeHeadId == 0)
+            {
+                await customAlert.ShowCustomAlert("Please select fee head.", false);
+                return;
+            }
+            if (classFeeHeads.TemplateFeeId == 0)
+            {
+                if (classFeeHeads.Amount == 0 || classFeeHeads.Amount == null)
+                {
+                    await customAlert.ShowCustomAlert("Please enter the amount.", false);
+                    return;
+                }
+                var selectedId = feeHeadTemplatesLists.Where(x => x.IsSelected).Select(p => p.FeeTemplateID).FirstOrDefault();
+                classFeeHeads.FeeTemplateID = selectedId;
+                if (string.IsNullOrEmpty(selectedId))
+                {
+                    await customAlert.ShowCustomAlert("Please select record  first !", false);
+                    return;
+                }
+            }
+
+            if (classFeeHeads.TemplateFeeId > 0)
+            {
+
+                showModal = false;
+                bool isSame = CommonMethod.IsEdited(classFeeHeads, olddesignation);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    showModal = true;
+                    return;
+                }
+            }
+            ShowPopup = false;
+            showModal = false;
+            //classFeeHeads.SessionName = sessionvalue;
+            classFeeHeads.CreatedBy = UserName;
+
+            string apiUrl = "ViewTemplateFeeHead/SaveFeeTemplateFeeHead";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, classFeeHeads);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("Fee head " + @Localizer["Already"] + "in this template");
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Map template with fee head" + @Localizer["Inserted"]);
+            }
+            else if (responsecode == -2)
+            {
+                await Alert.ShowWarning("Map template with fee head" + @Localizer["Already"]);
+            }
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Map template with fee head" + @Localizer["Updated"]);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await SearchMapTemplate();
+            classFeeHeads = new();
+            feeHeadTemplatesLists.Clear();
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        showModal = false;
+        gridRequest = new();
+        classFeeHeads = new();
+        feeHeadTemplatesLists.Clear();
+        StateHasChanged();
+    }
+    private void MapTemplateWithFeeHead()
+    {
+        showModal = true;
+        StateHasChanged();
+        classFeeHeads = new();
+    }
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+        StateHasChanged();
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri = "FeeHead/GetFeeHeadList";
+        feeHeadlist = await httpService.Get<List<FeeHeadModel>>(ApiUri) ?? new();
+        string ApiUri2 = "FeeTemplate/GetFeeTemplate";
+        feeTemplatelist = await httpService.Get<List<FeeTemplateModel>>(ApiUri2) ?? new();
+        await SearchMapTemplate();
+        StateHasChanged();
+    }
+    private async Task SearchMapSessionFeeHead(string value )
+    {
+        try
+        {
+            ShowPopup = false;
+            IsLoading = true;
+            if(value=="WithSession")
+            {
+                searchAny.GroupCode = groupcode;
+                searchAny.BranchCode = branchcode;
+                searchAny.SessionId = classFeeHeads.SessionId;
+            }
+            else
+            {
+                searchAny.GroupCode = groupcode;
+                searchAny.BranchCode = branchcode;
+                searchAny.SessionId = CurrentSession;
+            }
+
+            string ApiUri2 = "SessionFeeHeads/GetSessionFeeHead";
+            var apiResponse = await httpService.Post<ApiResponse<List<DetSessionModel>>>(ApiUri2, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                detSessionlist = apiResponse.Data ?? new List<DetSessionModel>();
+                IsLoading = false;
+            }
+            else
+            {
+                detSessionlist = new List<DetSessionModel>();
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+            IsLoading = false;
+        }
+
+    }
+    private async Task SearchMapTemplate()
+    {
+        try
+        {
+            ShowPopup = false;
+            IsLoading = true;
+            gridRequest.GroupCode = groupcode;
+            gridRequest.BranchCode = branchcode;
+            gridRequest.SessionId = CurrentSession;
+            string ApiUri2 = "ViewTemplateFeeHead/GetFeeHeadsMappedWithTemplateList";
+            feetemplatelist = await httpService.Post<List<ClassFeeHeadsModel>>(ApiUri2, gridRequest) ?? new();
+            IsLoading = false;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+
+    }
+    private async Task EditMapTemplate(ClassFeeHeadsModel item)
+    {
+        await SearchMapSessionFeeHead("");
+        classFeeHeads = new ClassFeeHeadsModel
+        {
+            ClassFeeId = item.ClassFeeId,
+            TemplateFeeId = item.TemplateFeeId,
+            FeeHeadId = item.FeeHeadId,
+            SessionName = item.SessionName,
+            SessionId = item.SessionId,
+            FeeTemplateID = item.FeeTemplateID,
+            Amount = item.Amount
+        };
+        olddesignation = CommonMethod.CreateSnapshot(classFeeHeads);
+        showModal = true;
+    }
+    private async Task ChangeMapTemplateStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "ViewTemplateFeeHead/DeleteMapFeeHead";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+}
+
+

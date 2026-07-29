@@ -1,0 +1,961 @@
+﻿@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService      
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject IWebHostEnvironment env
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+
+@if (IsVisible)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-sm-12 col-md-12 col-lg-12 col-xl-12">
+            <div class="modal-content clearfix main-popup overflow-visible">
+                <div class="head-btn">
+                    <h5 class="modal-title">Student Visitor Details</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@studentVisitordetails" OnValidSubmit="OnSaveVisitorDetails">
+                    <DataAnnotationsValidator/>
+                    <div class="modal-body">
+                        <div class="row px-1 gap-10-0">
+                            <div class="col-12 col-sm-6 col-md-4 px-1">
+                                <div class="form-box-group static-label">
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Student No : </p>
+                                        <p class="form-label">@(string.IsNullOrEmpty(StudentNo) ? " " : StudentNo)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 px-1">
+                                <div class="form-box-group static-label">
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Student Name : </p>
+                                        <p class="form-label">@(string.IsNullOrEmpty(StudentName) ? " " : StudentName)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-12 col-md-4 px-1">
+                                <div class="form-box-group static-label">
+                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                        <p class="form-label">Mobile No : </p>
+                                        <p class="form-label">@(string.IsNullOrEmpty(StudentMobileNo) ? " " : StudentMobileNo)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 px-1">
+                                <hr class="my-1" />
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
+                                <div class="border-box py-2 px-1 h-100">
+                                    <div class="row m-0">
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Photo</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@FatherImagePreview" target="_blank">
+                                                        <img src="@FatherImagePreview" class="w-100" alt="Photo" />
+                                                    </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label for="" class="floating-label">Sign</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@FatherSignPreview" target="_blank">
+                                                        <img src="@FatherSignPreview" class="w-100" alt="photo" />
+                                                        <InputFile id="visitorFSign" OnChange="@(e => OnFileSelected(e, "visitorFSign"))" class="w-100" accept="image/*" style="display:none" />
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitorFSign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitorfsign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherName" />
+                                                <label class="floating-label">Father Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " value="@(string.IsNullOrWhiteSpace(parentsDetails.FatherName) ? "" : "Father")" />
+                                                <label class="floating-label">Relationship</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box flex-row align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsFatherAllowed" class="form-input" />
+                                                <label for="first-name" class="form-label">Allow To Meet</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
+                                <div class="border-box py-2 px-1 h-100">
+                                    <div class="row m-0">
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Photo</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@MotherImagePreview" target="_blank">
+                                                        <img src="@MotherImagePreview" class="w-100" alt="Photo" />
+                                                    </a>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label for="" class="floating-label">Sign</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@MotherSignPreview" target="_blank">
+                                                        <img src="@MotherSignPreview" class="w-100" alt="photo" />
+                                                        <InputFile id="visitorMSign" OnChange="@(e => OnFileSelected(e, "visitorMSign"))" class="w-100" accept="image/*" style="display:none" />
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitorMSign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitormsign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherName" />
+                                                <label class="floating-label">Mother Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " value="@(string.IsNullOrWhiteSpace(parentsDetails.MotherName) ? "" : "Mother")" />
+                                                <label class="floating-label">Relationship</label>
+                                            </div>
+                                        </div>
+
+                                    
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box flex-row align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsMotherAllowed" class="form-input" />
+                                                <label for="first-name" class="form-label">Allow To Meet</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
+                                <div class="border-box py-2 px-1 h-100">
+                                    <div class="row m-0">
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Photo</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorImagePreview1" target="_blank">
+                                                        <img src="@VisitorImagePreview1" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor1Image" OnChange="@(e => OnFileSelected(e, "visitor1Image"))" class="w-100" accept="image/*" style="display:none" />
+
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor1Image")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("Visitor1")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label for="" class="floating-label">Sign</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorSignPreview1" target="_blank">
+                                                        <img src="@VisitorSignPreview1" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor1Sign" OnChange="@(e => OnFileSelected(e, "visitor1Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor1Sign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitor1sign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Relationship</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Email" autocomplete="off" maxlength="30" />
+                                                <label class="floating-label">Visitor Email</label>
+                                                <ValidationMessage For="@(() => studentVisitordetails.Visitor1Email)" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-4">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                <label class="floating-label">Visitor Contact No</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Remarks" autocomplete="off" maxlength="100" />
+                                                <label class="floating-label">Visitor Remarks</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box flex-row align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor1Allowed" class="form-input" />
+                                                <label for="first-name" class="form-label">Allow To Meet</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
+                                <div class="border-box py-2 px-1 h-100">
+                                    <div class="row m-0">
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Photo</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorImagePreview2" target="_blank">
+                                                        <img src="@VisitorImagePreview2" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor2Image" OnChange="@(e => OnFileSelected(e, "visitor2Image"))" class="w-100" accept="image/*" style="display:none" />
+
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor2Image")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("Visitor2")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label for="" class="floating-label">Sign</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorSignPreview2" target="_blank">
+                                                        <img src="@VisitorSignPreview2" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor2Sign" OnChange="@(e => OnFileSelected(e, "visitor2Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor2Sign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitor2sign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Relationship</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Email" autocomplete="off" maxlength="30" />
+                                                <label class="floating-label">Visitor Email</label>
+                                                <ValidationMessage For="@(() => studentVisitordetails.Visitor2Email)" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-4">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                <label class="floating-label">Visitor Contact No</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Remarks" autocomplete="off" maxlength="100" />
+                                                <label class="floating-label">Visitor Remarks</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box flex-row align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor2Allowed" class="form-input" />
+                                                <label for="first-name" class="form-label">Allow To Meet</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
+                                <div class="border-box py-2 px-1 h-100">
+                                    <div class="row m-0">
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Photo</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorImagePreview3" target="_blank">
+                                                        <img src="@VisitorImagePreview3" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor3Image" OnChange="@(e => OnFileSelected(e, "visitor3Image"))" class="w-100" accept="image/*" style="display:none" />
+
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor3Image")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("Visitor3")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label for="" class="floating-label">Sign</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorSignPreview3" target="_blank">
+                                                        <img src="@VisitorSignPreview3" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor3Sign" OnChange="@(e => OnFileSelected(e, "visitor3Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor3Sign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitor3sign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Relationship</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Email" autocomplete="off" maxlength="30" />
+                                                <label class="floating-label">Visitor Email</label>
+                                                <ValidationMessage For="@(() => studentVisitordetails.Visitor3Email)" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-4">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                <label class="floating-label">Visitor Contact No</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Remarks" autocomplete="off" maxlength="100" />
+                                                <label class="floating-label">Visitor Remarks</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box flex-row align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor3Allowed" class="form-input" />
+                                                <label for="first-name" class="form-label">Allow To Meet</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
+                                <div class="border-box py-2 px-1 h-100">
+                                    <div class="row m-0">
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Photo</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorImagePreview4" target="_blank">
+                                                        <img src="@VisitorImagePreview4" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor4Image" OnChange="@(e => OnFileSelected(e, "visitor4Image"))" class="w-100" accept="image/*" style="display:none" />
+
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor4Image")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("Visitor4")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 px-1">
+                                            <div class="form-box-group static-label">
+                                                <label for="" class="floating-label">Sign</label>
+                                                <div class="border-box h-auto">
+                                                    <a href="@VisitorSignPreview4" target="_blank">
+                                                        <img src="@VisitorSignPreview4" class="w-100" alt="photo" />
+                                                        <InputFile id="visitor4Sign" OnChange="@(e => OnFileSelected(e, "visitor4Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                    </a>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor4Sign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitor4sign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Name</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
+                                                <label class="floating-label">Visitor Relationship</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Email" autocomplete="off" maxlength="30" />
+                                                <label class="floating-label">Visitor Email</label>
+                                                <ValidationMessage For="@(() => studentVisitordetails.Visitor4Email)" />
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-4">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                <label class="floating-label">Visitor Contact No</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Remarks" autocomplete="off" maxlength="100" />
+                                                <label class="floating-label">Visitor Remarks</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 px-1 mt-3">
+                                            <div class="form-box flex-row align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor4Allowed" class="form-input" />
+                                                <label for="first-name" class="form-label">Allow To Meet</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="modal-footer gap-3">
+                        <button type="submit" class="ui fade op-1 animated button form-btn" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@ClosePopup"></SaveUpdateButton>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    private CustomAlert customAlert;
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public long StudentId { get; set; }
+    [Parameter] public string StudentName { get; set; }
+    [Parameter] public string StudentNo { get; set; }
+    [Parameter] public string StudentMobileNo { get; set; }
+    [Parameter] public long SessionId { get; set; }
+    [Parameter] public string CurrectUrl { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    private ElementReference dateFromInput;
+    private ElementReference dateToInput;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? username;
+    private bool SelectAll = true;
+    private bool IsAllSelected;
+    private List<BranchClassModel> classlist = new();
+    private bool IsLoading = false;
+    private List<GenderModal> genderModallist = new();
+    private List<SessionModel> sessionlist = new();
+    private SearchAnyRequestModel searchAny = new();
+    private List<PeriodMaster> PeriodTypeList = new();
+    private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
+    private StudentParentDetailsModel parentsDetails = new();
+    private StudentVisitorsModel studentVisitordetails = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private ProfileImageModal profileImageremove = new();
+    private IBrowserFile? Visitor1SelectedFile;
+    private IBrowserFile? Visitor2SelectedFile;
+    private IBrowserFile? Visitor3SelectedFile;
+    private IBrowserFile? Visitor4SelectedFile;
+    private IBrowserFile Visitor1SignFile;
+    private IBrowserFile Visitor2SignFile;
+    private IBrowserFile Visitor3SignFile;
+    private IBrowserFile Visitor4SignFile;
+    private IBrowserFile VisitorMSignFile;
+    private IBrowserFile VisitorFSignFile;
+    private string MotherSignPreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string FatherSignPreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string MotherImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string FatherImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorImagePreview1 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorImagePreview2 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorImagePreview3 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorImagePreview4 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorSignPreview1 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorSignPreview2 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorSignPreview3 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string VisitorSignPreview4 = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private async Task ClosePopup()
+    {
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+        ResetForm();
+    }
+    private void ResetForm()
+    {
+        parentsDetails = new();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e, string fileType)
+    {
+        var file = e.File;
+
+        if (file == null)
+            return;
+
+        string extension = Path.GetExtension(file.Name);
+        string fileName = $"{Guid.NewGuid()}{extension}";
+        string folderName = fileType + "Path";
+
+        string folderPath = Path.Combine(env.WebRootPath, folderName);
+
+        if (!Directory.Exists(folderPath))
+            Directory.CreateDirectory(folderPath);
+
+        string filePath = Path.Combine(folderPath, fileName);
+
+        await using (var fs = new FileStream(filePath, FileMode.Create))
+        {
+            await file.OpenReadStream(5 * 1024 * 1024).CopyToAsync(fs);
+        }
+
+        string dbPath = $"/{folderName}/{fileName}";
+
+        switch (fileType)
+        {
+            case "visitor1Image":
+                studentVisitordetails.Visitor1ImagePath = dbPath;
+                VisitorImagePreview1 = dbPath;
+                Visitor1SelectedFile = file;
+                break;
+
+            case "visitor2Image":
+                studentVisitordetails.Visitor2ImagePath = dbPath;
+                VisitorImagePreview2 = dbPath;
+                Visitor2SelectedFile = file;
+                break;
+
+            case "visitor3Image":
+                studentVisitordetails.Visitor3ImagePath = dbPath;
+                VisitorImagePreview3 = dbPath;
+                Visitor3SelectedFile = file;
+                break;
+
+            case "visitor4Image":
+                studentVisitordetails.Visitor4ImagePath = dbPath;
+                VisitorImagePreview4 = dbPath;
+                Visitor4SelectedFile = file;
+                break;
+
+            case "visitor1Sign":
+                studentVisitordetails.Visitor1SignImagePath = dbPath;
+                VisitorSignPreview1 = dbPath;
+                Visitor1SignFile = file;
+                break;
+
+            case "visitor2Sign":
+                studentVisitordetails.Visitor2SignImagePath = dbPath;
+                VisitorSignPreview2 = dbPath;
+                Visitor2SignFile = file;
+                break;
+
+            case "visitor3Sign":
+                studentVisitordetails.Visitor3SignImagePath = dbPath;
+                VisitorSignPreview3 = dbPath;
+                Visitor3SignFile = file;
+                break;
+
+            case "visitor4Sign":
+                studentVisitordetails.Visitor4SignImagePath = dbPath;
+                VisitorSignPreview4 = dbPath;
+                Visitor4SignFile = file;
+                break;
+
+            case "visitorFSign":
+                studentVisitordetails.VisitorFSignImagePath = dbPath;
+                FatherSignPreview = dbPath;
+                VisitorFSignFile = file;
+                break;
+
+            case "visitorMSign":
+                studentVisitordetails.VisitorMSignImagePath = dbPath;
+                MotherSignPreview = dbPath;
+                VisitorMSignFile = file;
+                break;
+        }
+
+        StateHasChanged();
+
+    }
+    private async Task OpenFilePicker(string fileType)
+    {
+        bool isValid = fileType switch
+        {
+            "visitor1Image" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor1Name)
+                               && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor1Relation),
+            "visitor2Image" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor2Name)
+                               && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor2Relation),
+
+            "visitor3Image" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor3Name)
+                               && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor3Relation),
+
+            "visitor4Image" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor4Name)
+                               && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor4Relation),
+
+            "visitor1Sign" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor1Name)
+                              && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor1Relation),
+
+            "visitor2Sign" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor2Name)
+                              && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor2Relation),
+
+            "visitor3Sign" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor3Name)
+                              && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor3Relation),
+
+            "visitor4Sign" => !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor4Name)
+                              && !string.IsNullOrWhiteSpace(studentVisitordetails.Visitor4Relation),
+
+            "visitorFSign" => !string.IsNullOrWhiteSpace(parentsDetails.FatherName),
+
+            "visitorMSign" => !string.IsNullOrWhiteSpace(parentsDetails.MotherName),
+
+            _ => true
+        };
+
+        if (!isValid)
+        {
+            await customAlert.ShowCustomAlert("Please fill the required details.", false);
+            return;
+        }
+
+        await JS.InvokeVoidAsync("openFilePicker", fileType);
+        StateHasChanged();
+
+    }
+    private async Task DeleteVisitorImage(string imagefor)
+    {
+        IsVisible = false;
+        var submit = await Alert.ShowConfirm("Are you sure, you want to remove this image?");
+        if (!submit)
+        {
+            IsVisible = true;
+            StateHasChanged();
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            profileImageremove.GroupCode = groupcode;
+            profileImageremove.BranchCode = branchcode;
+            profileImageremove.SessionId = SessionId;
+            profileImageremove.StudentId = StudentId;
+            profileImageremove.ImageFor = imagefor;
+            profileImageremove.UpdatedBy = username;
+            var apiresponse = await httpService.Post<ApiResponse<string>>("ViewStudent/RemoveProfileImage", profileImageremove);
+            if (apiresponse.Success && apiresponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Image removed successfully.");
+                profileImageremove = new();
+                IsLoading = false;
+                await LoadData();
+                IsVisible = true;
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("showErrorAlert", ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+    }
+
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var userResult = await sessionStorage.GetAsync<string>("UserName");
+        username = userResult.Value;
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+        PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
+        parentsDetails = await httpService.Post<StudentParentDetailsModel>("ViewStudent/GetStudentParentDetails", searchAnyRequest) ?? new();
+        studentVisitordetails = await httpService.Post<StudentVisitorsModel>("ViewStudent/GetStudentVisitors", searchAnyRequest) ?? new();
+        ShowImagePreview();
+
+    }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         await LoadData();
+    //         CurrentSession = await _commonmethod.SetCurrentSessionData();
+    //         foreach (var item in classlist)
+    //         {
+    //             item.IsSelected = true;
+    //         }
+    //         StateHasChanged();
+    //     }
+    // }
+    protected override async Task OnParametersSetAsync()
+    {
+        if (StudentId != 0)
+        {
+            searchAnyRequest.StudentId = StudentId;
+            searchAnyRequest.SessionId = SessionId;
+            await LoadData();
+        }
+    }
+
+    private async Task OnSaveVisitorDetails()
+    {
+        try
+        {
+            studentVisitordetails.GroupCode = groupcode;
+            studentVisitordetails.BranchCode = branchcode;
+            studentVisitordetails.StudentId = StudentId;
+            studentVisitordetails.CreatedBy = username;
+            IsVisible = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to submit records?");
+            if (!submit)
+            {
+                IsVisible = true;
+                StateHasChanged();
+                return;
+            }
+            string apiurl = "ViewStudent/SaveStudentVisitors";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiurl, studentVisitordetails);
+            if (apiResponse.Success)
+            {
+
+                if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowSuccess("Visitor's details submitted successfully.");
+                    studentVisitordetails = new();
+                    StateHasChanged();
+                    await LoadData();
+                    IsVisible = true;
+                }
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private void ShowImagePreview()
+    {
+        FatherSignPreview = string.IsNullOrEmpty(studentVisitordetails.VisitorFSignImagePath)
+         ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+         : studentVisitordetails.VisitorFSignImagePath;
+        MotherSignPreview = string.IsNullOrEmpty(studentVisitordetails.VisitorMSignImagePath)
+         ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+         : studentVisitordetails.VisitorMSignImagePath;
+        MotherImagePreview = string.IsNullOrEmpty(parentsDetails.MotherImagePath)
+          ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+          : parentsDetails.MotherImagePath;
+        FatherImagePreview = string.IsNullOrEmpty(parentsDetails.FatherImagePath)
+          ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+          : parentsDetails.FatherImagePath;
+
+        VisitorImagePreview1 = string.IsNullOrEmpty(studentVisitordetails.Visitor1ImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor1ImagePath;
+
+        VisitorImagePreview2 = string.IsNullOrEmpty(studentVisitordetails.Visitor2ImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor2ImagePath;
+
+        VisitorImagePreview3 = string.IsNullOrEmpty(studentVisitordetails.Visitor3ImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor3ImagePath;
+
+        VisitorImagePreview4 = string.IsNullOrEmpty(studentVisitordetails.Visitor4ImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor4ImagePath;
+
+
+        VisitorSignPreview1 = string.IsNullOrEmpty(studentVisitordetails.Visitor1SignImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor1SignImagePath;
+
+        VisitorSignPreview2 = string.IsNullOrEmpty(studentVisitordetails.Visitor2SignImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor2SignImagePath;
+
+        VisitorSignPreview3 = string.IsNullOrEmpty(studentVisitordetails.Visitor3SignImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor3SignImagePath;
+
+        VisitorSignPreview4 = string.IsNullOrEmpty(studentVisitordetails.Visitor4SignImagePath)
+            ? "https://demo.schooleye.in/Images/NoPhoto.gif"
+            : studentVisitordetails.Visitor4SignImagePath;
+    }
+
+}

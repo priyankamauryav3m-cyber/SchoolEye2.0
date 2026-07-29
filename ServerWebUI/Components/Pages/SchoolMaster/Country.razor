@@ -1,0 +1,342 @@
+﻿@page "/country"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Country </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddCountry" />
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.CountryName)" Title="Country Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="CountryName ..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditCountry(context)" OnStatusClick="() => ChangeCountryStatus(context.CountryId, context.IsValid)" />
+                                </TemplateColumn>
+
+                            </QuickGrid>
+
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (ShowPopup)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Country</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                            <EditForm Model="@country" OnValidSubmit="@OnSave">
+                                <DataAnnotationsValidator />
+                                <div class="modal-body">
+                                        <div class="row m-0 form-row">
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                <div class="form-box-group">
+                                                    <InputText class="floating-input" placeholder=" "
+                                                               Value="@country.CountryName"
+                                                               ValueExpression="@(() => country.CountryName)"
+                                                               ValueChanged="@((string val) => OnCountryChanged(val))" />
+                                                    <label class="floating-label">
+                                                        Country Name <span class="required">*</span>
+                                                    </label>
+                                                    <ValidationMessage For="@(() => country.CountryName)" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                <div class="form-box-group">
+                                                    <InputText class="floating-input" placeholder=" " @bind-Value="country.Remarks" />
+                                                    <label class="floating-label">Remarks</label>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <div class="form-group btn-gr">
+                                        <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                    </div>
+                                </div>
+                            </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+@code {
+    private bool IsLoading = true;
+    private CountryModel country = new();
+    private string oldcdataModel = "";
+    private List<CountryModel> countrylist = new();
+    private bool ShowPopup = false;
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string username = "";
+    HttpResponseMessage response;
+    private EditContext editContext;
+
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value;
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private void OnCountryChanged(string value)
+    {
+        country.CountryName =
+            System.Text.RegularExpressions.Regex
+            .Replace(value ?? "", "[^a-zA-Z ]", "");
+        StateHasChanged();
+    }
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        string ApiUri = "Country/GetCountry";
+        countrylist = await httpService.Get<List<CountryModel>>(ApiUri) ?? new();
+        IsLoading = false;
+
+
+    }
+    protected IQueryable<CountryModel> FilteredItems
+    {
+        get
+        {
+            var result = countrylist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.CountryName != null && x.CountryName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.Remarks != null && x.Remarks.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void AddCountry()
+    {
+        country = new();
+        ShowPopup = true;
+    }
+
+    private async Task OnSave()
+    {
+
+        try
+        {
+
+            if (country.CountryId > 0)
+            {
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(country, oldcdataModel);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+            ShowPopup = false;
+            country.IsValid = true;
+            country.CreatedBy = username;
+            country.CreatedDate = DateTime.Now;
+            string apiUrl = "Country/AddOrUpdateCountry";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, country);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("Country" + @Localizer["Already"]);
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Country" + @Localizer["Inserted"]);
+            }
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Country" + @Localizer["Updated"]);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await LoadData();
+            country = new CountryModel();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private void EditCountry(CountryModel item)
+    {
+        country = new CountryModel
+            {
+                CountryId = item.CountryId,
+                CountryName = item.CountryName
+            };
+        oldcdataModel = CommonMethod.CreateSnapshot(country);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        country = new();
+        ShowPopup = false;
+    }
+
+    private async Task ChangeCountryStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "Country/DeleteCountry";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+}

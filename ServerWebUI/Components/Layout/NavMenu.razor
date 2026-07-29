@@ -1,0 +1,296 @@
+﻿@inject IJSRuntime JS
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject NavigationManager Nav
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Components.Authorization
+@using ServerWebUI.Components.Common
+@using System.IdentityModel.Tokens.Jwt
+@rendermode InteractiveServer
+@inject ProtectedSessionStorage sessionStorage
+@inject PermissionState permissionState
+@inject BookmarkState BookmarkState
+<style>
+    .right-menu .list-group{
+        gap: 5px;
+    }
+</style>
+<aside class="side-menu">
+    <div class="sidebar-menu">
+        <ul class="asidebar-nav" id="asidebar-nav">
+            <li class="menu-group d-flex align-items-center gap-2">
+                <p class="m-0 fts-12">Students</p>
+                <hr class="m-0 w-webkit">
+            </li>
+
+            <li class="nav-item">
+                <a href="/@DashboardUrl" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
+                   title="&nbsp; Dashboard &nbsp;">
+                    <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
+                    <span>Dashboard</span><i class="bi bi-chevron-right ms-auto"></i>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a href="/view-student" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
+                   title="&nbsp; View Student &nbsp;">
+                    <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
+                    <span>View Student</span><i class="bi bi-chevron-right ms-auto"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/invoicegeneration" class="nav-link collapsed" data-toggle="tooltip"
+                   data-placement="right" title="Role Master">
+                    <div class="menu-ico-box"><i class="bi bi-award"></i></div>
+                    <span>Invoice Generation</span>
+                    <i class="bi bi-chevron-right ms-auto"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/rolemaster" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
+                   title="&nbsp; Role &nbsp;">
+                    <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
+                    <span>Role</span><i class="bi bi-chevron-right ms-auto"></i>
+                </a>
+            </li>
+
+      
+       
+
+            @foreach (var item in feature)
+            {
+                <li class="menu-group d-flex align-items-center gap-2">
+                    <p class="m-0 fts-12">@item.MName</p>
+                    <hr class="m-0 w-webkit">
+                </li>
+                @foreach (var fet in item.Features)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" data-bs-target="#list_@fet.FeatureId" data-bs-toggle="collapse" href="#">
+                            <div class="menu-ico-box"><i class="@fet.Icon"></i> </div>
+                            <span>@fet.FeaturesName</span><i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <ul id="list_@fet.FeatureId" class="nav-content collapse dw-ul right-shift" data-bs-parent="#asidebar-nav">
+                            @{
+                                var activities = fet.Activites.ToList();
+                            }
+
+                            @for (int i = 0; i < activities.Count; i += 20)
+                            {
+                                var leftMenus = activities.Skip(i).Take(10).ToList();
+                                var rightMenus = activities.Skip(i + 10).Take(10).ToList();
+
+                                <li class="left-menu">
+                                    <div class="list-group list-none p-0">
+
+                                        @foreach (var activity in leftMenus)
+                                        {
+                                            <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                                <span class="flex-grow-1">@activity.DisplayName</span>
+                                                <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
+                                                   data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
+                                                   @onclick:stopPropagation="true"
+                                                   @onclick="() => ToggleAsync(activity)">
+                                                </i>
+                                            </NavLink>
+                                        }
+                                    </div>
+                                </li>
+
+                                @if (rightMenus.Any())
+                                {
+                                    <li class="right-menu">
+                                        <div class="list-group list-none p-0">
+
+                                            @foreach (var activity in rightMenus)
+                                            {
+                                                <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                                    <span class="flex-grow-1">@activity.DisplayName</span>
+                                                    <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
+                                                       data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
+                                                       @onclick:stopPropagation="true"
+                                                       @onclick="() => ToggleAsync(activity)">
+                                                    </i>
+                                                </NavLink>
+                                            }
+
+                                        </div>
+                                    </li>
+                                }
+                            }
+                            @* @{
+                                var leftMenus = fet.Activites.Take(10).ToList();
+                                var rightMenus = fet.Activites.Skip(10).ToList();
+                            }
+                            <li class="left-menu">
+                                <div class="list-group list-none p-0">
+
+
+                                    @foreach (var activity in leftMenus)
+                                    {
+
+                                        <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                            <span class="flex-grow-1">@activity.DisplayName</span>
+                                            <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
+                                               data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
+                                               @onclick:stopPropagation="true" @onclick="() => ToggleAsync(activity)"></i>
+                                        </NavLink>
+
+                                    }
+                                </div>
+                            </li>
+                            @if (leftMenus.Count == 10)
+                            {
+                                <li class="right-menu">
+                                    <div class="list-group list-none p-0">
+
+                                        @foreach (var activity in rightMenus)
+                                        {
+
+                                            <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                                <span class="flex-grow-1">@activity.DisplayName</span>
+                                                <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
+                                                   data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
+                                                   @onclick:stopPropagation="true" @onclick="() => ToggleAsync(activity)"></i>
+                                            </NavLink>
+
+                                        }
+                                    </div>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="left-menu">
+                                    <div class="list-group list-none p-0">
+
+
+                                        @foreach (var activity in leftMenus)
+                                        {
+
+                                            <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                                <span class="flex-grow-1">@activity.DisplayName</span>
+                                                <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
+                                                   data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
+                                                   @onclick:stopPropagation="true" @onclick="() => ToggleAsync(activity)"></i>
+                                            </NavLink>
+
+                                        }
+                                    </div>
+                                </li>
+                            } *@
+
+                        </ul>
+                    </li>
+                }
+            }
+
+
+
+        </ul>
+    </div>
+</aside>
+
+
+
+@code {
+    private bool isStudent = true;
+    private List<RoleaBase> menus = new();
+    private BookMarkModel bookMark = new();
+    private List<SuperAdminModule> feature = new();
+    private List<RolebaseActivity> rolebaseActivities = new();
+    private string? roleId;
+    private string? username;
+    public event Action? OnChange;
+    private string DashboardUrl = "/";
+    private async Task ToggleAsync(SuperAdminActivity item)
+    {
+        await BookmarkState.ToggleAsync(new BookMarkModel
+        {
+            Url = item.URL,
+            Icon = item.Icon,
+            BookMarkCaption = item.DisplayName,
+            IsValid = true,
+            CreateBy = username
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetMenuMappingList();
+            await BookmarkState.LoadAsync(username);
+            // await JS.InvokeVoidAsync("initMainJsFunctions");
+        }
+
+        StateHasChanged();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        BookmarkState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        BookmarkState.OnChange -= StateHasChanged;
+    }
+
+
+    protected async Task GetMenuMappingList()
+    {
+        var data = await sessionStorage.GetAsync<string>("Dashboard");
+        DashboardUrl = data.Value;
+        if (string.IsNullOrEmpty(DashboardUrl))
+        {
+            DashboardUrl = "/";
+        }
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        var userResult = await sessionStorage.GetAsync<string>("UserName");
+        username = userResult.Value;
+        string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
+        string apiUrl1 = "SuperAdminModule/RoleBasedActivity/" + roleId;
+        menus = await httpService.Get<List<RoleaBase>>(apiUrl) ?? new();
+        rolebaseActivities = await httpService.Get<List<RolebaseActivity>>(apiUrl1) ?? new();
+        var admitPermission = rolebaseActivities.Where(x => x.ModuleId >= 1 && x.FeatureId >= 1).ToList();
+        //  permissionState.RoleId = roleId;
+        permissionState.SetFromRoleActivities(roleId, admitPermission);
+        feature = menus.GroupBy(m => new { m.ModuleId, m.MName })
+            .Select(module => new SuperAdminModule
+            {
+                ModuleId = module.Key.ModuleId,
+                MName = module.Key.MName,
+
+                Features = module
+                    .GroupBy(f => new { f.FeatureId, f.FeaturesName, f.Icon })
+                    .Select(feat => new SuperAdminFeatures
+                    {
+                        FeatureId = feat.Key.FeatureId,
+                        FeaturesName = feat.Key.FeaturesName,
+                        Icon = feat.Key.Icon,
+
+                        Activites = feat
+                            .Select(a => new SuperAdminActivity
+                            {
+                                ActivityId = a.ActivityId,
+                                DisplayName = a.DisplayName,
+                                URL = a.URL
+                            }).ToList()
+                    }).ToList()
+            }).ToList();
+       // permissionState.SetMenus(roleId, admitPermission, feature);
+    }
+
+}

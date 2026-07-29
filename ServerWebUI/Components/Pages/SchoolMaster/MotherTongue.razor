@@ -1,0 +1,361 @@
+﻿@page "/mothertongue"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Mother Tongue </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddTongue" />
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.TongueName)" Title="Tongue Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="TongueName ..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" class="text-center" Sortable="true" Align="Align.Center">
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditTongue(context)" OnStatusClick="() => ChangeTongueStatus(context.TongueId, context.IsValid)" />
+                                </TemplateColumn>
+
+                            </QuickGrid>
+
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (ShowPopup)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Mother Tongue</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                            <EditForm Model="@tongue" OnValidSubmit="@OnSave">
+                                <DataAnnotationsValidator />
+                                <div class="modal-body">
+                                        <div class="row m-0 form-row">
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                <div class="form-box-group">
+                                                    <InputText class="floating-input"
+                                                               placeholder=" "
+                                                               Value="@tongue.TongueName"
+                                                               ValueExpression="@(() => tongue.TongueName)"
+                                                               ValueChanged="@((string val) => OnTongueChanged(val))" />
+                                                    <label class="floating-label">
+                                                        Tongue Name <span class="required">*</span>
+                                                    </label>
+                                                    <ValidationMessage For="@(() => tongue.TongueName)" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                <div class="form-box-group">
+                                                    <InputNumber class="floating-input"
+                                                               placeholder=" "
+                                                               @bind-Value="tongue.DisplayOrder" />
+                                                    <label class="floating-label">
+                                                        Display Order <span class="required">*</span>
+                                                    </label>
+                                                    <ValidationMessage For="@(() => tongue.DisplayOrder)" />
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                <div class="form-box-group">
+                                                    <InputText class="floating-input" placeholder=" " @bind-Value="tongue.Remarks" />
+                                                    <label class="floating-label">Remarks</label>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <div class="form-group btn-gr">
+                                        <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                    </div>
+                                </div>
+                            </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+@code {
+    private bool IsLoading = true;
+    private TongueModel tongue = new();
+    private string oldcdataModel = "";
+    private List<TongueModel> tonguelist = new();
+    private bool ShowPopup = false;
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string username = "";
+    HttpResponseMessage response;
+    private EditContext editContext;
+
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value;
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private void OnTongueChanged(string value)
+    {
+        tongue.TongueName =
+            System.Text.RegularExpressions.Regex
+            .Replace(value ?? "", "[^a-zA-Z ]", "");
+        StateHasChanged();
+    }
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        string ApiUri = "MotherTongue/GetMotheTongue";
+        tonguelist = await httpService.Get<List<TongueModel>>(ApiUri) ?? new();
+        IsLoading = false;
+
+
+    }
+    protected IQueryable<TongueModel> FilteredItems
+    {
+        get
+        {
+            var result = tonguelist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.TongueName != null && x.TongueName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.Remarks != null && x.Remarks.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void AddTongue()
+    {
+        tongue = new();
+        ShowPopup = true;
+    }
+
+    private async Task OnSave()
+    {
+
+        try
+        {
+
+            if (tongue.TongueId > 0)
+            {
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(tongue, oldcdataModel);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+            ShowPopup = false;
+            tongue.IsValid = true;
+            tongue.CreatedBy = username;
+            tongue.CreatedDate = DateTime.Now;
+            string apiUrl = "MotherTongue/GetAddOrUpdateMotheTongue";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, tongue);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("Mother Tongue" + @Localizer["Already"]);
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Mother Tongue" + @Localizer["Inserted"]);
+            }
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Mother Tongue" + @Localizer["Updated"]);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await LoadData();
+            tongue = new TongueModel();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private void EditTongue(TongueModel item)
+    {
+        tongue = new TongueModel
+            {
+                TongueId = item.TongueId,
+                TongueName = item.TongueName,
+                DisplayOrder = item.DisplayOrder,
+                Remarks = item.Remarks
+            };
+        oldcdataModel = CommonMethod.CreateSnapshot(tongue);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        tongue = new();
+        ShowPopup = false;
+    }
+
+    private async Task ChangeTongueStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "MotherTongue/DeleteMotheTongue";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+}

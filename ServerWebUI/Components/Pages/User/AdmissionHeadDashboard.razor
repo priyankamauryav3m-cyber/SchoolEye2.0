@@ -1,0 +1,801 @@
+﻿@page "/AdmissionHead"
+@using DomainModel.Common
+@using DomainModel
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.Extensions.Localization
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@using Newtonsoft.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage sessionStorage
+@using System.Text
+@inject IWebHostEnvironment env
+@inject Shared.IHttpService httpService
+@using System.Text.RegularExpressions;
+@using ServerWebUI.Components.AlertComponent
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+<style>
+    .stat-spark {
+        width: 100%;
+    }
+
+    .quickgrid th {
+        background-color: #fcfcfc;
+        border: none;
+    }
+
+    .quickgrid[theme=default] .col-title {
+        color: #64748b
+    }
+
+    .quickgrid[theme="default"] > tbody > tr > td {
+        border: none;
+    }
+
+    .quickgrid tbody, td, tfoot, th, thead, tr {
+        border-style: solid;
+        border-width: 0;
+        border-color: #f7f0f0;
+    }
+
+        .quickgrid tbody tr:hover td {
+            background-color: #f8fafc;
+        }
+
+    .quickgrid thead th:last-child {
+        min-width: 110px;
+    }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 180px;
+    }
+
+    .stat-change {
+        padding-top: 10px;
+        padding-left: 35px;
+    }
+
+    .state-icon--bxds {
+        gap: 12px;
+    }
+
+    .progress-bar-custom {
+        height: 5px;
+    }
+
+    .svg-pt {
+        padding-top: 40px;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+    }
+
+    .stage-icon {
+        width: 50px;
+        height: 50px;
+    }
+</style>
+
+<section class="main-container">
+
+    <div class="row m-0 main-row">
+        <div class="content">
+            <div class="breadcrumb-custom">
+                <a class="current" href="javascript:void(0)" @onclick="RefreshPage">Home / Dashboard</a>
+            </div>
+
+            <div class="row g-3 mb-4 align-items-center">
+                <div class="col-12 col-md-12 col-lg-3 col-xxl-4">
+                    <h2 class="page-title">@DashboardName  Dashboard</h2>
+                    <p class="page-sub">Welcome back, Admin User! Here's what's happening in your school today.</p>
+                </div>
+                <div class="col-12 col-md-12 col-lg-9 col-xxl-8">
+                    <div class="row g-2">
+                        <div class="col-6 col-md-6 col-lg-3 col-xll-3">
+                            <button class="qa-btn qa-adm-btn" data-action="new-admission" type="button" @onclick="AdmitStudentDirect">
+                                <div class="qa-icon blue"><i class="fas fa-plus"></i></div>
+                                <div>
+                                    <div class="qa-title">New Admission</div>
+                                    <div class="qa-desc">Add a new student</div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="col-6 col-md-6 col-lg-3 col-xll-3">
+                            <button class="qa-btn qa-fee-btn" data-action="collect-fee">
+                                <div class="qa-icon green"><i class="fa fa-inr"></i></div>
+                                <div>
+                                    <div class="qa-title">Collect Fee</div>
+                                    <div class="qa-desc">Create new receipt</div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="col-6 col-md-6 col-lg-3 col-xll-3">
+                            <button class="qa-btn qa-search-btn" data-action="search-student">
+                                <div class="qa-icon purple"><i class="fas fa-search"></i></div>
+                                <div>
+                                    <div class="qa-title">Search Student</div>
+                                    <div class="qa-desc">Find student details</div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="col-6 col-md-6 col-lg-3 col-xll-3">
+                            <button class="qa-btn qa-rem-btn" data-action="send-reminder">
+                                <div class="qa-icon orange"><i class="fas fa-envelope"></i></div>
+                                <div>
+                                    <div class="qa-title">Send Reminder</div>
+                                    <div class="qa-desc">Send fee reminders</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-xl-3">
+
+                    <div class="stat-card">
+                        <div class="row">
+                            <div class="col-6 col-md-8">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap">Total Students</div>
+                                        <div class="stat-value">@adminDashboard.TotalStudent</div>
+                                    </div>
+                                </div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @adminDashboard.StudentPercentage vs last session</div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="svg-pt">
+                                    <svg class="stat-spark" viewBox="0 0 80 40">
+                                        <defs>
+                                            <linearGradient id="studentAreaShadow" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stop-color="#4f7cff" stop-opacity="0.35" />
+                                                <stop offset="100%" stop-color="#4f7cff" stop-opacity="0" />
+                                            </linearGradient>
+                                        </defs>
+                                        <polygon fill="url(#studentAreaShadow)" stroke="none" points="@GetTotalStudentAreaPoints(adminDashboard.StudentPoint)" />
+                                        <polyline fill="none" stroke="#4f7cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@GetTotalStudentPoints(adminDashboard.StudentPoint)" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card">
+                        <div class="row">
+                            <div class="col-6 col-md-8">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label">Today's Collection</div>
+                                        <div class="stat-value">
+                                            ₹ <span>@(adminDashboard.TodayFeeCollection.ToString("N0", new System.Globalization.CultureInfo("en-IN")) ?? "0")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stat-change down"><i class="fas fa-arrow-down"></i> @adminDashboard.CollectionPercentage vs last yesterday</div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="svg-pt">
+                                    <svg class="stat-spark" viewBox="0 0 80 40">
+                                        <defs>
+                                            <linearGradient id="collectionAreaShadow" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.35" />
+                                                <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+                                            </linearGradient>
+                                        </defs>
+
+                                        <polygon fill="url(#collectionAreaShadow)" stroke="none"
+                                                 points="@GetCollectionAreaPoints(adminDashboard.FeeCollecionPoints)" />
+
+                                        <polyline fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                                                  points="@GetCollectionPoints(adminDashboard.FeeCollecionPoints)" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card">
+                        <div class="row">
+                            <div class="col-6 col-md-8">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon green"><i class="fas fa-user-plus"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label">New Admissions</div>
+                                        <div class="stat-value">@adminDashboard.NewAdmissions</div>
+                                    </div>
+                                </div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @adminDashboard.AdmissionPercentage vs last month</div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="svg-pt">
+                                    <svg class="stat-spark" viewBox="0 0 80 40">
+                                        <defs>
+                                            <linearGradient id="newStudentAreaShadow" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stop-color="#22c55e" stop-opacity="0.35" />
+                                                <stop offset="100%" stop-color="#22c55e" stop-opacity="0" />
+                                            </linearGradient>
+                                        </defs>
+
+                                        <polygon fill="url(#newStudentAreaShadow)" stroke="none" points="@GetNewStudentAreaPoints(adminDashboard.NewStudentPoints)" />
+
+                                        <polyline fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                                                  points="@GetNewStudentPoints(adminDashboard.NewStudentPoints)" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card">
+                        <div class="row">
+                            <div class="col-6 col-md-8">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon red"><i class="fas fa-file-invoice"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label">Outstanding Fees</div>
+                                        <div class="stat-value ">
+                                            ₹ <span>@(adminDashboard.OutstandingFees.ToString("N0", new System.Globalization.CultureInfo("en-IN")) ?? "0")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stat-change down"><i class="fas fa-arrow-down"></i> @adminDashboard.OutstandingPercentage vs last month</div>
+
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="svg-pt">
+                                    <svg class="stat-spark" viewBox="0 0 80 40">
+                                        <defs>
+                                            <linearGradient id="outstandingAreaShadow" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.35" />
+                                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+                                            </linearGradient>
+                                        </defs>
+
+                                        <polygon fill="url(#outstandingAreaShadow)" stroke="none" points="@GetOutstandingAreaPoints(adminDashboard.OutstandingFeePoints)" />
+
+                                        <polyline fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                                                  points="@GetOutstandingPoints(adminDashboard.OutstandingFeePoints)" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline & Fee -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-lg-7">
+                    <div class="card-custom card-custom-mn-hg">
+                        <div class="card-header-custom">
+                            <div class="card-title-custom">Admission Pipeline</div>
+                            <i class="fas fa-info-circle" style="color:#94a3b8; cursor:pointer;"
+                               title="Track admission conversion"></i>
+                        </div>
+                        <div class="pipeline">
+                            <div class="stage">
+                                <div class="stage-icon c1"><i class="fas fa-comment-dots"></i></div>
+                                <div>
+                                    <div class="stage-name">Enquiry</div>
+                                    <div class="stage-count">@admissionDashboardpipeline.TotalEnquiry</div>
+                                    <div class="stage-pct">@admissionDashboardpipeline.EnquiryPercentage</div>
+                                    <div class="stage-bar b1"><span style="width:@(admissionDashboardpipeline.EnquiryPercentage)"></span></div>
+                                </div>
+                            </div>
+                            <div class="stage">
+                                <div class="stage-icon c2"><i class="fas fa-file-alt"></i></div>
+                                <div>
+                                    <div class="stage-name">Registration</div>
+                                    <div class="stage-count">@admissionDashboardpipeline.Application</div>
+                                    <div class="stage-pct">@admissionDashboardpipeline.ApplicationPercentage</div>
+                                    <div class="stage-bar b2"> <span style="width:@admissionDashboardpipeline.ApplicationPercentage;"></span></div>
+                                </div>
+                            </div>
+                            <div class="stage">
+                                <div class="stage-icon c3"><i class="fas fa-clipboard-check"></i></div>
+                                <div>
+                                    <div class="stage-name">Document Verification</div>
+                                    <div class="stage-count">193</div>
+                                    <div class="stage-pct">44.7%</div>
+                                    <div class="stage-bar b3"><span data-w="45"></span></div>
+                                </div>
+                            </div>
+                            <div class="stage">
+                                <div class="stage-icon c4"><i class="fas fa-user"></i></div>
+                                <div>
+                                    <div class="stage-name">Interview</div>
+                                    <div class="stage-count">121</div>
+                                    <div class="stage-pct">28.0%</div>
+                                    <div class="stage-bar b4"><span data-w="28"></span></div>
+                                </div>
+                            </div>
+                            <div class="stage">
+                                <div class="stage-icon c5"><i class="fas fa-shield-alt"></i></div>
+                                <div>
+                                    <div class="stage-name">Confirmed Admission</div>
+                                    <div class="stage-count">@admissionDashboardpipeline.TotalAdmission</div>
+                                    <div class="stage-pct">@admissionDashboardpipeline.AdmissionPercentage</div>
+                                    <div class="stage-bar b5">  <span style="width:@(admissionDashboardpipeline.AdmissionPercentage)"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="info-strip">
+                            <div class="txt">
+                                <i class="fas fa-info-circle"></i> <strong>20.1%</strong> of enquiries have been
+                                converted into confirmed admissions.
+                            </div>
+                            <a href="#">View full pipeline →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    <div class="card-custom">
+                        <div class="card-header-custom">
+                            <div class="card-title-custom">Fee Collection Snapshot</div>
+                            <select @bind="SelectedData" @bind:after="GetCollectionFeehead" class="select-sm" id="feePeriod">
+                                <option value="This Month">This Month</option>
+                                <option value="Last Month">Last Month</option>
+                                <option value="This Quarter">This Quarter</option>
+                                <option value="This Year">This Year</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <QuickGrid Items="@studentcollectionmoduleQuery" Class="table">
+                                @{
+                                    int index = 0;
+                                }
+
+                                <TemplateColumn Title="Fee Head / Category" Align="Align.Left">
+
+                                    <ChildContent>
+                                        <div class="fee-cell">
+                                            <div class="fee-icon g"><i class="fas fa-book"></i></div>
+                                            @(string.IsNullOrEmpty(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                        </div>
+
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Class="text-right" Title="Collected (₹)" Align="Align.Right">
+                                    <ChildContent>
+                                        @{
+                                            var currentIndex = index++;
+                                        }
+                                        @context.CollectionAmount.ToString("N0")
+                                        <div class="progress-bar-custom b">
+                                            <span style="@($"width:{GetPercentageValue(context.Percentage)}%"); background:@GetFeeHeadColor(currentIndex)"></span>
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="% of Target" Class="text-right" Align="Align.Right">
+
+                                    <ChildContent>
+                                        <div>
+                                            @(string.IsNullOrEmpty(context.Percentage) ? " " : context.Percentage)
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+
+                        </div>
+                        <div class="mt-3"><a href="#" class="view-link">View fee collection report →</a></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <div>
+                        <h3 class="card-title-custom">Recent Activity</h3>
+                        <div class="text-muted mt-1" style="font-size:13px;">Latest actions and updates across the system.</div>
+                    </div>
+                    <a href="#" class="view-link">View full activity →</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Activity</th>
+                                <th>Student / Reference</th>
+                                <th>Class / Category</th>
+                                <th>Performed By</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityBody">
+                            <tr>
+                                <td>Today, 10:15 AM</td>
+                                <td>
+                                    <div class="act-cell">
+                                        <div class="act-icon green"><i class="fas fa-check"></i></div>New Admission Confirmed
+                                    </div>
+                                </td>
+                                <td>Aarav Sharma</td>
+                                <td>Grade 6 - A</td>
+                                <td>Rohit Verma</td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Today, 09:42 AM</td>
+                                <td>
+                                    <div class="act-cell">
+                                        <div class="act-icon blue"><i class="fas fa-rupee-sign"></i></div>Fee Receipt Created
+                                    </div>
+                                </td>
+                                <td>Diya Patel</td>
+                                <td>Grade 5 - B</td>
+                                <td>Priya Singh</td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Today, 09:10 AM</td>
+                                <td>
+                                    <div class="act-cell">
+                                        <div class="act-icon orange"><i class="fas fa-envelope"></i></div>Fee Reminder Sent
+                                    </div>
+                                </td>
+                                <td>Via Email to 32 Parents</td>
+                                <td>Multiple Classes</td>
+                                <td>System</td>
+                                <td><span class="status-badge in-progress">In Progress</span></td>
+                            </tr>
+                            <tr>
+                                <td>Yesterday, 05:30 PM</td>
+                                <td>
+                                    <div class="act-cell">
+                                        <div class="act-icon red"><i class="fas fa-times"></i></div>Application Rejected
+                                    </div>
+                                </td>
+                                <td>Vivaan Mehta</td>
+                                <td>Grade 4 - A</td>
+                                <td>Admin User</td>
+                                <td><span class="status-badge rejected">Rejected</span></td>
+                            </tr>
+                            <tr>
+                                <td>Yesterday, 03:22 PM</td>
+                                <td>
+                                    <div class="act-cell">
+                                        <div class="act-icon purple"><i class="fas fa-file-alt"></i></div>Document Verified
+                                    </div>
+                                </td>
+                                <td>Myra Iyer</td>
+                                <td>Grade 7 - C</td>
+                                <td>Sneha Joshi</td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="act-footer">
+                    <div>
+                        <i class="fas fa-info-circle"></i> Showing latest 5 activities. Go to <a href="#">Activity Log</a> for
+                        more details.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<AdmitChild IsVisible="@addstudent" OnClose="@ClosePopup" />
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+
+    private string GetNewStudentPoints(string studentPoints)
+    {
+        if (string.IsNullOrWhiteSpace(studentPoints))
+            return "";
+
+        var data = studentPoints.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+
+        if (data.Count == 1)
+            return "40,20";
+
+        int width = 80;
+        int height = 40;
+        int max = data.Max();
+
+        return string.Join(" ",
+            data.Select((value, index) =>
+            {
+                double x = index * (width / (double)(data.Count - 1));
+                double y = height - ((value / (double)max) * (height - 4));
+                return $"{Math.Round(x)},{Math.Round(y)}";
+            })
+        );
+    }
+
+    private string GetTotalStudentPoints(string studentPoints)
+    {
+        if (string.IsNullOrWhiteSpace(studentPoints))
+            return "";
+
+        var data = studentPoints
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => int.Parse(x))
+            .ToList();
+
+        if (data.Count == 1)
+            return $"40,20";
+
+        var max = data.Max();
+        int width = 80;
+        int height = 40;
+
+        return string.Join(" ",
+            data.Select((value, i) =>
+            {
+                double px = i * (width / (double)(data.Count - 1));
+                double py = height - ((value / (double)max) * (height - 4));
+
+                return $"{Math.Round(px)},{Math.Round(py)}";
+            }));
+    }
+    private string GetCollectionPoints(string collectionPoints)
+    {
+        if (string.IsNullOrWhiteSpace(collectionPoints))
+            return "";
+
+        var data = collectionPoints
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(decimal.Parse)
+            .ToList();
+
+        if (data.Count == 1)
+            return "40,20";
+
+        decimal max = data.Max();
+        int width = 80;
+        int height = 40;
+
+        return string.Join(" ",
+            data.Select((value, index) =>
+            {
+                var x = index * (width / (double)(data.Count - 1));
+                var y = height - ((double)(value / max) * (height - 4));
+
+                return $"{Math.Round(x)},{Math.Round(y)}";
+            }));
+    }
+    private string GetOutstandingPoints(string outstandingPoints)
+    {
+        if (string.IsNullOrWhiteSpace(outstandingPoints))
+            return "";
+
+        var data = outstandingPoints
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(decimal.Parse)
+            .ToList();
+
+        if (data.Count == 1)
+            return "40,20";
+
+        decimal max = data.Max();
+        int width = 80;
+        int height = 40;
+
+        return string.Join(" ",
+            data.Select((value, index) =>
+            {
+                double x = index * (width / (double)(data.Count - 1));
+                double y = height - ((double)(value / max) * (height - 4));
+
+                return $"{Math.Round(x)},{Math.Round(y)}";
+            }));
+    }
+    private CustomAlert customAlert;
+    private bool addstudent { get; set; }
+    private DateTime fromDate = DateTime.Now;
+    private DateTime toDate = DateTime.Now;
+    private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
+    private bool IsLoading = false;
+    string fromDateString = "", toDateString = "";
+    private string nameFilter = "";
+    private string branchcode = "";
+    private string groupcode = "";
+    private string UserName = "";
+    private string SelectedData = "This Year";
+    private long CurrentSession;
+    private string DashboardName = "";
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private List<FeeHeadCollectionDto> feeHeadCollectionlist = new();
+    private AdmissionDashboardModel admissionDashboardpipeline = new();
+    private AdminDashboardModal adminDashboard = new();
+    private void RefreshPage()
+    {
+        Navigation.NavigateTo("/adminDashboard", forceLoad: true);
+    }
+
+    protected IQueryable<FeeHeadCollectionDto> studentcollectionmoduleQuery
+    {
+        get
+        {
+            var result = feeHeadCollectionlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    private async Task GetAdmissionPipelineConfirmetion()
+    {
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.SessionId = CurrentSession;
+        var apiResponse = await httpService.Post<ApiResponse<AdmissionDashboardModel>>("AdminDashboard/GetAdmissionDas", searchAnyRequest) ?? new();
+        if (apiResponse.Success == true)
+        {
+            admissionDashboardpipeline = apiResponse.Data ?? new();
+        }
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        var dashboard = await sessionStorage.GetAsync<string>("RoleName");
+        DashboardName = dashboard.Value;
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.SessionId = CurrentSession;
+        string ApiUri1 = "AdminDashboard/GetAdminDashboard";
+
+        var apiResponse = await httpService.Post<ApiResponse<AdminDashboardModal>>(ApiUri1, searchAnyRequest) ?? new();
+        if (apiResponse.Success == true)
+        {
+            adminDashboard = apiResponse.Data ?? new();
+        }
+        await GetAdmissionPipelineConfirmetion();
+        await GetCollectionFeehead();
+        // string ApiUri = "BranchClass/GetClassCode";
+        // classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+
+        StateHasChanged();
+    }
+    private async Task GetCollectionFeehead()
+    {
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.SessionId = CurrentSession;
+        searchAnyRequest.RequestName = SelectedData;
+        var apiResponse = await httpService.Post<ApiResponse<List<FeeHeadCollectionDto>>>("AdminDashboard/GetHeadCollectionDashboard", searchAnyRequest) ?? new();
+        if (apiResponse.Success == true)
+        {
+            feeHeadCollectionlist = apiResponse.Data ?? new();
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task AdmitStudentDirect()
+    {
+        addstudent = true;
+        StateHasChanged();
+
+    }
+    private void ClosePopup()
+    {
+        addstudent = false;
+        StateHasChanged();
+    }
+    private decimal GetPercentageValue(string percentage)
+    {
+        if (string.IsNullOrWhiteSpace(percentage))
+            return 0;
+
+        percentage = percentage.Replace("%", "");
+
+        if (decimal.TryParse(percentage, out decimal result))
+        {
+            return Math.Min(result, 100); // 100 se upar nahi jayega
+        }
+
+        return 0;
+    }
+    private string GetFeeHeadColor(int index)
+    {
+        string[] colors =
+        {
+            "#22c55e", // Green
+            "#f59e0b", // Yellow
+            "#ef4444", // Red
+            "#8b5cf6", // Purple
+            "#06b6d4", // Cyan
+            "#ec4899", // Pink
+            "#84cc16", // Lime
+            "#f97316", // Orange
+            "#3b82f6", // Blue
+            "#6366f1"  // Indigo
+        };
+
+        return colors[index % colors.Length];
+    }
+
+    public string GetTotalStudentAreaPoints(string studentPoint)
+    {
+        string linePoints = GetTotalStudentPoints(studentPoint);
+
+        if (string.IsNullOrEmpty(linePoints))
+            return "";
+        var pointsArr = linePoints.Split(' ');
+        string firstX = pointsArr[0].Split(',')[0];
+        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
+        return $"{linePoints} {lastX},40 {firstX},40";
+    }
+    public string GetOutstandingAreaPoints(string outstandingPoints)
+    {
+        string linePoints = GetOutstandingPoints(outstandingPoints);
+
+        if (string.IsNullOrEmpty(linePoints))
+            return "";
+
+        var pointsArr = linePoints.Split(' ');
+        string firstX = pointsArr[0].Split(',')[0];
+        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
+
+        return $"{linePoints} {lastX},40 {firstX},40";
+    }
+
+    public string GetNewStudentAreaPoints(string newStudentPoints)
+    {
+        string linePoints = GetNewStudentPoints(newStudentPoints);
+
+        if (string.IsNullOrEmpty(linePoints))
+            return "";
+
+        var pointsArr = linePoints.Split(' ');
+        string firstX = pointsArr[0].Split(',')[0];
+        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
+
+        return $"{linePoints} {lastX},40 {firstX},40";
+    }
+
+    public string GetCollectionAreaPoints(string collectionPoints)
+    {
+        string linePoints = GetCollectionPoints(collectionPoints);
+
+        if (string.IsNullOrEmpty(linePoints))
+            return "";
+
+        var pointsArr = linePoints.Split(' ');
+        string firstX = pointsArr[0].Split(',')[0];
+        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
+
+        return $"{linePoints} {lastX},40 {firstX},40";
+    }
+}

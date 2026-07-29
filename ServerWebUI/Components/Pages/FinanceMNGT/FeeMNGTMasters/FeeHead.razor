@@ -1,0 +1,211 @@
+﻿@page "/feeHead"
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Fee Head </p>
+                <div class="d-flex gap-2">
+                    @* <button class="ui fade op-1 animated button form-btn" @onclick="AddFeeHeadModel">
+                        <div class="visible content">Add</div>
+                        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
+                    </button> *@
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddFeeHeadModel" />
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.FeeHeadName)" Title="Fee Head" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Fee Head ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.FeeHeadType)" Title="Head Type" Class="text-center" Sortable="true" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Head Type..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.FeeApplicableType)" Title="Fee Type" Class="text-center" Sortable="true" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Fee Type..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.FeeHeadAbbr)" Class="text-center" Title="Head Abbreviation" Align="Align.Center">
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Sortable="true" Title="Display Order" Class="text-center" Align="Align.Center">
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditFeeHead(context)" OnStatusClick="() => ChangeFeeHeadStatus(context.FeeHeadId, context.IsValid)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((feeHeadModel.FeeHeadId == 0) ? "Add Fee Head" : "Edit Fee Head")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@feeHeadModel" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeHeadModel.FeeHeadType">
+                                        <option  value="" selected >--Select--</option>
+                                        <option value="Admission">Admission</option>
+                                        <option value="General">General</option>
+                                        <option value="Tuition">Tuition</option>
+                                        <option value="Transport">Transport</option>
+                                        <option value="Refundable">Refundable</option>
+                                        <option value="Fine">Fine</option>
+                                        <option value="Other">Other</option>
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Head Type <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeHeadModel.FeeHeadType)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="feeHeadModel.FeeApplicableType">
+                                        <option  value="" selected >--Select--</option>
+                                        <option value="OneTime">OneTime</option>
+                                        <option value="Annual">Annual</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Miscellaneous">Miscellaneous</option>
+                                        <option value="OPT">Optional</option>
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Fee Applicable Type <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeHeadModel.FeeApplicableType)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="feeHeadModel.FeeHeadAbbr" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Head Abbreviation <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeHeadModel.FeeHeadAbbr)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="feeHeadModel.FeeHeadName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">
+                                        Head Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => feeHeadModel.FeeHeadName)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="feeHeadModel.DisplayOrder" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                    <label class="floating-label">Display Order</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="feeHeadModel.FeeHeadId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (feeHeadlist.Count > 0)
+    {
+    }
+}
+
+
+
+
+
+

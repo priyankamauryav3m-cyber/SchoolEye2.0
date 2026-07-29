@@ -1,0 +1,1474 @@
+﻿@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ServerWebUI.Components.Common
+@inject ICommonMethod _commonmethod
+@using System.Net
+@using System.Text.Json
+@using MyApp.Common
+@using System.Text.RegularExpressions
+@using ServerWebUI.Components.Pages.CommonPages
+@using static DomainModel.Admin.CommonDomain
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+
+@if (IsVisible)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Student Admission</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                @if (ShowSuccess)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        ✅ &nbsp; &nbsp; <strong> Sibling attched successfully !</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                <div class="tab-pane tab-pane-form fade show active overflow-auto min-h-650" style="height: calc(125vh - 265px)" ;>
+                    <EditForm Model="@studentDirectAdmission" OnValidSubmit="@(() => OnSave("Admission"))">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            <div class="tab-content form-tab-count">
+                                <div class="row m-0 form-row">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2  ">
+                                        <div class="form-box-group static-label">
+                                            <label class="floating-label ">Student</label>
+                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                <InputRadioGroup @bind-Value="previuscode" @bind-Value:after="OnStudentTypeChanged" maxlength="10" class="border-box d-flex gap-3">
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("0")" />
+                                                        <label class="form-label">
+                                                            Branch Student
+                                                        </label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("01")" />
+                                                        <label class="form-label">
+                                                            New Student
+                                                        </label>
+                                                    </div>
+                                                </InputRadioGroup>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                                        <div class="form-box-group">
+                                            <select class="floating-input" autocomplete="off" disabled="@IsBranchDisabled" maxlength="10">
+                                                @foreach (var cs in branchlist)
+                                                {
+                                                    <option Value="@cs.BranchId">@cs.BranchName</option>
+                                                }
+                                            </select>
+                                            <label class="floating-label">Society </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2  ">
+                                        <div class="form-box-group">
+                                            <select class="floating-input" autocomplete="off" maxlength="10">
+                                                <option Value="1">V3M International School </option>
+                                            </select>
+                                            <label class="floating-label">Branch</label>
+                                            @* <ValidationMessage For="@(() => studentDirectAdmission.Gender)" /> *@
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2 ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input"
+                                                       placeholder=" "
+                                                       @bind-Value="studentDirectAdmission.stuManualAdmNo" />
+
+                                            <label class="floating-label">
+                                                Admission No. <span class="required">*</span>
+                                            </label>
+
+                                            <ValidationMessage For="@(() => studentDirectAdmission.stuManualAdmNo)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2     ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" @bind-Value="studentDirectAdmission.ClassCode">
+                                                 <option  value="" selected >--Select--</option>
+
+                                                @foreach (var cs in classlist.Where(x => x.IsValid))
+                                                {
+                                                    <option value="@cs.ClassCode">@cs.ClassName</option>
+                                                }
+                                            </InputSelect>
+
+                                            <label class="floating-label">
+                                                Class <span class="required">*</span>
+                                            </label>
+
+                                            <ValidationMessage For="@(() => studentDirectAdmission.ClassCode)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2     ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.SectionId" maxlength="10">
+                                               
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in classsectionslist)
+                                                {
+                                                    <option Value="@cs.SectionId">@cs.SectionName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Section <span class="required">*</span></label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.SectionId)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.Gender" maxlength="10">
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in genderlist.Where(x => x.IsValid == true))
+                                                {
+                                                    <option Value="@cs.GenderName">@cs.GenderName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Gender <span class="required">*</span></label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.Gender)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FirstName" maxlength="10" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
+                                            <label class="floating-label">First Name <span class="required">*</span></label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.FirstName)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MiddleName" maxlength="100" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
+                                            <label class="floating-label">Middle Name </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class=" floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.LastName" maxlength="100" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
+                                            <label class="floating-label">Last Name </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.NationalityId" maxlength="10">
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in countrylist.Where(x => x.IsValid == true))
+                                                {
+                                                    <option Value="@cs.CountryId">@cs.CountryName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Nationality </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.SocialCategoryId" maxlength="10">
+                                               <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in categories)
+                                                {
+                                                    <option Value="@cs.CategoryId">@cs.CategoryName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Category</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.Religion" maxlength="10">
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in religionlist)
+                                                {
+                                                    <option Value="@cs.ReligionId">@cs.ReligionName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Religion </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.Caste" maxlength="100" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
+                                            <label class="floating-label">Cast</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-1   ">
+                                        <div class="form-box-group">
+                                            <input class="floating-input" type="date" @ref="dateToInput" @bind="studentDirectAdmission.DateOfBirth" maxlength="12" @onclick="OpenDateFrom" @bind:after="OnDOBChanged" />
+                                            <label class="floating-label">Date Of Birth  <span class="required">*</span> </label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.DateOfBirth)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <label for="image" class="floating-label">Age</label>
+                                            <div class="border-box d-flex justify-content-start align-items-center p-2">
+                                                <label class="d-flex align-items-center floating-label">
+                                                    @datecalulate
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <label class="floating-label">&nbsp;</label>
+                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="checkbox" class="floating-input" @bind="IsUsingTransport" />
+                                                    <label class="floating-label">Using Transport </label>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect disabled="@(!IsUsingTransport)" class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.RouteDistance" maxlength="10">
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in distancelist)
+                                                {
+                                                    <option Value="@cs.DistanceId">@cs.DistanceName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">&nbsp; </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-1   ">
+                                        <div class="form-box-group">
+                                            <input type="date" @bind="@studentDirectAdmission.AdmissionDate" class=" floating-input" />
+                                            <label class="floating-label">Date Of Admission  <span class="required">*</span> </label>
+
+                                            <ValidationMessage For="@(() => studentDirectAdmission.AdmissionDate)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.StudentAadharNo" onkeypress="return /^[0-9]$/.test(event.key)" maxlength="12"></InputText>
+                                            <label class="floating-label">Aadhaar No.</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FirstName" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="100"></InputText>
+                                            <label class="floating-label">ChildName (as par aadhar) </label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.ApaarId" maxlength="20"></InputText>
+                                            <label class="floating-label">ApparId</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.PenNo" maxlength="15"></InputText>
+                                            <label class="floating-label">PEN NO.</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-3">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                            <p class="total-text-with-bg ">
+                                                Father's Details
+                                            </p>
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-4 col-sm-2 col-md-1 col-lg-1 px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" maxlength="10" @bind-Value="studentDirectAdmission.FatherTitle">
+                                                <option Value="Mr">Mr.</option>
+                                            </InputSelect>
+                                            <label class="floating-label">Title</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-8 col-sm-10 col-md-3 col-lg-3 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="100" @bind-Value="studentDirectAdmission.FatherFirstName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
+                                            <label class="floating-label"> Name <span class="required">*</span> </label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.FatherFirstName)" />
+
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
+                                            <label class="floating-label">Contact No.</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.FatherAadharNo"></InputText>
+                                            <label class="floating-label">Aadhaar No.</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.FatherEmailId" Label="E-MAil Id"></InputText>
+                                            <label class="floating-label">Email Id</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.FatherEmailId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="  floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherOccupation" maxlength="10">
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in getoccupationlist)
+                                                {
+                                                    <option Value="@cs.OccupationId">@cs.OccupationName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Occupation </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-3">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                            <p class="total-text-with-bg">
+                                                Mother's Details
+                                            </p>
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+                                        </div>
+                                    </div>
+                                    <div class="col-4 col-sm-2 col-md-1 col-lg-1 px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" maxlength="10" @bind-Value="studentDirectAdmission.MotherTitle">
+                                                <option Value="Mrs">Mrs.</option>
+                                            </InputSelect>
+                                            <label class="floating-label">Title</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-8 col-sm-10 col-md-3 col-lg-3 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="100" @bind-Value="studentDirectAdmission.MotherFirstName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)"></InputText>
+                                            <label class="floating-label"> Name  <span class="required">*</span></label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.MotherFirstName)" />
+
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
+                                            <label class="floating-label"> Contact No.</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.MotherAadharNo"></InputText>
+                                            <label class="floating-label">Aadhaar No.</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.MotherEmailId"></InputText>
+                                            <label class="floating-label"> Email Id</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.MotherEmailId)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherOccupation" maxlength="10">
+                                                <option  value="" selected >--Select--</option>
+                                                @foreach (var cs in getoccupationlist)
+                                                {
+                                                    <option Value="@cs.OccupationId">@cs.OccupationName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Occupation</label>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.SMSContactNo"></InputText>
+                                            <label class="floating-label">SMS Mobile No. <span class="required">*</span> </label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.SMSContactNo)" />
+                                        </div>
+
+                                    </div>
+
+                          
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-3">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                            <p class="total-text-with-bg">
+                                                Residential Information
+                                            </p>
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                        <div class="form-box-group static-label">
+                                            <label for="applied" class="floating-label">Address To</label>
+                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                <InputRadioGroup @bind-Value="studentDirectAdmission.AddressTo" maxlength="10" class="border-box d-flex gap-3">
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("Student")" />
+                                                        <label class="form-label">
+                                                            Student
+                                                        </label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("Father")" />
+                                                        <label class="form-label">
+                                                            Father
+                                                        </label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputRadio Value="@("Mother")" />
+                                                        <label class="form-label">
+                                                            Mother
+                                                        </label>
+                                                    </div>
+
+                                                </InputRadioGroup>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="6"></InputText>
+                                            <label class="floating-label">Pincode</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="150" @bind-Value="studentDirectAdmission.AddressLine1" Label="Line 1"></InputText>
+                                            <label class="floating-label">Line 1</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="150" @bind-Value="studentDirectAdmission.AddressLine2" Label="Line 2"></InputText>
+                                            <label class="floating-label">Line 2</label>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.AddContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
+                                            <label class="floating-label">Contact No.</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <label class="floating-label">&nbsp; </label>
+                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="checkbox" class="floating-input" />
+                                                    <label class="floating-label">
+                                                        is EWS
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                        <div class="form-box-group">
+                                            <label class="floating-label">&nbsp; </label>
+                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <input type="checkbox" class="floating-input" @bind="IsSibllingAttach" />
+                                                    <label class="floating-label">
+                                                        Sibling Attached
+                                                    </label>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+
+
+
+
+
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <button type="button" class="table-btn" @onclick="OpenConcessionPopup">
+                                    Add Concession
+                                </button>
+                                <button type="button" class="table-btn" @onclick="OpenPopupSibling">
+                                    Get Sibling Details
+                                </button>
+                                <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                            </div>
+                        </div>
+
+                    </EditForm>
+                    @if (OpenConcession)
+                    {
+                        <div id="section2">
+                            <div class="modal-body">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-4">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg bg-light-gray">
+                                            Concession Details
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+                                <div class="tab-content form-tab-count">
+                                    <div class="row mt-4">
+
+                                        <div class="col-12 col-sm-6 col-md-4">
+                                            <div class="form-box-group">
+                                                <input type="date" @bind="studentDirectAdmission.ConcessionFromDate" class="floating-input" />
+                                                <label class="floating-label">From Date</label>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-4">
+                                            <div class="form-box-group">
+                                                <input type="date" @bind="studentDirectAdmission.ConcessionToDate" class="floating-input" />
+                                                <label class="floating-label">To Date</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6 col-md-4">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" @bind-Value="ConcessionId" @bind-Value:after="GetConcessionData">
+                                                    <option  value="" selected >--Select--</option>
+                                                    @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                                                    {
+                                                        <option value="@data.ConcessionId" style="@(data.Type == "General" ? "color:red;" : "")">
+                                                            @data.Concession
+                                                            @(data.Type == "General" ? " (General)" : "")
+
+                                                        </option>
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Concession</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="quick-main mt-4">
+                                        <div class="grid-box-with-btn">
+                                            <QuickGrid Items="@moduleQuery" Class="table ">
+
+                                                <TemplateColumn Title="" Align="Align.Left">
+
+                                                    <ChildContent>
+                                                        <div>
+                                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                        </div>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+
+                                                <TemplateColumn Title="FEE HEAD" Sortable="true" Align="Align.Left">
+                                                    <ChildContent>
+                                                        @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                    </ChildContent>
+                                                </TemplateColumn>
+
+                                                <TemplateColumn Title="TYPE(% OR AMOUNT)" Sortable="true" Align="Align.Left">
+                                                    <ChildContent>
+                                                        <div>
+                                                            <input type="checkbox" @bind="context.IsSelectedPersentage" @onclick:stopPropagation="true" />
+                                                        </div>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="VALUE (% OR AMOUNT)" Sortable="true" Align="Align.Center">
+                                                    <ChildContent>
+
+
+                                                        <input type="text" value="@context.ConcessionApplicable" @oninput="(e => OnValueChanged(e, context))" maxlength="@(context.IsSelectedPersentage ? 6 : 3)"
+                                                               onkeypress="return /^[0-9]$/.test(event.key)" placeholder="@(context.IsSelectedPersentage ? "Enter Amount" : "Enter % (Max 100)")" class="floating-input" />
+
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                            </QuickGrid>
+                                        </div>
+
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4 ">
+                                        <div class="form-box-group">
+                                            <InputText @bind-Value="studentDirectAdmission.ConcessionRemarks" autocomplete="off" class="floating-input" />
+                                            <label for="remarks" class="floating-label">Remarks</label>
+                                        </div>
+                                    </div>
+                                    <strong>Note: If Type checkbox is checked then concession is in amount. If unchecked then concession is in percentage(%)</strong>
+                                    <div class="modal-footer">
+
+                                        <div class="form-group btn-gr">
+
+                                            <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SaveConcession">
+
+                                                <div class="visible content">Add Concession</div>
+                                                <div class="hidden content">
+                                                    <i class="fa fa-save"></i>
+                                                </div>
+                                            </button>
+                                            <SaveUpdateButton ShowSaveButton="false" OnClickCancel="CloseConcession"></SaveUpdateButton>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+
+                        </div>
+                    }
+
+                    @if (OpenConcessionDetails)
+                    {
+                        <div id="section4">
+                            <div class="modal-body">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-4">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg bg-light-gray">
+                                            Map Concession Details
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+
+                                <div class="tab-content form-tab-count">
+                                    <div class="row mt-4">
+
+                                        <div class="col-12 p-1">
+                                            <div class="card">
+                                                <div class="card-body table-card p-0">
+                                                    <div class="quick-main">
+                                                        <div class="grid-box-with-btn">
+                                                            <QuickGrid Items="@concessionQueryable" Class="table ">
+
+
+                                                                <TemplateColumn Title="Concession" Align="Align.Left">
+                                                                    <ChildContent>
+                                                                        @(string.IsNullOrWhiteSpace(context.ConcessionName) ? " " : context.ConcessionName)
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                                <TemplateColumn Title="Fee Head" Align="Align.Left">
+                                                                    <ChildContent>
+                                                                        @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                                <TemplateColumn Class="text-right" Title="Type(% Or Amount)" Align="Align.Center">
+                                                                    <ChildContent>
+                                                                        <span>
+                                                                            @(!context.IsAmount ? $"₹ {context.Amount}" : $"{context.Amount} %")
+                                                                        </span>
+
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                                <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.FromDate)" Class="text-center" Title="From Date" Align="Align.Center">
+                                                                </PropertyColumn>
+                                                                <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.ToDate)" Class="text-center" Title="To Date" Align="Align.Center">
+                                                                </PropertyColumn>
+                                                                <TemplateColumn Title="Type" Align="Align.Left">
+                                                                    <ChildContent>
+                                                                        @(string.IsNullOrWhiteSpace(context.ConcType) ? " " : context.ConcType)
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                                <TemplateColumn Title="Action" Align="Align.Center">
+                                                                    <ChildContent>
+
+                                                                        <div class="action-btn-group">
+                                                                            @if (context.ConcType != "General")
+                                                                            {
+                                                                                <button class="btn-icon inactive-btn" @onclick='@(() => UnMapConcession(context.ConcessionId))'>
+                                                                                    <i class="bi bi-x-lg"></i>
+                                                                                </button>
+                                                                            }
+                                                                        </div>
+
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                            </QuickGrid>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 p-1">
+                                            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="form-box-group">
+                                                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick='@(() => OnSave(""))'>
+                                                            <div class="visible content">Map Concession</div>
+                                                            <div class="hidden content">
+                                                                <i class="fa fa-save"></i>
+                                                            </div>
+                                                        </button>
+
+                                                    </div>
+                                                    <div class="form-box-group">
+                                                        <button type="button" class="ui fade op-1 animated button btn-cancle"
+                                                                @onclick="OnClickReset">
+
+                                                            <div class="visible content">Reset</div>
+                                                            <div class="hidden content">
+                                                                <i class="fa fa-close"></i>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (IsSibllingAttach)
+                    {
+                        @if (opensibling)
+                        {
+                            <div id="section3">
+                                <div class="modal-body ">
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-4">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                            <p class="total-text-with-bg bg-light-gray">
+                                                Sibling Details
+                                            </p>
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+                                        </div>
+                                    </div>
+                                    <div class="tab-content form-tab-count">
+
+                                        <div class="row gap-10-0 mt-4">
+
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect @bind-Value="schoolbranchcode" class="floating-input" autocomplete="off" maxlength="10">
+                                                        <option  value="" selected >--Select--</option>
+                                                        @foreach (var cs in branchlist)
+                                                        {
+                                                            <option Value="@cs.BranchCode">@cs.BranchName</option>
+                                                        }
+
+                                                    </InputSelect>
+                                                    <label for="branch" class="floating-label">School Branch</label>
+                                                </div>
+                                            </div>
+
+
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                                <div class="form-box-group">
+                                                    <InputText @bind-Value="MapSiblingId" type="text" class="floating-input" />
+                                                    <label for="sibling" class="floating-label">Sibling ID</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-1 ">
+                                                <div class="form-box-group">
+                                                    <button type="button" @onclick="SearchSiblingData" class="ui fade  op-1 animated button form-btn" tabindex="0">
+                                                        <div class="visible content">Search</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-search"></i>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                                <div class="form-box-group">
+                                                    <InputText @bind-Value="siblingDetail.StudentName" type="text" class="floating-input" />
+                                                    <label for="name" class="floating-label">Name</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                                <div class="form-box-group">
+                                                    <InputText @bind-Value="siblingDetail.FatherName" class="floating-input" />
+                                                    <label for="father-name" class="floating-label">Father Name</label>
+
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                                <div class="form-box-group">
+                                                    <InputText @bind-Value="siblingDetail.MotherName" class="floating-input" />
+                                                    <label for="mother-name" class="floating-label">Mother Name</label>
+
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                                <div class="form-box-group">
+                                                    <InputText @bind-Value="siblingDetail.ClassName" class="floating-input" />
+                                                    <label for="class" class="floating-label">Class</label>
+
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                                                <div class="form-box-group">
+                                                    <InputText @bind-Value="siblingDetail.SectionName" class="floating-input" />
+                                                    <label for="section" class="floating-label">Section</label>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <div class="form-group btn-gr">
+                                        <button type="button" @onclick="SaveSiblingData" class="ui fade op-1 animated button form-btn" tabindex="0">
+                                            <div class="visible content">Submit</div>
+                                            <div class="hidden content">
+                                                <i class="fa fa-save"></i>
+                                            </div>
+                                        </button>
+                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="CloseSibling"></SaveUpdateButton>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+
+
+
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+    private EditContext editContext;
+    private ValidationMessageStore messageStore;
+
+    public class ConcessionTempModel
+    {
+        public string? ConcessionId { get; set; }
+        public string? ConcessionName { get; set; }
+        public string? ConcType { get; set; }
+        public string? FeeHeadId { get; set; }
+        public int ConcStudId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public bool IsAmount { get; set; }
+        public decimal Amount { get; set; }
+        public bool IsChecked { get; set; }
+    }
+
+    List<ConcessionTempModel> concessionTempList = new();
+    private bool IsBranchDisabled = true;
+    private bool opensibling;
+    private bool OpenConcession;
+    private bool OpenConcessionDetails;
+    private CustomAlert customAlert;
+    private StudentDirectAdmissionModel studentDirectAdmission = new();
+    private GetRegistrationModel getRegistration = new();
+    private SiblingDetailResponse siblingDetail = new();
+    private List<ConcessionModel> concessionlist = new();
+    private ParentsDetails parentsDetails = new();
+    private List<CommonDomain> feeHeadlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<OccupationModal> getoccupationlist = new();
+    private List<GenderModal> genderlist = new();
+    private List<CategoryModal> categories = new();
+    private List<ClassSectionModal> classsectionslist = new();
+    private List<CountryModel> countrylist = new();
+    private List<MstDistance> distancelist = new();
+    private List<BranchNameMst> branchlist = new();
+    private List<ReligionMaster> religionlist = new();
+    private List<Qualification> qulifationlist = new();
+    SearchAnyRequestModel searchAny = new();
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public long RegId { get; set; }
+    [Parameter] public long SessionId { get; set; }
+    [Parameter]public EventCallback OnSearch { get; set; }
+    private bool IsUsingTransport { get; set; } = false;
+    private bool IsSibllingAttach = false;
+    private string? branchcode;
+    private string? groupcode;
+    private string? datecalulate = "";
+    private string previuscode = "01";
+    private string? username;
+    private string? sessionvalue;
+    private string? currentClassCode;
+    private long CurrentSession;
+    private string? schoolbranchcode;
+    private string? MapSiblingId;
+    public int ConcessionId { get; set; } = 0;
+    public string SelectedConcessionIds { get; set; } = "";
+    private decimal? _concessionApplicable;
+    private bool _isSelectedPersentage;
+    private int maxlength;
+    private bool ShowSuccess;
+    private string? ConcessionIdStore;
+    IQueryable<ConcessionTempModel> concessionQueryable => concessionTempList.AsQueryable();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetData();
+            // sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(studentDirectAdmission);
+        messageStore = new ValidationMessageStore(editContext);
+    }
+    private async Task UnMapConcession(string feeHeadId)
+    {
+        var item = concessionTempList
+              .FirstOrDefault(x => x.FeeHeadId == feeHeadId);
+
+        if (item != null)
+        {
+            IsVisible = false;
+            concessionTempList.Remove(item);
+            await Alert.ShowDeactive("Concession delete successfully!");
+            IsVisible = true;
+            return;
+
+        }
+    }
+    private async Task OnValueChanged(ChangeEventArgs e, CommonDomain context)
+    {
+        if (!decimal.TryParse(e.Value?.ToString(), out decimal value))
+            return;
+        if (context.IsSelectedPersentage)
+        {
+            if (value > context.FeeHeadAmount)
+            {
+                await customAlert.ShowCustomAlert($"Amount cannot exceed Fee Head Amount ({context.FeeHeadAmount})", false);
+                context.ConcessionApplicable = 0;
+                return;
+            }
+        }
+        else
+        {
+            if (value > 100)
+            {
+                value = 0;
+            }
+        }
+
+        context.ConcessionApplicable = value;
+    }
+    private async void GetConcessionData()
+    {
+        string ApiUri1 = $"Registration/FeeHeadConcession?groupCode={groupcode}&branchCode={branchcode}&sessionId={CurrentSession}&concessionId={ConcessionId}&isMappedOnly={0}";
+        feeHeadlist = await httpService.Get<List<CommonDomain>>(ApiUri1) ?? new();
+        foreach (var item in feeHeadlist)
+        {
+            int.TryParse(item.ConcessionType, out int type);
+            bool hasValue = item.ConcessionApplicable > 0;
+            item.IsSelectedPersentage = (hasValue && type == 1);
+            item.IsSelected = hasValue;
+        }
+        // ConcessionIdStore += string.IsNullOrEmpty(ConcessionIdStore) ? SelectedConcessionIds : "," + SelectedConcessionIds;
+        StateHasChanged();
+    }
+    protected IQueryable<CommonDomain> moduleQuery
+    {
+        get
+        {
+            var result = feeHeadlist.AsQueryable();
+
+            return result;
+        }
+    }
+    private async Task SaveSiblingData()
+    {
+
+        try
+        {
+
+            if (siblingDetail == null || string.IsNullOrEmpty(siblingDetail.SiblingID))
+            {
+                await customAlert.ShowCustomAlert("Please select sibling first!", false);
+                StateHasChanged();
+                return;
+            }
+            ShowSuccess = true;
+            await Task.Delay(3000);
+            studentDirectAdmission.SiblingID = siblingDetail.SiblingID;
+            opensibling = false;
+            ShowSuccess = false;
+
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task SearchSiblingData()
+    {
+
+        try
+        {
+            if (string.IsNullOrEmpty(schoolbranchcode))
+            {
+                await customAlert.ShowCustomAlert("Please select school branch !", false);
+                StateHasChanged();
+                return;
+            }
+            else if (string.IsNullOrEmpty(MapSiblingId))
+            {
+                await customAlert.ShowCustomAlert("Please enter sibling id !", false);
+                StateHasChanged();
+                return;
+            }
+            string ApiUri1 = $"Registration/SiblingDetail?groupCode={groupcode}&branchCode={schoolbranchcode}&sessionId={CurrentSession}&siblingID={MapSiblingId}";
+            var response = await httpService.Get<ApiResponse<SiblingDetailResponse>>(ApiUri1) ?? new();
+            siblingDetail = response.Data;
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private void CloseConcession()
+    {
+        OpenConcession = false;
+
+        StateHasChanged();
+    }
+    private async Task OnClickReset()
+    {
+        concessionTempList.Clear();
+        StateHasChanged();
+    }
+
+    private async void OpenConcessionPopup()
+    {
+        if (!string.IsNullOrEmpty(studentDirectAdmission.FirstName) && !string.IsNullOrEmpty(studentDirectAdmission.ClassCode) && !string.IsNullOrEmpty(studentDirectAdmission.stuManualAdmNo) && studentDirectAdmission.SectionId != 0 && !string.IsNullOrEmpty(studentDirectAdmission.Gender) && studentDirectAdmission.DateOfBirth != null && studentDirectAdmission.AdmissionDate != null && !string.IsNullOrEmpty(studentDirectAdmission.FatherFirstName) && !string.IsNullOrEmpty(studentDirectAdmission.MotherFirstName) && !string.IsNullOrEmpty(studentDirectAdmission.SMSContactNo))
+        {
+            feeHeadlist.Clear();
+            OpenConcession = true;
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("scrollToElement", "section2");
+            StateHasChanged();
+        }
+        else
+        {
+            await customAlert.ShowCustomAlert("Please fill the required field.", false);
+
+        }
+
+    }
+    private async Task SaveConcession()
+    {
+        var selectedRows = moduleQuery.Where(x => x.IsSelected).ToList();
+        var SelectType = concessionlist.Where(x => x.ConcessionId == ConcessionId).Select(x => x.Type).FirstOrDefault();
+        var names = concessionlist.Where(x => x.ConcessionId == ConcessionId).Select(x => x.Concession).FirstOrDefault();
+        if (string.IsNullOrEmpty(names))
+        {
+            await customAlert.ShowCustomAlert("Please select concession !", false);
+            return;
+        }
+        else if (selectedRows.Count == 0)
+        {
+            await customAlert.ShowCustomAlert("Please select record  first !", false);
+            return;
+        }
+        else if (selectedRows[0].ConcessionApplicable == null)
+        {
+            await customAlert.ShowCustomAlert("Please enter amount or percentage !", false);
+            return;
+        }
+        foreach (var row in selectedRows)
+        {
+            var temp = new ConcessionTempModel
+            {
+                ConcType = SelectType,
+                ConcessionName = names,
+                FeeHeadId = row.FeeHeadId,
+                FeeHeadName = row.FeeHeadName,
+                FromDate = row.FromDate,
+                ToDate = row.ToDate,
+                IsAmount = !row.IsSelectedPersentage,
+                Amount = row.ConcessionApplicable ?? 0,
+                ConcessionId = ConcessionId.ToString()
+            };
+
+            concessionTempList.Add(temp);
+
+
+        }
+
+        ConcessionId = 0;
+        SelectedConcessionIds = "";
+        OpenConcessionDetails = true;
+
+        try
+        {
+            // OpenConcessionDetails = true;
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("scrollToElement", "section4");
+            StateHasChanged();
+        }
+        catch (JSDisconnectedException)
+        {
+            // safe ignore
+        }
+        OpenConcession = false;
+        StateHasChanged();
+    }
+    private async void OpenPopupSibling()
+    {
+        opensibling = true;
+        await Task.Delay(100);
+        await JS.InvokeVoidAsync("scrollToElement", "section3");
+        StateHasChanged();
+    }
+    private async Task GetData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var userResult = await sessionStorage.GetAsync<string>("UserName");
+        username = userResult.Value;
+
+        string ApiUri = "occupation/AllOccupation";
+        string ApiUri2 = "Concession/GetListConcession";
+        concessionlist = await httpService.Get<List<ConcessionModel>>(ApiUri2) ?? new();
+        getoccupationlist = await httpService.Get<List<OccupationModal>>(ApiUri) ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        categories = await httpService.Get<List<CategoryModal>>("ClassSection/GetCategory") ?? new();
+        distancelist = await httpService.Get<List<MstDistance>>("ClassSection/GetDistance") ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        //var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>("", searchAny) ?? new();
+        qulifationlist = await httpService.Get<List<Qualification>>("Qualification/GetQualification") ?? new();
+        genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
+        countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
+        religionlist = await httpService.Get<List<ReligionMaster>>("Religion/AllReligion") ?? new();
+
+    }
+    private async Task GetSectionData()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = studentDirectAdmission.ClassCode;
+            //searchAny.RequestName = getRegistration.ClassCode;
+
+            string ApiUri1 = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<ClassSectionModal>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                classsectionslist = apiResponse.Data ?? new();
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+    }
+    private void OnStudentTypeChanged()
+    {
+        if (previuscode == "01")
+        {
+            IsBranchDisabled = true;   // Enable dropdown
+        }
+        else
+        {
+            IsBranchDisabled = false;    // Disable dropdown
+        }
+    }
+    private async Task LoadData(long value)
+    {
+
+
+        var url =
+        $"Registration/GetStudentDetails?" +
+        $"groupCode={groupcode}" +
+        $"&branchCode={branchcode}" +
+        $"&SessionId={SessionId}" +
+        $"&RegistrationId={RegId}" +
+        $"&AddressType=C";
+        getRegistration = await httpService.Get<GetRegistrationModel>(url) ?? new();
+        getdatamodepass();
+        GetSectionData();
+        // currentClassCode = getRegistration.ClassCode;
+
+    }
+    private void getdatamodepass()
+    {
+
+        studentDirectAdmission.stuManualAdmNo = getRegistration.AdmissionNo;
+        studentDirectAdmission.ClassCode = getRegistration.ClassCode;
+        studentDirectAdmission.SectionId = getRegistration.SectionId;
+        studentDirectAdmission.Gender = getRegistration.Gender;
+        studentDirectAdmission.FirstName = getRegistration.ChildFirstName;
+        studentDirectAdmission.MiddleName = getRegistration.ChildMiddleName;
+        studentDirectAdmission.LastName = getRegistration.ChildLastName;
+        studentDirectAdmission.NationalityId = getRegistration.Nationality;
+        studentDirectAdmission.SocialCategoryId = getRegistration.StudentCategory;
+        studentDirectAdmission.Religion = getRegistration.Religion;
+        studentDirectAdmission.DateOfBirth = getRegistration.DateOfBirth;
+        studentDirectAdmission.AdmissionDate = getRegistration.AdmissionDate;
+        studentDirectAdmission.StudentAadharNo = getRegistration.ChildAadhaarNo;
+        studentDirectAdmission.FirstName = getRegistration.ChildFirstName;
+        studentDirectAdmission.FatherTitle = getRegistration.FatherTitle;
+        studentDirectAdmission.FatherFirstName = getRegistration.FatherName;
+        studentDirectAdmission.FatherMiddleName = getRegistration.FatherMName;
+        studentDirectAdmission.FatherLastName = getRegistration.FatherLName;
+        studentDirectAdmission.FatherAadharNo = getRegistration.FatherAadharNo;
+        studentDirectAdmission.FatherContactNo = getRegistration.FatherContactNo;
+        studentDirectAdmission.FatherOccupation = getRegistration.FatherOccupation;
+        studentDirectAdmission.FatherEmailId = getRegistration.FatherEMail;
+        studentDirectAdmission.MotherTitle = getRegistration.MotherTitle;
+        studentDirectAdmission.MotherFirstName = getRegistration.MotherName;
+        studentDirectAdmission.MotherMiddleName = getRegistration.MotherMName;
+        studentDirectAdmission.MotherLastName = getRegistration.MotherLName;
+        studentDirectAdmission.MotherContactNo = getRegistration.MotherContactNo;
+        studentDirectAdmission.MotherEmailId = getRegistration.MotherEMail;
+        studentDirectAdmission.MotherOccupation = getRegistration.MotherOccupation;
+        studentDirectAdmission.MotherAadharNo = getRegistration.MotherAadharNo;
+        studentDirectAdmission.SMSContactNo = getRegistration.SMSMobileNo;
+        studentDirectAdmission.AddressTo = getRegistration.AddressTo;
+        studentDirectAdmission.AddressLine1 = getRegistration.Line1;
+        studentDirectAdmission.AddressLine2 = getRegistration.Line2;
+        studentDirectAdmission.PinCode = getRegistration.PinCode;
+        studentDirectAdmission.AddContactNo = getRegistration.ContactNo;
+        studentDirectAdmission.RegId = RegId;
+    }
+    private void OnDOBChanged()
+    {
+        if (studentDirectAdmission.DateOfBirth <= DateTime.Today)
+        {
+            if (studentDirectAdmission.DateOfBirth == null)
+            {
+                datecalulate = "";
+                return;
+            }
+            var dateOfBirth = Convert.ToDateTime(studentDirectAdmission.DateOfBirth);
+            datecalulate = _commonmethod.CalculateAge(dateOfBirth);
+            StateHasChanged();
+        }
+        else if (studentDirectAdmission.DateOfBirth < DateTime.Today)
+        {
+            var dateOfBirth = Convert.ToDateTime(studentDirectAdmission.DateOfBirth);
+            datecalulate = _commonmethod.CalculateAge(dateOfBirth);
+            StateHasChanged();
+        }
+        else
+        {
+            // customAlert.ShowCustomAlert("Please choose the correct Date of Birth.", false);
+            getRegistration.DateOfBirth = null;
+            studentDirectAdmission.DateOfBirth = null;
+            datecalulate = null;
+            StateHasChanged();
+        }
+    }
+    private ElementReference dateToInput;
+    private async Task OpenDateFrom()
+    {
+
+        await JS.InvokeVoidAsync("openDatePicker", dateToInput);
+
+    }
+    private async Task OnSave(string flag)
+    {
+        messageStore.Clear();
+        if (string.IsNullOrWhiteSpace(studentDirectAdmission.stuManualAdmNo))
+        {
+            messageStore.Add(() => studentDirectAdmission.stuManualAdmNo, "Admission no is required");
+
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(studentDirectAdmission.FirstName))
+        {
+            messageStore.Add(() => studentDirectAdmission.FirstName, "First Name is required");
+
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(studentDirectAdmission.Gender))
+        {
+            messageStore.Add(() => studentDirectAdmission.Gender, "Gender is required");
+
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(studentDirectAdmission.ClassCode))
+        {
+            messageStore.Add(() => studentDirectAdmission.ClassCode, "Class is required");
+
+            editContext.NotifyValidationStateChanged();
+            return;
+        }
+        var finalList = concessionTempList.Select(x => new FeeHeadDto { FeeHeadId = Convert.ToInt32(x.FeeHeadId), ConcStudId = x.ConcStudId, ConcessionId = Convert.ToInt32(x.ConcessionId), ConcessionType = !x.IsAmount ? 1 : 0, ConcessionValue = x.Amount }).ToList();
+        var conceId = concessionTempList.Select(x => x.ConcessionId).Distinct().ToList();
+        // if (finalList.Count == 0)
+        // {
+        //     await customAlert.ShowCustomAlert("Please select record  first !", false);
+        //     return;
+        // }
+
+        if (flag == "Admission")
+        {
+
+        }
+        else
+        {
+            if (finalList.Count == 0)
+            {
+                await customAlert.ShowCustomAlert("Please select record  first !", false);
+                return;
+            }
+
+        }
+        try
+        {
+            IsVisible = false;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to admit student?");
+            if (!submit)
+            {
+                IsVisible = true;
+                StateHasChanged();
+                return;
+            }
+
+            OpenConcessionDetails = false;
+            studentDirectAdmission.SessionId = CurrentSession;
+            studentDirectAdmission.CreatedBy = username;
+            studentDirectAdmission.GroupCode = groupcode;
+            studentDirectAdmission.BranchCode = branchcode;
+            studentDirectAdmission.PreviousBranchCode = previuscode;
+            studentDirectAdmission.MapConAndChallan = 1;
+            studentDirectAdmission.ConcessionId = string.Join(",", conceId);
+            studentDirectAdmission.FeeHeadList = finalList;
+            string apiurl = "Registration/StudentDirectAdmission";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiurl, studentDirectAdmission);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 0)
+                {
+                    await Alert.ShowWarning("Student No" + @Localizer["Already"]);
+
+                }
+                else if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowSuccess($"Student's details {Localizer["Submit"]}");
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
+                opensibling = false;
+                OpenConcession = false;
+                getRegistration = new GetRegistrationModel();
+                studentDirectAdmission = new();
+                concessionTempList.Clear();
+                OpenConcessionDetails = false;
+                siblingDetail = new();
+                await OnClose.InvokeAsync();
+                await OnSearch.InvokeAsync();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+
+        if (RegId != 0)
+        {
+
+            await LoadData(RegId);
+            OnDOBChanged();
+
+
+        }
+    }
+    private void CloseSibling()
+    {
+        opensibling = false;
+        StateHasChanged();
+    }
+    private async Task ClosePopup()
+    {
+        opensibling = false;
+        IsVisible = false;
+        OpenConcession = false;
+        OpenConcessionDetails = false;
+        IsSibllingAttach = false;
+        concessionTempList.Clear();
+        getRegistration = new GetRegistrationModel();
+        studentDirectAdmission = new();
+        siblingDetail = new();
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+        StateHasChanged();
+    }
+}
+

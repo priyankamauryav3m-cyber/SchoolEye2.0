@@ -1,0 +1,466 @@
+﻿@page "/Registrationformat"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@inject ICommonMethod _commonmethod
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using System.Text.RegularExpressions
+@using ServerWebUI.Components.Pages.CommonPages
+@using System.Threading.Tasks
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+</style>
+<section class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-2" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Registration Format</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                            <option value="" selected >Select Session</option>
+                            @foreach (var msg in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@msg.SessionId">@msg.SessionName</option>
+                            }
+
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <div class="border-box d-flex justify-content-center align-items-center gap-3 p-3">
+                            <InputRadioGroup @bind-Value="formate.Mode">
+                                <div class="d-flex align-items-center gap-1">
+                                    <InputRadio Value="@(-1)" />
+                                    <label class="form-label">
+                                        All
+                                    </label>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-1">
+                                    <InputRadio Value="@(1)" />
+                                    <label class="form-label">
+                                        Activated
+                                    </label>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-1">
+                                    <InputRadio Value="@(0)" />
+                                    <label class="form-label">
+                                        Deactivated
+                                    </label>
+                                </div>
+
+                            </InputRadioGroup>
+
+                        </div>
+                    </div>
+                    <div class="form-box">
+
+                        <select class="form-input" @bind="formate.formateType">
+                            <option value="" selected>All</option>
+                            <option value="RegFormat1">RegFormat1</option>
+                            <option value="RegFormat2">RegFormat2</option>
+                            <option value="RegFormat3">RegFormat3</option>
+                            <option value="RegFormat4">RegFormat4</option>
+                            <option value="RegFormat5">RegFormat5</option>
+                            <option value="RegFormat6">RegFormat6</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="form-box">
+                        <button type="button" class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchRegFormate">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OpenNewFarmate">
+                            <div class="visible content">Add</div>
+                            <div class="hidden content">
+                                <i class="bi bi-plus-lg"></i>
+                            </div>
+                        </button>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-2">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table table-striped table-bordered">
+
+                                @* <PropertyColumn Property="@(x => x.Name)" Title="FARMATE NAME" /> *@
+                                <TemplateColumn Title="F0RMAT NAME" Sortable="true" SortBy="@(GridSort<CommonDomainLarge>.ByAscending(x => x.Name))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.Name) ? " " : context.Name)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Title="EMAIL TEXT" Align="Align.Left">
+                                    <ChildContent>
+                                        <div @onclick="() => ShowFullText(context.EmailText)" class="sms-text" title="@context.EmailText">
+                                            @(string.IsNullOrWhiteSpace(context.EmailText) ? " " : context.EmailText)
+                                        </div>
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Title="SMS TEXT" Align="Align.Left">
+                                    <ChildContent>
+                                        <div @onclick="() => ShowFullText(context.SMSText)" class="sms-text" title="@context.SMSText">
+                                            @(string.IsNullOrWhiteSpace(context.SMSText) ? " " : context.SMSText)
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                @* <TemplateColumn Title="START DATE" Sortable="true" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StartDate) ? " " : context.StartDate)
+                                    </ChildContent>
+                                </TemplateColumn> *@
+                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.StartDate)" Sortable="true" Title="START DATE" />
+                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.EndDate)" Sortable="true" Title="END DATE" />
+                                <TemplateColumn Title="START TIME" Align="Align.Left">
+                                    <ChildContent>
+                                        @{
+                                            DateTime time;
+                                        }
+                                        @(DateTime.TryParse(context.StartTime, out time) ? time.ToString("HH:mm") : " ")
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="END TIME" Align="Align.Left">
+                                    <ChildContent>
+                                        @{
+                                            DateTime time;
+                                        }
+                                        @(DateTime.TryParse(context.EndTime, out time) ? time.ToString("HH:mm") : " ")
+                                    </ChildContent>
+
+                                </TemplateColumn>
+
+                                <TemplateColumn class="text-center" Title="ISSMS" Align="Align.Center">
+                                    <ChildContent>
+                                        <div>
+                                            @if (context.isSMS == true)
+                                            {
+                                                <span>Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span>No</span>
+                                            }
+                                        </div>
+
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn class="text-center" Title="ISEMAIL" Align="Align.Center">
+                                    <ChildContent>
+                                        <div>
+                                            @if (context.isEmail == true)
+                                            {
+                                                <span>Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span>No</span>
+                                            }
+                                        </div>
+
+                                    </ChildContent>
+
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="DESCRIPTION" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.Description) ? " " : context.Description)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                @* <PropertyColumn Property="@(x => x.Description)" Title="DESCRIPTION" /> *@
+                                <TemplateColumn Title="STATUS" Class="text-center" Align="Align.Center">
+                                    @if (context.IsValid)
+                                    {
+                                        <img class="grid-status" src="/images/status-success.png" />
+                                    }
+                                    else
+                                    {
+                                        <img class="grid-status" src="/images/status-false.png" />
+                                    }
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="action-btn-group">
+
+                                        @if (context.IsValid)
+                                        {
+                                            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditFormate(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+
+                                            <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeFormateStatus(context.FormatTypeID, context.IsValid)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button disabled class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditFormate(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn-icon active-btn custom-tooltip " data-tooltip="Delete"
+                                                    @onclick="() => ChangeFormateStatus(context.FormatTypeID, context.IsValid)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        }
+                                    </div>
+
+                                </TemplateColumn>
+
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+       
+    </div>
+</section>
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (commonDomains.Count > 0)
+    {
+    }
+}
+
+@if (showFullMsg)
+{
+    <div class="custom-modal row align-items-center m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-6">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Full SMS Text</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <p>@selectedText</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+}
+<AddRegistrationFormat ShowPopup="@openfarmate" oldcdataModel="@oldcdataModel" commonData="@commonDomainLarge" OnClose="@ClosePopup" />
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+
+    private CustomAlert customAlert;
+    private List<SessionModel> sessionlist = new();
+    private List<CommonDomainLarge> commonDomains = new();
+    private CommonDomainLarge commonDomainLarge = new();
+    private FormateType formate = new();
+    protected IQueryable<CommonDomainLarge> moduleQuery => commonDomains.AsQueryable();
+    private bool IsLoading = false;
+    private string? branchcode;
+    private string? groupcode;
+    private string sessionvalue;
+    private long CurrentSession;
+    private string Username = "";
+    private bool openfarmate;
+    private string oldcdataModel = "";
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool showFullMsg = false;
+    private string selectedText = "";
+
+
+    private void ShowFullText(string text)
+    {
+
+        selectedText = text;
+        showFullMsg = true;
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            formate.Mode = -1;
+            formate.formateType = "";
+            await LoadData();
+            //sessionvalue = await _commonmethod.SetCurrentSession();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        Username = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+
+        StateHasChanged();
+    }
+
+    private void EditFormate(CommonDomainLarge commonDomain)
+    {
+
+        commonDomainLarge = new CommonDomainLarge
+        {
+            FormatTypeID = commonDomain.FormatTypeID,
+            Name = commonDomain.Name,
+            ClassCode = commonDomain.ClassCode,
+            StartDate = commonDomain.StartDate,
+            EndDate = commonDomain.EndDate,
+            StartTime = commonDomain.StartTime,
+            EndTime = commonDomain.EndTime,
+            isEmail = commonDomain.isEmail,
+            isSMS = commonDomain.isSMS,
+            isWhatsapp = commonDomain.isWhatsapp,
+            EmailText = commonDomain.EmailText,
+            SMSText = commonDomain.SMSText,
+            WhatsappText = commonDomain.WhatsappText,
+            SessionName = commonDomain.SessionName,
+            EmailTextOnPayment = commonDomain.EmailTextOnPayment,
+            SMSTextOnPayment = commonDomain.SMSTextOnPayment,
+            WhatsappTextOnPayment = commonDomain.WhatsappTextOnPayment,
+            Description = commonDomain.Description,
+            RegFee = commonDomain.RegFee,
+            MinAge = commonDomain.MinAge,
+            MaxAge = commonDomain.MaxAge
+        };
+        oldcdataModel = CommonMethod.CreateSnapshot(commonDomainLarge);
+        openfarmate = true;
+        StateHasChanged();
+    }
+    private async Task ChangeFormateStatus(int id, bool isvalid)
+    {
+        try
+        {
+            bool isActivate = !isvalid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "Registration/ActiveFormate";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+
+    }
+    private async Task SearchRegFormate()
+    {
+
+        try
+        {
+            openfarmate = false;
+            IsLoading = true;
+            formate.GroupCode = groupcode;
+            formate.BranchCode = branchcode;
+            formate.SessionId = CurrentSession;
+            formate.CreatedBy = Username;
+            string apiurl = "Registration/RegistratioFormateType";
+            var apiResponse = await httpService.Post<ApiResponse<List<CommonDomainLarge>>>(apiurl, formate);
+            if (apiResponse.Success)
+            {
+                commonDomains = apiResponse.Data ?? new List<CommonDomainLarge>();
+            }
+            else
+            {
+                commonDomains = new List<CommonDomainLarge>();
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+
+        }
+
+
+
+
+    }
+    private void OpenNewFarmate()
+    {
+        commonDomainLarge = new ();
+        openfarmate = true;
+        StateHasChanged();
+    }
+    private void ClosePopup()
+    {
+        showFullMsg = false;
+        openfarmate = false;
+        commonDomainLarge = new ();
+    }
+
+
+}

@@ -1,0 +1,429 @@
+﻿@page "/FeeManagment"
+@using DomainModel.Common
+@using DomainModel
+@using Microsoft.Extensions.Localization
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@using Newtonsoft.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage sessionStorage
+@using System.Text
+@inject IWebHostEnvironment env
+@using System.Text.RegularExpressions;
+@using ServerWebUI.Components.AlertComponent
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+
+<style>
+    .qa-title-blue {
+        font-weight: 600;
+        font-size: 15px;
+        color: #3b82f6;
+        line-height: 1.2;
+    }
+
+    .qa-title-green {
+        font-weight: 600;
+        font-size: 15px;
+        color: #22c55e;
+        line-height: 1.2;
+    }
+
+    .qa-title-purple {
+        font-weight: 600;
+        font-size: 15px;
+        color: #8b5cf6;
+        line-height: 1.2;
+    }
+
+    .qa-title-orange {
+        font-weight: 600;
+        font-size: 15px;
+        color: #f59e0b;
+        line-height: 1.2;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row">
+        <div class="col-12">
+            <div class="breadcrumb-custom">
+                <a href="#">Home</a> / <span class="current">Fees</span>
+            </div>
+        </div>
+    </div>
+    <div class="page-heading mb-4">
+        <div class="row g-0  align-items-center" id="main-header">
+            <div class="col-lg-4 col-12">
+                <p class="m-0 page-name px-1"> Generate Student Fee Invoice </p>
+            </div>
+            <div class="col-lg-8 col-12">
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+                    <div class="form-box">
+                        <select class="form-input">
+                            <option value="4">Cambridge School Srinivaspuri</option>
+                            <option value="5">Cambridge School Greater Noida</option>
+                            <option value="6">Raja Ram Mohan Roy Acedemy</option>
+                            <option value="7">Cambridge Head Office</option>
+                            <option value="1009"></option>
+                            <option value="1010">sdfsf</option>
+                        </select>
+                    </div>
+                    <!--!-->
+                    <div class="form-box">
+                        <!--!-->
+                        <select name="session" class="form-input" _bl_90fa69b9-d4e5-4f55-95b1-42c43befabfe="">
+                            <!--!-->
+                            <option value="0">-- Select Session --</option>
+                            <option value="2046">2030-2031</option>
+                            <option value="2045">2028-2029</option>
+                            <option value="2044">2027-2028</option>
+                            <option value="1043">2026-2027</option>
+                            <option value="1040">2025-2026</option>
+                            <option value="1035">2024-2025</option>
+                            <option value="1032">2023-2024</option>
+                            <option value="1018">2022-2023</option>
+                            <option value="1017">2021-2022</option>
+                            <option value="1007">2020-2021</option>
+                            <option value="3">2019-2020</option>
+                            <option value="2">2018-2019</option>
+                            <option value="1">2017-2018</option>
+                        </select>
+                    </div>
+                    <!--!-->
+                    <div class="form-box">
+                        <!--!-->
+                        <select name="searchModel.ClassCode" class="form-input" _bl_9f6cdd30-78dc-4f46-8437-de7d08bb3211="">
+                            <!--!-->
+                            <option value="" selected="">All</option>
+                            <option value="Nursury">Nursery</option>
+                            <option value="Prep">Prep</option>
+                            <option value="Class1">I</option>
+                            <option value="Class2">II</option>
+                            <option value="Class3">III</option>
+                            <option value="Class4">IV</option>
+                            <option value="Class5">V</option>
+                            <option value="Class6">VI</option>
+                            <option value="Class7">VII</option>
+                            <option value="Class8">VIII</option>
+                            <option value="Class9">IX</option>
+                            <option value="Class10">X</option>
+                            <option value="Class11COM">XI-Comm</option>
+                            <option value="Class11SCI">XI-SCI</option>
+                            <option value="Class11HUM">XI-HUM</option>
+                            <option value="Class12COM">XII-Comm</option>
+                            <option value="Class12SCI">XII-SCI</option>
+                            <option value="Class12HUM">XII-HUM</option>
+                            <option value="Class11">XI PCM</option>
+                            <option value="Class12">XII</option>
+                        </select>
+                    </div>
+                    <!--!-->
+                    <div class="form-box">
+                        <!--!-->
+                        <select name="searchModel.Section" class="form-input" _bl_48a3df29-f3a6-4852-8e2d-54484a780292="">
+                            <!--!-->
+                            <option value="0" selected="">All</option>
+                        </select>
+                    </div>
+                    <!--!-->
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " data-id="popup" tabindex="0">
+                                <!--!-->
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!--!-->
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                            <!--!-->
+                            <div class="visible content">Search</div>
+                            <!--!-->
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-lg-4">
+            <h1 class="page-title">Due / Outstanding Fee</h1>
+            <p class="page-sub">Identify defaulters send reminders and manage follows-ups efficiently.</p>
+        </div>
+        <div class="col-lg-8">
+            <div class="row g-2">
+                <div class="col-6 col-md-3">
+                    <div class="qa-btn qa-adm-btn">
+                        <div class="qa-icon blue"><i class="fa-solid fa-message"></i></div>
+                        <div>
+                            <div class="qa-title-blue">Send SMS / Whatsapp</div>
+                            <div class="qa-desc">Add a new student</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="qa-btn qa-fee-btn">
+                        <div class="qa-icon green"><i class="fas fa-receipt"></i></div>
+                        <div>
+                            <div class="qa-title-green">Generate</div>
+                            <div class="qa-desc">Create new receipt</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="qa-btn qa-search-btn">
+                        <div class="qa-icon purple"><i class="fas fa-file-export"></i></div>
+                        <div>
+                            <div class="qa-title-purple">Export</div>
+                            <div class="qa-desc">Excel</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="qa-btn qa-rem-btn">
+                        <div class="qa-icon orange"><i class="fas fa-clipboard-check"></i></div>
+                        <div>
+                            <div class="qa-title-orange">Assign</div>
+                            <div class="qa-desc">Follow-up</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div style="background: #ffffff; border-radius: 16px; border: 1px solid #eef0f2; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 480px; font-family: sans-serif;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 48px; height: 48px; border-radius: 14px; background: #e6f1fb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#378ADD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="7" r="3"></circle>
+                            <path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6"></path>
+                            <circle cx="17" cy="8" r="2.5"></circle>
+                            <path d="M15.5 14c2.9.4 5 2.4 5 5"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p style="font-size: 13px; color: #6b7280; margin: 0 0 4px;">Total Students</p>
+                        <p style="font-size: 26px; font-weight: 600; margin: 0 0 4px; color: #111827;">2,458</p>
+                        <p style="font-size: 12px; color: #16a34a; margin: 0; display: flex; align-items: center; gap: 3px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="19" x2="12" y2="5"></line>
+                                <polyline points="5 12 12 5 19 12"></polyline>
+                            </svg>
+                            6.3% vs last session
+                        </p>
+                    </div>
+                </div>
+
+                <svg width="110" height="44" viewBox="0 0 110 44" style="flex-shrink: 0;">
+                    <defs>
+                        <linearGradient id="areaShadow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#378ADD" stop-opacity="0.35"></stop>
+                            <stop offset="100%" stop-color="#378ADD" stop-opacity="0"></stop>
+                        </linearGradient>
+                    </defs>
+
+                    <polygon points="2,30 12,24 22,32 32,18 42,26 52,14 62,20 72,10 82,16 92,6 102,12 102,44 2,44"
+                             fill="url(#areaShadow)" stroke="none" />
+
+                    <polyline points="2,30 12,24 22,32 32,18 42,26 52,14 62,20 72,10 82,16 92,6 102,12"
+                              fill="none" stroke="#378ADD" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="stat-card">
+                <div class="row">
+                    <div class="col-6 col-md-8">
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label">Today's Collection</div>
+                                <div class="stat-value">₹ <span data-counter="345870">0</span></div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> 18.6% vs yesterday</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="svg-pt">
+                            <svg class="stat-spark" viewBox="0 0 80 40">
+                                <polyline fill="none" stroke="#f59e0b" stroke-width="2" points="0,25 15,30 30,18 45,22 60,14 80,10" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="stat-card">
+                <div class="row">
+                    <div class="col-6 col-md-8">
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon green"><i class="fas fa-user-plus"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label">New Admissions</div>
+                                <div class="stat-value" data-counter="186">0</div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> 12.5% this month</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="svg-pt">
+                            <svg class="stat-spark" viewBox="0 0 80 40">
+                                <polyline fill="none" stroke="#22c55e" stroke-width="2" points="0,32 15,28 30,20 45,22 60,12 80,8" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="stat-card">
+                <div class="row">
+                    <div class="col-6 col-md-8">
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon red"><i class="fas fa-file-invoice"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label">Outstanding Fees</div>
+                                <div class="stat-value">₹ <span data-counter="1275430">0</span></div>
+                                <div class="stat-change down"><i class="fas fa-arrow-down"></i> 4.8% vs last month</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="svg-pt">
+                            <svg class="stat-spark" viewBox="0 0 80 40">
+                                <polyline fill="none" stroke="#ef4444" stroke-width="2" points="0,10 15,15 30,12 45,20 60,25 80,30" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        
+    <!-- Recent Activity -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card-custom">
+                <div class="card-header-custom">
+                    <div class="card-title-custom">Fee Collection Snapshot</div>
+                    <select class="select-sm" id="feePeriod">
+                        <option>This Month</option>
+                        <option>Last Month</option>
+                        <option>This Quarter</option>
+                        <option>This Year</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="fee-table">
+                        <thead>
+                            <tr>
+                                <th>Fee Head / Category</th>
+                                <th>Collected (₹)</th>
+                                <th>% of Target</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feeTableBody">
+                            <tr>
+                                <td>
+                                    <div class="fee-cell">
+                                        <div class="fee-icon g"><i class="fas fa-book"></i></div>Tuition Fee
+                                    </div>
+                                </td>
+                                <td>
+                                    18,45,600<div class="progress-bar-custom g"><span data-w="92"></span></div>
+                                </td>
+                                <td>92%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fee-cell">
+                                        <div class="fee-icon b"><i class="fas fa-bus"></i></div>Transport Fee
+                                    </div>
+                                </td>
+                                <td>
+                                    4,25,000<div class="progress-bar-custom b"><span data-w="85"></span></div>
+                                </td>
+                                <td>85%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fee-cell">
+                                        <div class="fee-icon p"><i class="fas fa-pen"></i></div>Exam Fee
+                                    </div>
+                                </td>
+                                <td>
+                                    1,75,300<div class="progress-bar-custom p"><span data-w="70"></span></div>
+                                </td>
+                                <td>70%</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fee-cell">
+                                        <div class="fee-icon o"><i class="fas fa-tag"></i></div>Other Fees
+                                    </div>
+                                </td>
+                                <td>
+                                    95,250<div class="progress-bar-custom o"><span data-w="48"></span></div>
+                                </td>
+                                <td>48%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3"><a href="#" class="view-link">View fee collection report →</a></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card-custom">
+                <div class="alert alert-warning">Default Section For this </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+
+
+@code {
+    private CustomAlert customAlert;
+    private bool addstudent { get; set; }
+    private DateTime fromDate = DateTime.Now;
+    private DateTime toDate = DateTime.Now;
+    private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
+    private bool IsLoading = false;
+    string fromDateString = "", toDateString = "";
+    private string areaId = "";
+ 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+           
+        }
+    }
+    private async Task AdmitStudentDirect()
+    {
+        addstudent = true;
+        StateHasChanged();
+
+    }
+    private void ClosePopup()
+    {
+        addstudent = false;
+        StateHasChanged();
+    }
+}

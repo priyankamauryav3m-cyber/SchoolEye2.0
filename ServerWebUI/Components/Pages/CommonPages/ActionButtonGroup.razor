@@ -1,0 +1,181 @@
+﻿@using ServerWebUI.Components.Common
+@inject PermissionState PermissionState
+
+@if (AddAction)
+{
+    <button class="ui fade op-1 animated button form-btn" @onclick="AdmitClick">
+        <div class="visible content justify-content-center">Add</div>
+        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
+    </button>
+}
+
+<div class="action-btn-group">
+    @if (EditAction)
+    {
+
+        @if (IsValid)
+        {
+            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="AdmitClick">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+        }
+        else
+        {
+            <button disabled class="btn-icon edit-btn">
+                <i class="bi bi-pencil-square"></i>
+            </button>
+        }
+
+
+
+    }
+    @if (DeleteAction)
+    {
+        @if (IsValid)
+        {
+            <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="DeleteData">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        }
+        else
+        {
+
+            <button class="btn-icon active-btn" data-tooltip="Active" @onclick="DeleteData">
+                <i class="bi bi-check-lg"></i>
+            </button>
+        }
+
+    }
+</div>
+@code {
+    [Parameter] public bool IsValid { get; set; }
+    [Parameter] public EventCallback OnEditClick { get; set; }
+    [Parameter] public EventCallback Add { get; set; }
+    [Parameter] public EventCallback Delete { get; set; }
+    [Parameter] public string CurrentUrl { get; set; }
+    private bool AddAction => Add.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action1);
+    private bool EditAction => OnEditClick.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action2);
+    private bool DeleteAction => OnStatusClick.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action3);
+    [Parameter] public EventCallback OnStatusClick { get; set; }
+
+    private async Task DeleteData()
+    {
+        if (OnStatusClick.HasDelegate)
+        {
+            await OnStatusClick.InvokeAsync(null);
+        }
+    }
+    private async Task AdmitClick()
+    {
+
+        if (Add.HasDelegate)
+        {
+            await Add.InvokeAsync(null);
+        }
+        if (OnEditClick.HasDelegate)
+        {
+            await OnEditClick.InvokeAsync(null);
+        }
+       
+    }
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        PermissionState.OnChange -= StateHasChanged;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@* @using ServerWebUI.Components.Common
+@inject PermissionState PermissionState
+
+<div class="action-btn-group">
+    @if (IsValid)
+    {
+        <button class="btn-icon edit-btn" @onclick="OnEditClick">
+            <i class="bi bi-pencil-square"></i>
+        </button>
+
+        <button class="btn-icon inactive-btn" @onclick="OnStatusClick">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    }
+    else
+    {
+        <button disabled class="btn-icon edit-btn">
+            <i class="bi bi-pencil-square"></i>
+        </button>
+
+        <button class="btn-icon active-btn" @onclick="OnStatusClick">
+            <i class="bi bi-check-lg"></i>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public bool IsValid { get; set; }
+
+    [Parameter] public EventCallback OnEditClick { get; set; }
+    [Parameter] public EventCallback Add { get; set; }
+    [Parameter] public EventCallback Update { get; set; }
+    [Parameter] public EventCallback Delete { get; set; }
+    [Parameter] public string CurrentUrl { get; set; }
+    private bool AddAction => Add.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action1);
+    private bool EditAction => Update.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action2);
+    private bool DeleteAction => OnStatusClick.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action3);
+    [Parameter] public EventCallback OnStatusClick { get; set; }
+
+    private async Task DeleteData()
+    {
+        if (OnStatusClick.HasDelegate)
+        {
+            await OnStatusClick.InvokeAsync(null);
+        }
+    }
+    private async Task AdmitClick()
+    {
+
+        if (Add.HasDelegate)
+        {
+            await Add.InvokeAsync(null);
+        }
+        else if (Update.HasDelegate)
+        {
+            await Update.InvokeAsync(null);
+        }
+        
+        else
+        {
+
+        }
+    }
+} *@

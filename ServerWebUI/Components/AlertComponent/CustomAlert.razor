@@ -1,0 +1,70 @@
+﻿<div class="custom-modal" style="display:@(IsVisible ? "flex" : "none");">
+    <div class="modal-content clearfix main-popup alert-popup">
+        <div class="head-btn">
+            <h5 class="modal-title">@Title</h5>
+            <button @onclick="OnClose" type="button" class="close"><span aria-hidden="true">×</span></button>
+        </div>
+        <div class="modal-body alert-body">
+            <div class="d-flex align-items-center justify-content-center flex-column gap-2">
+                <img src="images/alert-img.png" />
+                <p class="m-0">@Message</p>
+            </div>
+            
+        </div>
+        <div class="modal-footer">
+            <div class="alert-btn">
+                @if (showConfirmationButtons)
+                {
+                    <button class="btn-txt btn-blue" @onclick="() => Confirm(true)">Yes</button>
+                    <button class="btn-txt btn-cancle" @onclick="() => Confirm(false)">No</button>
+                }
+                else
+                {
+                    <button class="btn-txt btn-blue" @onclick="OnClose">OK</button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Alert";
+    [Parameter] public string Message { get; set; } = "This is an alert message.";
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public bool showConfirmationButtons { get; set; }
+
+    private TaskCompletionSource<bool> confirmationTcs;
+
+    public async Task<bool> ShowConfirmationAlert(string message)
+    {
+        confirmationTcs = new TaskCompletionSource<bool>();
+        await ShowCustomAlert(message, true); // Show confirmation buttons (Yes/No)
+        return await confirmationTcs.Task;
+    }
+
+    public async Task ShowCustomAlert(string message, bool showConfirmation)
+    {
+        Message = message;
+        IsVisible = true;
+        showConfirmationButtons = showConfirmation;
+        await InvokeAsync(StateHasChanged); // Ensure UI updates
+    }
+
+    private async Task HandleConfirmation(bool confirmed)
+    {
+        IsVisible = false;
+        confirmationTcs.TrySetResult(confirmed); // Return the confirmation result
+        await InvokeAsync(StateHasChanged); // Update UI
+    }
+
+    private async Task OnClose()
+    {
+        IsVisible = false;
+        await InvokeAsync(StateHasChanged); // Close the alert and update UI
+    }
+
+    private async Task Confirm(bool confirmed)
+    {
+        await HandleConfirmation(confirmed); // Reuse logic for handling confirmation
+    }
+}

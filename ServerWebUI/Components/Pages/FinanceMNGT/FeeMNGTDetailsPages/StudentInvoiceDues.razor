@@ -1,0 +1,893 @@
+﻿@page "/ViewStudentInvoiceDues"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using DomainModel.FinanceMNGT
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">
+                    View Student Invoice Dues
+                </p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <select @bind="searchModel.SocietyId" class="form-input">
+                            @foreach (var data in societyModellist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SocietyId">@data.SocietyName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+
+                        <button class="form-input" type="button" data-bs-toggle="dropdown">
+                            @SelectedText
+                        </button>
+                        <div class="dropdown-menu" style="max-height:350px; overflow-y:auto;">
+
+                            <div class="form-check">
+                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
+
+                                <span>All</span>
+                            </div>
+
+                            @foreach (var item in classlist)
+                            {
+                                <div class="form-check">
+
+                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" @bind:after="GetSectionData" />
+                                    <span>@item.ClassName</span>
+
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+
+                        <button class="form-input" type="button" data-bs-toggle="dropdown">
+                            @SelectedSectionText
+                        </button>
+
+                        <div class="dropdown-menu" style="max-height:350px; overflow-y:auto;">
+
+                            <div class="form-check">
+
+                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllSection" @bind:after="ToggleSelectAllSection" />
+
+                                <span>All</span>
+
+                            </div>
+
+                            @foreach (var item in sectionModellist)
+                            {
+                                <div class="form-check">
+
+                                    <input class="form-check-input map-checkbox"
+                                           type="checkbox"
+                                           @bind="item.IsSelected" />
+
+                                    <span>@item.SectionName</span>
+
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+
+             
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentInvoiceData" tabindex="0">
+                            <div class="visible content justify-content-center">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                @* <PropertyColumn Class="text-right" Property="@(x => x.RollNo)" Title="Roll No." Align="Align.Center" /> *@
+
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No." Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <TemplateColumn Title="Student Name" Sortable="true" SortBy="GridSort<StudentDuesModel>.ByAscending(x => x.StudentName)" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentName..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Class Section" Sortable="true" SortBy="GridSort<StudentDuesModel>.ByAscending(x => x.ClassSection)" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassSection) ? " " : context.ClassSection)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Title="Category" Sortable="true" SortBy="GridSort<StudentDuesModel>.ByAscending(x => x.StudentName)" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.Category) ? " " : context.Category)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentName..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Mobile No." Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Title="Email" Class="text-center" Sortable="true" SortBy="GridSort<StudentDuesModel>.ByAscending(x => x.FatherEMail)" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FatherEMail) ? " " : context.FatherEMail)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                @* <TemplateColumn Title="Category" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.stu) ? " " : context.StudentCategoryName)
+                                    </ChildContent>
+
+                                </TemplateColumn> *@
+                                <PropertyColumn Title="Toltal Amount" Class="text-right" Property="@(x => x.Amount)" Align="Align.Center">
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Comment" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.CommentText) ? " " : context.CommentText)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="text-center">
+                                            @if (context.IsValid == true)
+                                            {
+                                                // <span class="fa fa-check text-success"></span>
+                                                    <img class="grid-status" src="/images/status-success.png" />
+                                            }
+                                            else
+                                            {
+                                                <img class="grid-status" src="/images/status-false.png" />
+                                            }
+                                        </div>
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        @*    <button type="button" class="table-btn" @onclick="AllStudentPrintChallan">
+                            Print
+                        </button> *@
+                      
+                    </div>
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print" Print="OnPrintClick" />
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print Challan" Print="StudentPrintChallan" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Generate Student Fee Invoice</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
+                                <option  value="" selected>--Select--</option>
+                                @foreach (var data in PeriodTypeList)
+                                {
+                                <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Period Type</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodId">
+                                <option  value="" selected>--Select--</option>
+                                @foreach (var data in feeCollectionPeriodlist.Where(x => string.Equals(x.PeriodType, searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                <option value="@data.PeriodId">@data.PeriodName</option>
+                                }
+                                </InputSelect>
+                                <label class="floating-label">Period</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <label for="applied" class="floating-label">Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="searchModel.Status">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@(-1)" />
+                                            <label class="form-label">
+                                                All
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@(1)" />
+                                            <label class="form-label">
+                                                Active
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@(0)" />
+                                            <label class="form-label">
+                                                Deactive
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.StudentCategory">
+                                <option value="0" selected>No-Item</option>
+                                </InputSelect>
+                                <label class="floating-label">Student Category</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.DuesAmountCheck">
+                                <option value="0">All</option>
+                                <option value="1">&gt;</option>
+                                <option value="2">&lt;</option>
+                                </InputSelect>
+                                <label class="floating-label">Dues Amount</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputNumber class="floating-input" placeholder="" @bind-Value="searchModel.DuesAmount" autocomplete="off"  />
+                                <label class="floating-label">Amount</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <label for="sibling" class="floating-label">Late Fee</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <div class="d-flex align-items-center gap-1">
+                                        <InputCheckbox @bind-Value="searchModel.IsWithLateFee" class="form-input" autocomplete="off" />
+                                        <label class="form-label">
+                                            Is With Late Fee
+                                        </label>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.EmployeeId">
+                                <option value="SMSNo">SMS No</option>
+                                <option Value="FatherNo">Father No</option>
+                                <option Value="MotherNo">Mother No</option>
+                                </InputSelect>
+                                <label class="floating-label">Send To</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.StudentNo" autocomplete="off" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentInvoiceData" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    private bool SelectAllSection = true;
+    private bool SelectAll = true;
+    private string? currentUrl;
+    private bool IsAllSelected;
+    private List<BranchClassModel> classlist = new();
+    private bool IsLoading = false;
+    private StudentInvoiceDuesRequest searchModel = new();
+    private StudentInvoice studentInvoice = new();
+    private List<SessionModel> sessionlist = new();
+    private List<SectionModel> sectionModellist = new();
+    private List<StudentDuesModel> studentResponselist = new();
+    private List<SocietyModel> societyModellist = new();
+    private bool ShowPopup = false;
+    private bool ShowPopupGenerateInvoice = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string? nameFilter;
+    private string? branchcode;
+    private string? groupcode;
+    private string UserName;
+    private long CurrentSession;
+    private SearchAnyRequestModel searchAny = new();
+    private List<PeriodMaster> PeriodTypeList = new();
+    private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
+
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private void ToggleSelectAllSection()
+    {
+        foreach (var item in sectionModellist)
+        {
+            item.IsSelected = SelectAllSection;
+        }
+
+        StateHasChanged();
+    }
+    private string SelectedSectionText
+    {
+        get
+        {
+            if (SelectAllSection)
+                return "All";
+
+            var selected = sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionName).ToList();
+
+            if (!selected.Any())
+                return "Select Section";
+
+            return string.Join(", ", selected);
+        }
+    }
+    private async Task OnClassAllChanged()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = SelectAll;
+        }
+
+        await GetSectionData();
+    }
+    private string SelectedText
+    {
+        get
+        {
+            if (SelectAll && classlist.Any())
+                return "All";
+            var selected = classlist.Where(x => x.IsSelected).Select(x => x.ClassName).ToList();
+            if (!selected.Any())
+                return "Select Class";
+
+            return string.Join(", ", selected);
+        }
+    }
+    private void ToggleAll()
+    {
+        foreach (var row in moduleQuery)
+            row.IsSelected = IsAllSelected;
+    }
+    private async Task OnPeriodTypeChanged()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            string ApiUri3 = "FeeCollectionPeriodConfig/GetFeeCollectionPeriod";
+            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>(ApiUri3, searchAny) ?? new();
+
+        }
+        catch (Exception)
+        {
+            return;
+        }
+
+        StateHasChanged();
+    }
+    private async Task GetSectionData()
+    {
+        try
+        {
+            var selectedClasses = classlist.Where(x => x.IsSelected).ToList();
+            SelectAll = selectedClasses.Count == classlist.Count;
+            if (!selectedClasses.Any())
+            {
+                sectionModellist.Clear();
+                SelectAllSection = false;
+
+                StateHasChanged();
+                return;
+            }
+            if (selectedClasses.Count > 1)
+            {
+                sectionModellist.Clear();
+
+                SelectAllSection = true;
+
+                StateHasChanged();
+                return;
+            }
+            SelectAllSection = false;
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = selectedClasses.First().ClassCode;
+            string ApiUri = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                sectionModellist = apiResponse.Data ?? new();
+            }
+
+            StateHasChanged();
+        }
+        catch
+        {
+            return;
+        }
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "Society/ListSociety";
+        societyModellist = await httpService.Get<List<SocietyModel>>(ApiUri2) ?? new();
+        PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
+        if (PeriodTypeList.Any(x => x.PeriodTypeName.Equals("Quarterly", StringComparison.OrdinalIgnoreCase)))
+        {
+            searchModel.PeriodType = "Quarterly";
+            await OnPeriodTypeChanged();
+            searchModel.PeriodId = feeCollectionPeriodlist.Where(x => x.PeriodType.Equals(searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)).Select(x => x.PeriodId).FirstOrDefault();
+            await SearchStudentInvoiceData();
+        }
+         await OnClassAllChanged();
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            await OnPeriodTypeChanged();
+            StateHasChanged();
+        }
+    }
+    protected IQueryable<StudentDuesModel> moduleQuery
+    {
+        get
+        {
+            var result = studentResponselist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+
+    private async Task SearchStudentInvoiceData()
+    {
+        ShowPopup = false;
+        searchModel.GroupCode = groupcode;
+        searchModel.BranchCode = branchcode;
+        searchModel.SessionId = CurrentSession;
+        searchModel.ClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+        searchModel.SectionId = string.Join(",", sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionId));
+        if (string.IsNullOrEmpty(searchModel.PeriodType))
+        {
+            await Alert.ShowWarning("Please select a period type.");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (searchModel.PeriodId == 0)
+        {
+            await Alert.ShowWarning("Please select a period ");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "StudentFeeInvoice/GetStudentInvoiceDues";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentDuesModel>>>(apiUrl, searchModel);
+            if (apiResponse.Success)
+            {
+                studentResponselist = apiResponse.Data ?? new List<StudentDuesModel>();
+            }
+            else
+            {
+                studentResponselist = new List<StudentDuesModel>();
+            }
+
+        }
+        catch
+        {
+            studentResponselist = new List<StudentDuesModel>();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateStudentInvoiveAllClass()
+    {
+        ShowPopupGenerateInvoice = false;
+        studentInvoice.ClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+        studentInvoice.GroupCode = groupcode;
+        studentInvoice.BranchCode = branchcode;
+        studentInvoice.CreatedBy = UserName;
+        studentInvoice.SessionId = CurrentSession;
+        studentInvoice.PeriodId = string.Join(",", feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodId));
+        if (string.IsNullOrEmpty(studentInvoice.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class first.");
+            ShowPopupGenerateInvoice = true;
+            StateHasChanged();
+            return;
+
+        }
+        else if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+        {
+            await Alert.ShowWarning("Please select a period type.");
+            ShowPopupGenerateInvoice = true;
+            StateHasChanged();
+            return;
+
+        }
+        else if (string.IsNullOrEmpty(studentInvoice.PeriodId))
+        {
+            await Alert.ShowWarning("Please select a period first.");
+            ShowPopupGenerateInvoice = true;
+            StateHasChanged();
+            return;
+
+        }
+        else if (studentInvoice.InvoiceTypeId == 0)
+        {
+            await Alert.ShowWarning("Please select a invoice type");
+            ShowPopupGenerateInvoice = true;
+            StateHasChanged();
+            return;
+
+        }
+        try
+        {
+            ShowPopupGenerateInvoice = false;
+            var submit = await Alert.ShowConfirm("Do you want to submit details?");
+            if (!submit)
+            {
+                ShowPopupGenerateInvoice = true;
+                StateHasChanged();
+                return;
+            }
+            string apiurl = "StudentFeeInvoice/StudentChallanGenerate";
+            var apiResponse = await httpService.Post<ApiResponse<string>>(apiurl, studentInvoice);
+            if (apiResponse.Success && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Invoice Generated Successfully");
+                await SearchStudentInvoiceData();
+                studentInvoice = new();
+                StateHasChanged();
+                ClosePopup();
+
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                StateHasChanged();
+                ClosePopup();
+                return;
+            }
+
+
+        }
+        catch (Exception)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void OpenSearch()
+    {
+
+        ShowPopup = true;
+        StateHasChanged();
+    }
+    private async Task StudentPrintChallan()
+    {
+        try
+        {
+            IsLoading = true;
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = string.Join(",", data.Select(x => x.InvoiceId));
+            searchAny.IsActive = true;
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/GetStudentInvoiceDetails", searchAny);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                IsLoading = false;
+                //await JS.InvokeVoidAsync("downloadPdf", base64, "StudentList.pdf");
+                await JS.InvokeVoidAsync("viewPdf", base64);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+
+    }
+    private async Task OnPrintClick()
+    {
+
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("Please search record first!");
+            return;
+        }
+        IsLoading = true;
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+        if (isPdf)
+        {
+            await AllStudentPrintChallan();
+            IsLoading = false;
+            StateHasChanged();
+        }
+        else if (isExcel)
+        {
+
+            await PrintExcel();
+            IsLoading = false;
+            StateHasChanged();
+        }
+        IsLoading = false;
+
+    }
+    private async Task PrintExcel()
+    {
+
+        try
+        {
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAllStudentChallnExcel", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "ChallanDuesReports.xlsx");
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+
+    }
+    private async Task AllStudentPrintChallan()
+    {
+
+        try
+        {
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAllStudentInvoicePdf", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("viewPdf", base64);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+
+    }
+    private void ClosePopup()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = false;
+        }
+
+        foreach (var item in feeCollectionPeriodlist)
+        {
+            item.IsSelected = false;
+        }
+        ShowPopup = false;
+        ShowPopupGenerateInvoice = false;
+        StateHasChanged();
+    }
+
+
+
+}
+
+

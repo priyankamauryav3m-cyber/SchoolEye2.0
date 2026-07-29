@@ -1,0 +1,744 @@
+﻿@using DomainModel.Admin
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@inject IHttpClientFactory ClientFactory
+@using System.Net
+@using System.Text.Json
+@inject NavigationManager Nav
+@inject IStringLocalizer<Resource> Localizer
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@inject ProtectedSessionStorage sessionStorage
+@if (IsVisible)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Map Transport With Student</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+            
+                <div class="overflow-auto" style="max-height: calc(100vh - 100px); min-height: 400px;">
+                    <div class="modal-body">
+                        <div class="row m-0 tabination-row">
+                            <div class="col-12 p-1">
+                                @if (SetStudentMapTransportList.Count == 1)
+                                {
+                                    <div class="card px-1 py-2">
+
+                                        <div class="row m-1 gap-15-0">
+
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box">
+                                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                        <p class="form-label">Admission No : </p><p class="form-label">@transportRequest.ControlNo</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box">
+                                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                        <p class="form-label">Name : </p><p class="form-label">@transportRequest.StudentName</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box">
+                                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                        <p class="form-label">Father Name : </p><p class="form-label">@transportRequest.FatherName</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box">
+                                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                        <p class="form-label">Class & Section : </p><p class="form-label">@transportRequest.ClassSection</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-6 px-1">
+                                                <div class="form-box">
+                                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                                        <p class="form-label">Address : </p><p class="form-label">@transportRequest.CurrentAddress</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-6 px-1">
+                                                <div class="form-box flex-row gap-2 align-items-center">
+                                                    <div class="border-box d-flex justify-content-between align-items-center gap-2 w-webkit px-2">
+                                                        <p class="form-label white-space-nowrap">Exsitring info : </p><p class="form-label">@transportRequest.DistanceName / @transportRequest.Amount</p>
+                                                    </div>
+                                                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="MapTransportHistory">
+                                                        <div class="visible content">History</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-hourglass-bottom"></i>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="card px-1 py-2">
+                                        <div class="card-headline d-flex align-items-center justify-content-between pb-1 p-0 mb-0">
+                                            <p class="m-0 headline-text">Seleted Student</p>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button" class="ui fade op-1 animated button form-btn" @onclick="MapTransportHistory">
+                                                    <div class="visible content">History</div>
+                                                    <div class="hidden content">
+                                                        <i class="bi bi-hourglass-bottom"></i>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-box">
+                                            <div class="row m-1">
+
+                                                @foreach (var student in SetStudentMapTransportList)
+                                                {
+                                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 px-1 mb-1">
+                                                        <div class="border-box d-flex justify-content-between align-items-center px-2">
+                                                            <p class="form-label m-0">
+                                                                @student.StudentName - @student.ControlNo
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                }
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="card px-1 py-2 mt-2">
+
+                                    <div class="row m-1 gap-15-0">
+                                        <div class="col-12 px-1">
+                                            <div class="card-headline d-flex align-items-center justify-content-between pb-1 p-0 mb-0">
+                                                <p class="m-0 headline-text">Map Route and Fee</p>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <label for="" class="form-label mb-0">Using Transport </label>
+                                                    <input type="checkbox" @bind="IsUsingTransport">
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <fieldset disabled="@(!IsUsingTransport)">
+                                        <div class="row m-1 gap-15-0">
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box-group">
+                                                    <InputDate class="floating-input" placeholder=" " @bind-Value="@transportRequest.TransportAppliedFrom" />
+                                                    <label class="floating-label">With Effect Form</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-6 px-1">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@transportRequest.DistanceId">
+                                                    <option  value="" selected>--Select--</option>
+                                                    @foreach (var data in distancelist.Where(x => x.IsValid == true))
+                                                    {
+                                                    <option value="@data.DistanceId">@data.DistanceName/@data.Amount</option>
+                                                    }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Distance</label>
+                                                </div>
+                                            </div>
+                                            @* <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box">
+                                                    <label for="" class="form-label">Amount</label>
+                                                    <select name="" id="" class="form-input">
+                                                        <option value="null" selected>Select</option>
+                                                        @foreach (var data in distancelist.Where(x => x.IsValid == true))
+                                                        {
+                                                            <option>@data.Amount</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                            </div> *@
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " type="date" name="" id="">
+                                                    <label class="floating-label">Transport Left Date</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@transportRequest.RouteId" @bind-Value:after='() => GetMapRouteBoardingPoint("pickup")'>
+                                                    <option  value="" selected>--Select--</option>
+                                                    @foreach (var map in transportroutelist)
+                                                    {
+                                                    <option value="@map.RouteId">@map.RouteName</option>
+                                                    }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Pickup Route<span class="required">*</span></label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@transportRequest.BoardingPointId" name="" id="">
+                                                    <option  value="" selected>--Select--</option>
+                                                    @foreach (var data in transportPickupBoardingList)
+                                                    {
+                                                    <option value="@data.BordingPointId">@data.PointName</option>
+                                                    }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Pickup Point<span class="required">*</span></label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@transportRequest.DropRouteId" @bind-Value:after='() => GetMapRouteBoardingPoint("drop")'>
+                                                    <option  value="" selected>--Select--</option>
+                                                    @foreach (var map in transportroutelist)
+                                                    {
+                                                    <option value="@map.RouteId">@map.RouteName</option>
+                                                    }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Drop Route<span class="required">*</span></label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-3 col-lg-3 col-xl-3 px-1">
+                                                <div class="form-box-group static-label">
+                                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@transportRequest.DropPointId">
+                                                    <option  value="" selected>--Select--</option>
+                                                    @foreach (var data in transportDropBoardingList)
+                                                    {
+                                                    <option value="@data.BordingPointId">@data.PointName</option>
+                                                    }
+                                                    </InputSelect>
+                                                    <label class="floating-label">Drop Point<span class="required">*</span></label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 px-1">
+                                                <div class="form-box">
+                                                    <div class="d-flex align-items-center gap-2 justify-content-between mb-1">
+                                                        <label for="" class="form-label mb-0">Transport Months</label>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <label for="" class="form-label mb-0">Check All</label>
+                                                            <input type="checkbox" checked="@IsAllMonthSelected" @onchange="SelectAllMonths" />
+                                                        </div>
+                                                    </div>
+                                                    <div class="table-card m-0 p-0 scrollbar-thin overflow-auto rounded border">
+                                                        <table class="basic-table border-collapse-separate" style="min-width: 500px;">
+                                                            <tr>
+                                                                @foreach (var month in MonthList.Take(6))
+                                                                {
+                                                                    <td>
+                                                                        <div class="d-flex align-items-center gap-1 p-1">
+                                                                            <input type="checkbox"
+                                                                                   class="form-input"
+                                                                                   @bind="month.IsSelected">
+
+                                                                            <label class="form-label m-0">
+                                                                                @month.MonthName
+                                                                            </label>
+                                                                        </div>
+                                                                    </td>
+                                                                }
+                                                            </tr>
+
+                                                            <tr>
+                                                                @foreach (var month in MonthList.Skip(6).Take(6))
+                                                                {
+                                                                    <td>
+                                                                        <div class="d-flex align-items-center gap-1 p-1">
+                                                                            <input type="checkbox"
+                                                                                   class="form-input"
+                                                                                   @bind="month.IsSelected">
+
+                                                                            <label class="form-label m-0">
+                                                                                @month.MonthName
+                                                                            </label>
+                                                                        </div>
+                                                                    </td>
+                                                                }
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @if (IsUsingTransport == true)
+                                            {
+                                                <div class="col-12 p-0">
+                                                    <hr class="m-0" />
+                                                </div>
+                                                <div class="col-12 p-1">
+                                                    <div class="form-group btn-gr justify-content-end">
+                                                        <button type="submit" class="ui fade op-1 animated button form-btn" @onclick="SaveStudentWithTransport">
+                                                            <div class="visible content">Submit</div>
+                                                            <div class="hidden content"><i class="fa fa-save"></i></div>
+                                                        </button>
+
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </fieldset>
+
+                                </div>
+                            </div>
+                              
+                        </div>
+
+                
+                    </div>
+                    @if (OpenMappedTransportHistory)
+                    {
+                        <div id="section4">
+                            <div class="modal-body">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12  mb-3">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg bg-light-gray">
+                                            Mapped Transport Details
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+
+                               
+
+                                <div class="col-12">
+                                    <div class="card px-1 py-2">
+                                        <div class="card-body table-card p-0">
+                                            <div class="quick-main">
+                                                <div class="grid-box-with-btn">
+                                                    @{
+                                                        int srNo = 1;
+                                                    }
+                                                    <QuickGrid Items="@MappedTransportmoduleQuery" Class="table">
+                                                        <TemplateColumn Class="text-right" Title="Sr. No" Align="Align.Center">
+                                                            <ChildContent>
+                                                                @(srNo++)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Student No." Class="text-center" Sortable="true" Align="Align.Center">
+                                                            <ChildContent>
+                                                                @(string.IsNullOrWhiteSpace(context.ControlNo) ? " " : context.ControlNo)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Student Name" Align="Align.Left">
+                                                            <ChildContent>
+                                                                @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Class" Class="text-center" Align="Align.Center">
+                                                            <ChildContent>
+                                                                @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Transport" Class="text-center" Align="Align.Center">
+                                                            <ChildContent>
+                                                                @(string.IsNullOrWhiteSpace(context.TptStatus) ? " " : context.TptStatus)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Distance" Align="Align.Left">
+                                                            <ChildContent>
+                                                                @(string.IsNullOrWhiteSpace(context.DistanceName) ? " " : context.DistanceName)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+
+                                                        <PropertyColumn Format="dd-MM-yyyy" Title="Tpt.Applied From" Property="@(x => x.TransportAppliedFrom)" Class="text-center" Align="Align.Center">
+
+                                                        </PropertyColumn>
+                                                        <PropertyColumn Title="Month No." Property="@(x => x.MonthNo)" Class="text-center" Align="Align.Center">
+
+                                                        </PropertyColumn>
+                                                        <TemplateColumn Title="Updated By" Class="text-center" Align="Align.Center">
+                                                            <ChildContent>
+                                                                @(string.IsNullOrWhiteSpace(context.CreatedBy) ? " " : context.CreatedBy)
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <PropertyColumn Format="dd-MM-yyyy" Title="Updated Date" Property="@(x => x.CreatedDate)" Class="text-center" Align="Align.Center">
+
+                                                        </PropertyColumn>
+                                                    </QuickGrid>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12  py-1">
+                                    <div class="page-heading d-flex align-items-center justify-content-end">
+
+                                        <SaveUpdateButton ShowSaveButton="false" OnClickCancel="CloseHistory"></SaveUpdateButton>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    }
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string StudentNo { get; set; }
+    public long SessionId { get; set; }
+    [Parameter] public string CurrectUrl { get; set; }
+    public string SelectedStudentNo { get; set; }
+    [Parameter] public EventCallback OnSaveSuccess { get; set; }
+    [Parameter] public long CurrentSessionData { get; set; }
+    [Parameter] public List<TransportStudentDataModel> SetStudentMapTransportList { get; set; }
+    private List<TransportRoute> transportroutelist = new();
+    private List<TransportRoutePoint> transportPickupBoardingList = new();
+    private List<TransportRoutePoint> transportDropBoardingList = new();
+    private SearchAnyRequestModel searchAny = new();
+    private List<TransportFeeConfig> distancelist = new();
+    [Parameter] public EventCallback OnClose { get; set; }
+    private bool _isFirstRender = true;
+    private List<RoleaBase> menus = new();
+    private string? roleId;
+    private string? branchcode;
+    private string? groupcode;
+    private string UserName;
+    private long CurrentSession;
+    private bool ShowPopup;
+    private bool ShowPopupOnSearch;
+    private bool ShowPopupMapTransport;
+    private bool ShowPopupMapRoute;
+    private bool ShowPopupMapRouteDetails;
+    private bool isAllSelected = false;
+    private bool IsUsingTransport { get; set; } = false;
+    private TransportSearchModel transportSearch = new();
+    private List<TransportStudentDataModel> transportStudentlistdata = new();
+    private List<SessionModel> sessionlist = new();
+    private TransportRequestModel transportRequest = new();
+    private List<StudentTransportMappedModel> studentTransportMappedlist = new();
+    private List<MonthModel> FilteredMonthList = new();
+    private bool IsAllMonthSelected;
+    private bool OpenMappedTransportHistory;
+    private List<MonthModel> MonthList = new();
+    private async Task OnSessionChanged()
+    {
+       
+            var selectedSession = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSessionData);
+
+            if (selectedSession == null)
+                return;
+            int startMonth = selectedSession.StartDate.Month;
+            int endMonth = selectedSession.EndDate.Month;
+            var orderedMonths = new List<MonthModel>();
+            int current = startMonth;
+            while (true)
+            {
+                orderedMonths.Add(MonthList.First(x => x.MonthNo == current)
+                );
+
+                if (current == endMonth)
+                    break;
+                current++;
+
+                if (current > 12)
+                    current = 1;
+            }
+            MonthList = orderedMonths;
+            if (!string.IsNullOrWhiteSpace(transportRequest.SelectedMonthNo))
+            {
+                var selectedMonths = transportRequest.SelectedMonthNo
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(int.Parse)
+                    .ToList();
+
+                foreach (var month in MonthList)
+                {
+                    month.IsSelected = selectedMonths.Contains(month.MonthNo);
+                }
+            }
+            IsAllMonthSelected = MonthList.Any() && MonthList.All(x => x.IsSelected);
+        
+        StateHasChanged();
+    }
+    private void SelectAllMonths(ChangeEventArgs e)
+    {
+        IsAllMonthSelected = (bool)e.Value!;
+
+        foreach (var month in MonthList)
+        {
+            month.IsSelected = IsAllMonthSelected;
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<StudentTransportMappedModel> MappedTransportmoduleQuery
+    {
+        get
+        {
+            var result = studentTransportMappedlist.AsQueryable();
+
+            return result;
+        }
+    }
+    private async Task MapTransportHistory()
+    {
+
+        try
+        {
+            OpenMappedTransportHistory = true;
+            StateHasChanged();
+            await Task.Delay(100);
+            await JS.InvokeVoidAsync("scrollToElement", "section4");
+            var selectedStudents = SetStudentMapTransportList.Select(x => x.StudentId).ToList();
+            var studentNos = string.Join(",", selectedStudents);
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            searchAny.RequestName = studentNos;
+            string ApiUri = "MapTransport/GetStudentMappedTransport";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentTransportMappedModel>>>(ApiUri, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                studentTransportMappedlist = apiResponse.Data ?? new();
+            }
+
+            StateHasChanged();
+        }
+        catch
+        {
+            return;
+        }
+        IsVisible = true;
+      
+    }
+
+    private async Task SetAllRecordStudent()
+    {
+
+        if (SetStudentMapTransportList?.Count == 1)
+        {
+            var student = SetStudentMapTransportList[0];
+
+            transportRequest = new TransportRequestModel
+            {
+                StudentId = student.StudentId,
+                Amount=student.Amount,
+                SessionId = student.SessionId,
+                StudentName = student.StudentName,
+                FatherName = student.FatherName,
+                ControlNo = student.ControlNo,
+                ClassSection = student.ClassSection,
+                CurrentAddress = student.CurrentAddress,
+                SelectedMonthNo = student.SelectedMonthNo,
+                DistanceName = student.DistanceName,
+                RouteId = student.RouteId.ToString(),
+                BoardingPointId = student.BoardingPointId.ToString(),
+                DropRouteId = student.DropRouteId.ToString(),
+                DropPointId = student.DropPointId.ToString(),
+                TransportAppliedFrom = student.TransportAppliedFrom,
+                DistanceId = Convert.ToInt32(student.DistanceId)
+            };
+        }
+        await GetMapRouteBoardingPoint("pickup");
+        await GetMapRouteBoardingPoint("drop");
+        await OnSessionChanged();
+       
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SetStudentMapTransportList.Count != 0)
+        {
+            await LoadData();
+            await SetAllRecordStudent();
+            
+        }
+
+    }
+    protected async Task LoadData()
+    {
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        string ApiUri2 = $"TransportFee/GetMapAmountDistance?SessionId={CurrentSession}";
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        distancelist = await httpService.Get<List<TransportFeeConfig>>(ApiUri2) ?? new();
+        string ApiUri1 = "Month/GetMonth";
+        MonthList = await httpService.Get<List<MonthModel>>(ApiUri1) ?? new();
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        string ApiUri3 = "MapTransport/GetStudentTransportRoute";
+        var apiResponse = await httpService.Post<ApiResponse<List<TransportRoute>>>(ApiUri3, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            transportroutelist = apiResponse.Data ?? new();
+        }
+    }
+    private async Task GetMapRouteBoardingPoint(string type)
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            if (type == "pickup")
+            {
+
+                if (!string.IsNullOrWhiteSpace(transportRequest.RouteId))
+                {
+                    searchAny.RequestId = Convert.ToInt32(transportRequest.RouteId);
+                }
+                var response = await httpService.Post<ApiResponse<List<TransportRoutePoint>>>("MapTransport/GetStudentBoardingPoint", searchAny);
+                if (response.Success)
+                {
+                    transportPickupBoardingList = response.Data ?? new();
+                }
+
+
+            }
+            else if (type == "drop")
+            {
+
+                searchAny.RequestId = Convert.ToInt32(transportRequest.DropRouteId);
+
+
+                var response = await httpService.Post<ApiResponse<List<TransportRoutePoint>>>("MapTransport/GetStudentBoardingPoint", searchAny);
+
+                if (response.Success)
+                {
+                    transportDropBoardingList = response.Data ?? new();
+                }
+
+            }
+
+            StateHasChanged();
+        }
+        catch
+        {
+            return;
+        }
+    }
+    private async Task SaveStudentWithTransport()
+    {
+        try
+        {
+            IsVisible = false;
+            if (transportRequest.DistanceId == 0)
+            {
+                await Alert.ShowWarning("Please Select a distance.");
+                IsVisible = true;
+                return;
+            }
+            else if (string.IsNullOrEmpty(transportRequest.RouteId))
+            {
+                await Alert.ShowWarning("Please Select a pickup route.");
+                IsVisible = true;
+                return;
+            }
+            else if (string.IsNullOrEmpty(transportRequest.DropRouteId))
+            {
+                await Alert.ShowWarning("Please Select a  drop route.");
+                IsVisible = true;
+                return;
+            }
+            else if (string.IsNullOrEmpty(transportRequest.BoardingPointId))
+            {
+                await Alert.ShowWarning("Please Select a pickup point.");
+                IsVisible = true;
+                return;
+            }
+            else if (string.IsNullOrEmpty(transportRequest.DropPointId))
+            {
+                await Alert.ShowWarning("Please Select a  drop point.");
+                IsVisible = true;
+                return;
+            }
+            bool isSuccess = true;
+
+            string ApiUri = "MapTransport/AddOrUpdateTransportMapMonthConfig";
+            foreach (var student in SetStudentMapTransportList)
+            {
+
+                transportRequest.GroupCode = groupcode;
+                transportRequest.BranchCode = branchcode;
+                transportRequest.CreatedBy = UserName;
+                transportRequest.UpdatedBy = UserName;
+                transportRequest.StudentId = student.StudentId;
+                transportRequest.SessionId = student.SessionId;
+                transportRequest.PassengerType = "Student";
+                transportRequest.IsTrasportReq = IsUsingTransport ? 1 : 0;
+                transportRequest.SelectedMonthNo = string.Join(",", MonthList.Select(x => $"{x.MonthNo}~{(x.IsSelected ? 1 : 0)}"));
+                var response = await httpService.Post<ApiResponse<string>>(ApiUri, transportRequest);
+                if (response == null || !response.Success || response.Code != 1)
+                {
+                    isSuccess = false;
+                    return;
+                }
+
+            }
+            if (isSuccess)
+            {
+                await Alert.ShowUpdate("Transport submitted successfully.");
+                transportRequest = new();
+            }
+            else
+            {
+                await Alert.ShowError("Transport submit failed.");
+            }
+            await ClosePopup();
+            await OnSaveSuccess.InvokeAsync();
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task ClosePopup()
+    {
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync();
+        ResetMonths();
+    }
+    private void CloseHistory()
+    {
+        OpenMappedTransportHistory = false;
+    }
+    private void ResetMonths()
+    {
+        foreach (var month in MonthList)
+        {
+            month.IsSelected = false;
+        }
+        OpenMappedTransportHistory = false;
+        IsAllMonthSelected = false;
+    }
+}
+

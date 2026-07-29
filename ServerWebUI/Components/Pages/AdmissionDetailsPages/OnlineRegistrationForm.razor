@@ -1,0 +1,946 @@
+﻿@page "/online-registration-form"
+@layout Layout.LoginLayout
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Threading.Tasks
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient httpClient;
+@inject ICommonMethod _commonmethod
+@inject SweetAlertService Alert
+@inject IStringLocalizer<Resource> Localizer
+<section class="main-container m-0">
+    <div class="row m-0 main-row">
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body pt-0">
+                    <EditForm Model="registration" OnValidSubmit="Save" FormName="registration">
+
+                        <DataAnnotationsValidator />
+
+                        <div class="row p-1 form-row">
+                            <div class="col-12 mt-3">
+                                <div class="form-box">
+                                    <img src="images/reg_logo.png" class="w-100" />
+                                </div>
+                            </div>
+                            <hr class="m-0" />
+                            <div class="col-12 px-2 mt-3">
+                                <div class="form-div p-1 pb-3">
+                                    <div class="form-title">
+                                        <p class="mb-0">Student's Information</p>
+                                    </div>
+                                    <div class="row px-2">
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.ChildFirstName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">First Name <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.ChildFirstName)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.ChildMiddleName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Middle Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.ChildLastName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Last Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.ClassCode">
+                                                    <option value="" selected>--Select--</option>
+                                                    @if (classlist != null)
+                                                    {
+                                                        foreach (var cls in classlist)
+                                                        {
+                                                            <option value="@cls.ClassCode">@cls.ClassName</option>
+                                                        }
+                                                    }
+
+                                                </InputSelect>
+                                                <label class="floating-label">Class <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.ClassCode)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputDate class="floating-input" placeholder=" " @bind-Value="registration.DateOfBirth" autocomplete="off" maxlength="12" @bind-Value:after="OnDOBChanged" />
+                                                <label class="floating-label">Date of Birth <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.DateOfBirth)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box disabled">
+                                                <div class="border-box d-flex justify-content-start align-items-center p-2">
+                                                    <label class="d-flex align-items-center form-label"> @datecalulate</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.Gender">
+                                                    <option value="" selected>-- Select --</option>
+                                                    @if (genderModallist != null)
+                                                    {
+                                                        foreach (var cls in genderModallist)
+                                                        {
+                                                            <option value="@cls.GenderName">@cls.GenderName</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Gander <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.Gender)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.ChildAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                <label class="floating-label">Aadhar No. <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.ChildAadharNo)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.MotherTongue">
+                                                    <option value="" selected hidden=""></option>
+                                                    @foreach (var cls in mstMotherlist)
+                                                    {
+                                                        <option value="@cls.TongueId">@cls.TongueName</option>
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Mother Tongue</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.Nationality">
+                                                    <option value="0">-- Select --</option>
+                                                    @if (countrylist != null)
+                                                    {
+                                                        foreach (var cls in countrylist)
+                                                        {
+                                                            <option value="@cls.CountryId">@cls.CountryName</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Nationality</label>
+                                                <ValidationMessage For="@(() => registration.Nationality)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.PreviousSchool" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Name of the school last attended <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.PreviousSchool)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.PreviousSchoolAddress" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Address of the school last attended<span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.PreviousSchoolAddress)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.LastClass" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                <label class="floating-label">Last promoted to class</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.SessionName" onkeypress="return /[0-9-]/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                <label class="floating-label">In Academic Session</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StudentResidentialAdd" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Residential Address <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.StudentResidentialAdd)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StuResidentialAddPinCode" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                <label class="floating-label">Pincode <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.StuResidentialAddPinCode)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <label class="floating-label">Same Address</label>
+                                                <div class="border-box d-flex justify-content-center align-items-center">
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value:after="OnCheckboxChanged" @bind-Value="IsSameAsCurrent"></InputCheckbox>
+                                                        <label class="form-label">
+                                                            Same as above
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-6 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StudentPermanentAdd" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Permanent Address</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StuPermanentAddPinCode" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                <label class="floating-label">Pincode</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                @* <InputNumber class="floating-input" placeholder=" " @bind-Value="registration.EnglishMarks" onkeypress="return /[0-9.]/.test(event.key)" autocomplete="off" maxlength="10" /> *@
+                                                <input class="floating-input"
+                                                       placeholder=" "
+                                                       @bind="registration.EnglishMarks"
+                                                       onkeypress="return /[0-9.]/.test(event.key)"
+                                                       maxlength="5"
+                                                       autocomplete="off" />
+                                                <label class="floating-label">English(Max Marks: 80)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                @* <InputNumber class="floating-input" placeholder=" " @bind-Value="registration.OptionalMarks" onkeypress="return /[0-9.]/.test(event.key)" autocomplete="off" maxlength="10" /> *@
+                                                <input class="floating-input"
+                                                       placeholder=" "
+                                                       @bind="registration.OptionalMarks"
+                                                       onkeypress="return /[0-9.]/.test(event.key)"
+                                                       maxlength="5"
+                                                       autocomplete="off" />
+                                                <label class="floating-label">Hindi/Sanskrit/French(Max Marks: 80)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                @* <InputNumber class="floating-input" placeholder=" " @bind-Value="registration.MathsMarks" onkeypress="return /[0-9.]/.test(event.key)" autocomplete="off" maxlength="10" /> *@
+                                                <input class="floating-input"
+                                                       placeholder=" "
+                                                       @bind="registration.MathsMarks"
+                                                       onkeypress="return /[0-9.]/.test(event.key)"
+                                                       maxlength="5"
+                                                       autocomplete="off" />
+                                                <label class="floating-label">Maths(Max Marks: 80)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                @* <InputNumber class="floating-input" placeholder=" " @bind-Value="registration.SocialSciencemarks" onkeypress="return /[0-9.]/.test(event.key)" autocomplete="off" maxlength="10" /> *@
+                                                <input class="floating-input"
+                                                       placeholder=" "
+                                                       @bind="registration.SocialSciencemarks"
+                                                       onkeypress="return /[0-9.]/.test(event.key)"
+                                                       maxlength="5"
+                                                       autocomplete="off" />
+                                                <label class="floating-label">Social Studies(Max Marks: 80)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                @* <InputNumber class="floating-input" placeholder=" " @bind-Value="registration.ScienceMarks" onkeypress="return /[0-9.]/.test(event.key)" autocomplete="off" maxlength="10" /> *@
+                                                <input class="floating-input"
+                                                       placeholder=" "
+                                                       @bind="registration.ScienceMarks"
+                                                       onkeypress="return /[0-9.]/.test(event.key)"
+                                                       maxlength="5"
+                                                       autocomplete="off" />
+                                                <label class="floating-label">Science(Max Marks: 80)</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <label for="applied" class="floating-label">Does the child have any special needs? <span class="required">*</span></label>
+                                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                    <InputRadioGroup @bind-Value="registration.SpecialNeeds" @bind-Value:after="OnStudentTypeChanged">
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <InputRadio Value="@(true)" />
+                                                            <label class="form-label">
+                                                                Yes
+                                                            </label>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <InputRadio Value="@(false)" />
+                                                            <label class="form-label">
+                                                                No
+                                                            </label>
+                                                        </div>
+
+                                                    </InputRadioGroup>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.SpecialneedsDetail" disabled="@IsBranchDisabled" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">If Yes please give details</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <label for="applied" class="floating-label">Previous School's Affiliation <span class="required">*</span></label>
+                                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                    <InputRadioGroup @bind-Value="registration.IsCBSEDetails">
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <InputRadio Value="@("CBSE")" />
+                                                            <label class="form-label">
+                                                                CBSE
+                                                            </label>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <InputRadio Value="@("ICSE")" />
+                                                            <label class="form-label">
+                                                                ICSE
+                                                            </label>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <InputRadio Value="@("State Board")" />
+                                                            <label class="form-label">
+                                                                State Board
+                                                            </label>
+                                                        </div>
+
+                                                    </InputRadioGroup>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.StreamCode" @bind-Value:after="GetConcessionData">
+                                                    <option value="0">-- Select ---</option>
+                                                    <option value="Medical">Medical</option>
+                                                    <option value="Non-Medical">Non-Medical</option>
+                                                    <option value="Commerce">Commerce</option>
+                                                    <option value="Humanities">Humanities</option>
+                                                </InputSelect>
+                                                <label class="floating-label">Stream <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.StreamCode)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.CompulsorySubject" disabled>
+
+                                                    @if (Compulsorylist != null)
+                                                    {
+                                                        foreach (var cls in Compulsorylist)
+                                                        {
+                                                            <option value="@cls.ValueField">@cls.TextField</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Compulsory Subject</label>
+                                                <ValidationMessage For="@(() => registration.CompulsorySubject)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.Subject3">
+                                                    @* <option value="0">-- Select Subject --</option> *@
+
+                                                    @if (Subject1 != null)
+                                                    {
+                                                        foreach (var cls in Subject1)
+                                                        {
+                                                            <option value="@cls.TextField">@cls.TextField</option>
+                                                        }
+                                                    }
+
+                                                </InputSelect>
+                                                <label class="floating-label">Subject-2 <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.Subject3)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.Subject4">
+                                                    @* <option value="0">-- Select Subject --</option> *@
+
+                                                    @if (Subject2 != null)
+                                                    {
+                                                        foreach (var cls in Subject2)
+                                                        {
+                                                            <option value="@cls.TextField">@cls.TextField</option>
+                                                        }
+                                                    }
+
+                                                </InputSelect>
+                                                <label class="floating-label">Subject-3 <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.Subject4)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.Subject5">
+                                                    @*   <option value="0">-- Select Subject --</option> *@
+
+                                                    @if (Subject3 != null)
+                                                    {
+                                                        foreach (var cls in Subject3)
+                                                        {
+                                                            <option value="@cls.TextField">@cls.TextField</option>
+                                                        }
+                                                    }
+
+                                                </InputSelect>
+                                                <label class="floating-label">Subject-4 <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.Subject5)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.Subject6">
+                                                    @*  <option value="0">-- Select Subject --</option> *@
+
+                                                    {
+                                                    @if (Subject4 != null)
+                                                    {
+                                                        foreach (var cls in Subject4)
+                                                        {
+                                                            <option value="@cls.TextField">@cls.TextField</option>
+                                                        }
+
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Subject-5 <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.Subject6)" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 px-2 mt-3">
+                                <div class="form-div p-1 pb-3">
+                                    <div class="form-title">
+                                        <p class="mb-0">Mother's Information</p>
+                                    </div>
+                                    <div class="row px-2">
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherFName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">First Name <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherFName)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherMName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Middle Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherLName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Last Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                <label class="floating-label">Aadhar No. <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherAadharNo)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.MotherQualification">
+                                                    <option value="0">-- Select --</option>
+                                                    @if (qulifationlist != null)
+                                                    {
+                                                        foreach (var cls in qulifationlist)
+                                                        {
+                                                            <option value="@cls.QualificationTypeId">@cls.QualificationName</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Qualification <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherQualification)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.MotherOccupation">
+                                                    <option value="0">-- Select --</option>
+                                                    @if (getoccupationlist != null)
+                                                    {
+                                                        foreach (var cls in getoccupationlist)
+                                                        {
+                                                            <option value="@cls.OccupationId">@cls.OccupationName</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Occupation <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherOccupation)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" autocomplete="off">
+                                                <label class="floating-label">If Other please give details</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" "
+                                                           @bind-Value="registration.MotherAnnualIncome"
+                                                           onkeypress="return /[0-9.]/.test(event.key)"
+                                                           autocomplete="off"
+                                                           maxlength="10" />
+                                                <label class="floating-label">Annual Income <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherAnnualIncome)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherMobile" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="13" />
+                                                <label class="floating-label">Mobile No. <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherMobile)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherEmailId" autocomplete="off" maxlength="150" />
+                                                <label class="floating-label">Email Id <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.MotherEmailId)" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="col-12 px-2 mt-3">
+                                <div class="form-div p-1 pb-3">
+                                    <div class="form-title">
+                                        <p class="mb-0">Father's Information</p>
+                                    </div>
+                                    <div class="row px-2">
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherFName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">First Name <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherFName)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherMName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Middle Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherLName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
+                                                <label class="floating-label">Last Name</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                <label class="floating-label">Aadhar No. <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherAadharNo)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">   
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.FatherQualification">
+                                                    <option value="0">-- Select --</option>
+                                                    @if (qulifationlist != null)
+                                                    {
+                                                        foreach (var cls in qulifationlist)
+                                                        {
+                                                            <option value="@cls.QualificationTypeId">@cls.QualificationName</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Qualification <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherQualification)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input " placeholder=" " @bind-Value="registration.FatherOccupation">
+                                                    <option value="0">-- Select --</option>
+                                                    @if (getoccupationlist != null)
+                                                    {
+                                                        foreach (var cls in getoccupationlist)
+                                                        {
+                                                            <option value="@cls.OccupationId">@cls.OccupationName</option>
+                                                        }
+                                                    }
+                                                </InputSelect>
+                                                <label class="floating-label">Occupation <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherOccupation)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " type="text" autocomplete="off">
+                                                <label class="floating-label">If Other please give details</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" "
+                                                           @bind-Value="registration.FatherAnnualIncome"
+                                                           onkeypress="return /[0-9.]/.test(event.key)"
+                                                           autocomplete="off"
+                                                           maxlength="10" />
+                                                <label class="floating-label">Annual Income <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherAnnualIncome)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherMobile" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="13" />
+                                                <label class="floating-label">Mobile No. <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherMobile)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                            <div class="form-box-group">
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherEmailId" autocomplete="off" maxlength="150" />
+                                                <label class="floating-label">Email Id <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => registration.FatherEmailId)" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 px-2 mt-3">
+                                <div class="form-div p-1 pb-3">
+                                    <div class="form-title">
+                                        <p class="mb-0">Declaration By The Parents</p>
+                                    </div>
+                                    <div class="row px-2">
+                                        <div class="col-12 mt-2">
+                                            <p class="mb-1">
+                                                I hereby certify that the information provided by me above is correct.I understand that if any information is found to be incorrect or false in any respect,my ward will be automatically debarred from admission without any correspondence in this regard and if admitted,the admission will be cancelled.I accept the process of admission undertaken by the school and will abide by the decision taken by the school authorities.I also understand that the acceptance of a registration form or position on the waitlist does not guarantee admission to my ward and that the decision of the school will be ﬁnal.
+                                            </p>
+
+                                            <p class="mb-1">
+                                                Please Note Admission Will Be Provisional Till Submission Of Class X Board Results And Completion Of Formalities As Per School Admission Criteria.
+                                            </p>
+
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputCheckbox @bind-Value="termsaccept" class="form-input" />
+
+                                                <p class="fw-bolder m-0">
+                                                    We understand and agree to the terms and conditions listed above and admission is subject to production of documentary proof.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr class="mt-3" />
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 d-flex align-items-center gap-1 justify-content-between">
+                                <div class="d-flex align-items-center gap-1">
+                                    <div class="input-box">
+                                        <input class="form-input" @bind="@inputcaptcha" autocomplete="off">
+                                    </div>
+                                    <div class="captcha-box d-flex align-items-center">
+                                        <div class="border-box bg-light px-2 d-flex align-items-center justify-content-center">
+                                            <p class="m-0" for="captchaInput">@($"{firstNumber} {operation} {secondNumber} = ?")</p>
+
+                                        </div>
+                                        <button type="button" class="captcha-btn" @onclick="RefreshCaptcha">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+
+                                    </div>
+                                </div>
+                                <div class="tab-buttons d-flex justify-content-end gap-2">
+                                    <button class="ui animated button form-btn backBtn"
+                                            tabindex="0">
+                                        <div class="visible content">Back</div>
+                                        <div class="hidden content">
+                                            <i class="bi bi-arrow-left"></i>
+                                        </div>
+                                    </button>
+                                    <button type="submit" class="ui animated button form-btn backBtn" tabindex="0">
+                                        <div class="visible content">Submit</div>
+                                        <div class="hidden content">
+                                            <i class="fa fa fa-save"></i>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+
+                        </div>
+
+
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+    private OnlineRegistration registration = new();
+    private List<BranchClassModel> classlist = new();
+    private CustomAlert? customAlert;
+    private List<GenderModal> genderModallist = new();
+    private List<MstMotherTongue> mstMotherlist = new();
+    private List<CountryModel> countrylist = new();
+    private List<Qualification> qulifationlist = new();
+    private List<OccupationModal> getoccupationlist = new();
+    private List<ShareDomain> Compulsorylist = new();
+    private List<ShareDomain> result = new();
+    private List<ShareDomain> Subject1 = new();
+    private List<ShareDomain> Subject2 = new();
+    private List<ShareDomain> Subject3 = new();
+    private List<ShareDomain> Subject4 = new(); private string? datecalulate = "";
+    private string? branchcode = "03";
+    private string? groupcode = "18";
+    private string? username = "Online";
+    private string? SessionName;
+    private bool IsSameAsCurrent;
+    private string previuscode = "01";
+    private bool IsBranchDisabled = true;
+    private int firstNumber;
+    private int secondNumber;
+    private string operation = "";
+    private int correctResult;
+    private string? inputcaptcha;
+    private bool termsaccept = false;
+
+    private void OnStudentTypeChanged()
+    {
+        if (registration.SpecialNeeds)
+        {
+            IsBranchDisabled = false;   // Enable dropdown
+        }
+        else
+        {
+            IsBranchDisabled = true;    // Disable dropdown
+        }
+    }
+    private async Task LoadData()
+    {
+        getoccupationlist = await httpService.Get<List<OccupationModal>>("occupation/AllOccupation") ?? new();
+        mstMotherlist = await httpService.Get<List<MstMotherTongue>>("ClassSection/GetMstMotherTongue") ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        qulifationlist = await httpService.Get<List<Qualification>>("Qualification/GetQualification") ?? new();
+        genderModallist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
+        countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            await LoadData();
+            SessionName = await _commonmethod.GetCurrentSession();
+            GenerateMathProblem();
+        }
+        StateHasChanged();
+    }
+    private async Task OnDOBChanged()
+    {
+        try
+        {
+            if (!registration.DateOfBirth.HasValue)
+                return;
+            if (registration.DateOfBirth <= DateTime.Today)
+            {
+                if (registration.DateOfBirth == null)
+                {
+                    datecalulate = "";
+                    return;
+                }
+                var dateOfBirth = Convert.ToDateTime(registration.DateOfBirth);
+                datecalulate = _commonmethod.CalculateAge(dateOfBirth);
+            }
+            else
+            {
+                await customAlert!.ShowCustomAlert("Please choose the correct Date of Birth.", false);
+                registration.DateOfBirth = null;
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private void RefreshCaptcha()
+    {
+        GenerateMathProblem();
+    }
+    private void GenerateMathProblem()
+    {
+        Random random = new Random();
+        firstNumber = random.Next(1, 9);
+        secondNumber = random.Next(1, 9);
+        operation = "+";
+        correctResult = firstNumber + secondNumber;
+    }
+    // private async Task GetData()
+    // {
+    //     var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+    //     branchcode = branchResult.Value;
+    //     var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+    //     groupcode = groupResult.Value; var userResult = await sessionStorage.GetAsync<string>("UserName");
+    //     username = userResult.Value;
+    // }
+    private async Task Save()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(inputcaptcha))
+            {
+
+                await customAlert!.ShowCustomAlert("Please solve the captcha before logging in!", false);
+                return;
+            }
+            if (!termsaccept)
+            {
+                await customAlert!.ShowCustomAlert("Please accept Terms & Conditions", false);
+                return;
+            }
+            if (!int.TryParse(inputcaptcha, out int userInput) || userInput != correctResult)
+            {
+                await customAlert!.ShowCustomAlert("Captcha code not solved correctly!", false);
+                return;
+            }
+            if (registration.IsCBSEDetails == "CBSE")
+            {
+                registration.IsCBSEDetails = "CBSE";
+                registration.IsCBSE = true;
+            }
+            else if (registration.IsCBSEDetails == "ICSE")
+            {
+                registration.IsCBSEDetails = "ICSE";
+                registration.IsCBSE = false;
+            }
+            else
+            {
+                registration.IsCBSEDetails = "STATE BOARD";
+                registration.IsCBSE = false;
+            }
+            registration.CreatedBy = username;
+            registration.GroupCode = groupcode;
+            registration.BranchCode = branchcode;
+            registration.SessionName = SessionName;
+            string apiUrl = "Registration/OnlineRegistration";
+            var apiResponse = await httpClient.PostAsJsonAsync(apiUrl, registration);
+            if (apiResponse.IsSuccessStatusCode)
+            {
+                var result = await apiResponse.Content.ReadFromJsonAsync<ApiResponse<string>>();
+                var registrationNo = result?.Data;
+                await Alert.ShowRegistrationSuccess($"{Localizer["RegSave"]}<br/>" + $"<b>Registration No:</b> {registrationNo}");
+                // await customAlert!.ShowCustomAlert($"Registration successful. Registration No: {registrationNo}", false);
+
+            }
+            else
+            {
+                await customAlert!.ShowCustomAlert("Registration failed. Please try again.", false);
+            }
+            registration = new OnlineRegistration();
+            inputcaptcha = "";
+            termsaccept = false;
+            datecalulate = "";
+            StateHasChanged();
+
+
+        }
+        catch (Exception ex)
+        {
+            registration = new OnlineRegistration();
+            inputcaptcha = "";
+            termsaccept = false;
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    private async Task OnCheckboxChanged()
+    {
+        try
+        {
+            if (IsSameAsCurrent)
+            {
+                registration.StudentPermanentAdd = registration.StudentResidentialAdd;
+                registration.StuPermanentAddPinCode = registration.StuResidentialAddPinCode;
+            }
+            else
+            {
+                registration.StudentPermanentAdd = null;
+                registration.StuPermanentAddPinCode = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+    private async void GetConcessionData()
+    {
+        result = new();
+        Compulsorylist = new();
+        string ApiUri1 = $"SubjectName/GetCompulsorySubjects?groupCode={groupcode}&branchCode={branchcode}&streamCode={registration.StreamCode}";
+        Compulsorylist = await httpService.Get<List<ShareDomain>>(ApiUri1) ?? new();
+        for (int count = 1; count <= 4; count++)
+        {
+            try
+            {
+                string ApiUri = $"SubjectName/ElectiveSubjects?groupCode={groupcode}&branchCode={branchcode}&streamCode={registration.StreamCode}&groupId={count}&firstElement=-- Select --";
+
+                result = await httpService.Get<List<ShareDomain>>(ApiUri) ?? new();
+
+                switch (count)
+                {
+                    case 1:
+                        Subject1 = result;
+                        break;
+
+                    case 2:
+                        Subject2 = result;
+                        break;
+
+                    case 3:
+                        Subject3 = result;
+                        break;
+
+                    case 4:
+                        Subject4 = result;
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        StateHasChanged();
+    }
+}

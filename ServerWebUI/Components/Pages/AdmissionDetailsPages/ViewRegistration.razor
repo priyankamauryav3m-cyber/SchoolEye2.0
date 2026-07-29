@@ -1,0 +1,802 @@
+﻿@page "/ViewRegistration"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject ICommonMethod _commonmethod
+@inject PermissionState PermissionState
+@inject NavigationManager Nav
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">View Registration</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect class="form-input"  @bind-Value="@CurrentSession" name="session">
+                            <option value="" selected>Select-Session</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect class="form-input" @bind-Value="searchModel.BranchCode" name="gender" id="gender">
+                            <option value="01">V3M International School</option>
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect class="form-input"  @bind-Value="searchModel.ClassCode">
+                            <option Value="All">All</option>
+                            @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                            {   
+                                <option Value="@cs.ClassCode">@cs.ClassName</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+               
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByRegistration" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <PropertyColumn Property="@(x => x.RegistrationNo)" Sortable="true" Title="Reg No." />
+
+                                <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Studentname...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <TemplateColumn Title="Father Name" Sortable="true" SortBy="@(GridSort<RegistrationDto>.ByAscending(x => x.FatherName))" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FatherName) ? " " : context.FatherName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Fathername..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Contact No."  Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FatherContactNo) ? " " : context.FatherContactNo)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.Gender)" Sortable="true" Title="Gender" />
+                                <PropertyColumn Align="Align.Center" Property="@(x => x.DateOfBirth)" Sortable="true" Title="DOB" />
+                                <PropertyColumn Property="@(x => x.AppliedDate)" Sortable="true" Title="Applied Date" />
+                                <PropertyColumn Property="@(x => x.ClassName)" Sortable="true" Title="Applied Class" />
+                              <PropertyColumn Class=" text-right" Property="@(x => x.RegistrationFee)" Title="Fee" />
+                                <TemplateColumn Title="Mode" Sortable="true" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.PaymentMode) ? " " : context.PaymentMode)
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Class="status-col" Title="Status" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="text-center">
+                                            @if (context.ApplicationStatus == "2")
+                                            {
+                                                <img class="grid-status" src="/images/status-success.png" />
+                                            }
+                                            else
+                                            {
+                                                <img class="grid-status" src="/images/status-false.png" />
+                                            }
+                                        </div>
+                                    </ChildContent>
+
+                                </TemplateColumn>
+                                <TemplateColumn Class="status-con" Title="EWS" Align="Align.Center">
+                                    <div class="text-center">
+                                        @if (context.IsReservedSeat == 1)
+                                        {
+                                            <img class="grid-status" src="/images/status-success.png" />
+                                        }
+                                        else
+                                        {
+                                            <img class="grid-status" src="/images/status-false.png" />
+                                        }
+                                    </div>
+                                </TemplateColumn>
+                             
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-2">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn" @onclick='() => SaveStudentDetails(registrationDto,"EnterDetails")'>
+                            Enter Details
+                        </button>
+                    </div>
+                    @* <AdmitChildButton AdmitClicked="OnSaveAdmitStudent" Print="PrintRec" /> *@
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print Rec."   Print="PrintRec" />
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Admit Child" AdmitClicked="OnSaveAdmitStudent" />
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Print="OnPrintClick" />
+
+                    @* <div class="form-box">
+                        <button class="table-btn" @onclick="OnPrintClick">
+                            Print List
+                        </button>
+                    </div> *@
+                    @* <div class="form-box">
+                        <button class="table-btn" @onclick="OnPrintMiniDetails">
+                            Mini Detail Fee Pending
+                        </button>
+                    </div> *@
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="OpenSMSPopup">
+                            Send SMS
+                        </button>
+                    </div>
+                    @* <div class="form-box">
+                        <button class="table-btn">
+                            Cancel
+                        </button>
+                    </div> *@
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<SendMessage ShowPopup="@showSMS" OnClose="@CloseModal" />
+<StudentDetails IsVisible="@showModal" OnSearch="SearchByRegistration" RegId="@regId" SessionId="@session" CurrectUrl="@currentUrl" OnClose="@CloseModal" />
+<AdmitChild IsVisible="@showstudent" OnSearch="SearchByRegistration" SessionId="@session" RegId="@regId" OnClose="@CloseModal" />
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search New Registration</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.StudentName" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'')" type="text" name="" id="" />
+                                <label class="floating-label">Student First Name</label>
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <input type="date" class="floating-input" placeholder=" " @ref="dateFromInput" @bind="searchModel.DateFrom" @onclick='() => OpenDateFrom("DateFrom")' />
+                                <label class="floating-label">Date From</label>
+                           
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <input type="date" class="floating-input" placeholder=" " @ref="dateToInput" @bind="searchModel.DateTo" @onclick='() => OpenDateFrom("DateTo")' />
+                                <label class="floating-label">Date To</label>
+
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.RegistrationNo" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" type="text" name="" id="" />
+                                <label class="floating-label">Reg No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <label class="floating-label">Applied Under</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="searchModel.EWS">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                Both
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                EWS
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("2")" />
+                                            <label class="form-label">
+                                                General
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <label class="floating-label">Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="active">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0,1,2")" />
+                                            <label class="form-label">
+                                                Active
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("-3")" />
+                                            <label class="form-label">
+                                                Cancelled
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <label class="floating-label">Reg Mode</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="RegMode">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0,1,2")" />
+                                            <label class="form-label">
+                                                Both
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("2")" />
+                                            <label class="form-label">
+                                                Offline
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                Online
+                                            </label>
+                                        </div>
+
+                                    </InputRadioGroup>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <label class="floating-label">EWS|Sibling</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <div class="d-flex align-items-center gap-1">
+                                        <input type="checkbox" class="form-input"  checked="@(searchModel.Sibling == 1)"
+                                               @onchange="e => searchModel.Sibling = (bool)e.Value! ? 1 : 0" autocomplete="off" />
+                                        <label class="form-label">
+                                            Sibling
+                                        </label>
+                                        <input type="checkbox" class="form-input" checked="@(searchModel.EWS == "1")"
+                                               @onchange='e => searchModel.EWS = (bool)e.Value! ? "1" : "0"' autocomplete="off" />
+                                        <label class="form-label">
+                                            EWS
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchByRegistration" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (registrationlist.Count > 0)
+    {
+    }
+}
+
+@code {
+    private bool showModal { get; set; }
+    private bool showstudent { get; set; }
+    private bool showSMS = false;
+    private string? currentUrl;
+    private string RegMode ="0,1,2";
+    private string active ="0,1,2";
+
+    private bool IsAllSelected;
+    public bool IsSelected { get; set; }
+    private List<BranchClassModel> classlist = new();
+    private bool IsLoading = false;
+    private RegistrationSearchDto searchModel = new();
+    private List<SessionModel> sessionlist = new();
+    private List<RegistrationDto> registrationlist = new();
+    private RegistrationDto registrationDto = new();
+    private bool ShowPopup = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string? nameFilter;
+    private long regId;
+    private long session;
+    private string? value;
+    private ElementReference dateFromInput;
+    private ElementReference dateToInput;
+    private ChildDetails childDetails = new();
+    private ParentsDetails parentsDetails = new();
+    private string? branchcode;
+    private string? groupcode;
+    private string sessionvalue;
+    private long CurrentSession;
+
+    private void OpenSMSPopup()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        showSMS = true;
+        StateHasChanged();
+    }
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private void CloseModal()
+    {
+        showModal = false;
+        showstudent = false;
+        showSMS = false;
+        StateHasChanged();
+    }
+
+    private void ToggleAll()
+    {
+        foreach (var row in registrationlist)   // Items = your table data
+            row.IsSelected = IsAllSelected;
+    }
+
+    private async Task OpenDateFrom(string value)
+    {
+        if (value == "DateFrom")
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateFromInput);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateToInput);
+
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            StateHasChanged();
+        }
+    }
+    protected IQueryable<RegistrationDto> moduleQuery
+    {
+        get
+        {
+            var result = registrationlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.FatherName != null && x.FatherName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        // searchModel.StatusSrc = "2";
+        searchModel.EWS = "0";
+        searchModel.BranchCode = branchcode;
+      //  searchModel.SessionName = sessionvalue;
+        StateHasChanged();
+
+    }
+    private async Task PrintRec()
+    {
+        try
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                    await JS.InvokeVoidAsync("showSelectRecordAlert");
+                    return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            var selected = data.First();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentPdfData", selected);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                // await JS.InvokeVoidAsync("downloadPdf", base64, "StudentList.pdf");
+                await JS.InvokeVoidAsync("viewPdf", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+
+    }
+    private async Task OnPrintClick()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+        if (isPdf)
+        {
+            await PrintPdfList();
+            StateHasChanged();
+        }
+        else if (isExcel)
+        {
+
+            await PrintExcel();
+            StateHasChanged();
+        }
+
+    }
+    private async Task PrintPdfList()
+    {
+        try
+        {
+
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentPdf", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadPdf", base64, "StudentList.pdf");
+                //await JS.InvokeVoidAsync("viewPdf", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task PrintExcel()
+    {
+        try
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentListExcel", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
+                //await JS.InvokeVoidAsync("openExcelDirect", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task OnPrintMiniDetails()
+    {
+        try
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            var response = await httpService.Post<ApiResponse<object>>("Export/registration-excel", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private void OnStatusChanged(string value)
+    {
+        searchModel.StatusSrc = value;
+        StateHasChanged();
+    }
+    private async Task SearchByRegistration()
+    {
+        if (RegMode == "1" || RegMode == "2")
+        {
+            searchModel.StatusSrc = RegMode;
+        }
+        else
+        {
+            searchModel.StatusSrc = active == "-3" ? "-3" : "0,1,2";
+        }
+        searchModel.GroupCode = groupcode;
+        searchModel.BranchCode = branchcode;
+        searchModel.SessionId = CurrentSession;
+        if (searchModel.ClassCode == "All")
+        {
+            searchModel.ClassCode = null;
+        }
+        if (searchModel.DateFrom.HasValue && searchModel.DateTo.HasValue && searchModel.DateFrom.Value.Date > searchModel.DateTo.Value.Date)
+        {
+            return;
+        }
+        IsLoading = true;
+        ShowPopup = false;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "registration/SearchRegistration";
+            var apiResponse = await httpService.Post<ApiResponse<List<RegistrationDto>>>(apiUrl, searchModel);
+            if (apiResponse.Success)
+            {
+                registrationlist = apiResponse.Data ?? new List<RegistrationDto>();
+                registrationlist = apiResponse.Data ?? new List<RegistrationDto>();
+            }
+            else
+            {
+                registrationlist = new List<RegistrationDto>();
+            }
+
+        }
+        catch
+        {
+            registrationlist = new List<RegistrationDto>();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+            searchModel.ClassCode = "All";
+        }
+    }
+
+    private async Task OnSaveAdmitStudent()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        regId = data.First().RegistrationId;
+        session = data[0].SessionId;
+        showstudent = true;
+        StateHasChanged();
+    }
+
+    private async Task SaveStudentDetails(RegistrationDto item, string value)
+    {
+        if (value == "EnterDetails")
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+
+            regId = data[0].RegistrationId;
+            session = data[0].SessionId;
+            showModal = true;
+            StateHasChanged();
+        }
+        else if (value == "Enter")
+        {
+
+            regId = regId = item.RegistrationId;
+            session = item.SessionId;
+            showModal = true;
+            StateHasChanged();
+        }
+
+
+
+    }
+    private void OpenSearch()
+    {
+
+        ShowPopup = true;
+        StateHasChanged();
+    }
+
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        searchModel = new();
+        StateHasChanged();
+    }
+
+
+
+}
+

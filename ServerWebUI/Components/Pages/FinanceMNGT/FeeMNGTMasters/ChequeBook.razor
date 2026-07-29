@@ -1,0 +1,176 @@
+﻿@page "/Cheque"
+@using DomainModel.FinanceMNGT;
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Cheque </p>
+                <div class="d-flex gap-2">
+                    @* <button class="ui fade op-1 animated button form-btn" @onclick="AddChequeModel">
+                        <div class="visible content">Add</div>
+                        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
+                    </button> *@
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddChequeModel" />
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.CheqTitle)" Title="Cheque Title" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Cheque Title..."/>
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label> 
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditCheque(context)" OnStatusClick="() => ChangeChequeStatus(context.CheqBookId, context.IsValid)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-3">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@((chequeBookModel.CheqBookId == 0) ? "Add Cheque" : "Edit Cheque")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@chequeBookModel" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="chequeBookModel.CheqTitle" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" required />
+                                    <label class="floating-label">
+                                        Cheque Title <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => chequeBookModel.CheqTitle)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="chequeBookModel.BankId">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var data in Banklist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@data.BankId">@data.BankName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Bank Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => chequeBookModel.BankId)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="chequeBookModel.AccountId">
+                                        <option  value="" selected >--Select--</option>
+                                        @foreach (var data in accountlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@data.AccountId">@data.AccountNo</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Account No. <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => chequeBookModel.AccountId)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="chequeBookModel.CheqBookId" OnClickCancel="ClosePopup" />
+
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    @if (chequelist.Count > 0)
+    {
+    }
+}
+
+
+
+
