@@ -1523,4 +1523,64 @@ namespace DomainModel.Admin
         public string Url { get; set; } = "";
         public bool IsCurrent { get; set; }
     }
+    public class GenerationIdConfigurationModel
+    {
+        public int Sid { get; set; }
+
+        public string GroupCode { get; set; } = string.Empty;
+
+        public string BranchCode { get; set; } = string.Empty;
+
+        [Display(Name = "BTC")]
+        public int? BTCID { get; set; }
+
+        [Display(Name = "Branch Code Required")]
+        public bool BranchCodeRequired { get; set; }
+
+        [Display(Name = "BTC Required")]
+        public bool BTCRequired { get; set; }
+
+        [Display(Name = "Session Required")]
+        public bool SessionRequired { get; set; }
+
+        [Display(Name = "Pattern For")]
+        [StringLength(100, ErrorMessage = "Pattern For cannot exceed 100 characters.")]
+        public string? PatternFor { get; set; }
+
+        [Display(Name = "Keyword")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(100, ErrorMessage = "Keyword cannot exceed 100 characters.")]
+        public string KeyWord { get; set; } = string.Empty;
+
+        [Display(Name = "Prefix")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(20, ErrorMessage = "Prefix cannot exceed 20 characters.")]
+        public string PreFix { get; set; } = string.Empty;
+
+        [Display(Name = "Key Value")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, int.MaxValue, ErrorMessage = "Key Value must be greater than 0.")]
+        public int KeyValue { get; set; }
+
+        [Display(Name = "Key Value Length")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, 20, ErrorMessage = "Key Value Length must be between 1 and 20.")]
+        public int KeyValueLength { get; set; }
+
+        [Display(Name = "Reset Flag")]
+        public bool ResetFlag { get; set; }
+
+        [Display(Name = "Class Group")]
+        [StringLength(100, ErrorMessage = "Class Group cannot exceed 100 characters.")]
+        public string? ClassGroup { get; set; }
+
+        public string CreatedBy { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        public bool IsValid { get; set; } = true;
+
+        [Display(Name = "Session")]
+        public long? SessionId { get; set; }
+    }
 }

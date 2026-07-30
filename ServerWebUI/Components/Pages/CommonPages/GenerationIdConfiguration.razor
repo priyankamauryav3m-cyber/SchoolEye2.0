@@ -1,0 +1,562 @@
+﻿@page "/generationidconfiguration"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+
+<style>
+    .grid-box-with-btn .gic-input {
+        width: 100%;
+        border: none;
+        border-bottom: 1px solid #d9dce3;
+        background: transparent;
+        padding: 4px 2px;
+        font-size: inherit;
+        font-family: inherit;
+        color: inherit;
+        outline: none;
+        border-radius: 0;
+    }
+
+        .grid-box-with-btn .gic-input:focus {
+            border-bottom: 1px solid #4a6cf7;
+            background: #f7f9ff;
+        }
+
+    .grid-box-with-btn .gic-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+    .quickgrid thead th:first-child {
+        min-width: 200px;
+    }
+
+    .quickgrid thead th:nth-child(2) {
+        min-width: 100px;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Generation Id Configuration</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" @bind-Value:after="OnSessionChanged" name="session" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <button type="button" class="table-btn" @onclick="AddRow">
+                        Add Row
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="Keyword" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input class="gic-input" placeholder=" " @bind="context.Data.KeyWord" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrWhiteSpace(context.Data.KeyWord) ? " " : context.Data.KeyWord)
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Prefix" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input class="gic-input" placeholder=" " @bind="context.Data.PreFix" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrWhiteSpace(context.Data.PreFix) ? " " : context.Data.PreFix)
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Key Value" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="number" class="gic-input" placeholder=" " @bind="context.Data.KeyValue" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @context.Data.KeyValue
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Key Value Length" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="number" class="gic-input" placeholder=" " @bind="context.Data.KeyValueLength" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @context.Data.KeyValueLength
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Pattern For" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input class="gic-input" placeholder=" " @bind="context.Data.PatternFor" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrWhiteSpace(context.Data.PatternFor) ? " " : context.Data.PatternFor)
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Class Group" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input class="gic-input" placeholder=" " @bind="context.Data.ClassGroup" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrWhiteSpace(context.Data.ClassGroup) ? " " : context.Data.ClassGroup)
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="BTC" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="number" class="gic-input" placeholder=" " @bind="context.Data.BTCID" @bind:event="oninput" />
+                                        }
+                                        else
+                                        {
+                                            @(context.Data.BTCID?.ToString() ?? " ")
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Class="text-center" Title="Branch Code Req." Align="Align.Center">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="checkbox" class="gic-checkbox" @bind="context.Data.BranchCodeRequired" />
+                                        }
+                                        else
+                                        {
+                                            @(context.Data.BranchCodeRequired ? "Yes" : "No")
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Class="text-center" Title="BTC Req." Align="Align.Center">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="checkbox" class="gic-checkbox" @bind="context.Data.BTCRequired" />
+                                        }
+                                        else
+                                        {
+                                            @(context.Data.BTCRequired ? "Yes" : "No")
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Class="text-center" Title="Session Req." Align="Align.Center">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="checkbox" class="gic-checkbox" @bind="context.Data.SessionRequired" />
+                                        }
+                                        else
+                                        {
+                                            @(context.Data.SessionRequired ? "Yes" : "No")
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Class="text-center" Title="Reset Flag" Align="Align.Center">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <input type="checkbox" class="gic-checkbox" @bind="context.Data.ResetFlag" />
+                                        }
+                                        else
+                                        {
+                                            @(context.Data.ResetFlag ? "Yes" : "No")
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Class="text-center" Title="Status" Align="Align.Center">
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.Data.IsValid == true)">
+                                            @(context.Data.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Class="text-center" Title="Action" Align="Align.Center">
+                                    <ChildContent>
+                                        <ActionButtonGroup IsValid="context.Data.IsValid" CurrentUrl="@currentUrl" OnStatusClick="() => ChangeRowStatus(context)" />
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="table-btn" @onclick="SubmitPassword">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+        @if (ShowPopup)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Country</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="row m-0 form-row">
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="form-box-group">
+                                        <input type="password" class="floating-input" @bind="SetPassword" placeholder="  " maxlength="6" autocomplete="new-password" />                                        <label class="floating-label">
+                                        Password <span class="required">*</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                                
+
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <button type="button" class="table-btn" @onclick="ValidatePassword">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+</div>
+
+
+@code {
+    private bool IsLoading = true;
+    private bool ShowPopup = false;
+    private List<ConfigRowVm> gridRows = new();
+    private List<SessionModel> sessionlist = new();
+    private long CurrentSession = 0;
+    private string username = "";
+    private string? branchcode;
+    private string? groupcode;
+    private string? currentUrl;
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string? SetPassword;
+    private string PasswordError = "";
+    private void SubmitPassword()
+    {
+        SetPassword = "";
+        PasswordError = "";
+        ShowPopup = true;
+    }
+    private async Task ValidatePassword()
+    {
+        PasswordError = "";
+
+        // Empty password
+        if (string.IsNullOrWhiteSpace(SetPassword))
+        {
+            PasswordError = "Password is required.";
+            return;
+        }
+
+        // Wrong password
+        if (SetPassword.Trim() != "123456")
+        {
+            PasswordError = "Wrong password.";
+            return;
+        }
+
+        // Correct password
+        ShowPopup = false;
+        SetPassword = "";
+        await SubmitIdGeneration();
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        SetPassword = "";
+        PasswordError = "";
+    }
+    protected IQueryable<ConfigRowVm> moduleQuery => gridRows.AsQueryable();
+
+    // Wraps the model with a client-side "IsEditing" flag so the grid can
+    // show plain text by default and switch a row into editable inputs
+    // only when the person clicks Edit.
+    public class ConfigRowVm
+    {
+        public GenerationIdConfigurationModel Data { get; set; } = new();
+        public bool IsEditing { get; set; } = false;
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+
+
+    private async Task OnSessionChanged()
+    {
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+        string ApiUri = $"GenerationIdConfiguration/GetGenerationIdConfiguration/{CurrentSession}";
+        var data = await httpService.Get<List<GenerationIdConfigurationModel>>(ApiUri) ?? new();
+        gridRows = data.Select(x => new ConfigRowVm { Data = x, IsEditing = true }).ToList();
+        IsLoading = false;
+    }
+
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+
+    private void AddRow()
+    {
+        gridRows.Add(new ConfigRowVm
+        {
+            Data = new GenerationIdConfigurationModel
+            {
+                Sid = 0,
+                IsValid = true,
+                KeyValue = 1,
+                KeyValueLength = 1
+            },
+            IsEditing = true
+        });
+        StateHasChanged();
+    }
+
+    private async Task ChangeRowStatus(ConfigRowVm row)
+    {
+        try
+        {
+            bool isActivate = !row.Data.IsValid;
+
+            if (row.Data.Sid == 0)
+            {
+                // Unsaved row - just remove it from the grid, nothing to toggle on server.
+                gridRows.Remove(row);
+                StateHasChanged();
+                return;
+            }
+
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "GenerationIdConfiguration/DeleteGenerationIdConfiguration";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, row.Data.Sid);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task SubmitIdGeneration()
+    {
+        try
+        {
+            if (CurrentSession == 0)
+            {
+                await Alert.ShowWarning("Please select a Session.");
+                return;
+            }
+
+            var editedRows = gridRows.Where(x => x.IsEditing || x.Data.Sid == 0).ToList();
+
+            if (!editedRows.Any())
+            {
+                await Alert.ShowWarning("No changes to save.");
+                return;
+            }
+
+            foreach (var row in editedRows)
+            {
+                if (string.IsNullOrWhiteSpace(row.Data.KeyWord) || string.IsNullOrWhiteSpace(row.Data.PreFix) || row.Data.KeyValue <= 0 || row.Data.KeyValueLength <= 0)
+                {
+                    await Alert.ShowWarning("Keyword, Prefix, Key Value and Key Value Length are required for all rows.");
+                    return;
+                }
+
+                row.Data.SessionId = CurrentSession;
+                row.Data.GroupCode = groupcode ?? string.Empty;
+                row.Data.BranchCode = branchcode ?? string.Empty;
+                row.Data.IsValid = true;
+                row.Data.CreatedBy = username;
+                row.Data.CreatedDate = DateTime.Now;
+            }
+
+            bool isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "GenerationIdConfiguration/AddOrUpdateGenerationIdConfiguration";
+            var payload = editedRows.Select(x => x.Data).ToList();
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, payload);
+
+            if (apiResponse.Code == 0)
+            {
+
+            }
+            else if (apiResponse.Success)
+            {
+
+            }
+            if (apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning("Keyword" + @Localizer["Already"]);
+            }
+            else if (apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Generation Id Configuration" + @Localizer["Inserted"]);
+            }
+            else if (apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("Generation Id Configuration" + @Localizer["Updated"]);
+            }
+            else
+            {
+                return;
+            }
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}
