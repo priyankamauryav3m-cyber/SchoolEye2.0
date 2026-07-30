@@ -1,0 +1,35 @@
+name: Protect Claude Configuration
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  security-check:
+    name: Check protected Claude files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check protected files
+        shell: bash
+        run: |
+          echo "Checking protected Claude configuration..."
+
+          if git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}" \
+            | grep -E '^(CLAUDE\.md|\.claude/)'; then
+
+            echo "Protected Claude configuration has changed."
+            echo "CODEOWNERS approval is required."
+          else
+            echo "No protected Claude configuration changed."
+          fi

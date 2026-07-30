@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using Infrastructure.User;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using ServerWebAPI.Authorization;
 using System.Globalization;
 using System.Threading.RateLimiting;
-using Infrastructure.User;
 var builder = WebApplication.CreateBuilder(args);
 
 #region Services
@@ -125,7 +126,6 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
         new CultureInfo("en-IN"),
         new CultureInfo("en-US")
     };
-
     options.DefaultRequestCulture = new RequestCulture("en-IN");
     options.SupportedCultures = cultures;
     options.SupportedUICultures = cultures;
@@ -165,18 +165,15 @@ builder.Services.AddRateLimiter(options =>
 #endregion
 
 #region Custom Services
-
 builder.Services.RegisterServices();
-
 builder.Services.AddSingleton<SessionManager>();
-
 //builder.Services.AddScoped<Infrastructure.User.IJwtUtils >();
 builder.Services.AddScoped<ServerWebAPI.Authorization.IJwtUtils,JwtUtils >();
-
+    
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 builder.Services.Configure<Infrastructure.User.SmtpSettings>(
-       builder.Configuration.GetSection("Smtp"));
+builder.Configuration.GetSection("Smtp"));
 
 
 #endregion
@@ -220,11 +217,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<JwtMiddleware>();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/Admission/swagger.json", "Admission API");
-    c.SwaggerEndpoint("/swagger/FinanceManagement/swagger.json", "Finance API");
-    c.SwaggerEndpoint("/swagger/Login/swagger.json", "Login API");
+    c.SwaggerEndpoint("../swagger/Admission/swagger.json", "Admission API");
+    c.SwaggerEndpoint("../swagger/FinanceManagement/swagger.json", "Finance API");
+    c.SwaggerEndpoint("../swagger/Login/swagger.json", "Login API");
 });
 #endregion
 
