@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using Infrastructure.User;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using ServerWebAPI.Authorization;
 using System.Globalization;
 using System.Threading.RateLimiting;
-using Infrastructure.User;
 var builder = WebApplication.CreateBuilder(args);
 
 #region Services
@@ -220,11 +221,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<JwtMiddleware>();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/Admission/swagger.json", "Admission API");
-    c.SwaggerEndpoint("/swagger/FinanceManagement/swagger.json", "Finance API");
-    c.SwaggerEndpoint("/swagger/Login/swagger.json", "Login API");
+    c.SwaggerEndpoint("../swagger/Admission/swagger.json", "Admission API");
+    c.SwaggerEndpoint("../swagger/FinanceManagement/swagger.json", "Finance API");
+    c.SwaggerEndpoint("../swagger/Login/swagger.json", "Login API");
 });
 #endregion
 
