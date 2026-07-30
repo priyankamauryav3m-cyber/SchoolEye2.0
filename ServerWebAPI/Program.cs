@@ -126,7 +126,6 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
         new CultureInfo("en-IN"),
         new CultureInfo("en-US")
     };
-
     options.DefaultRequestCulture = new RequestCulture("en-IN");
     options.SupportedCultures = cultures;
     options.SupportedUICultures = cultures;
@@ -166,18 +165,15 @@ builder.Services.AddRateLimiter(options =>
 #endregion
 
 #region Custom Services
-
 builder.Services.RegisterServices();
-
 builder.Services.AddSingleton<SessionManager>();
-
 //builder.Services.AddScoped<Infrastructure.User.IJwtUtils >();
 builder.Services.AddScoped<ServerWebAPI.Authorization.IJwtUtils,JwtUtils >();
-
+    
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 builder.Services.Configure<Infrastructure.User.SmtpSettings>(
-       builder.Configuration.GetSection("Smtp"));
+builder.Configuration.GetSection("Smtp"));
 
 
 #endregion
