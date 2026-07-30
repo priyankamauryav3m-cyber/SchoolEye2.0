@@ -1904,7 +1904,7 @@
             addressDetails.EmergencyPersonAddress = string.Empty;
         }
     }
-    private void OnDOBChanged()
+    private async Task OnDOBChanged()
     {
         try
         {
@@ -1922,7 +1922,7 @@
             }
             else
             {
-                customAlert.ShowCustomAlert("Please choose the correct Date of Birth.", false);
+                await  customAlert.ShowCustomAlert("Please choose the correct Date of Birth.", false);
                 viewchildDetails.DateOfBirth = null;
                 StateHasChanged();
             }

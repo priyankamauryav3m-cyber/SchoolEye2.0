@@ -20,9 +20,7 @@
 @inject IJSRuntime JS
 @inject PermissionState PermissionState
 @inject NavigationManager Nav
-<style>
 
-</style>
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
@@ -468,9 +466,10 @@ else
     {
         if (firstRender)
         {
-            await LoadData();
+            
             //sessionvalue = await _commonmethod.SetCurrentSession();
             CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
             foreach (var item in classlist)
             {
                 item.IsSelected = true;

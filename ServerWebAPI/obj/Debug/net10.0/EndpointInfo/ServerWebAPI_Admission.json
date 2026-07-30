@@ -2164,6 +2164,103 @@
         }
       }
     },
+    "/api/GenerationIdConfiguration/GetGenerationIdConfiguration/{sessionId}": {
+      "get": {
+        "tags": [
+          "GenerationIdConfiguration"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/GenerationIdConfiguration/AddOrUpdateGenerationIdConfiguration": {
+      "post": {
+        "tags": [
+          "GenerationIdConfiguration"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GenerationIdConfigurationModel"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GenerationIdConfigurationModel"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GenerationIdConfigurationModel"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/GenerationIdConfiguration/DeleteGenerationIdConfiguration": {
+      "post": {
+        "tags": [
+          "GenerationIdConfiguration"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/GroupMaster/AddOrUpdateGroup": {
       "post": {
         "tags": [
@@ -6876,6 +6973,97 @@
           "displayOrder": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GenerationIdConfigurationModel": {
+        "required": [
+          "keyValue",
+          "keyValueLength",
+          "keyWord",
+          "preFix"
+        ],
+        "type": "object",
+        "properties": {
+          "sid": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "groupCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "btcid": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "branchCodeRequired": {
+            "type": "boolean"
+          },
+          "btcRequired": {
+            "type": "boolean"
+          },
+          "sessionRequired": {
+            "type": "boolean"
+          },
+          "patternFor": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "keyWord": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
+          },
+          "preFix": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string"
+          },
+          "keyValue": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "keyValueLength": {
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "resetFlag": {
+            "type": "boolean"
+          },
+          "classGroup": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false

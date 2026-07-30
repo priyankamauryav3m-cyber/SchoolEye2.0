@@ -102,27 +102,27 @@
                                         </div>
                                     </ColumnOptions>
                                 </TemplateColumn>
-                                <TemplateColumn Title="Contact No."  Align="Align.Left">
+                                <TemplateColumn Title="Contact No." SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.MobileNo)" class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.MobileNo) ? " " : context.MobileNo)
                                     </ChildContent> 
-
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="ContactNo...." />
+                                        </div>
+                                    </ColumnOptions>
                                 </TemplateColumn>
                                 <PropertyColumn Property="@(x => x.Gender)" Sortable="true" Title="Gender" />
-                                <TemplateColumn Title="Class Name" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.FatherName)" Align="Align.Center" Class="text-center">
+                                <TemplateColumn Title="Class Name" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.ClassName)" Align="Align.Center" Class="text-center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
                                     </ChildContent>
                                 </TemplateColumn>
                                 <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.DateOfBirth)" Class="text-center" Align="Align.Center" Title="Date Of Birth" />
-                                <PropertyColumn Format="dd-MM-yyyy" Align="Align.Center" Class="text-center" Property="@(x => x.EnquiryDate)" Title="Applied Date" />
-                                <TemplateColumn Title="Followup Date" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.FatherName)" Class="text-center" Align="Align.Center">
-                                    <ChildContent>
-                                        @(string.IsNullOrWhiteSpace(context.NextFollowupDate) ? " " : context.NextFollowupDate)
-                                    </ChildContent>
-                                </TemplateColumn>
+                                <PropertyColumn Format="dd-MM-yyyy" Align="Align.Center" Class="text-center" Property="@(x => x.EnquiryDate)"   Sortable="true"  Title="Enquiry Date" />
+                                <PropertyColumn  Align="Align.Center" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.NextFollowupDate) ? " " : x.NextFollowupDate)" Sortable="true" Title="Followup Date" />
+
                                      <TemplateColumn Align="Align.Center" Title="Action">
-                                    @* <ActionButtonGroup  CurrentUrl="@currentUrl" OnEditClick="() => EditEnqiry(context)"  /> *@
                                          <div class="action-btn-group">
                                         <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit"  @onclick="() => EditEnqiry(context)">
                                         <i class="bi bi-pencil-square"></i>
@@ -351,7 +351,7 @@
         <div class="col-sm-12 col-md-9">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
-                    <h5 class="modal-title">Followup For</h5>
+                    <h5 class="modal-title">Follow-up</h5>
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 @if (ShowSuccess)
@@ -404,7 +404,35 @@
                         <div class="col-12">
                             <hr class="my-1" />
                         </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box">
+                                <label for="" class="form-label">Interaction Mode</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="@addFollowup.InteractionVia">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                By Call
+                                            </label>
+                                        </div>
 
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                By SMS
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("2")" />
+                                            <label class="form-label">
+                                                By Email
+                                            </label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+
+                            </div>
+                        </div>
                         <div class="col-12 col-sm-6">
                             <div class="form-box">
                                 <label for="" class="form-label">Interest Status</label>
@@ -435,35 +463,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12 col-sm-6">
-                            <div class="form-box">
-                                <label for="" class="form-label">Interaction</label>
-                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
-                                    <InputRadioGroup @bind-Value="@addFollowup.InteractionVia">
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("0")" />
-                                            <label class="form-label">
-                                                By Call
-                                            </label>
-                                        </div>
-
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("1")" />
-                                            <label class="form-label">
-                                                By SMS
-                                            </label>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("2")" />
-                                            <label class="form-label">
-                                                By Email
-                                            </label>
-                                        </div>
-                                    </InputRadioGroup>
-                                </div>
-
-                            </div>
-                        </div>
+                       
 
                         <div class="col-12 col-sm-6">
                             <div class="form-box-group">
@@ -494,20 +494,22 @@
                                         </ChildContent>
                                     </TemplateColumn>
 
-                                    <PropertyColumn Align="Align.Center" Class="text-center" Property="@(x => x.FollowUpDate)" Title="Followup Date">
+                                    <PropertyColumn Align="Align.Center" Class="text-center" Sortable="true" Property="@(x => x.FollowUpDate)" Title="Followup Date">
                                     </PropertyColumn>
-                                    <TemplateColumn Title="Remarks" Align="Align.Center">
+                                    <TemplateColumn Title="Remarks" Align="Align.Left">
                                         <ChildContent>
                                             @(string.IsNullOrWhiteSpace(context.FollowUpRemark) ? " " : context.FollowUpRemark)
                                         </ChildContent>
                                     </TemplateColumn>
-                                    <TemplateColumn Title="Next Followup Date" Class="text-center" Align="Align.Center">
+                                    <PropertyColumn Align="Align.Center" Format="dd-MM-yyyy" Class="text-center" Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.FollowUpDate) ? " " : x.FollowUpDate)" Title="Next Followup Date">
+                                    </PropertyColumn>
+                                    @* <TemplateColumn Title="Next Followup Date" Class="text-center" Align="Align.Center">
                                         <ChildContent>
                                             @(string.IsNullOrWhiteSpace(context.NextDate) ? " " : context.NextDate)
                                         </ChildContent>
-                                    </TemplateColumn>
-                                    <PropertyColumn Property="@(x => x.InteractionVia)" Class="text-center" Align="Align.Center" Title="Interaction" />
-                                    <PropertyColumn Property="@(x => x.FollowupStatusName)" Class="text-center" Align="Align.Center" Title="Interest" />
+                                    </TemplateColumn> *@
+                                    <PropertyColumn Property="@(x => x.InteractionVia)" Sortable="true" Class="text-center" Align="Align.Center" Title="Interaction Mode" />
+                                    <PropertyColumn Property="@(x => x.FollowupStatusName)" Sortable="true" Class="text-center" Align="Align.Center" Title="Interest" />
 
                                 </QuickGrid>
                             </div>
@@ -876,9 +878,9 @@ else
             if (!string.IsNullOrEmpty(nameFilter))
             {
                 result = result.Where(x => (x.EnquiryNo != null && x.EnquiryNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-            (x.StudentFirstName != null && x.StudentFirstName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-             (x.FatherName != null && x.FatherName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase))
-                );
+                (x.StudentFirstName != null && x.StudentFirstName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.MobileNo != null && x.MobileNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.FatherName != null && x.FatherName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
             }
             return result;
