@@ -82,8 +82,6 @@ namespace Infrastructure.SchoolMaster
                 dt.Columns.Add("IsValid", typeof(bool));
                 dt.Columns.Add("CreatedBy", typeof(string));
                 dt.Columns.Add("SessionId", typeof(long));
-
-                // List -> DataTable
                 objList.ForEach(x =>
                 {
                     dt.Rows.Add(
@@ -131,6 +129,22 @@ namespace Infrastructure.SchoolMaster
             catch (Exception ex)
             {
                 throw new Exception("Error while inserting/updating Generation Id Configuration.", ex);
+            }
+        }
+
+        public async Task<IEnumerable<KeyWordModel>> GetAllKeyword()
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                string sql = @"Select Id,KeyWord,IsValid,CreatedDate,CreatedBy From V3M_IdGenerationKeyword";
+                var data = await con.QueryAsync<KeyWordModel>(sql);
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
             }
         }
     }

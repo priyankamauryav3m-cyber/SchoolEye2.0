@@ -785,15 +785,18 @@ namespace DomainModel.FinanceMNGT
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? ClassCode { get; set; }
         public string? MotherName { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        //[RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
         public string? Email { get; set; }
 
-        public string? AlternateContactNo { get; set; }
+        public string? ContactNo { get; set; }
         public string? SourceOfEnquiry { get; set; }
         [Display(Name = "Address")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? Address { get; set; }
         public string? Remarks { get; set; }
+        public string? Area { get; set; }
+        public string? EnquiryType { get; set; }
+        public string? LastSchool { get; set; }
 
         public string? EnquiryConverttoReg { get; set; }
         public string? RegistrationDate { get; set; }
@@ -813,45 +816,7 @@ namespace DomainModel.FinanceMNGT
         public string? StudentName { get; set; }
         public string? MobileNo { get; set; }
     }
-    public class EnquiryModel : CommonClass
-    {
-        public int EnqId { get; set; }
-        [Display(Name = "Enquiry Date")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        public DateTime EnquiryDate { get; set; } = DateTime.Today;
-        [Display(Name = "Student Name")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Student Name can contain only letters and spaces")]
-        public string? ChildFirstName { get; set; }
-        public string? ChildMiddleName { get; set; }
-        public string? ChildLastName { get; set; }
-        public string? EnquiryNo { get; set; }
-        [Display(Name = "Class Name")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        public string? ClassCode { get; set; }
-        public DateTime DOB { get; set; } = DateTime.Today;
-        [Display(Name = "Gender")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        public string? Gender { get; set; }
-        public string? Email { get; set; }
-        [Display(Name = "Mobile No.")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Mobile No can contain only numbric.")]
-        public string? MobileNo { get; set; }
-        public string? AlternateContactNo { get; set; }
-        [Display(Name = "Father Name")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Father Name can contain only letters and spaces")]
-        public string? FatherFirstName { get; set; }
-        public string? MotherFirstName { get; set; }
-        [Display(Name = "Address")]
-        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        public string? Address { get; set; }
-        public string? SourceOfEnquiry { get; set; }
-        public string? Remarks { get; set; }
-        public int IsOnline { get; set; }
-
-    }
+ 
     public class AddFollowupRequest : CommonClass
     {
         public string? EnquiryId { get; set; }
@@ -861,8 +826,10 @@ namespace DomainModel.FinanceMNGT
         [Display(Name = "Remarks")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? Remarks { get; set; }
-        public string? NeverCall { get; set; }
-        public string? InteractionVia { get; set; } = "0";
+        public string? NextFollowupAction { get; set; }
+        public DateTime? ReminderDateTime { get; set; }
+        public string? NeverCall { get; set; } = "1";
+        public string? InteractionVia { get; set; } = "1";
 
     }
     public class FollowupDetailsResponse : CommonClass

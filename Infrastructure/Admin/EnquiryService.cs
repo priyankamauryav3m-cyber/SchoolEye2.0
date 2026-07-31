@@ -71,7 +71,7 @@ namespace Infrastructure.Admin
                     param.Add("@Gender", model.Gender);
                     param.Add("@Email", model.Email);
                     param.Add("@MobileNo", model.MobileNo);
-                    param.Add("@AlternateContactNo", model.AlternateContactNo);
+                    param.Add("@AlternateContactNo", model.ContactNo);
                     param.Add("@FatherFirstName", model.FatherName);
                     param.Add("@MotherFirstName", model.MotherName);
                     param.Add("@Address", model.Address);
@@ -79,6 +79,9 @@ namespace Infrastructure.Admin
                     param.Add("@Remarks", model.Remarks);
                     param.Add("@createdBy", model.CreatedBy);
                     param.Add("@IsOnline", model.IsOnline);
+                    param.Add("@Area", model.Area);
+                    param.Add("@EnquiryType", model.EnquiryType);
+                    param.Add("@LastSchool", model.LastSchool);
                     // OUTPUT PARAM
                     param.Add("@EnquiryNo", dbType: DbType.String, size: 20, direction: ParameterDirection.Output);
 
@@ -141,6 +144,8 @@ namespace Infrastructure.Admin
                 param.Add("@NeverCall", request.NeverCall);
                 param.Add("@CreatedBy", request.CreatedBy);
                 param.Add("@InteractionVia", request.InteractionVia);
+                param.Add("@NextFollowupAction", request.NextFollowupAction);
+                param.Add("@ReminderDateTime", request.ReminderDateTime);
                 // OUTPUT PARAM
                 param.Add("@Result", dbType: DbType.String, size: 20, direction: ParameterDirection.Output);
                 await con.ExecuteAsync(
