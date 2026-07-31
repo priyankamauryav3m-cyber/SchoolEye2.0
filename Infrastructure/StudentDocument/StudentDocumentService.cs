@@ -289,7 +289,7 @@ namespace Infrastructure.StudentDocument
                 ws.Cell(row, 8).Value = s.MotherName;
                 ws.Cell(row, 9).Value = s.Email;
                 ws.Cell(row, 10).Value = s.MobileNo;
-                ws.Cell(row, 11).Value = s.AlternateContactNo; // Sr.No left
+                ws.Cell(row, 11).Value = s.ContactNo; // Sr.No left
                 ws.Cell(row, 12).Value = s.Address;
                 ws.Cell(row, 13).Value = s.SourceOfEnquiry;
                 ws.Cell(row, 14).Value = s.Remarks;

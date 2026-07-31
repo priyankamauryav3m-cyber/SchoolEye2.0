@@ -117,6 +117,32 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
                     ApiResponse<string>.Fail("Something went wrong."));
             }
         }
-
+        [HttpGet("GetGenerationIdKeyword")]
+        public async Task<IActionResult> GetKeyword()
+        {
+            try
+            {
+                var data = await _service.GetAllKeyword();
+                if (data == null)
+                {
+                    return BadRequest(
+                        ApiResponse<string>.Fail("No Data Found"));
+                }
+                return Ok(new ApiResponse<IEnumerable<KeyWordModel>>
+                {
+                    Success=true,
+                    Data=data,
+                    Message="Data Get Succcessfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while fetching generation id configuration data.",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

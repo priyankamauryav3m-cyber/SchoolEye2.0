@@ -1583,4 +1583,11 @@ namespace DomainModel.Admin
         [Display(Name = "Session")]
         public long? SessionId { get; set; }
     }
+
+    public class KeyWordModel
+    {
+        public int Id { get; set; }
+        public string? KeyWord { get; set; }
+        public string? CreatedBy { get; set; }
+    }
 }

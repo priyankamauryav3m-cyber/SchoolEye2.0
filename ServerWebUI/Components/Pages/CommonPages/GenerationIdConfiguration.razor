@@ -65,6 +65,16 @@
                 <p class="m-0 page-name px-1">Generation Id Configuration</p>
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
+                        <InputSelect @bind-Value="schoolbranchcode" @bind-Value:after="OnBranchChanged" class="form-input" autocomplete="off">
+                            <option value="" selected>--Select--</option>
+                            @foreach (var cs in branchlist)
+                            {
+                                <option Value="@cs.BranchCode">@cs.BranchName</option>
+                            }
+
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
                         <InputSelect @bind-Value="@CurrentSession" @bind-Value:after="OnSessionChanged" name="session" class="form-input">
                             <option value="0">-- Select Session --</option>
                             @foreach (var data in sessionlist.Where(x => x.IsValid == true))
@@ -73,9 +83,20 @@
                             }
                         </InputSelect>
                     </div>
-                    <button type="button" class="table-btn" @onclick="AddRow">
-                        Add Row
-                    </button>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchIdCinfigration" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="AddRow">
+                            Add Row
+                        </button>
+                    </div>
+                  
                 </div>
             </div>
         </div>
@@ -86,20 +107,33 @@
                     <div class="quick-main">
                         <div class="grid-box-with-btn">
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
-                                <TemplateColumn Title="Keyword" Align="Align.Left">
+                                <TemplateColumn Title="Keyword" Sortable="true" SortBy="GridSort<ConfigRowVm>.ByAscending(x=>x.Data.KeyWord)" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
                                         {
-                                            <input class="gic-input" placeholder=" " @bind="context.Data.KeyWord" @bind:event="oninput" />
+                                            <div class="form-box">
+                                                <select class="gic-input" @bind="context.Data.KeyWord" @bind:event="oninput">
+                                                    <option value="" selected> Select </option>
+                                                    @foreach (var data in keyWordlist)
+                                                    {
+                                                        <option value="@data.KeyWord">@data.KeyWord</option>
+                                                    }
+                                                </select>
+                                            </div>
                                         }
                                         else
                                         {
                                             @(string.IsNullOrWhiteSpace(context.Data.KeyWord) ? " " : context.Data.KeyWord)
                                         }
                                     </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Keyword..." />
+                                        </div>
+                                    </ColumnOptions>
                                 </TemplateColumn>
 
-                                <TemplateColumn Title="Prefix" Align="Align.Left">
+                                <TemplateColumn Sortable="true" SortBy="GridSort<ConfigRowVm>.ByAscending(x => x.Data.PreFix)" Title="Prefix" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
                                         {
@@ -111,8 +145,29 @@
                                         }
                                     </ChildContent>
                                 </TemplateColumn>
+                                <TemplateColumn Title="Class Group" Sortable="true" SortBy="GridSort<ConfigRowVm>.ByAscending(x => x.Data.ClassGroup)" Align="Align.Left">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
+                                            <div class="form-box">
+                                                <select class="gic-input" @bind="context.Data.ClassGroup" @bind:event="oninput">
+                                                    <option value="" selected> Select </option>
+                                                    @foreach (var data in classlist)
+                                                    {
+                                                        <option value="@data.ClassCode">@data.ClassName</option>
+                                                    }
+                                                </select>
+                                            </div>
 
-                                <TemplateColumn Title="Key Value" Align="Align.Left">
+                                        }
+                                        else
+                                        {
+                                            @(string.IsNullOrWhiteSpace(context.Data.ClassGroup) ? " " : context.Data.ClassGroup)
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Title="Key Val" Sortable="true" SortBy="GridSort<ConfigRowVm>.ByAscending(x => x.Data.KeyValue)" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
                                         {
@@ -125,7 +180,7 @@
                                     </ChildContent>
                                 </TemplateColumn>
 
-                                <TemplateColumn Title="Key Value Length" Align="Align.Left">
+                                <TemplateColumn Title="Key Val Len" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
                                         {
@@ -151,19 +206,6 @@
                                     </ChildContent>
                                 </TemplateColumn>
 
-                                <TemplateColumn Title="Class Group" Align="Align.Left">
-                                    <ChildContent>
-                                        @if (context.IsEditing)
-                                        {
-                                            <input class="gic-input" placeholder=" " @bind="context.Data.ClassGroup" @bind:event="oninput" />
-                                        }
-                                        else
-                                        {
-                                            @(string.IsNullOrWhiteSpace(context.Data.ClassGroup) ? " " : context.Data.ClassGroup)
-                                        }
-                                    </ChildContent>
-                                </TemplateColumn>
-
                                 <TemplateColumn Title="BTC" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
@@ -176,20 +218,6 @@
                                         }
                                     </ChildContent>
                                 </TemplateColumn>
-
-                                <TemplateColumn Class="text-center" Title="Branch Code Req." Align="Align.Center">
-                                    <ChildContent>
-                                        @if (context.IsEditing)
-                                        {
-                                            <input type="checkbox" class="gic-checkbox" @bind="context.Data.BranchCodeRequired" />
-                                        }
-                                        else
-                                        {
-                                            @(context.Data.BranchCodeRequired ? "Yes" : "No")
-                                        }
-                                    </ChildContent>
-                                </TemplateColumn>
-
                                 <TemplateColumn Class="text-center" Title="BTC Req." Align="Align.Center">
                                     <ChildContent>
                                         @if (context.IsEditing)
@@ -202,20 +230,6 @@
                                         }
                                     </ChildContent>
                                 </TemplateColumn>
-
-                                <TemplateColumn Class="text-center" Title="Session Req." Align="Align.Center">
-                                    <ChildContent>
-                                        @if (context.IsEditing)
-                                        {
-                                            <input type="checkbox" class="gic-checkbox" @bind="context.Data.SessionRequired" />
-                                        }
-                                        else
-                                        {
-                                            @(context.Data.SessionRequired ? "Yes" : "No")
-                                        }
-                                    </ChildContent>
-                                </TemplateColumn>
-
                                 <TemplateColumn Class="text-center" Title="Reset Flag" Align="Align.Center">
                                     <ChildContent>
                                         @if (context.IsEditing)
@@ -228,6 +242,21 @@
                                         }
                                     </ChildContent>
                                 </TemplateColumn>
+                                <TemplateColumn Class="text-center" Title="Branch Req." Align="Align.Center">
+                                    <ChildContent>
+                                        @(context.Data.BranchCodeRequired ? "Yes" : "No")
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                               
+
+                                <TemplateColumn Class="text-center" Title="Session Req." Align="Align.Center">
+                                    <ChildContent>
+                                        @(context.Data.SessionRequired ? "Yes" : "No")
+                                    </ChildContent>
+                                </TemplateColumn>
+
+
 
                                 <TemplateColumn Class="text-center" Title="Status" Align="Align.Center">
                                     <ChildContent>
@@ -237,11 +266,6 @@
                                     </ChildContent>
                                 </TemplateColumn>
 
-                                <TemplateColumn Class="text-center" Title="Action" Align="Align.Center">
-                                    <ChildContent>
-                                        <ActionButtonGroup IsValid="context.Data.IsValid" CurrentUrl="@currentUrl" OnStatusClick="() => ChangeRowStatus(context)" />
-                                    </ChildContent>
-                                </TemplateColumn>
 
                             </QuickGrid>
                         </div>
@@ -307,6 +331,16 @@
 </div>
 
 </div>
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+    
+}
 
 
 @code {
@@ -314,42 +348,70 @@
     private bool ShowPopup = false;
     private List<ConfigRowVm> gridRows = new();
     private List<SessionModel> sessionlist = new();
+    private List<KeyWordModel> keyWordlist = new();
     private long CurrentSession = 0;
-    private string username = "";
+    private string? username = "";
+    private string? schoolbranchcode;
     private string? branchcode;
     private string? groupcode;
     private string? currentUrl;
-    PaginationState pagination = new()
-    {
-        ItemsPerPage = 15
-    };
+    private List<BranchClassModel> classlist = new();
+    private List<BranchNameMst> branchlist = new();
+    PaginationState pagination = new() { ItemsPerPage = 15 };
     private string? SetPassword;
     private string PasswordError = "";
-    private void SubmitPassword()
+    private string nameFilter = "";
+    private async Task SubmitPassword()
     {
         SetPassword = "";
         PasswordError = "";
+        if (CurrentSession == 0)
+        {
+            await Alert.ShowWarning("Please select session");
+            StateHasChanged();
+            return;
+        }
+        if (string.IsNullOrEmpty(schoolbranchcode))
+        {
+            await Alert.ShowWarning("Please select branch");
+            StateHasChanged();
+            return;
+        }
         ShowPopup = true;
+    }
+    private async Task OnBranchChanged()
+    {
+        foreach (var item in moduleQuery)
+        {
+            item.Data.BranchCodeRequired = !string.IsNullOrWhiteSpace(schoolbranchcode);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnSessionChanged()
+    {
+
+        await SearchIdCinfigration();
+        foreach (var item in moduleQuery)
+        {
+            item.Data.SessionRequired = CurrentSession > 0;
+        }
+        await InvokeAsync(StateHasChanged);
     }
     private async Task ValidatePassword()
     {
         PasswordError = "";
-
-        // Empty password
         if (string.IsNullOrWhiteSpace(SetPassword))
         {
             PasswordError = "Password is required.";
             return;
         }
-
-        // Wrong password
         if (SetPassword.Trim() != "123456")
         {
             PasswordError = "Wrong password.";
             return;
         }
-
-        // Correct password
         ShowPopup = false;
         SetPassword = "";
         await SubmitIdGeneration();
@@ -360,11 +422,20 @@
         SetPassword = "";
         PasswordError = "";
     }
-    protected IQueryable<ConfigRowVm> moduleQuery => gridRows.AsQueryable();
+    //protected IQueryable<ConfigRowVm> moduleQuery => gridRows.AsQueryable();
+    protected IQueryable<ConfigRowVm> moduleQuery
+    {
+        get
+        {
+            var result = gridRows.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.Data.KeyWord != null && x.Data.KeyWord.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
-    // Wraps the model with a client-side "IsEditing" flag so the grid can
-    // show plain text by default and switch a row into editable inputs
-    // only when the person clicks Edit.
+            }
+            return result;
+        }
+    }
     public class ConfigRowVm
     {
         public GenerationIdConfigurationModel Data { get; set; } = new();
@@ -390,6 +461,8 @@
             var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
             groupcode = groupResult.Value;
             CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await OnBranchChanged();
+            await OnSessionChanged();
             await LoadData();
             StateHasChanged();
         }
@@ -397,10 +470,15 @@
 
 
 
-    private async Task OnSessionChanged()
+    private async Task SearchIdCinfigration()
     {
-        await LoadData();
+        IsLoading = true;
+        string ApiUri = $"GenerationIdConfiguration/GetGenerationIdConfiguration/{CurrentSession}";
+        var data = await httpService.Get<List<GenerationIdConfigurationModel>>(ApiUri) ?? new();
+        gridRows = data.Select(x => new ConfigRowVm { Data = x, IsEditing = true }).ToList();
+        schoolbranchcode= gridRows[0].Data.BranchCode;
         StateHasChanged();
+        IsLoading = false;
     }
 
     private async Task LoadData()
@@ -408,9 +486,14 @@
         IsLoading = true;
         string ApiUri2 = "Session/GetSession";
         sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
-        string ApiUri = $"GenerationIdConfiguration/GetGenerationIdConfiguration/{CurrentSession}";
-        var data = await httpService.Get<List<GenerationIdConfigurationModel>>(ApiUri) ?? new();
-        gridRows = data.Select(x => new ConfigRowVm { Data = x, IsEditing = true }).ToList();
+        string ApiUri1 = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri1) ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        var apiResponse = await httpService.Get<ApiResponse<List<KeyWordModel>>>("GenerationIdConfiguration/GetGenerationIdKeyword") ?? new();
+        if (apiResponse.Success == true)
+        {
+            keyWordlist = apiResponse.Data ??new();
+        }
         IsLoading = false;
     }
 
@@ -419,8 +502,9 @@
         return isActive ? "activeClr" : "inactiveClr";
     }
 
-    private void AddRow()
+    private async Task AddRow()
     {
+        
         gridRows.Add(new ConfigRowVm
         {
             Data = new GenerationIdConfigurationModel
@@ -428,10 +512,13 @@
                 Sid = 0,
                 IsValid = true,
                 KeyValue = 1,
-                KeyValueLength = 1
+                KeyValueLength = 1,
+                BranchCodeRequired = !string.IsNullOrWhiteSpace(schoolbranchcode),
+                SessionRequired = CurrentSession > 0
             },
             IsEditing = true
         });
+
         StateHasChanged();
     }
 
@@ -509,7 +596,7 @@
 
                 row.Data.SessionId = CurrentSession;
                 row.Data.GroupCode = groupcode ?? string.Empty;
-                row.Data.BranchCode = branchcode ?? string.Empty;
+                row.Data.BranchCode = schoolbranchcode ?? string.Empty;
                 row.Data.IsValid = true;
                 row.Data.CreatedBy = username;
                 row.Data.CreatedDate = DateTime.Now;

@@ -21,15 +21,76 @@
         min-width: 75px;
     }
 
-    .quickgrid tbody tr.selectRow td {
-        background-color: #cce5ff !important;
+    .border-box {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
     }
+
+    .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+    }
+
+        /* Interaction */
+        .radio-item.call label {
+            color: #0d6efd; /* Blue */
+        }
+
+        .radio-item.sms label {
+            color: #28a745; /* Green */
+        }
+
+        .radio-item.email label {
+            color: #dc3545; /* Red */
+        }
+
+        .radio-item.whatsapp label {
+            color: #25D366; /* WhatsApp Green */
+        }
+
+        /* Interest Status */
+        .radio-item.interested label {
+            color: #0d6efd; /* Blue */
+        }
+
+        .radio-item.most-interested label {
+            color: #28a745; /* Green */
+        }
+
+        .radio-item.not-interested label {
+            color: #dc3545; /* Red */
+        }
+
+        .radio-item.call-later label {
+            color: #ff9800; /* Orange */
+        }
+
+        /* Radio Circle */
+        .radio-item input[type=radio] {
+            accent-color: #2e7d32;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-item label {
+            margin: 0;
+            cursor: pointer;
+        }
+    /* .quickgrid tbody tr.selectRow td {
+        background-color: #cce5ff !important;
+    } */
 </style>
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
             <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Enquiry
+                <p class="m-0 page-name px-1">
+                    Enquiry
                     @* <NavigationPage /> *@
                 </p>
                 <div class="d-flex align-items-center gap-2">
@@ -60,7 +121,7 @@
                     </div>
                     <div class="form-box">
                         <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddEnquiry" />
-           
+
                     </div>
                 </div>
             </div>
@@ -84,7 +145,7 @@
                                             <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="EnquiryNo...." />
                                         </div>
                                     </ColumnOptions>
-                                    </PropertyColumn>
+                                </PropertyColumn>
                                 <PropertyColumn Sortable="true" Property="@(x => x.StudentFirstName)" Title="Student Name">
                                     <ColumnOptions>
                                         <div class="search-box">
@@ -105,7 +166,7 @@
                                 <TemplateColumn Title="Contact No." Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.MobileNo)" Align="Align.Center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.MobileNo) ? " " : context.MobileNo)
-                                    </ChildContent> 
+                                    </ChildContent>
                                     <ColumnOptions>
                                         <div class="search-box">
                                             <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="ContactNo..." />
@@ -119,22 +180,22 @@
                                     </ChildContent>
                                 </TemplateColumn>
                                 <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.DateOfBirth)" Class="text-center" Align="Align.Center" Title="Date Of Birth" />
-                                <PropertyColumn Format="dd-MM-yyyy" Align="Align.Center" Class="text-center" Property="@(x => x.EnquiryDate)" Title="Applied Date" />
+                                <PropertyColumn Format="dd-MM-yyyy" Align="Align.Center" Class="text-center" Property="@(x => x.EnquiryDate)" Title="Enquiry Date" />
                                 <TemplateColumn Title="Followup Date" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.NextFollowupDate)" Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.NextFollowupDate) ? " " : context.NextFollowupDate)
                                     </ChildContent>
                                 </TemplateColumn>
-                                     <TemplateColumn Align="Align.Center" Title="Action">
+                                <TemplateColumn Align="Align.Center" Title="Action">
                                     @* <ActionButtonGroup  CurrentUrl="@currentUrl" OnEditClick="() => EditEnqiry(context)"  /> *@
-                                         <div class="action-btn-group">
-                                        <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit"  @onclick="() => EditEnqiry(context)">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>
+                                    <div class="action-btn-group">
+                                        <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditEnqiry(context)">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
 
                                         <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Followup" @onclick="() => AddFollowup(context)">
                                             <i class="bi bi-hand-index-thumb"></i>
-                                    </button>
+                                        </button>
                                     </div>
                                 </TemplateColumn>
                             </QuickGrid>
@@ -183,7 +244,7 @@
 @if (ShowPopupEnquery)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-sm-12 col-md-8">
+        <div class="col-sm-12 col-md-10">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">@((enquiryModel.EnquiryId == 0) ? "Add New Enquiry" : "Edit Enquiry")</h5>
@@ -192,16 +253,16 @@
                 <EditForm Model="@enquiryModel" OnValidSubmit="OnSaveEnquiry">
                     <DataAnnotationsValidator />
                     <div class="modal-body">
-                        <div class="row gap-22-0">
+                        <div class="row m-0 form-row">
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " @bind-Value="@CurrentSession">
-                                    <option  value="" selected >--Select--</option>
-                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                                    {
-                                    <option value="@data.SessionId">@data.SessionName </option>
-                                    }
+                                        <option value="" selected>--Select--</option>
+                                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option value="@data.SessionId">@data.SessionName </option>
+                                        }
                                     </InputSelect>
                                     <label class="floating-label">Session</label>
                                 </div>
@@ -218,11 +279,11 @@
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " @bind-Value="enquiryModel.ClassCode" autocomplete="off">
-                                    <option  value="" selected >--Select--</option>
-                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
-                                    {
-                                    <option Value="@cs.ClassCode">@cs.ClassName</option>
-                                    }
+                                        <option value="" selected>--Select--</option>
+                                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                        {
+                                            <option Value="@cs.ClassCode">@cs.ClassName</option>
+                                        }
                                     </InputSelect>
                                     <label class="floating-label">Class Name <span class="required">*</span></label>
                                     <ValidationMessage For="@(() => enquiryModel.ClassCode)" />
@@ -231,11 +292,11 @@
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="enquiryModel.Gender" maxlength="10">
-                                    <option  value="" selected >--Select--</option>
-                                    @foreach (var cs in genderModallist.Where(x => x.IsValid == true))
-                                    {
-                                    <option Value="@cs.GenderName">@cs.GenderName</option>
-                                    }
+                                        <option value="" selected>--Select--</option>
+                                        @foreach (var cs in genderModallist.Where(x => x.IsValid == true))
+                                        {
+                                            <option Value="@cs.GenderName">@cs.GenderName</option>
+                                        }
                                     </InputSelect>
                                     <label class="floating-label">Gender <span class="required">*</span></label>
                                     <ValidationMessage For="@(() => enquiryModel.Gender)" />
@@ -299,7 +360,7 @@
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.AlternateContactNo" autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10" />
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.ContactNo" autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10" />
                                     <label class="floating-label">Alternate No.</label>
                                 </div>
                             </div>
@@ -310,24 +371,54 @@
                                     <ValidationMessage For="@(() => enquiryModel.Email)" />
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-8">
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                @* <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.SourceOfEnquiry" autocomplete="off" maxlength="100" />
+                                    <label class="floating-label">Source of Enquiry</label>
+                                </div> *@
+                                <div class="form-box-group static-label">
+                                    <InputSelect @bind-Value="enquiryModel.SourceOfEnquiry" class="floating-input">
+                                        <option value="">-- Select Source --</option>
+                                        <option value="Facebook">Facebook</option>
+                                        <option value="Instagram">Instagram</option>
+                                        <option value="Google">Google</option>
+                                        <option value="Walking">Walking</option>
+                                        <option value="Referral">Referral</option>
+                                    </InputSelect>
+                                    <label class="floating-label">Source of Enquiry</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input"  @bind-Value="enquiryModel.Address" autocomplete="off"></InputText>
-                                    <label class="floating-label">Address <span class="required">*</span></label>
-                                    <ValidationMessage For="@(() => enquiryModel.Address)" />
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.EnquiryType" autocomplete="off" maxlength="100" />
+                                    <label class="floating-label">Enquiry Type</label>
                                 </div>
                             </div>
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.SourceOfEnquiry" autocomplete="off" maxlength="100" />
-                                    <label class="floating-label">Source of Enquiry</label>
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.LastSchool" autocomplete="off" maxlength="100" />
+                                    <label class="floating-label">Last School</label>
                                 </div>
-                            </div>  
-
-                              
+                            </div>
                             <div class="col-12 col-sm-6 col-md-4 col-lg-8">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input"  @bind-Value="enquiryModel.Remarks" autocomplete="off"></InputText>
+                                    <InputText class="floating-input" @bind-Value="enquiryModel.Address" autocomplete="off"></InputText>
+                                    <label class="floating-label">Address <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => enquiryModel.Address)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.Area" autocomplete="off" maxlength="100" />
+                                    <label class="floating-label">Area</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" @bind-Value="enquiryModel.Remarks" autocomplete="off"></InputText>
                                     <label class="floating-label">Remark</label>
                                 </div>
                             </div>
@@ -350,7 +441,7 @@
 @if (ShowPopupFollowup)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-sm-12 col-md-9">
+        <div class="col-sm-12 col-md-11">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">Follow-up</h5>
@@ -364,7 +455,7 @@
                     </div>
                 }
                 <div class="modal-body">
-                    <div class="row gap-10-0">
+                    <div class="row m-0 form-row">
 
                         <div class="col-12 col-sm-6 col-md-6">
                             <div class="form-box">
@@ -402,70 +493,88 @@
                             </div>
                         </div>
 
-
+                       
                         <div class="col-12">
                             <hr class="my-1" />
                         </div>
                         <div class="col-12 col-sm-6">
-                            <div class="form-box">
-                                <label for="" class="form-label">Interaction Mode</label>
+                            <div class="form-box-group static-label">
+                                <label for="" class="floating-label">Interaction Mode</label>
                                 <div class="border-box d-flex justify-content-center align-items-center gap-3">
                                     <InputRadioGroup @bind-Value="@addFollowup.InteractionVia">
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("0")" />
-                                            <label class="form-label">
-                                                By Call
-                                            </label>
+
+                                        <div class="radio-item call">
+                                            <InputRadio id="call" Value="@("1")" />
+                                            <label for="call">By Call</label>
                                         </div>
 
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("1")" />
-                                            <label class="form-label">
-                                                By SMS
-                                            </label>
+                                        <div class="radio-item sms">
+                                            <InputRadio id="sms" Value="@("2")" />
+                                            <label for="sms">By SMS</label>
                                         </div>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("2")" />
-                                            <label class="form-label">
-                                                By Email
-                                            </label>
+
+                                        <div class="radio-item email">
+                                            <InputRadio id="email" Value="@("3")" />
+                                            <label for="email">By Email</label>
+                                        </div>
+
+                                        <div class="radio-item whatsapp">
+                                            <InputRadio id="whatsapp" Value="@("4")" />
+                                            <label for="whatsapp">By Whatsapp</label>
+                                        </div>
+                                        <div class="radio-item call-later">
+                                            <InputRadio id="inperson" Value="@("5")" />
+                                            <label for="inperson">In Person</label>
                                         </div>
                                     </InputRadioGroup>
                                 </div>
 
+                            </div>  
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box-group static-label">
+                                <label for="" class="floating-label">Interest Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="@addFollowup.FollowupStatus">
+
+                                        <div class="radio-item interested">
+                                            <InputRadio id="interested" Value="@("1")" />
+                                            <label for="interested">Interested</label>
+                                        </div>
+
+                                        <div class="radio-item most-interested">
+                                            <InputRadio id="mostInterested" Value="@("2")" />
+                                            <label for="mostInterested">Most Interested</label>
+                                        </div>
+
+                                        <div class="radio-item not-interested">
+                                            <InputRadio id="notInterested" Value="@("0")" />
+                                            <label for="notInterested">Not Interested</label>
+                                        </div>
+
+                                        <div class="radio-item call-later">
+                                            <InputRadio id="callLater" Value="@("3")" />
+                                            <label for="callLater">Call Later</label>
+                                        </div>
+
+                                    </InputRadioGroup>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="addFollowup.NextFollowupAction" autocomplete="off" />
+                                <label class="floating-label">Next Follow-up Action </label>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6">
-                            <div class="form-box">
-                                <label for="" class="form-label">Interest Status</label>
-                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
-                                    <InputRadioGroup @bind-Value="@addFollowup.FollowupStatus">
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("1")" />
-                                            <label class="form-label">
-                                                Interested
-                                            </label>
-                                        </div>
-
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("2")" />
-                                            <label class="form-label">
-                                                Most Interested
-                                            </label>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("0")" />
-                                            <label class="form-label">
-                                                Not Interested
-                                            </label>
-                                        </div>
-                                    </InputRadioGroup>
-                                </div>
-
+                            <div class="form-box-group static-label">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="addFollowup.ReminderDateTime" autocomplete="off" />
+                                <label class="floating-label">Reminder Date & Time</label>
                             </div>
                         </div>
-
-                       
 
                         <div class="col-12 col-sm-6">
                             <div class="form-box-group">
@@ -503,7 +612,7 @@
                                             @(string.IsNullOrWhiteSpace(context.FollowUpRemark) ? " " : context.FollowUpRemark)
                                         </ChildContent>
                                     </TemplateColumn>
-                                    <PropertyColumn Align="Align.Center" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.NextDate)? " " : x.NextDate)" Sortable="true" Title="Next Followup Date">
+                                    <PropertyColumn Align="Align.Center" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.NextDate) ? " " : x.NextDate)" Sortable="true" Title="Next Followup Date">
                                     </PropertyColumn>
                                     <PropertyColumn Property="@(x => x.InteractionVia)" Class="text-center" Align="Align.Center" Title="Interaction Mode" />
                                     <PropertyColumn Property="@(x => x.FollowupStatusName)" Class="text-center" Align="Align.Center" Title="Interest" />
@@ -570,9 +679,9 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="requestlist.AppliedFrom">
-                                <option value="-1" selected>Online/Offline</option>
-                                <option value="1=">Online</option>
-                                <option value="0">Offline</option>
+                                    <option value="-1" selected>Online/Offline</option>
+                                    <option value="1=">Online</option>
+                                    <option value="0">Offline</option>
                                 </InputSelect>
                                 <label class="floating-label">Applied From</label>
                             </div>
@@ -641,12 +750,12 @@
                 </div>
 
                 <div class="modal-body">
-                    <RegistrationForm classs=""  IncomingData="@SeletedData" OnOpen="OpenPopup" OnClose="@ClosePopup"></RegistrationForm>
+                    <RegistrationForm classs="" IncomingData="@SeletedData" OnOpen="OpenPopup" OnClose="@ClosePopup"></RegistrationForm>
                 </div>
             </div>
         </div>
     </div>
-  
+
 }
 
 
@@ -658,7 +767,7 @@
 }
 else
 {
-   
+
 }
 
 <CustomAlert @ref="customAlert" Title="Alert" />
@@ -685,7 +794,7 @@ else
     private List<GenderModal> genderModallist = new();
     string nameFilter = string.Empty;
     private string EnquiryId = string.Empty;
-    private int SelectEnquiryId ;
+    private int SelectEnquiryId;
     private string statusFilter = "1";
     private string UserName;
     private string? branchcode;
@@ -734,7 +843,7 @@ else
             await JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
-       // SelectEnquiryId = SeletedData.EnquiryId;
+        // SelectEnquiryId = SeletedData.EnquiryId;
         OpenRegPopup = true;
 
 
@@ -793,7 +902,7 @@ else
             {
                 await Alert.ShowCustomAlert(@Localizer["Admin"]);
             }
-            enquiryModel=new();
+            enquiryModel = new();
             await LoadData();
 
         }
@@ -910,7 +1019,7 @@ else
     }
     private async Task GetFollowupStudent()
     {
-         ShowPopupFollowup = true;
+        ShowPopupFollowup = true;
         searchAnyRequest.GroupCode = groupcode;
         searchAnyRequest.BranchCode = branchcode;
         searchAnyRequest.RequestName = EnquiryId;
@@ -1008,17 +1117,20 @@ else
             addFollowup.GroupCode = groupcode;
             addFollowup.BranchCode = branchcode;
             addFollowup.BranchCode = branchcode;
-            addFollowup.NeverCall ="0" ;
+            addFollowup.NeverCall = "0";
             addFollowup.EnquiryId = EnquiryId;
             if (addFollowup.NextFollowupDate.HasValue && addFollowup.NextFollowupDate.Value.Date < DateTime.Today)
             {
                 await customAlert.ShowCustomAlert("Not select a previous date !", false);
                 addFollowup.NextFollowupDate = DateTime.Today;
+                ShowPopupFollowup = true;
                 return;
             }
             if (string.IsNullOrEmpty(addFollowup.Remarks))
             {
+                ShowPopupFollowup = true;
                 await customAlert.ShowCustomAlert("Followup  remarks  cannot be blank.", false);
+                StateHasChanged();
                 return;
             }
             string apiUrl = "Enquiry/AddFollowup";
@@ -1088,6 +1200,6 @@ else
         enquiryModel = new();
         OpenRegPopup = false;
     }
-   
+
 }
 
