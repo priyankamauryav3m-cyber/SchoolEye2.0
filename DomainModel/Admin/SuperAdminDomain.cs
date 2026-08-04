@@ -1771,5 +1771,7 @@ namespace DomainModel.Admin
         public string? Source { get; set; }
 
         public string? Month { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
     }
 }

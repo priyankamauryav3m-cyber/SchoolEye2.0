@@ -101,13 +101,14 @@ namespace Infrastructure.Admin
             {
                 using var con = new SqlConnection(_connectionString);
                 var param = new DynamicParameters();
-
                 param.Add("@GroupCode", model.GroupCode);
                 param.Add("@BranchCode", model.BranchCode);
                 param.Add("@SessionId", model.SessionId);
                 param.Add("@ClassCode", model.ClassCode);
                 param.Add("@Source", model.Source);
                 param.Add("@Month", model.Month);
+                param.Add("@FromDate", model.FromDate);
+                param.Add("@ToDate", model.ToDate);
 
                 using var multi = await con.QueryMultipleAsync(
                     "V3M_Get_EnquiryDashboard",
