@@ -776,5 +776,126 @@ namespace DomainModel.SchoolMaster
     }
 
     #endregion
+
+
+    public class BranchModel
+    {
+        public int BranchId { get; set; }
+        [Display(Name = "Group Code")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string GroupCode { get; set; } = string.Empty;
+        [Display(Name = "Branch Code")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string BranchCode { get; set; } = string.Empty;
+
+        [Display(Name = "Branch Name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(150, ErrorMessage = "Branch Name cannot exceed 150 characters.")]
+        public string BranchName { get; set; } = string.Empty;
+
+        [Display(Name = "Remarks")]
+        [StringLength(250, ErrorMessage = "Remarks cannot exceed 250 characters.")]
+        public string? Remarks { get; set; }
+
+        [Display(Name = "Contact Person")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(100, ErrorMessage = "Contact Person cannot exceed 100 characters.")]
+        public string ContactPerson { get; set; } = string.Empty;
+
+        [Display(Name = "Contact Number")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Phone(ErrorMessage = "Please enter a valid contact number.")]
+        [StringLength(15, ErrorMessage = "Contact Number cannot exceed 15 characters.")]
+        public string ContactNo { get; set; } = string.Empty;
+
+        [Display(Name = "Contact Email")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+        [StringLength(100, ErrorMessage = "Contact Email cannot exceed 100 characters.")]
+        public string? ContactEmailId { get; set; }
+
+        public string? LogoPath { get; set; }
+
+        public string? ContactPersonImagePath { get; set; }
+
+        [Display(Name = "Website")]
+        [StringLength(200, ErrorMessage = "Website cannot exceed 200 characters.")]
+        public string? WebSite { get; set; }
+
+        [Display(Name = "Branch Email")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+        [StringLength(100, ErrorMessage = "Branch Email cannot exceed 100 characters.")]
+        public string? BranchEmailId { get; set; }
+
+        [Display(Name = "Affiliation Details")]
+        [StringLength(200, ErrorMessage = "Affiliation Details cannot exceed 200 characters.")]
+        public string? AffiliationDetails { get; set; }
+
+        [Display(Name = "School Number")]
+        [StringLength(50, ErrorMessage = "School Number cannot exceed 50 characters.")]
+        public string? SchoolNo { get; set; }
+
+        [Display(Name = "Address Line 1")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(250, ErrorMessage = "Address Line 1 cannot exceed 250 characters.")]
+        public string AddressLine1 { get; set; } = string.Empty;
+
+        [Display(Name = "Address Line 2")]
+        [StringLength(250, ErrorMessage = "Address Line 2 cannot exceed 250 characters.")]
+        public string? AddressLine2 { get; set; }
+
+        [Display(Name = "District")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+
+        public int DistrictId { get; set; }
+
+        [Display(Name = "State")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+
+        public int StateId { get; set; }
+
+        [Display(Name = "Country")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+
+        public int CountryId { get; set; }
+
+        [Display(Name = "Pin Code")]
+        [StringLength(10, ErrorMessage = "Pin Code cannot exceed 10 characters.")]
+        public string? PinCode { get; set; }
+
+        [Display(Name = "Start Time")]
+        public TimeSpan? StartTime { get; set; }
+
+        [Display(Name = "End Time")]
+        public TimeSpan? EndTime { get; set; }
+
+        [Display(Name = "Head Office")]
+        public bool IsHO { get; set; }
+
+        public bool IsValid { get; set; } = true;
+
+        public string CreatedBy { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        public string? LogoPathForPrint { get; set; }
+
+        [Display(Name = "Branch Category")]
+        [StringLength(100, ErrorMessage = "Branch Category cannot exceed 100 characters.")]
+        public string? BranchCategory { get; set; }
+
+        [Display(Name = "Affiliation Upto")]
+        public DateTime? AffiliationUpto { get; set; }
+
+        [Display(Name = "Status of School")]
+        [StringLength(100, ErrorMessage = "Status of School cannot exceed 100 characters.")]
+        public string? StatusOfSchool { get; set; }
+
+        [Display(Name = "UDISE No")]
+        [StringLength(20, ErrorMessage = "UDISE No cannot exceed 20 characters.")]
+        public string? UDISENo { get; set; }
+    }
 }
 

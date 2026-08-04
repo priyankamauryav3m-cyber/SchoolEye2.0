@@ -13,6 +13,7 @@ namespace ApplicationInterface.Admin
         public Task<AdminDashboardModal> GetAdminDashboardData(SearchAnyRequestModel model);
        public Task<List<FeeHeadCollectionDto>> GetFeeHeadCollectionSummary(SearchAnyRequestModel model);
         public Task<AdmissionDashboardModel> GetAdmissionData(SearchAnyRequestModel model);
+        Task<EnquiryDashboardResponse> GetDashboardAsync(EnquiryDashboardSearchRequest model);
 
 
 
