@@ -1504,12 +1504,15 @@ namespace DomainModel.Admin
         public int TotalEnquiry { get; set; }
 
         public int Application { get; set; }
+        public int Registration { get; set; }
+
 
         public int TotalAdmission { get; set; }
 
         public string? EnquiryPercentage { get; set; }
 
         public string? ApplicationPercentage { get; set; }
+        public string? RegistrationPercentage { get; set; }
 
         public string? AdmissionPercentage { get; set; }
 
@@ -1521,7 +1524,7 @@ namespace DomainModel.Admin
     {
         public string Text { get; set; } = "";
         public string Url { get; set; } = "";
-        public bool IsCurrent { get; set; }
+        public bool IsCurrent { get; set; } 
     }
     public class GenerationIdConfigurationModel
     {
@@ -1589,5 +1592,184 @@ namespace DomainModel.Admin
         public int Id { get; set; }
         public string? KeyWord { get; set; }
         public string? CreatedBy { get; set; }
+    }
+
+    public class EnquiryDashboardModel
+    {
+        public int TotalEnquiry { get; set; }
+        public int Application { get; set; }
+        public int Registration { get; set; }
+        public int TotalAdmission { get; set; }
+
+        public int TodayEnquiry { get; set; }
+        public int TodayFollowup { get; set; }
+        public int TodayAdmission { get; set; }
+        public int TotalConversionAdmission { get; set; }
+
+        public string EnquiryPercentage { get; set; }
+        public string ApplicationPercentage { get; set; }
+        public string RegistrationPercentage { get; set; }
+        public string AdmissionPercentage { get; set; }
+    }
+    public class SessionComparisonModel
+    {
+        public long SessionId { get; set; }
+
+        public string SessionName { get; set; }
+
+        public int TotalEnquiry { get; set; }
+
+        public int TotalApplication { get; set; }
+
+        public int TotalRegistration { get; set; }
+
+        public int TotalAdmission { get; set; }
+    }
+    public class SourceReportModel
+    {
+        public string? SourceName { get; set; }
+
+        public int TotalCount { get; set; }
+
+        public string? Percentage { get; set; }
+    }
+    public class MonthWiseModel
+    {
+        public string MonthName { get; set; }
+        public int MonthNo { get; set; }
+        public int TotalEnquiry { get; set; }
+        public int Registration { get; set; }
+        public int PendingRegistration { get; set; }
+    }
+    public class ClassWiseModel
+    {
+        public string ClassCode { get; set; }
+        public int TotalEnquiry { get; set; }
+        public int Registration { get; set; }
+        public int TotalAdmission { get; set; }
+    }
+    public class PipelineModel
+    {
+        public string? Stage { get; set; }
+        public int TotalCount { get; set; }
+        public int Percentage { get; set; }
+    }
+    public class RecentEnquiryModel
+    {
+        public long EnquiryId { get; set; }
+        public string EnquiryNo { get; set; }
+        public string StudentName { get; set; }
+        public string ClassCode { get; set; }
+        public string MobileNo { get; set; }
+        public string SourceOfEnquiry { get; set; }
+        public int EnquiryStatus { get; set; }
+        public DateTime EnquiryDate { get; set; }
+    }
+    public class FollowupStatusModel
+    {
+        public int FollowupStatus { get; set; }
+        public int TotalCount { get; set; }
+    }
+    public class RecentAdmissionModel
+    {
+        public long StudentId { get; set; }
+        public string AdmissionNo { get; set; }
+        public string StudentName { get; set; }
+        public string ClassCode { get; set; }
+        public DateTime AdmissionDate { get; set; }
+    }
+    public class TodayFollowupModel
+    {
+        public long FollowUpId { get; set; }
+        public string EnquiryNo { get; set; }
+        public string StudentName { get; set; }
+        public DateTime FollowUpDate { get; set; }
+        public DateTime? NextDate { get; set; }
+        public int FollowupStatus { get; set; }
+        public string FollowUpRemark { get; set; }
+    }
+    public class TodayAdmissionModel
+    {
+        public long StudentId { get; set; }
+        public string AdmissionNo { get; set; }
+        public string StudentName { get; set; }
+        public string ClassCode { get; set; }
+        public DateTime AdmissionDate { get; set; }
+    }
+    public class EnquiryDashboardResponse
+    {
+        public EnquiryDashboardModel Dashboard { get; set; }
+
+        public List<SessionComparisonModel> SessionComparison { get; set; }
+
+        public List<SourceReportModel> SourceReport { get; set; }
+        public List<MonthWiseModel> MonthWise { get; set; }
+
+        public List<ClassWiseModel> ClassWise { get; set; }
+
+        public List<PipelineModel> Pipeline { get; set; }
+
+        public List<RecentEnquiryModel> RecentEnquiries { get; set; }
+
+        public List<RecentAdmissionModel> RecentAdmissions { get; set; }
+
+        public List<FollowupStatusModel> FollowupStatus { get; set; }
+
+        public List<TodayFollowupModel> TodayFollowups { get; set; }
+
+        public List<TodayAdmissionModel> TodayAdmissions { get; set; }
+        public FollowupDashboardModel FollowupDashboard { get; set; }
+        public List<MonthWiseAdmissionModel> MonthWiseAdmission { get; set; }
+        public EnquirySummaryModel EnquirySummary { get; set; }
+        public List<ClassWiseAdmissionModel> ClassWiseAdmission { get; set; }
+    }
+    public class FollowupDashboardModel
+    {
+        public int TotalEnquiry { get; set; }
+        public int TodayEnquiry { get; set; }
+        public int TodayFollowup { get; set; }
+        public int TodayConversion { get; set; }
+        public int TotalConversionAdmission { get; set; }
+        public int PendingFollowup { get; set; }
+        public int CompletedFollowup { get; set; }
+        public int NeverCall { get; set; }
+        public int ReminderDue { get; set; }
+    }
+    public class MonthWiseAdmissionModel
+    {
+        public string MonthName { get; set; }
+        public int MonthNo { get; set; }
+        public int TotalAdmission { get; set; }
+    }
+    public class ClassWiseAdmissionModel
+    {
+        public string ClassCode { get; set; }
+        public int TotalAdmission { get; set; }
+    }
+    public class EnquirySummaryModel
+    {
+        public int TotalEnquiry { get; set; }
+        public int TodayEnquiry { get; set; }
+        public int TotalApplication { get; set; }
+        public int TotalRegistration { get; set; }
+        public int TotalAdmission { get; set; }
+        public int TodayAdmission { get; set; }
+        public int TodayFollowup { get; set; }
+        public int PendingRegistration { get; set; }
+        public int PendingAdmission { get; set; }
+    }
+    public class EnquiryDashboardSearchRequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+
+        public string BranchCode { get; set; } = string.Empty;
+
+        public long SessionId { get; set; }
+
+        public string? ClassCode { get; set; }
+
+        public string? Source { get; set; }
+
+        public string? Month { get; set; }
     }
 }

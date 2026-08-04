@@ -95,6 +95,49 @@ namespace Infrastructure.Admin
                 throw;
             }
         }
+        public async Task<EnquiryDashboardResponse> GetDashboardAsync(EnquiryDashboardSearchRequest model)
+        {   
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
 
+                param.Add("@GroupCode", model.GroupCode);
+                param.Add("@BranchCode", model.BranchCode);
+                param.Add("@SessionId", model.SessionId);
+                param.Add("@ClassCode", model.ClassCode);
+                param.Add("@Source", model.Source);
+                param.Add("@Month", model.Month);
+
+                using var multi = await con.QueryMultipleAsync(
+                    "V3M_Get_EnquiryDashboard",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                var response = new EnquiryDashboardResponse();
+                response.Dashboard = await multi.ReadFirstOrDefaultAsync<EnquiryDashboardModel>();
+                response.SessionComparison = (await multi.ReadAsync<SessionComparisonModel>()).ToList();
+                response.FollowupDashboard = await multi.ReadFirstOrDefaultAsync<FollowupDashboardModel>();
+                response.SourceReport = (await multi.ReadAsync<SourceReportModel>()).ToList();
+                response.MonthWise = (await multi.ReadAsync<MonthWiseModel>()).ToList();
+                response.MonthWiseAdmission = (await multi.ReadAsync<MonthWiseAdmissionModel>()).ToList();
+                response.ClassWise =(await multi.ReadAsync<ClassWiseModel>()).ToList();
+                response.ClassWiseAdmission =(await multi.ReadAsync<ClassWiseAdmissionModel>()).ToList();
+                response.EnquirySummary =await multi.ReadFirstOrDefaultAsync<EnquirySummaryModel>();
+                response.Pipeline =(await multi.ReadAsync<PipelineModel>()).ToList();
+                response.RecentEnquiries = (await multi.ReadAsync<RecentEnquiryModel>()).ToList();
+                response.RecentAdmissions =(await multi.ReadAsync<RecentAdmissionModel>()).ToList();
+                response.FollowupStatus =(await multi.ReadAsync<FollowupStatusModel>()).ToList();
+                await multi.ReadAsync<dynamic>();
+                response.TodayFollowups = (await multi.ReadAsync<TodayFollowupModel>()).ToList();
+                response.TodayAdmissions = (await multi.ReadAsync<TodayAdmissionModel>()).ToList();
+                return response;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

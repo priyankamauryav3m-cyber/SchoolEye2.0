@@ -10,7 +10,7 @@ using MyApp.Common;
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
     [ApiExplorerSettings(GroupName = "Admission")]
-    [Authorize]
+   // [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class AdminDashboardController : ControllerBase
@@ -99,6 +99,12 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
             }
         }
+        [HttpPost("GetEnquiryDashboardData")]
+        public async Task<IActionResult> GetDashboard(EnquiryDashboardSearchRequest searchAnyRequest)
+        {
+            var result = await _service.GetDashboardAsync(searchAnyRequest);
 
+            return Ok(result);
+        }
     }
 }

@@ -846,6 +846,8 @@ namespace DomainModel.FinanceMNGT
         public string? InteractionVia { get; set; }
         public int FollowupStatus { get; set; }
         public string? FollowupStatusName { get; set; }
+        public string? NextFollowupAction { get; set; }
+        public DateTime? ReminderDateTime { get; set; }
 
     }
     #endregion

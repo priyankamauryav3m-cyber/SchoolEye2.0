@@ -301,3 +301,355 @@ window.initSplitter = () => {
 
     initAll();
 })();
+
+// window.renderDashboardCharts = () => {
+//     1. Session Comparison Bar Chart
+//     const barEl = document.getElementById('sessionComparisonChart');
+//     if (barEl) {
+//         new Chart(barEl.getContext('2d'), {
+//             type: 'bar',
+//             data: {
+//                 labels: ['2022-2023', '2023-2024', '2024-2025', '2025-2026'],
+//                 datasets: [
+//                     { label: 'Enquiry', data: [1200, 1400, 1500, 1600], backgroundColor: '#3b82f6' },
+//                     { label: 'Application', data: [3100, 3500, 4000, 4200], backgroundColor: '#10b981' },
+//                     { label: 'Registration', data: [600, 700, 650, 680], backgroundColor: '#f59e0b' },
+//                     { label: 'Admission', data: [300, 350, 320, 340], backgroundColor: '#a855f7' }
+//                 ]
+//             },
+//             options: { responsive: true, maintainAspectRatio: false }
+//         });
+//     }
+
+//     2. Follow-up Doughnut Chart
+//     const doughnutEl = document.getElementById('followupDoughnutChart');
+//     if (doughnutEl) {
+//         new Chart(doughnutEl.getContext('2d'), {
+//             type: 'doughnut',
+//             data: {
+//                 labels: ['Enquiry', 'Application', 'Registration', 'Admission'],
+//                 datasets: [{
+//                     data: [1000, 5000, 250, 200],
+//                     backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#a855f7']
+//                 }]
+//             },
+//             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+//         });
+//     }
+
+//     3. Source Pie Chart
+//     const pieEl = document.getElementById('sourcePieChart');
+//     if (pieEl) {
+//         new Chart(pieEl.getContext('2d'), {
+//             type: 'pie',
+//             data: {
+//                 labels: ['Facebook', 'Instagram', 'Google', 'Walking'],
+//                 datasets: [{
+//                     data: [350, 250, 300, 100],
+//                     backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0']
+//                 }]
+//             },
+//             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+//         });
+//     }
+// };
+
+let sessionChart = null;
+let followupChart = null;
+let sourceChart = null;
+let sourceDataGlobal = [];
+let hiddenSources = [];
+let pipelineDataGlobal = [];
+let hiddenStages = [];
+
+window.renderDashboardCharts = function (sessionData, sourceData, pipelineData) {
+
+    // ================= SESSION COMPARISON =================
+    let displaySessions = sessionData.slice(0, 5).reverse();
+    const sessionCanvas = document.getElementById("sessionComparisonChart");
+
+    if (sessionCanvas) {
+
+        if (sessionChart)
+            sessionChart.destroy();
+
+        sessionChart = new Chart(sessionCanvas.getContext("2d"), {
+
+            type: 'bar',
+
+            data: {
+
+                labels: displaySessions.map(x => x.sessionName),
+
+                datasets: [
+                    {
+                        label: 'Enquiry',
+                        data: displaySessions.map(x => x.totalEnquiry),
+                        backgroundColor: '#3b82f6'
+                    },
+                    {
+                        label: 'Application',
+                        data: displaySessions.map(x => x.totalApplication),
+                        backgroundColor: '#10b981'
+                    },
+                    {
+                        label: 'Registration',
+                        data: displaySessions.map(x => x.totalRegistration),
+                        backgroundColor: '#f59e0b'
+                    },
+                    {
+                        label: 'Admission',
+                        data: displaySessions.map(x => x.totalAdmission),
+                        backgroundColor: '#a855f7'
+                    }
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+                maintainAspectRatio: false,
+
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true
+                    }
+
+                }
+
+            }
+
+        });
+        console.log(sourceData);
+    }
+
+    // ================= FOLLOWUP =================
+    pipelineDataGlobal = pipelineData;
+
+    const followCanvas = document.getElementById("followupDoughnutChart");
+
+    if (followCanvas) {
+
+        if (followupChart)
+            followupChart.destroy();
+
+        followupChart = new Chart(followCanvas.getContext("2d"), {
+
+            type: 'doughnut',
+
+            data: {
+
+                // labels: pipelineData.map(x => x.stage),
+
+                datasets: [
+
+                    {
+                        data: pipelineData.map(x => x.totalCount),
+
+                        backgroundColor: pipelineData.map(x => getColor(x.stage))
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+
+                        position: 'bottom'
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    sourceDataGlobal = sourceData;
+
+
+    const sourceCanvas = document.getElementById("sourcePieChart");
+
+
+    if (sourceCanvas) {
+
+        if (sourceChart)
+            sourceChart.destroy();
+
+
+        sourceChart = new Chart(
+            sourceCanvas.getContext("2d"),
+            {
+                type: 'doughnut',
+
+                data: {
+                    labels: sourceData.map(x => x.sourceName),
+
+                    datasets: [
+                        {
+                            data: sourceData.map(x => x.totalCount),
+
+                            backgroundColor: sourceData.map(x => getColor(x.sourceName))
+                        }
+                    ]
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    cutout: '55%',
+
+                    plugins: {
+
+                        legend: {
+                            display: false  
+                        }
+
+                    }
+
+                }
+            }
+        );
+    }
+}
+
+window.toggleSource = function (sourceName) {
+
+    let index = hiddenSources.indexOf(sourceName);
+
+    if (index > -1) {
+        hiddenSources.splice(index, 1);
+    }
+    else {
+        hiddenSources.push(sourceName);
+    }
+
+
+    let filteredData = sourceDataGlobal.filter(x =>
+        !hiddenSources.includes(x.sourceName)
+    );
+
+
+    if (sourceChart) {
+
+        sourceChart.data.labels =
+            filteredData.map(x => x.sourceName);
+
+        sourceChart.data.datasets[0].data =
+            filteredData.map(x => x.totalCount);
+
+        sourceChart.data.datasets[0].backgroundColor =
+            filteredData.map(x => getColor(x.sourceName));
+
+        sourceChart.update();
+    }
+
+    document.querySelectorAll(".source-row")
+        .forEach(row => {
+
+            let name = row.getAttribute("data-source");
+
+            if (hiddenSources.includes(name)) {
+                row.classList.add("source-disabled");
+            }
+            else {
+                row.classList.remove("source-disabled");
+            }
+
+        });
+
+};
+
+window.togglePipeline = function (stage) {
+
+    let index = hiddenStages.indexOf(stage);
+
+    if (index > -1) {
+        hiddenStages.splice(index, 1);
+    } else {
+        hiddenStages.push(stage);
+    }
+
+    let filteredData = pipelineDataGlobal.filter(x =>
+        !hiddenStages.includes(x.stage)
+    );
+
+    if (followupChart) {
+
+        followupChart.data.labels =
+            filteredData.map(x => x.stage);
+
+        followupChart.data.datasets[0].data =
+            filteredData.map(x => x.totalCount);
+
+        followupChart.data.datasets[0].backgroundColor =
+            filteredData.map(x => getColor(x.stage));
+
+        followupChart.update();
+    }
+
+    document.querySelectorAll(".pipeline-row")
+        .forEach(row => {
+
+            let stageName = row.getAttribute("data-stage");
+
+            if (hiddenStages.includes(stageName)) {
+                row.classList.add("source-disabled");
+            } else {
+                row.classList.remove("source-disabled");
+            }
+
+        });
+};
+function getColor(name) {
+
+    switch (name) {
+
+        case "Facebook":
+        case "Enquiry":
+            return "#3b82f6";
+
+        case "Instagram":
+        case "Application":
+            return "#10b981";
+
+        case "Google":
+        case "Registration":
+            return "#f59e0b";
+
+        case "Walking":
+        case "Admission":
+            return "#a855f7";
+
+        case "Reference":
+            return "#ef4444";
+
+        case "Others":
+        case "Walking/Others":
+            return "#14b8a6";
+
+        default:
+            return "#6c757d";
+    }
+}
+

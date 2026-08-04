@@ -1,0 +1,639 @@
+@page "/enquiry-dashboard"
+@using DomainModel.Common
+@using DomainModel
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.Extensions.Localization
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IJSRuntime jsRuntime
+@rendermode InteractiveServer
+@using Newtonsoft.Json
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage sessionStorage
+@using System.Text
+@inject IWebHostEnvironment env
+@inject Shared.IHttpService httpService
+@using System.Text.RegularExpressions;
+@using ServerWebUI.Components.AlertComponent
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+<style>
+
+    .bg-purple {
+        background: #a855f7 !important;
+        color: #fff;
+    }
+
+    .bg-teal {
+        background: #14b8a6 !important;
+        color: #fff;
+    }
+    .source-row.source-disabled td:first-child,
+    .pipeline-row.source-disabled td:first-child {
+        text-decoration: line-through;
+        color: gray;
+        opacity: .6;
+    }
+    .stat-spark {
+        width: 100%;
+    }
+
+    .quickgrid th {
+        background-color: #fcfcfc;
+        border: none;
+    }
+
+    .quickgrid[theme=default] .col-title {
+        color: #64748b;
+    }
+
+    .quickgrid[theme="default"] > tbody > tr > td {
+        border: none;
+    }
+
+    .quickgrid tbody, td, tfoot, th, thead, tr {
+        border-style: solid;
+        border-width: 0;
+        border-color: #f7f0f0;
+    }
+
+        .quickgrid tbody tr:hover td {
+            background-color: #f8fafc;
+        }
+
+    .quickgrid thead th:last-child {
+        min-width: 110px;
+    }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 180px;
+    }
+
+    .stat-change {
+        padding-top: 10px;
+        padding-left: 35px;
+        font-size: 0.8rem;
+        color: #10b981;
+    }
+
+    .state-icon--bxds {
+        gap: 12px;
+        display: flex;
+        align-items: center;
+    }
+
+    .progress-bar-custom {
+        height: 5px;
+    }
+
+    .svg-pt {
+        padding-top: 40px;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+        .stat-icon.blue {
+            background-color: #e8f1ff;
+            color: #3b82f6;
+        }
+
+        .stat-icon.orange {
+            background-color: #fff3e0;
+            color: #f97316;
+        }
+
+        .stat-icon.green {
+            background-color: #e6f9f0;
+            color: #10b981;
+        }
+
+        .stat-icon.red {
+            background-color: #ffeeee;
+            color: #ef4444;
+        }
+
+        .stat-icon.purple {
+            background-color: #f3e8ff;
+            color: #a855f7;
+        }
+
+    .stage-icon {
+        width: 50px;
+        height: 50px;
+    }
+
+    /* Custom Dashboard Section Cards Styling */
+    .dashboard-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        border: 1px solid #f1f5f9;
+        height: 100%;
+    }
+
+    .card-title-custom {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .mini-stat-card {
+        border-radius: 10px;
+        padding: 15px;
+        border: 1px solid #f1f5f9;
+        height: 100%;
+    }
+
+    .mini-stat-blue {
+        background-color: #f0f7ff;
+    }
+
+    .mini-stat-green {
+        background-color: #f0fdf4;
+    }
+
+    .mini-stat-yellow {
+        background-color: #fffbeb;
+    }
+
+    .mini-stat-purple {
+        background-color: #faf5ff;
+    }
+
+    .custom-table th, .custom-table td {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+</style>
+
+<section class="main-container">
+
+    <div class="row m-0 main-row">
+
+
+        <div class="content">
+            <!-- 1. Stat Cards Row -->
+            <div class="row g-3 mb-3 ">
+                <div class="col-12">
+                    <div class="page-heading d-flex align-items-center justify-content-between">
+                        <p class="m-0 page-name px-1">Enquiry Dashboard</p>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-box">
+                                <InputSelect @bind-Value="@CurrentSession" @bind-Value:after="SessionChanged" class="form-input">
+                                    <option value="0">-- Select Session --</option>
+                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@data.SessionId">@data.SessionName </option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="form-box">
+                                <InputSelect @bind-Value="@searchAnyRequest.ClassCode" class="form-input">
+                                    <option value="" selected>All</option>
+                                    @foreach (var data in classlist)
+                                    {
+                                        <option value="@data.ClassCode">@data.ClassName</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="form-box">
+                                <InputSelect @bind-Value="@searchAnyRequest.Source" class="form-input">
+                                    <option value="">All</option>
+                                    <option value="Website">Website</option>
+                                    <option value="Google">Google</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Instagram">Instagram</option>
+                                    <option value="WhatsApp">WhatsApp</option>
+                                    <option value="Reference">Reference</option>
+                                    <option value="Walking">Walk In</option>
+                                    <option value="Others">Others</option>
+                                </InputSelect>
+                            </div>
+                            <div class="form-box">
+                                <InputSelect @bind-Value="@searchAnyRequest.Month" class="form-input">
+                                    <option value="0">-- Select Session --</option>
+                                    @foreach (var data in monthlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@data.MonthName">@data.MonthName </option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="form-box">
+                                <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
+                                    <div class="visible content">Search</div>
+                                    <div class="hidden content">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mb-3 ">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card p-3 bg-white ">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Total Enquiry</div>
+                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalEnquiry</div>
+                                    </div>
+                                </div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.EnquiryPercentage vs last session</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card p-3 bg-white ">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Total Application</div>
+                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.Application</div>
+                                    </div>
+                                </div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.ApplicationPercentage vs last session</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card p-3 bg-white ">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon green"><i class="fas fa-user-plus"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Total Registration</div>
+                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.Registration</div>
+                                    </div>
+                                </div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.RegistrationPercentage vs last session</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card p-3 bg-white ">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon red"><i class="fas fa-file-invoice"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Total Admission</div>
+                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalAdmission</div>
+                                    </div>
+                                </div>
+                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.AdmissionPercentage vs last session</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Session Comparison Report & Follow-up Report Row -->
+            <div class="row g-3 mb-3">
+                <!-- Session Comparison Report Card -->
+                <div class="col-12 col-xl-6">
+                    <div class="dashboard-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="card-title-custom mb-0">Session Comparison Report (Year On Year)</h6>
+                            <select class="form-select form-select-sm w-auto">
+                                <option>Bar Chart</option>
+                                <option>Line Chart</option>
+                            </select>
+                        </div>
+                        <div class="btn-group btn-group-sm mb-3">
+                            <button class="btn btn-primary">Classwise</button>
+                            <button class="btn btn-outline-primary">Sessionwise</button>
+                            <button class="btn btn-outline-primary">Monthwise</button>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="sessionComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Follow-up Report Dashboard Card -->
+                <div class="col-12 col-xl-6">
+                    <div class="dashboard-card">
+                        <h6 class="card-title-custom mb-3">Follow-up Report Dashboard</h6>
+                        <div class="row g-3">
+                   
+                            <div class="row align-items-center">
+                                <div class="col-12 col-md-6 text-center">
+                                    <div style="height: 180px; position: relative;">
+                                        <canvas id="followupDoughnutChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6 mt-3 mt-md-0">
+                                    <table class="table table-borderless custom-table mb-0">
+                                        <tbody>
+                                            @foreach (var item in pipeline)
+                                            {
+                                                <tr class="pipeline-row"
+                                                    data-stage="@item.Stage"
+                                                    onclick="togglePipeline('@item.Stage')">
+
+                                                    <td>
+                                                        <span class="badge @GetstageClass(item) me-2">&nbsp;</span>
+                                                        @item.Stage (@item.TotalCount)
+                                                    </td>
+
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-2 border-top d-flex justify-content-around text-center small">
+                            <div><span class="fw-bold d-block">Enquiry</span><strong class="text-primary">@admissionDashboardpipeline.TotalEnquiry</strong></div>
+                            <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
+                            <div><span class="fw-bold d-block">Application</span><strong class="text-success">@admissionDashboardpipeline.Application</strong></div>
+                            <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
+                            <div><span class="fw-bold d-block">Registration</span><strong class="text-warning">@admissionDashboardpipeline.Registration</strong></div>
+                            <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
+                            <div><span class="fw-bold d-block">Admission</span><strong class="text-purple">@admissionDashboardpipeline.TotalAdmission</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Enquiry Summary & Source Report Row -->
+            <div class="row g-3">
+                <!-- Enquiry Summary Card -->
+                <div class="col-12 col-xl-6">
+                    <div class="dashboard-card">
+                        <h6 class="card-title-custom mb-3">Enquiry Summary</h6>
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3">
+                                <div class="mini-stat-card mini-stat-blue">
+                                    <div class="stat-icon blue mb-2"><i class="fas fa-users"></i></div>
+                                    <span class="text-muted small d-block">Total Enquiry</span>
+                                    <h5 class="fw-bold mb-0">@admissionDashboardpipeline.TotalEnquiry</h5>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="mini-stat-card mini-stat-green">
+                                    <div class="stat-icon green mb-2"><i class="fas fa-user-plus"></i></div>
+                                    <span class="text-muted small d-block">New Enquiry</span>
+                                    <h5 class="fw-bold mb-0">@admissionDashboardpipeline.TodayEnquiry</h5>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="mini-stat-card mini-stat-yellow">
+                                    <div class="stat-icon orange mb-2"><i class="fas fa-headset"></i></div>
+                                    <span class="text-muted small d-block">Follow-up & Status</span>
+                                    <a href="#" class="small text-primary text-decoration-none d-block mt-2">View Details</a>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="mini-stat-card mini-stat-purple">
+                                    <div class="stat-icon purple mb-2"><i class="fas fa-chart-pie"></i></div>
+                                    <span class="text-muted small d-block">Based on Source</span>
+                                    <a href="#" class="small text-primary text-decoration-none d-block mt-2">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enquiry Report Based on Source Card -->
+                <div class="col-12 col-xl-6">
+                    <div class="dashboard-card">
+                        <h6 class="card-title-custom mb-3">Enquiry Report Based on Source</h6>
+                        <div class="row align-items-center">
+                            <div class="col-12 col-md-6 text-center">
+                                <div style="height: 180px; position: relative;">
+                                    <canvas id="sourcePieChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 mt-3 mt-md-0">
+                                <table class="table table-borderless custom-table mb-0">
+                                    <tbody>
+                                        @foreach (var item in sourceReports)
+                                        {
+                                            <tr class="source-row"
+                                                data-source="@item.SourceName"
+                                                onclick="toggleSource('@item.SourceName')">
+
+                                                <td>
+                                                    <span class="badge @GetBadgeClass(item) me-2">&nbsp;</span>
+                                                    @item.SourceName
+                                                </td>
+
+                                                <td class="fw-bold">
+                                                    @item.TotalCount
+                                                </td>
+
+                                                <td class="text-muted">
+                                                    @($"{item.Percentage}%")
+                                                </td>
+
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+<CustomAlert @ref="customAlert" Title="Alert" />
+@code {
+    private string GetBadgeClass(SourceReportModel item)
+    {
+        return item.SourceName switch
+        {
+            "Facebook" => "bg-primary",
+            "Instagram" => "bg-success",
+            "Google" => "bg-warning",
+            "Walking" => "bg-purple",
+            "Reference" => "bg-danger",
+            "Others" => "bg-teal",
+            "Walking/Others" => "bg-teal",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetstageClass(PipelineModel item)
+    {
+        return item.Stage switch
+        {
+            "Enquiry" => "bg-primary",
+            "Application" => "bg-success",
+            "Registration" => "bg-warning",
+            "Admission" => "bg-purple",
+            _ => "bg-secondary"
+        };
+    }
+    private CustomAlert customAlert;
+    private bool addstudent { get; set; }
+    private DateTime fromDate = DateTime.Now;
+    private DateTime toDate = DateTime.Now;
+    private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
+    private bool IsLoading = false;
+    private string nameFilter = "";
+    private string branchcode = "";
+    private string groupcode = "";
+    private string UserName = "";
+    private string SelectedData = "This Year";
+    private long CurrentSession;
+    private string DashboardName = "";
+    private List<BranchClassModel> classlist = new();
+    private List<MonthModel> monthlist = new();
+    private EnquiryDashboardResponse dashboard = new();
+
+    private EnquiryDashboardModel admissionDashboardpipeline = new();
+
+    private List<SessionComparisonModel> sessionComparison = new();
+
+    private List<SourceReportModel> sourceReports = new();
+
+    private List<MonthWiseModel> monthWise = new();
+
+    private List<ClassWiseModel> classWise = new();
+
+    private List<PipelineModel> pipeline = new();
+
+    private List<RecentEnquiryModel> recentEnquiries = new();
+
+    private List<RecentAdmissionModel> recentAdmissions = new();
+
+    private List<FollowupStatusModel> followupStatus = new();
+
+    private List<TodayFollowupModel> todayFollowups = new();
+
+    private List<TodayAdmissionModel> todayAdmissions = new();
+
+    private EnquiryDashboardSearchRequest searchAnyRequest = new();
+    private List<FeeHeadCollectionDto> feeHeadCollectionlist = new();
+    //private AdmissionDashboardModel admissionDashboardpipeline = new();
+    private AdminDashboardModal adminDashboard = new();
+    private List<SessionModel> sessionlist = new();
+    private async Task SessionChanged()
+    {
+        await LoadDashboard();
+    }
+    private async Task SearchEnquiries()
+    {
+        await LoadDashboard();
+    }
+    private async Task LoadDashboard()
+    {
+        try
+        {
+            IsLoading = true;
+            searchAnyRequest.GroupCode = groupcode;
+            searchAnyRequest.BranchCode = branchcode;
+            searchAnyRequest.SessionId = CurrentSession;
+            dashboard = await httpService.Post<EnquiryDashboardResponse>("AdminDashboard/GetEnquiryDashboardData", searchAnyRequest) ?? new();
+            if (dashboard != null)
+            {
+                admissionDashboardpipeline = dashboard.Dashboard ?? new();
+
+                sessionComparison = dashboard.SessionComparison ?? new();
+
+                sourceReports = dashboard.SourceReport ?? new();
+                
+
+                monthWise = dashboard.MonthWise ?? new();
+
+                classWise = dashboard.ClassWise ?? new();
+
+                pipeline = dashboard.Pipeline ?? new();
+
+                recentEnquiries = dashboard.RecentEnquiries ?? new();
+
+                recentAdmissions = dashboard.RecentAdmissions ?? new();
+
+                followupStatus = dashboard.FollowupStatus ?? new();
+
+                todayFollowups = dashboard.TodayFollowups ?? new();
+
+                todayAdmissions = dashboard.TodayAdmissions ?? new();
+                await JS.InvokeVoidAsync("renderDashboardCharts", sessionComparison, sourceReports, pipeline);
+            }
+           
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        var dashboard = await sessionStorage.GetAsync<string>("RoleName");
+        string ApiUri1 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        monthlist = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
+        DashboardName = dashboard.Value;
+        await LoadDashboard();
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+
+            StateHasChanged();
+        }
+    }
+
+
+    private void ClosePopup()
+    {
+        StateHasChanged();
+    }
+
+
+}
