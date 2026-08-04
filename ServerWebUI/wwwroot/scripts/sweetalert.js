@@ -302,58 +302,6 @@ window.initSplitter = () => {
     initAll();
 })();
 
-// window.renderDashboardCharts = () => {
-//     1. Session Comparison Bar Chart
-//     const barEl = document.getElementById('sessionComparisonChart');
-//     if (barEl) {
-//         new Chart(barEl.getContext('2d'), {
-//             type: 'bar',
-//             data: {
-//                 labels: ['2022-2023', '2023-2024', '2024-2025', '2025-2026'],
-//                 datasets: [
-//                     { label: 'Enquiry', data: [1200, 1400, 1500, 1600], backgroundColor: '#3b82f6' },
-//                     { label: 'Application', data: [3100, 3500, 4000, 4200], backgroundColor: '#10b981' },
-//                     { label: 'Registration', data: [600, 700, 650, 680], backgroundColor: '#f59e0b' },
-//                     { label: 'Admission', data: [300, 350, 320, 340], backgroundColor: '#a855f7' }
-//                 ]
-//             },
-//             options: { responsive: true, maintainAspectRatio: false }
-//         });
-//     }
-
-//     2. Follow-up Doughnut Chart
-//     const doughnutEl = document.getElementById('followupDoughnutChart');
-//     if (doughnutEl) {
-//         new Chart(doughnutEl.getContext('2d'), {
-//             type: 'doughnut',
-//             data: {
-//                 labels: ['Enquiry', 'Application', 'Registration', 'Admission'],
-//                 datasets: [{
-//                     data: [1000, 5000, 250, 200],
-//                     backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#a855f7']
-//                 }]
-//             },
-//             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-//         });
-//     }
-
-//     3. Source Pie Chart
-//     const pieEl = document.getElementById('sourcePieChart');
-//     if (pieEl) {
-//         new Chart(pieEl.getContext('2d'), {
-//             type: 'pie',
-//             data: {
-//                 labels: ['Facebook', 'Instagram', 'Google', 'Walking'],
-//                 datasets: [{
-//                     data: [350, 250, 300, 100],
-//                     backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0']
-//                 }]
-//             },
-//             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-//         });
-//     }
-// };
-
 let sessionChart = null;
 let followupChart = null;
 let sourceChart = null;
@@ -365,7 +313,7 @@ let hiddenStages = [];
 window.renderDashboardCharts = function (sessionData, sourceData, pipelineData) {
 
     // ================= SESSION COMPARISON =================
-    let displaySessions = sessionData.slice(0, 5).reverse();
+    let displaySessions = sessionData.slice(-5);
     const sessionCanvas = document.getElementById("sessionComparisonChart");
 
     if (sessionCanvas) {
@@ -653,3 +601,144 @@ function getColor(name) {
     }
 }
 
+window.renderSessionWiseChart = function (sessionData, chartType) {
+
+    let displaySessions = sessionData.slice(0, 5).reverse();
+
+    const sessionCanvas = document.getElementById("sessionComparisonChart");
+
+    if (!sessionCanvas)
+        return;
+
+    if (sessionChart)
+        sessionChart.destroy();
+
+    sessionChart = new Chart(sessionCanvas.getContext("2d"), {
+
+        type: chartType,
+
+        data: {
+            labels: displaySessions.map(x => x.sessionName),
+
+            datasets: [
+                {
+                    label: 'Enquiry',
+                    data: displaySessions.map(x => x.totalEnquiry),
+                    backgroundColor: '#3b82f6'
+                },
+                {
+                    label: 'Application',
+                    data: displaySessions.map(x => x.totalApplication),
+                    backgroundColor: '#10b981'
+                },
+                {
+                    label: 'Registration',
+                    data: displaySessions.map(x => x.totalRegistration),
+                    backgroundColor: '#f59e0b'
+                },
+                {
+                    label: 'Admission',
+                    data: displaySessions.map(x => x.totalAdmission),
+                    backgroundColor: '#a855f7'
+                }
+            ]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+window.renderMonthWiseChart = function (data, chartType) {
+
+    if (sessionChart)
+        sessionChart.destroy();
+
+    const ctx = document.getElementById("sessionComparisonChart");
+
+    sessionChart = new Chart(ctx, {
+
+        type: chartType,
+
+        data: {
+
+            labels: data.map(x => x.monthName),
+
+            datasets: [
+                {
+                    label: 'Enquiry',
+                    data: data.map(x => x.totalEnquiry),
+                    backgroundColor: '#3b82f6' // Blue
+                },
+                {
+                    label: 'Registration',
+                    data: data.map(x => x.registration),
+                    backgroundColor: '#f59e0b' // Orange
+                },
+                {
+                    label: 'Pending',
+                    data: data.map(x => x.pendingRegistration),
+                    backgroundColor: '#10b981' // Green
+                }
+            ]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+window.renderClassWiseChart = function (data, chartType) {
+    console.log(data[0]);
+    if (sessionChart)
+        sessionChart.destroy();
+
+    const ctx = document.getElementById("sessionComparisonChart");
+
+    sessionChart = new Chart(ctx, {
+
+        type: chartType,
+
+        data: {
+
+            labels: data.map(x => x.classCode),
+
+            datasets: [
+                {
+                    label: 'Enquiry',
+                    data: data.map(x => x.totalEnquiry),
+                    backgroundColor: '#3b82f6' // Blue
+                },
+                {
+                    label: 'Registration',
+                    data: data.map(x => x.registration),
+                    backgroundColor: '#f59e0b' // Orange
+                },
+                {
+                    label: 'Admission',
+                    data: data.map(x => x.totalAdmission),
+                    backgroundColor: '#a855f7' // Purple
+                }
+            ]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
