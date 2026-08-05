@@ -96,7 +96,7 @@
                 <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
                     <div class="modal-content clearfix main-popup">
                         <div class="head-btn">
-                            <h5 class="modal-title">Student Category</h5>
+                            <h5 class="modal-title">@((category.CategoryId == 0) ? "Add Student Category" : "Edit Student Category")</h5>
                             <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                         </div>
                             <EditForm Model="@category" OnValidSubmit="@OnSave">
@@ -131,7 +131,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <div class="form-group btn-gr">
-                                        <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                        <SaveUpdateButton Id="category.CategoryId" TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
                                     </div>
                                 </div>
                             </EditForm>

@@ -776,6 +776,7 @@ namespace DomainModel.FinanceMNGT
         public int EnquiryStatus { get; set; }
         public int IsOnline { get; set; }
         public string? RegistrationNo { get; set; }
+        public long? RegistrationId { get; set; }
         public string? LastFollowUpId { get; set; }
         public string? NextDate { get; set; }
         public string? NextFollowupDate { get; set; }

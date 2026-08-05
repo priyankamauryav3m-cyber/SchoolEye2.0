@@ -302,443 +302,443 @@ window.initSplitter = () => {
     initAll();
 })();
 
-let sessionChart = null;
-let followupChart = null;
-let sourceChart = null;
-let sourceDataGlobal = [];
-let hiddenSources = [];
-let pipelineDataGlobal = [];
-let hiddenStages = [];
+// let sessionChart = null;
+// let followupChart = null;
+// let sourceChart = null;
+// let sourceDataGlobal = [];
+// let hiddenSources = [];
+// let pipelineDataGlobal = [];
+// let hiddenStages = [];
 
-window.renderDashboardCharts = function (sessionData, sourceData, pipelineData) {
+// window.renderDashboardCharts = function (sessionData, sourceData, pipelineData) {
 
-    // ================= SESSION COMPARISON =================
-    let displaySessions = sessionData.slice(-5);
-    const sessionCanvas = document.getElementById("sessionComparisonChart");
+//     ================= SESSION COMPARISON =================
+//     let displaySessions = sessionData.slice(-5);
+//     const sessionCanvas = document.getElementById("sessionComparisonChart");
 
-    if (sessionCanvas) {
+//     if (sessionCanvas) {
 
-        if (sessionChart)
-            sessionChart.destroy();
+//         if (sessionChart)
+//             sessionChart.destroy();
 
-        sessionChart = new Chart(sessionCanvas.getContext("2d"), {
+//         sessionChart = new Chart(sessionCanvas.getContext("2d"), {
 
-            type: 'bar',
+//             type: 'bar',
 
-            data: {
+//             data: {
 
-                labels: displaySessions.map(x => x.sessionName),
+//                 labels: displaySessions.map(x => x.sessionName),
 
-                datasets: [
-                    {
-                        label: 'Enquiry',
-                        data: displaySessions.map(x => x.totalEnquiry),
-                        backgroundColor: '#3b82f6'
-                    },
-                    {
-                        label: 'Application',
-                        data: displaySessions.map(x => x.totalApplication),
-                        backgroundColor: '#10b981'
-                    },
-                    {
-                        label: 'Registration',
-                        data: displaySessions.map(x => x.totalRegistration),
-                        backgroundColor: '#f59e0b'
-                    },
-                    {
-                        label: 'Admission',
-                        data: displaySessions.map(x => x.totalAdmission),
-                        backgroundColor: '#a855f7'
-                    }
-                ]
+//                 datasets: [
+//                     {
+//                         label: 'Enquiry',
+//                         data: displaySessions.map(x => x.totalEnquiry),
+//                         backgroundColor: '#3b82f6'
+//                     },
+//                     {
+//                         label: 'Application',
+//                         data: displaySessions.map(x => x.totalApplication),
+//                         backgroundColor: '#10b981'
+//                     },
+//                     {
+//                         label: 'Registration',
+//                         data: displaySessions.map(x => x.totalRegistration),
+//                         backgroundColor: '#f59e0b'
+//                     },
+//                     {
+//                         label: 'Admission',
+//                         data: displaySessions.map(x => x.totalAdmission),
+//                         backgroundColor: '#a855f7'
+//                     }
+//                 ]
 
-            },
+//             },
 
-            options: {
+//             options: {
 
-                responsive: true,
-                maintainAspectRatio: false,
+//                 responsive: true,
+//                 maintainAspectRatio: false,
 
-                plugins: {
-                    legend: {
-                        position: 'top'
-                    }
-                },
+//                 plugins: {
+//                     legend: {
+//                         position: 'top'
+//                     }
+//                 },
 
-                scales: {
+//                 scales: {
 
-                    y: {
-                        beginAtZero: true
-                    }
+//                     y: {
+//                         beginAtZero: true
+//                     }
 
-                }
+//                 }
 
-            }
+//             }
 
-        });
-        console.log(sourceData);
-    }
+//         });
+//         console.log(sourceData);
+//     }
 
-    // ================= FOLLOWUP =================
-    pipelineDataGlobal = pipelineData;
+//     ================= FOLLOWUP =================
+//     pipelineDataGlobal = pipelineData;
 
-    const followCanvas = document.getElementById("followupDoughnutChart");
+//     const followCanvas = document.getElementById("followupDoughnutChart");
 
-    if (followCanvas) {
+//     if (followCanvas) {
 
-        if (followupChart)
-            followupChart.destroy();
+//         if (followupChart)
+//             followupChart.destroy();
 
-        followupChart = new Chart(followCanvas.getContext("2d"), {
+//         followupChart = new Chart(followCanvas.getContext("2d"), {
 
-            type: 'doughnut',
+//             type: 'doughnut',
 
-            data: {
+//             data: {
 
-                // labels: pipelineData.map(x => x.stage),
+//                 labels: pipelineData.map(x => x.stage),
 
-                datasets: [
+//                 datasets: [
 
-                    {
-                        data: pipelineData.map(x => x.totalCount),
+//                     {
+//                         data: pipelineData.map(x => x.totalCount),
 
-                        backgroundColor: pipelineData.map(x => getColor(x.stage))
+//                         backgroundColor: pipelineData.map(x => getColor(x.stage))
 
-                    }
+//                     }
 
-                ]
+//                 ]
 
-            },
+//             },
 
-            options: {
+//             options: {
 
-                responsive: true,
+//                 responsive: true,
 
-                maintainAspectRatio: false,
+//                 maintainAspectRatio: false,
 
-                plugins: {
+//                 plugins: {
 
-                    legend: {
+//                     legend: {
 
-                        position: 'bottom'
+//                         position: 'bottom'
 
-                    }
+//                     }
 
-                }
+//                 }
 
-            }
+//             }
 
-        });
+//         });
 
-    }
+//     }
 
-    sourceDataGlobal = sourceData;
+//     sourceDataGlobal = sourceData;
 
 
-    const sourceCanvas = document.getElementById("sourcePieChart");
+//     const sourceCanvas = document.getElementById("sourcePieChart");
 
 
-    if (sourceCanvas) {
+//     if (sourceCanvas) {
 
-        if (sourceChart)
-            sourceChart.destroy();
+//         if (sourceChart)
+//             sourceChart.destroy();
 
 
-        sourceChart = new Chart(
-            sourceCanvas.getContext("2d"),
-            {
-                type: 'doughnut',
+//         sourceChart = new Chart(
+//             sourceCanvas.getContext("2d"),
+//             {
+//                 type: 'doughnut',
 
-                data: {
-                    labels: sourceData.map(x => x.sourceName),
+//                 data: {
+//                     labels: sourceData.map(x => x.sourceName),
 
-                    datasets: [
-                        {
-                            data: sourceData.map(x => x.totalCount),
+//                     datasets: [
+//                         {
+//                             data: sourceData.map(x => x.totalCount),
 
-                            backgroundColor: sourceData.map(x => getColor(x.sourceName))
-                        }
-                    ]
-                },
+//                             backgroundColor: sourceData.map(x => getColor(x.sourceName))
+//                         }
+//                     ]
+//                 },
 
-                options: {
+//                 options: {
 
-                    responsive: true,
+//                     responsive: true,
 
-                    cutout: '55%',
+//                     cutout: '55%',
 
-                    plugins: {
+//                     plugins: {
 
-                        legend: {
-                            display: false  
-                        }
+//                         legend: {
+//                             display: false  
+//                         }
 
-                    }
+//                     }
 
-                }
-            }
-        );
-    }
-}
+//                 }
+//             }
+//         );
+//     }
+// }
 
-window.toggleSource = function (sourceName) {
+// window.toggleSource = function (sourceName) {
 
-    let index = hiddenSources.indexOf(sourceName);
+//     let index = hiddenSources.indexOf(sourceName);
 
-    if (index > -1) {
-        hiddenSources.splice(index, 1);
-    }
-    else {
-        hiddenSources.push(sourceName);
-    }
+//     if (index > -1) {
+//         hiddenSources.splice(index, 1);
+//     }
+//     else {
+//         hiddenSources.push(sourceName);
+//     }
 
 
-    let filteredData = sourceDataGlobal.filter(x =>
-        !hiddenSources.includes(x.sourceName)
-    );
+//     let filteredData = sourceDataGlobal.filter(x =>
+//         !hiddenSources.includes(x.sourceName)
+//     );
 
 
-    if (sourceChart) {
+//     if (sourceChart) {
 
-        sourceChart.data.labels =
-            filteredData.map(x => x.sourceName);
+//         sourceChart.data.labels =
+//             filteredData.map(x => x.sourceName);
 
-        sourceChart.data.datasets[0].data =
-            filteredData.map(x => x.totalCount);
+//         sourceChart.data.datasets[0].data =
+//             filteredData.map(x => x.totalCount);
 
-        sourceChart.data.datasets[0].backgroundColor =
-            filteredData.map(x => getColor(x.sourceName));
+//         sourceChart.data.datasets[0].backgroundColor =
+//             filteredData.map(x => getColor(x.sourceName));
 
-        sourceChart.update();
-    }
+//         sourceChart.update();
+//     }
 
-    document.querySelectorAll(".source-row")
-        .forEach(row => {
+//     document.querySelectorAll(".source-row")
+//         .forEach(row => {
 
-            let name = row.getAttribute("data-source");
+//             let name = row.getAttribute("data-source");
 
-            if (hiddenSources.includes(name)) {
-                row.classList.add("source-disabled");
-            }
-            else {
-                row.classList.remove("source-disabled");
-            }
+//             if (hiddenSources.includes(name)) {
+//                 row.classList.add("source-disabled");
+//             }
+//             else {
+//                 row.classList.remove("source-disabled");
+//             }
 
-        });
+//         });
 
-};
+// };
 
-window.togglePipeline = function (stage) {
+// window.togglePipeline = function (stage) {
 
-    let index = hiddenStages.indexOf(stage);
+//     let index = hiddenStages.indexOf(stage);
 
-    if (index > -1) {
-        hiddenStages.splice(index, 1);
-    } else {
-        hiddenStages.push(stage);
-    }
+//     if (index > -1) {
+//         hiddenStages.splice(index, 1);
+//     } else {
+//         hiddenStages.push(stage);
+//     }
 
-    let filteredData = pipelineDataGlobal.filter(x =>
-        !hiddenStages.includes(x.stage)
-    );
+//     let filteredData = pipelineDataGlobal.filter(x =>
+//         !hiddenStages.includes(x.stage)
+//     );
 
-    if (followupChart) {
+//     if (followupChart) {
 
-        followupChart.data.labels =
-            filteredData.map(x => x.stage);
+//         followupChart.data.labels =
+//             filteredData.map(x => x.stage);
 
-        followupChart.data.datasets[0].data =
-            filteredData.map(x => x.totalCount);
+//         followupChart.data.datasets[0].data =
+//             filteredData.map(x => x.totalCount);
 
-        followupChart.data.datasets[0].backgroundColor =
-            filteredData.map(x => getColor(x.stage));
+//         followupChart.data.datasets[0].backgroundColor =
+//             filteredData.map(x => getColor(x.stage));
 
-        followupChart.update();
-    }
+//         followupChart.update();
+//     }
 
-    document.querySelectorAll(".pipeline-row")
-        .forEach(row => {
+//     document.querySelectorAll(".pipeline-row")
+//         .forEach(row => {
 
-            let stageName = row.getAttribute("data-stage");
+//             let stageName = row.getAttribute("data-stage");
 
-            if (hiddenStages.includes(stageName)) {
-                row.classList.add("source-disabled");
-            } else {
-                row.classList.remove("source-disabled");
-            }
+//             if (hiddenStages.includes(stageName)) {
+//                 row.classList.add("source-disabled");
+//             } else {
+//                 row.classList.remove("source-disabled");
+//             }
 
-        });
-};
-function getColor(name) {
+//         });
+// };
+// function getColor(name) {
 
-    switch (name) {
+//     switch (name) {
 
-        case "Facebook":
-        case "Enquiry":
-            return "#3b82f6";
+//         case "Facebook":
+//         case "Enquiry":
+//             return "#3b82f6";
 
-        case "Instagram":
-        case "Application":
-            return "#10b981";
+//         case "Instagram":
+//         case "Application":
+//             return "#10b981";
 
-        case "Google":
-        case "Registration":
-            return "#f59e0b";
+//         case "Google":
+//         case "Registration":
+//             return "#f59e0b";
 
-        case "Walking":
-        case "Admission":
-            return "#a855f7";
+//         case "Walking":
+//         case "Admission":
+//             return "#a855f7";
 
-        case "Reference":
-            return "#ef4444";
+//         case "Reference":
+//             return "#ef4444";
 
-        case "Others":
-        case "Walking/Others":
-            return "#14b8a6";
+//         case "Others":
+//         case "Walking/Others":
+//             return "#14b8a6";
 
-        default:
-            return "#6c757d";
-    }
-}
+//         default:
+//             return "#6c757d";
+//     }
+// }
 
-window.renderSessionWiseChart = function (sessionData, chartType) {
+// window.renderSessionWiseChart = function (sessionData, chartType) {
 
-    let displaySessions = sessionData.slice(0, 5).reverse();
+//     let displaySessions = sessionData.slice(0, 5).reverse();
 
-    const sessionCanvas = document.getElementById("sessionComparisonChart");
+//     const sessionCanvas = document.getElementById("sessionComparisonChart");
 
-    if (!sessionCanvas)
-        return;
+//     if (!sessionCanvas)
+//         return;
 
-    if (sessionChart)
-        sessionChart.destroy();
+//     if (sessionChart)
+//         sessionChart.destroy();
 
-    sessionChart = new Chart(sessionCanvas.getContext("2d"), {
+//     sessionChart = new Chart(sessionCanvas.getContext("2d"), {
 
-        type: chartType,
+//         type: chartType,
 
-        data: {
-            labels: displaySessions.map(x => x.sessionName),
+//         data: {
+//             labels: displaySessions.map(x => x.sessionName),
 
-            datasets: [
-                {
-                    label: 'Enquiry',
-                    data: displaySessions.map(x => x.totalEnquiry),
-                    backgroundColor: '#3b82f6'
-                },
-                {
-                    label: 'Application',
-                    data: displaySessions.map(x => x.totalApplication),
-                    backgroundColor: '#10b981'
-                },
-                {
-                    label: 'Registration',
-                    data: displaySessions.map(x => x.totalRegistration),
-                    backgroundColor: '#f59e0b'
-                },
-                {
-                    label: 'Admission',
-                    data: displaySessions.map(x => x.totalAdmission),
-                    backgroundColor: '#a855f7'
-                }
-            ]
-        },
+//             datasets: [
+//                 {
+//                     label: 'Enquiry',
+//                     data: displaySessions.map(x => x.totalEnquiry),
+//                     backgroundColor: '#3b82f6'
+//                 },
+//                 {
+//                     label: 'Application',
+//                     data: displaySessions.map(x => x.totalApplication),
+//                     backgroundColor: '#10b981'
+//                 },
+//                 {
+//                     label: 'Registration',
+//                     data: displaySessions.map(x => x.totalRegistration),
+//                     backgroundColor: '#f59e0b'
+//                 },
+//                 {
+//                     label: 'Admission',
+//                     data: displaySessions.map(x => x.totalAdmission),
+//                     backgroundColor: '#a855f7'
+//                 }
+//             ]
+//         },
 
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
+//         options: {
+//             responsive: true,
+//             maintainAspectRatio: false,
 
-            plugins: {
-                legend: {
-                    position: 'top'
-                }
-            },
+//             plugins: {
+//                 legend: {
+//                     position: 'top'
+//                 }
+//             },
 
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-}
-window.renderMonthWiseChart = function (data, chartType) {
+//             scales: {
+//                 y: {
+//                     beginAtZero: true
+//                 }
+//             }
+//         }
+//     });
+// }
+// window.renderMonthWiseChart = function (data, chartType) {
 
-    if (sessionChart)
-        sessionChart.destroy();
+//     if (sessionChart)
+//         sessionChart.destroy();
 
-    const ctx = document.getElementById("sessionComparisonChart");
+//     const ctx = document.getElementById("sessionComparisonChart");
 
-    sessionChart = new Chart(ctx, {
+//     sessionChart = new Chart(ctx, {
 
-        type: chartType,
+//         type: chartType,
 
-        data: {
+//         data: {
 
-            labels: data.map(x => x.monthName),
+//             labels: data.map(x => x.monthName),
 
-            datasets: [
-                {
-                    label: 'Enquiry',
-                    data: data.map(x => x.totalEnquiry),
-                    backgroundColor: '#3b82f6' // Blue
-                },
-                {
-                    label: 'Registration',
-                    data: data.map(x => x.registration),
-                    backgroundColor: '#f59e0b' // Orange
-                },
-                {
-                    label: 'Pending',
-                    data: data.map(x => x.pendingRegistration),
-                    backgroundColor: '#10b981' // Green
-                }
-            ]
-        },
+//             datasets: [
+//                 {
+//                     label: 'Enquiry',
+//                     data: data.map(x => x.totalEnquiry),
+//                     backgroundColor: '#3b82f6' Blue
+//                 },
+//                 {
+//                     label: 'Registration',
+//                     data: data.map(x => x.registration),
+//                     backgroundColor: '#f59e0b' Orange
+//                 },
+//                 {
+//                     label: 'Pending',
+//                     data: data.map(x => x.pendingRegistration),
+//                     backgroundColor: '#10b981' Green
+//                 }
+//             ]
+//         },
 
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
-window.renderClassWiseChart = function (data, chartType) {
-    console.log(data[0]);
-    if (sessionChart)
-        sessionChart.destroy();
+//         options: {
+//             responsive: true,
+//             maintainAspectRatio: false
+//         }
+//     });
+// }
+// window.renderClassWiseChart = function (data, chartType) {
+//     console.log(data[0]);
+//     if (sessionChart)
+//         sessionChart.destroy();
 
-    const ctx = document.getElementById("sessionComparisonChart");
+//     const ctx = document.getElementById("sessionComparisonChart");
 
-    sessionChart = new Chart(ctx, {
+//     sessionChart = new Chart(ctx, {
 
-        type: chartType,
+//         type: chartType,
 
-        data: {
+//         data: {
 
-            labels: data.map(x => x.classCode),
+//             labels: data.map(x => x.classCode),
 
-            datasets: [
-                {
-                    label: 'Enquiry',
-                    data: data.map(x => x.totalEnquiry),
-                    backgroundColor: '#3b82f6' // Blue
-                },
-                {
-                    label: 'Registration',
-                    data: data.map(x => x.registration),
-                    backgroundColor: '#f59e0b' // Orange
-                },
-                {
-                    label: 'Admission',
-                    data: data.map(x => x.totalAdmission),
-                    backgroundColor: '#a855f7' // Purple
-                }
-            ]
-        },
+//             datasets: [
+//                 {
+//                     label: 'Enquiry',
+//                     data: data.map(x => x.totalEnquiry),
+//                     backgroundColor: '#3b82f6' Blue
+//                 },
+//                 {
+//                     label: 'Registration',
+//                     data: data.map(x => x.registration),
+//                     backgroundColor: '#f59e0b' Orange
+//                 },
+//                 {
+//                     label: 'Admission',
+//                     data: data.map(x => x.totalAdmission),
+//                     backgroundColor: '#a855f7' Purple
+//                 }
+//             ]
+//         },
 
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
+//         options: {
+//             responsive: true,
+//             maintainAspectRatio: false
+//         }
+//     });
+// }

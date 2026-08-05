@@ -159,6 +159,7 @@
 //    .AddInteractiveServerRenderMode();
 //app.Run();
 
+using ApexCharts;
 using DomainModel.Common;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -202,7 +203,7 @@ try
     builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
     builder.Services.AddScoped<SweetAlertService>();
     builder.Services.AddScoped<ICommonMethod, CommonMethod>();
-
+    builder.Services.AddApexCharts();
     builder.Services.AddScoped<PermissionState>();
     builder.Services.AddScoped<BookmarkState>();
     builder.Services.AddScoped(sp =>

@@ -4,10 +4,10 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
 @using Microsoft.Extensions.Localization
+@using ApexCharts
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
-@inject IJSRuntime jsRuntime
 @rendermode InteractiveServer
 @using Newtonsoft.Json
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -19,11 +19,26 @@
 @using ServerWebUI.Components.AlertComponent
 @using ServerWebUI.Components.Pages.CommonPages
 @inject IStringLocalizer<Resource> Localizer
-@inject IJSRuntime JS
+
 <style>
+    /* ... same styles as before, unchanged ... */
     .chart-container {
-        height: 200px;
+        height: 220px;
         position: relative;
+        /* overflow: hidden; */
+    }
+
+    .dashboard-card {
+        /* overflow: hidden; */
+    }
+
+    .donut-container {
+        height: 180px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .bg-purple {
@@ -47,6 +62,27 @@
         width: 100%;
     }
 
+    /* .stat-change {
+            padding-top: 10px;
+            padding-left: 35px;
+            font-size: 0.8rem;
+            color: #10b981;
+        } */
+
+    .state-icon--bxds {
+        gap: 12px;
+        display: flex;
+        align-items: center;
+    }
+
+    .dashboard-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        border: 1px solid #f1f5f9;
+        height: 100%;
+    }
 
     .progress-bar-custom {
         height: 5px;
@@ -117,12 +153,10 @@
 </style>
 
 <section class="main-container">
-
     <div class="row m-0 main-row">
-
-
         <div class="content">
-            <!-- 1. Stat Cards Row -->
+
+            <!-- 1. Header / Filters -->
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
                     <div class="page-heading d-flex align-items-center justify-content-between">
@@ -133,14 +167,13 @@
                                     <option value="0">-- Select Session --</option>
                                     @foreach (var data in sessionlist.Where(x => x.IsValid == true))
                                     {
-                                        <option value="@data.SessionId">@data.SessionName </option>
+                                        <option value="@data.SessionId">@data.SessionName</option>
                                     }
                                 </InputSelect>
                             </div>
-
                             <div class="form-box">
                                 <div class="d-flex gap-2">
-                                    <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                    <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
                                         <i class="bi bi-sliders"></i>
                                     </button>
                                 </div>
@@ -148,28 +181,24 @@
                             <div class="form-box">
                                 <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
                                     <div class="visible content">Search</div>
-                                    <div class="hidden content">
-                                        <i class="bi bi-search"></i>
-                                    </div>
+                                    <div class="hidden content"><i class="bi bi-search"></i></div>
                                 </button>
                             </div>
-
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Stat cards (unchanged) -->
             <div class="row g-3 mb-3 ">
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card  ">
+                    <div class="stat-card p-3 bg-white ">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
-                                    <div class="stat-icon blue">
-                                        <i class="fas fa-users"></i>
-
-                                    </div>
+                                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
                                     <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap ">Total Enquiry</div>
+                                        <div class="stat-label text-nowrap text-muted small">Total Enquiry</div>
                                         <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalEnquiry</div>
                                     </div>
                                 </div>
@@ -178,15 +207,14 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card  ">
+                    <div class="stat-card p-3 bg-white ">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
-                                    <div class="stat-icon orange">  <i class="fas fa-clipboard-list"></i></div>
+                                    <div class="stat-icon orange"><i class="fas fa-clipboard-list"></i></div>
                                     <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap ">Total Application</div>
+                                        <div class="stat-label text-nowrap text-muted small">Total Application</div>
                                         <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.Application</div>
                                     </div>
                                 </div>
@@ -195,15 +223,14 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card  ">
+                    <div class="stat-card p-3 bg-white ">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
-                                    <div class="stat-icon green">  <i class="fas fa-user-check"></i></div>
+                                    <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
                                     <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap ">Total Registration</div>
+                                        <div class="stat-label text-nowrap text-muted small">Total Registration</div>
                                         <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.Registration</div>
                                     </div>
                                 </div>
@@ -212,19 +239,14 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card  ">
+                    <div class="stat-card p-3 bg-white ">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
-                                    <div class="stat-icon red">
-                                        @* <i class="fas fa-user-graduate"></i> *@
-                                        <img src="https://preskool.dreamstechnologies.com/html/assets/img/icons/student.svg" alt="img">
-
-                                        </div>
+                                    <div class="stat-icon red"><i class="fas fa-user-graduate"></i></div>
                                     <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap ">Total Admission</div>
+                                        <div class="stat-label text-nowrap text-muted small">Total Admission</div>
                                         <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalAdmission</div>
                                     </div>
                                 </div>
@@ -234,65 +256,67 @@
                     </div>
                 </div>
             </div>
+
             <div class="row g-3 mb-3">
-                <!-- Enquiry Summary Card -->
+                <!-- Enquiry Summary Card (unchanged) -->
                 <div class="col-12 col-xl-6">
-                    <div class="card-custom">
+                    <div class="dashboard-card">
                         <h6 class="card-title-custom mb-3">Enquiry Summary</h6>
                         <div class="row g-3">
                             <div class="col-6 col-md-6">
                                 <div class="mini-stat-card mini-stat-green d-flex g-1 align-items-center ">
-                                    <div class="stat-icon green  me-2"> <i class="fas fa-user-plus"></i></div>
-                                    <div class="stat-label text-nowrap ">Today Enquiry</div>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">
-                                        @EnquirySummary.TodayEnquiry
-                                    </h5>
+                                    <div class="stat-icon green me-2"><i class="fas fa-user-plus"></i></div>
+                                    <span class="text-muted small d-block">Today Enquiry</span>
+                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayEnquiry</h5>
                                 </div>
                             </div>
                             <div class="col-6 col-md-6">
                                 <div class="mini-stat-card mini-stat-blue d-flex align-items-center">
-                                    <div class="stat-icon blue me-2">
-                                        <i class="fas fa-headset"></i>
-                                    </div>
-                                    <div class="stat-label text-nowrap ">Today Follow-up</div>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">
-                                        @EnquirySummary.TodayFollowup
-                                    </h5>
-
+                                    <div class="stat-icon blue me-2"><i class="fas fa-headset"></i></div>
+                                    <span class="text-muted small">Today Follow-up</span>
+                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayFollowup</h5>
                                 </div>
                             </div>
-
                             <div class="col-6 col-md-6">
                                 <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
-                                    <div class="stat-icon orange me-2">
-                                        <i class="fas fa-exchange-alt"></i>
-                                    </div>
-                                    <div class="stat-label text-nowrap ">Today Conversion</div>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">
-                                        @EnquirySummary.TodayAdmission
-                                    </h5>
+                                    <div class="stat-icon orange me-2"><i class="fas fa-exchange-alt"></i></div>
+                                    <span class="text-muted small">Today Conversion</span>
+                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayAdmission</h5>
                                 </div>
                             </div>
                             <div class="col-6 col-md-6">
                                 <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
                                     <div class="stat-icon purple me-2"><i class="fas fa-chart-pie"></i></div>
-                                    <div class="stat-label ">Based on Source</div>
-                                    <a href="#" class=" text-primary ">View Details</a>
+                                    <div class="d-flex flex-column">
+                                        <span class="text-muted small">Based on Source</span>
+                                        <a href="#" class="small text-primary">View Details</a>
+                                    </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
 
-                <!-- Enquiry Report Based on Source Card -->
+                <!-- Source Report: ApexCharts Donut -->
                 <div class="col-12 col-xl-6">
-                    <div class="card-custom">
+                    <div class="dashboard-card">
                         <h6 class="card-title-custom mb-3">Enquiry Report Based on Source</h6>
                         <div class="row align-items-center">
                             <div class="col-12 col-md-6 text-center">
-                                <div style="height: 180px; position: relative;">
-                                    <canvas id="sourcePieChart"></canvas>
+                                <div class="donut-container" @key='$"{sourceReports.Count}-{string.Join(",", hiddenSources)}"'>
+                                    @if (sourceReports.Any())
+                                    {
+                                        var visibleSources = sourceReports.Where(x => !hiddenSources.Contains(x.SourceName)).ToList();
+                                        var sourceColorOptions = GetDonutOptions<SourceReportModel>(visibleSources.Select(x => GetColor(x.SourceName)).ToList());
+                                        <ApexChart TItem="SourceReportModel" Options="sourceColorOptions">
+                                            <ApexPointSeries TItem="SourceReportModel"
+                                                             Items="visibleSources"
+                                                             Name="Source"
+                                                             SeriesType="SeriesType.Donut"
+                                                             XValue="x => x.SourceName"
+                                                             YValue="x => (decimal)x.TotalCount" />
+                                        </ApexChart>
+                                    }
                                 </div>
                             </div>
                             <div class="col-12 col-md-6 mt-3 mt-md-0">
@@ -300,23 +324,11 @@
                                     <tbody>
                                         @foreach (var item in sourceReports)
                                         {
-                                            <tr class="source-row"
-                                                data-source="@item.SourceName"
-                                                onclick="toggleSource('@item.SourceName')">
-
-                                                <td>
-                                                    <span class="badge @GetBadgeClass(item) me-2">&nbsp;</span>
-                                                    @item.SourceName
-                                                </td>
-
-                                                <td class="fw-bold">
-                                                    @item.TotalCount
-                                                </td>
-
-                                                <td class="text-muted">
-                                                    @($"{item.Percentage}%")
-                                                </td>
-
+                                            <tr class="source-row @(hiddenSources.Contains(item.SourceName) ? "source-disabled" : "")"
+                                                @onclick="() => ToggleSource(item.SourceName)">
+                                                <td><span class="badge @GetBadgeClass(item) me-2">&nbsp;</span>@item.SourceName</td>
+                                                <td class="fw-bold">@item.TotalCount</td>
+                                                <td class="text-muted">@($"{item.Percentage}%")</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -326,49 +338,90 @@
                     </div>
                 </div>
             </div>
-            <!-- 2. Session Comparison Report & Follow-up Report Row -->
+
+            <!-- Session/Class/Month comparison + Follow-up pipeline -->
             <div class="row g-3">
-                <!-- Session Comparison Report Card -->
                 <div class="col-12 col-xl-6">
-                    <div class="card-custom">
+                    <div class="dashboard-card">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="card-title-custom mb-0">Session Comparison Report (Year On Year)</h6>
-                            <InputSelect class="form-input form-select-sm w-auto" @bind-Value="selectedChartType" @bind-Value:after="OnChartTypeChanged">
+                            <InputSelect class="form-input form-select-sm w-auto" @bind-Value="selectedChartType">
                                 <option value="bar">Bar Chart</option>
                                 <option value="line">Line Chart</option>
                             </InputSelect>
                         </div>
-                        <div class="btn-group btn-group-sm gap-2  mb-3">
+                        <div class="btn-group btn-group-sm gap-2 mb-3">
                             <button type="button" class="btn @(selectedReport == "Sessionwise" ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick='() => ChangeChart("Sessionwise")'>
+                                    @onclick='() => selectedReport = "Sessionwise"'>
                                 Sessionwise
                             </button>
                             <i class="fas fa-arrow-right text-muted align-self-center"></i>
                             <button type="button" class="btn @(selectedReport == "Classwise" ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick='() => ChangeChart("Classwise")'>
+                                    @onclick='() => selectedReport = "Classwise"'>
                                 Classwise
                             </button>
                             <i class="fas fa-arrow-right text-muted align-self-center"></i>
                             <button type="button" class="btn @(selectedReport == "Monthwise" ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick='() => ChangeChart("Monthwise")'>
+                                    @onclick='() => selectedReport = "Monthwise"'>
                                 Monthwise
                             </button>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="sessionComparisonChart"></canvas>
+
+                        <div class="chart-container" @key='$"{selectedReport}-{selectedChartType}-{sessionComparison.Count}-{classWise.Count}-{monthWise.Count}"'>
+                            @{
+                                var seriesType = selectedChartType == "line" ? SeriesType.Line : SeriesType.Bar;
+                            }
+
+                            @if (selectedReport == "Sessionwise")
+                            {
+                                var data = sessionComparison.TakeLast(5).ToList();
+                                <ApexChart TItem="SessionComparisonModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<SessionComparisonModel>()">
+                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Enquiry" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalEnquiry" />
+                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Application" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalApplication" />
+                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Registration" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalRegistration" />
+                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Admission" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalAdmission" />
+                                </ApexChart>
+                            }
+                            else if (selectedReport == "Classwise")
+                            {
+                                <ApexChart TItem="ClassWiseModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<ClassWiseModel>()">
+                                    <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Enquiry" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.TotalEnquiry" />
+                                    <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Registration" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.Registration" />
+                                    <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Admission" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.TotalAdmission" />
+                                </ApexChart>
+                            }
+                            else
+                            {
+                                <ApexChart TItem="MonthWiseModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<MonthWiseModel>()">
+                                    <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Enquiry" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.TotalEnquiry" />
+                                    <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Registration" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.Registration" />
+                                    <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Pending Registration" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.PendingRegistration" />
+                                </ApexChart>
+                            }
                         </div>
                     </div>
                 </div>
 
-                <!-- Follow-up Report Dashboard Card -->
+                <!-- Follow-up Pipeline Donut -->
                 <div class="col-12 col-xl-6">
-                    <div class="card-custom">
+                    <div class="dashboard-card">
                         <h6 class="card-title-custom mb-3">Follow-up Report Dashboard</h6>
-
                         <div class="row align-items-center">
                             <div class="col-12 col-md-6 d-flex align-items-center justify-content-center">
-                                <div class="chart-container">
-                                    <canvas id="followupDoughnutChart"></canvas>
+                                <div class="donut-container" @key='$"{pipeline.Count}-{string.Join(",", hiddenStages)}"'>
+                                    @if (pipeline.Any())
+                                    {
+                                        var visiblePipeline = pipeline.Where(x => !hiddenStages.Contains(x.Stage)).ToList();
+                                        var pipelineColorOptions = GetDonutOptions<PipelineModel>(visiblePipeline.Select(x => GetColor(x.Stage)).ToList());
+                                        <ApexChart TItem="PipelineModel" Options="pipelineColorOptions">
+                                            <ApexPointSeries TItem="PipelineModel"
+                                                             Items="visiblePipeline"
+                                                             Name="Pipeline"
+                                                             SeriesType="SeriesType.Donut"
+                                                             XValue="x => x.Stage"
+                                                             YValue="x => (decimal)x.TotalCount" />
+                                        </ApexChart>
+                                    }
                                 </div>
                             </div>
                             <div class="col-12 col-md-6 mt-3 mt-md-0">
@@ -376,22 +429,16 @@
                                     <tbody>
                                         @foreach (var item in pipeline)
                                         {
-                                            <tr class="pipeline-row"
-                                                data-stage="@item.Stage"
-                                                onclick="togglePipeline('@item.Stage')">
-
-                                                <td>
-                                                    <span class="badge @GetstageClass(item) me-2">&nbsp;</span>
-                                                    @item.Stage &nbsp; (@item.TotalCount)
-                                                </td>
-
+                                            <tr class="pipeline-row @(hiddenStages.Contains(item.Stage) ? "source-disabled" : "")"
+                                                @onclick="() => TogglePipeline(item.Stage)">
+                                                <td><span class="badge @GetstageClass(item) me-2">&nbsp;</span>@item.Stage &nbsp; (@item.TotalCount)</td>
                                             </tr>
                                         }
                                     </tbody>
                                 </table>
                             </div>
                         </div>
-                        <div class="mt-4 pt-2 border-top d-flex justify-content-around text-center ">
+                        <div class="mt-4 pt-2 border-top d-flex justify-content-around text-center small">
                             <div><span class="fw-bold d-block">Enquiry</span><strong class="text-primary">@admissionDashboardpipeline.TotalEnquiry</strong></div>
                             <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
                             <div><span class="fw-bold d-block">Application</span><strong class="text-success">@admissionDashboardpipeline.Application</strong></div>
@@ -400,17 +447,13 @@
                             <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
                             <div><span class="fw-bold d-block">Admission</span><strong class="text-purple">@admissionDashboardpipeline.TotalAdmission</strong></div>
                         </div>
-
                     </div>
                 </div>
             </div>
-
-            <!-- 3. Enquiry Summary & Source Report Row -->
-
-           
         </div>
     </div>
 </section>
+
 @if (ShowPopup)
 {
     <div class="custom-modal row m-0">
@@ -424,8 +467,7 @@
                     <div class="row gap-10-0">
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputSelect class="floating-input"
-                                             @bind-Value="searchAnyRequest.ClassCode">
+                                <InputSelect class="floating-input" @bind-Value="searchAnyRequest.ClassCode">
                                     <option value="">All Classes</option>
                                     @foreach (var data in classlist)
                                     {
@@ -437,25 +479,20 @@
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputSelect class="floating-input"
-                                             @bind-Value="searchAnyRequest.Source">
+                                <InputSelect class="floating-input" @bind-Value="searchAnyRequest.Source">
                                     <option value="">All Sources</option>
-                                    <option value="Website">Website</option>
-                                    <option value="Google">Google</option>
-                                    <option value="Facebook">Facebook</option>
-                                    <option value="Instagram">Instagram</option>
-                                    <option value="WhatsApp">WhatsApp</option>
-                                    <option value="Reference">Reference</option>
-                                    <option value="Walking">Walk In</option>
-                                    <option value="Others">Others</option>
+                                    @foreach (var source in sourceOfEnquirilist)
+                                    {
+                                        <option value="@source.SourceName">@source.SourceName</option>
+                                    }
+
                                 </InputSelect>
                                 <label class="floating-label">Source</label>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputSelect class="floating-input"
-                                             @bind-Value="searchAnyRequest.Month">
+                                <InputSelect class="floating-input" @bind-Value="searchAnyRequest.Month">
                                     <option value="">All Months</option>
                                     @foreach (var data in monthlist.Where(x => x.IsValid))
                                     {
@@ -465,21 +502,15 @@
                                 <label class="floating-label">Month</label>
                             </div>
                         </div>
-
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputDate class="floating-input"
-                                           @bind-Value="searchAnyRequest.FromDate"
-                                           placeholder=" " />
+                                <InputDate class="floating-input" @bind-Value="searchAnyRequest.FromDate" placeholder=" " />
                                 <label class="floating-label">From Date</label>
                             </div>
                         </div>
-
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputDate class="floating-input"
-                                           @bind-Value="searchAnyRequest.ToDate"
-                                           placeholder=" " />
+                                <InputDate class="floating-input" @bind-Value="searchAnyRequest.ToDate" placeholder=" " />
                                 <label class="floating-label">To Date</label>
                             </div>
                         </div>
@@ -488,17 +519,13 @@
                 <div class="modal-footer">
                     <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
                         <div class="visible content">Search</div>
-                        <div class="hidden content">
-                            <i class="bi bi-search"></i>
-                        </div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
                     </button>
                 </div>
-
             </div>
         </div>
     </div>
 }
-
 
 @if (IsLoading)
 {
@@ -506,114 +533,104 @@
         <img src="images/loading.gif" alt="Loading..." />
     </div>
 }
-else
-{
 
-}
 <CustomAlert @ref="customAlert" Title="Alert" />
+
 @code {
+    // ===================== State =====================
     private string selectedChartType = "bar";
-
-
-    private async Task OnChartTypeChanged()
-    {
-        await ChangeChart(selectedReport);
-    }
     private string selectedReport = "Sessionwise";
     private bool ShowPopup = false;
-    private DateTime fromDate = DateTime.Now;
-    private DateTime toDate = DateTime.Now;
-    private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
     private bool IsLoading = false;
-    private string nameFilter = "";
+    private long CurrentSession;
+    private string DashboardName = "";
     private string branchcode = "";
     private string groupcode = "";
     private string UserName = "";
-    private string SelectedData = "This Year";
-    private long CurrentSession;
-    private string DashboardName = "";
+
     private List<BranchClassModel> classlist = new();
     private List<MonthModel> monthlist = new();
+    private List<SessionModel> sessionlist = new();
+    private List<SourceOfEnquiryModel> sourceOfEnquirilist = new();
     private EnquiryDashboardResponse dashboard = new();
-
     private EnquiryDashboardModel admissionDashboardpipeline = new();
-
     private List<SessionComparisonModel> sessionComparison = new();
-
     private List<SourceReportModel> sourceReports = new();
-
     private List<MonthWiseModel> monthWise = new();
-
     private List<ClassWiseModel> classWise = new();
-
     private List<PipelineModel> pipeline = new();
-
     private List<RecentEnquiryModel> recentEnquiries = new();
-
     private List<RecentAdmissionModel> recentAdmissions = new();
-
     private List<FollowupStatusModel> followupStatus = new();
     private EnquirySummaryModel EnquirySummary = new();
-
     private List<TodayFollowupModel> todayFollowups = new();
-
     private List<TodayAdmissionModel> todayAdmissions = new();
-
     private EnquiryDashboardSearchRequest searchAnyRequest = new();
-    private List<FeeHeadCollectionDto> feeHeadCollectionlist = new();
-    //private AdmissionDashboardModel admissionDashboardpipeline = new();
-    private AdminDashboardModal adminDashboard = new();
-    private List<SessionModel> sessionlist = new();
-    private async Task SearchEnquiries()
-    {
 
-        ShowPopup = false;
-        await LoadDashboard();
-        StateHasChanged();
-    }
-    private async Task LoadDashboard()
+    // Toggle state — replaces the old JS toggleSource()/togglePipeline()
+    private List<string> hiddenSources = new();
+    private List<string> hiddenStages = new();
+
+    private CustomAlert customAlert;
+
+    private ApexCharts.ApexChartOptions<TItem> GetMainChartOptions<TItem>() where TItem : class => new()
     {
-        try
+        Chart = new ApexCharts.Chart
         {
-            IsLoading = true;
-            searchAnyRequest.GroupCode = groupcode;
-            searchAnyRequest.BranchCode = branchcode;
-            searchAnyRequest.SessionId = CurrentSession;
-            dashboard = await httpService.Post<EnquiryDashboardResponse>("AdminDashboard/GetEnquiryDashboardData", searchAnyRequest) ?? new();
-            if (dashboard != null)
+            Height = "235",
+            Toolbar = new ApexCharts.Toolbar { Show = false }
+        },
+        Legend = new ApexCharts.Legend { Position = ApexCharts.LegendPosition.Top }
+    };
+
+    // private ApexCharts.ApexChartOptions<TItem> GetDonutOptions<TItem>(List<string> orderedColors) where TItem : class => new()
+    // {
+    //     Chart = new ApexCharts.Chart
+    //     {
+    //         Height = "170",
+    //         Width = "170",
+    //         Toolbar = new ApexCharts.Toolbar { Show = false }
+    //     },
+    //     Legend = new ApexCharts.Legend { Show = false },
+    //     DataLabels = new ApexCharts.DataLabels { Enabled = false },
+    //     Colors = orderedColors
+    // };
+    private ApexCharts.ApexChartOptions<TItem> GetDonutOptions<TItem>(List<string> orderedColors) where TItem : class => new()
+    {
+        Chart = new ApexCharts.Chart
+        {
+            Height = "170",
+            Width = "170",
+            Toolbar = new ApexCharts.Toolbar { Show = false }
+        },
+        Legend = new ApexCharts.Legend { Show = false },
+        DataLabels = new ApexCharts.DataLabels { Enabled = false },
+        Colors = orderedColors,
+        // Smaller hole % = thicker ring. Default is ~65%; drop it to fatten the donut.
+        PlotOptions = new ApexCharts.PlotOptions
+        {
+            Pie = new ApexCharts.PlotOptionsPie
             {
-                admissionDashboardpipeline = dashboard.Dashboard ?? new();
-
-                sessionComparison = dashboard.SessionComparison ?? new();
-
-                sourceReports = dashboard.SourceReport ?? new();
-
-
-                monthWise = dashboard.MonthWise ?? new();
-
-                classWise = dashboard.ClassWise ?? new();
-                EnquirySummary = dashboard.EnquirySummary ?? new();
-                pipeline = dashboard.Pipeline ?? new();
-
-                recentEnquiries = dashboard.RecentEnquiries ?? new();
-
-                recentAdmissions = dashboard.RecentAdmissions ?? new();
-
-                followupStatus = dashboard.FollowupStatus ?? new();
-
-                todayFollowups = dashboard.TodayFollowups ?? new();
-
-                todayAdmissions = dashboard.TodayAdmissions ?? new();
-                await JS.InvokeVoidAsync("renderDashboardCharts", sessionComparison, sourceReports, pipeline);
-                //await ChangeChart(selectedReport);
+                Donut = new ApexCharts.PlotOptionsDonut
+                {
+                    Size = "50%"
+                }
             }
-
         }
-        finally
+    };
+
+    // ===================== Load =====================
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            IsLoading = false;
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await LoadData();
+            await LoadDashboard();
+            StateHasChanged();
         }
     }
+
     private async Task LoadData()
     {
         var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
@@ -622,97 +639,102 @@ else
         groupcode = groupResult.Value;
         var username = await sessionStorage.GetAsync<string>("UserName");
         UserName = username.Value;
-        var dashboard = await sessionStorage.GetAsync<string>("RoleName");
-        string ApiUri1 = "Session/GetSession";
-        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
+        var dash = await sessionStorage.GetAsync<string>("RoleName");
+        DashboardName = dash.Value;
+        sourceOfEnquirilist = await httpService.Get<List<SourceOfEnquiryModel>>("SourceOfEnquiry/GetSourceOfEnquiry") ?? new();
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
         classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
         monthlist = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
-        DashboardName = dashboard.Value;
 
         StateHasChanged();
     }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
 
-            CurrentSession = await CommonMethod.SetCurrentSessionData();
-            await LoadData();
-            await LoadDashboard();
-            StateHasChanged();
-        }
+    private async Task SearchEnquiries()
+    {
+        ShowPopup = false;
+        await LoadDashboard();
+        StateHasChanged();
     }
-    private async Task ChangeChart(string reportType)
+
+    private async Task LoadDashboard()
     {
         try
         {
             IsLoading = true;
-            selectedReport = reportType;
-            StateHasChanged();
-            if (reportType == "Sessionwise")
-            {
-                await JS.InvokeVoidAsync("renderSessionWiseChart", sessionComparison, selectedChartType);
-            }
-            if (reportType == "Classwise")
-            {
+            searchAnyRequest.GroupCode = groupcode;
+            searchAnyRequest.BranchCode = branchcode;
+            searchAnyRequest.SessionId = CurrentSession;
 
-                await JS.InvokeVoidAsync("renderClassWiseChart", classWise, selectedChartType);
-            }
+            dashboard = await httpService.Post<EnquiryDashboardResponse>("AdminDashboard/GetEnquiryDashboardData", searchAnyRequest) ?? new();
 
-            if (reportType == "Monthwise")
-            {
+            admissionDashboardpipeline = dashboard.Dashboard ?? new();
+            sessionComparison = dashboard.SessionComparison ?? new();
+            sourceReports = dashboard.SourceReport ?? new();
+            monthWise = dashboard.MonthWise ?? new();
+            classWise = dashboard.ClassWise ?? new();
+            EnquirySummary = dashboard.EnquirySummary ?? new();
+            pipeline = dashboard.Pipeline ?? new();
+            recentEnquiries = dashboard.RecentEnquiries ?? new();
+            recentAdmissions = dashboard.RecentAdmissions ?? new();
+            followupStatus = dashboard.FollowupStatus ?? new();
+            todayFollowups = dashboard.TodayFollowups ?? new();
+            todayAdmissions = dashboard.TodayAdmissions ?? new();
 
-                await JS.InvokeVoidAsync("renderMonthWiseChart", monthWise, selectedChartType);
-            }
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.ToString());
+            // reset toggle state on fresh data
+            hiddenSources.Clear();
+            hiddenStages.Clear();
         }
         finally
         {
             IsLoading = false;
-            StateHasChanged();
         }
     }
-    private string GetBadgeClass(SourceReportModel item)
+
+    // ===================== Toggle handlers (pure C#, no JS) =====================
+    private void ToggleSource(string sourceName)
     {
-        return item.SourceName switch
-        {
-            "Facebook" => "bg-primary",
-            "Instagram" => "bg-success",
-            "Google" => "bg-warning",
-            "Walking" => "bg-purple",
-            "Reference" => "bg-danger",
-            "Others" => "bg-teal",
-            "Walking/Others" => "bg-teal",
-            _ => "bg-secondary"
-        };
+        if (!hiddenSources.Remove(sourceName))
+            hiddenSources.Add(sourceName);
     }
 
-    private string GetstageClass(PipelineModel item)
+    private void TogglePipeline(string stage)
     {
-        return item.Stage switch
-        {
-            "Enquiry" => "bg-primary",
-            "Application" => "bg-success",
-            "Registration" => "bg-warning",
-            "Admission" => "bg-purple",
-            _ => "bg-secondary"
-        };
-    }
-    private CustomAlert customAlert;
-
-    private void ClosePopup()
-    {
-        ShowPopup = false;
-        StateHasChanged();
-    }
-    private void OpenSearch()
-    {
-        ShowPopup = true;
-        StateHasChanged();
+        if (!hiddenStages.Remove(stage))
+            hiddenStages.Add(stage);
     }
 
+    // ===================== Colors / badges (same mapping as before) =====================
+    private string GetColor(string name) => name switch
+    {
+        "Facebook" or "Enquiry" => "#3b82f6",
+        "Instagram" or "Application" => "#10b981",
+        "Google" or "Registration" => "#f59e0b",
+        "Walking" or "Admission" => "#a855f7",
+        "Reference" => "#ef4444",
+        "Others" or "Walking/Others" => "#14b8a6",
+        _ => "#6c757d"
+    };
+
+    private string GetBadgeClass(SourceReportModel item) => item.SourceName switch
+    {
+        "Facebook" => "bg-primary",
+        "Instagram" => "bg-success",
+        "Google" => "bg-warning",
+        "Walking" => "bg-purple",
+        "Reference" => "bg-danger",
+        "Others" or "Walking/Others" => "bg-teal",
+        _ => "bg-secondary"
+    };
+
+    private string GetstageClass(PipelineModel item) => item.Stage switch
+    {
+        "Enquiry" => "bg-primary",
+        "Application" => "bg-success",
+        "Registration" => "bg-warning",
+        "Admission" => "bg-purple",
+        _ => "bg-secondary"
+    };
+
+    private void OpenSearch() { ShowPopup = true; StateHasChanged(); }
+    private void ClosePopup() { ShowPopup = false; StateHasChanged(); }
 }

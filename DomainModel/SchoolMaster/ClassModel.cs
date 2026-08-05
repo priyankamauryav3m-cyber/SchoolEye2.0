@@ -897,5 +897,18 @@ namespace DomainModel.SchoolMaster
         [StringLength(20, ErrorMessage = "UDISE No cannot exceed 20 characters.")]
         public string? UDISENo { get; set; }
     }
+    public class SourceOfEnquiryModel
+    {
+        public int SourceId { get; set; }
+        [Display(Name = "Source name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string SourceName { get; set; } = string.Empty;
+
+        public bool IsValid { get; set; }
+
+        public DateTime CreatedDate { get; set; }
+
+        public string? CreatedBy { get; set; }
+    }
 }
 

@@ -1,4 +1,4 @@
-﻿@page "/rtecategory"
+﻿@page "/sourceofenquiry"
 @using DomainModel.Admin
 @using Microsoft.AspNetCore.Authorization
 @using ServerWebUI.Components.Pages.CommonPages
@@ -19,9 +19,9 @@
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
             <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">RTE Category </p>
+                <p class="m-0 page-name px-1">Source Of Enquiry </p>
                 <div class="d-flex gap-2">
-                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddCategory" />
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddSourceOfEnquiry" />
 
                 </div>
             </div>
@@ -32,47 +32,43 @@
                     <div class="quick-main">
                         <div class="grid-box">
                             <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.SourceName)" Title="Source Name" Sortable="true" Align="Align.Left">
 
-                                <PropertyColumn Property="@(x => x.CategoryName)" Title="Category Name" Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
                                         <div class="search-box">
-                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="CategoryName ..." />
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Source Name..." />
                                         </div>
                                     </ColumnOptions>
 
-                                </PropertyColumn>
-
-                                <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" class="text-center" Sortable="true" Align="Align.Center">
                                 </PropertyColumn>
 
                                 <TemplateColumn Title="Status" Align="Align.Center">
+
                                     <ColumnOptions>
                                         <div>
-                                            <label>
-                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
-                                            </label>
-                                            <label>
-                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
-                                            </label>
-                                            <label>
-                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
-                                            </label>
+                                            <label> <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both </label>
+
+                                            <label> <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active </label>
+
+                                            <label> <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive </label>
                                         </div>
                                     </ColumnOptions>
-                                    <ChildContent>
-                                        <span class="@GetStatusClass(context.IsValid == true)">
 
-                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                    <ChildContent>
+
+                                        <span class="@GetStatusClass(context.IsValid)">
+                                            @(context.IsValid ? "Active" : "Inactive")
                                         </span>
+
                                     </ChildContent>
+
                                 </TemplateColumn>
 
-                                <TemplateColumn Align="Align.Center" Title="Action">
-                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditCategory(context)" OnStatusClick="() => ChangeCategoryStatus(context.CategoryId, context.IsValid)" />
+                                <TemplateColumn Align="Align.Center"   Title="Action">
+                                    <ActionButtonGroup CurrentUrl="@currentUrl" IsValid="context.IsValid" OnEditClick="() => EditSourceOfEnquiry(context)" OnStatusClick="() => ChangeSourceOfEnquiryStatus(context.SourceId,context.IsValid)" />
                                 </TemplateColumn>
 
                             </QuickGrid>
-
 
                         </div>
                         <div class="footer-pagination">
@@ -92,47 +88,35 @@
                 <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
                     <div class="modal-content clearfix main-popup">
                         <div class="head-btn">
-                            <h5 class="modal-title">@((category.CategoryId == 0) ? "Add Category" : "Edit Category")</h5>
+                            <h5 class="modal-title">@((sourceOfEnquiry.SourceId == 0) ? "Add Source" : "Edit Source")</h5>
                             <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                         </div>
-                            <EditForm Model="@category" OnValidSubmit="@OnSave">
-                                <DataAnnotationsValidator />
-                                <div class="modal-body">
-                                        <div class="row m-0 form-row">
+                        <EditForm Model="@sourceOfEnquiry" OnValidSubmit="@OnSave">
 
-                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                                <div class="form-box-group">
-                                                    <InputText class="floating-input"
-                                                               placeholder=" "
-                                                               @bind-Value="category.CategoryName" />
-                                                    <label class="floating-label">
-                                                        Category Name <span class="required">*</span>
-                                                    </label>
-                                                    <ValidationMessage For="@(() => category.CategoryName)" />
-                                                </div>
-                                            </div>
+                            <DataAnnotationsValidator />
 
-                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                                <div class="form-box-group">
-                                                    <InputNumber class="floating-input"
-                                                               placeholder=" "
-                                                               @bind-Value="category.DisplayOrder" />
-                                                    <label class="floating-label">
-                                                        Display Order <span class="required">*</span>
-                                                    </label>
-                                                    <ValidationMessage For="@(() => category.DisplayOrder)" />
-                                                </div>
-                                            </div>
+                            <div class="modal-body">
 
-                                         
+                                <div class="row m-0 form-row">
+                                    <div class="col-12 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="sourceOfEnquiry.SourceName" />
+                                            <label class="floating-label"> Source Name <span class="required">*</span>   </label>
+                                            <ValidationMessage For="@(() => sourceOfEnquiry.SourceName)" />
                                         </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <div class="form-group btn-gr">
-                                        <SaveUpdateButton Id="category.CategoryId" TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
                                     </div>
                                 </div>
-                            </EditForm>
+                            </div>
+
+                            <div class="modal-footer">
+
+                                <div class="form-group btn-gr">
+                                    <SaveUpdateButton Id="sourceOfEnquiry.SourceId" TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                </div>
+
+                            </div>
+
+                        </EditForm>
                     </div>
                 </div>
             </div>
@@ -145,9 +129,9 @@
 
 @code {
     private bool IsLoading = true;
-    private RTECategoryModel category = new();
+    private SourceOfEnquiryModel sourceOfEnquiry = new();
     private string oldcdataModel = "";
-    private List<RTECategoryModel> categorylist = new();
+    private List<SourceOfEnquiryModel> sourceOfEnquirilist = new();
     private bool ShowPopup = false;
     PaginationState pagination = new()
     {
@@ -158,8 +142,6 @@
     private string username = "";
     HttpResponseMessage response;
     private EditContext editContext;
-    private string? branchcode;
-    private string? groupcode;
 
     private string? currentUrl;
     protected override void OnInitialized()
@@ -175,35 +157,35 @@
     {
         if (firstRender)
         {
-            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
-            branchcode = branchResult.Value;
-            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
-            groupcode = groupResult.Value;
             var userResult = await sessionStorage.GetAsync<string>("UserName");
             username = userResult.Value;
             await LoadData();
             StateHasChanged();
         }
     }
-
+    private void OnCountryChanged(string value)
+    {
+        sourceOfEnquiry.SourceName = System.Text.RegularExpressions.Regex
+            .Replace(value ?? "", "[^a-zA-Z ]", "");
+        StateHasChanged();
+    }
     private async Task LoadData()
     {
         IsLoading = true;
-        string ApiUri = "Category/GetCategory";
-        categorylist = await httpService.Get<List<RTECategoryModel>>(ApiUri) ?? new();
+        string ApiUri = "SourceOfEnquiry/GetSourceOfEnquiry";
+        sourceOfEnquirilist = await httpService.Get<List<SourceOfEnquiryModel>>(ApiUri) ?? new();
         IsLoading = false;
 
 
     }
-    protected IQueryable<RTECategoryModel> FilteredItems
+    protected IQueryable<SourceOfEnquiryModel> FilteredItems
     {
         get
         {
-            var result = categorylist.AsQueryable();
+            var result = sourceOfEnquirilist.AsQueryable();
             if (!string.IsNullOrEmpty(nameFilter))
             {
-                result = result.Where(x => (x.CategoryName != null && x.CategoryName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-            (x.Remarks != null && x.Remarks.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+                result = result.Where(x => (x.SourceName != null && x.SourceName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
             }
             if (statusFilter == "1")
@@ -226,9 +208,9 @@
         statusFilter = filterValue.ToString();
         StateHasChanged();
     }
-    private void AddCategory()
+    private void AddSourceOfEnquiry()
     {
-        category = new();
+        sourceOfEnquiry = new();
         ShowPopup = true;
     }
 
@@ -238,7 +220,7 @@
         try
         {
 
-            if (category.CategoryId > 0)
+            if (sourceOfEnquiry.SourceId > 0)
             {
                 ShowPopup = false;
                 var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
@@ -247,7 +229,7 @@
                     ShowPopup = true;
                     return;
                 }
-                bool isSame = CommonMethod.IsEdited(category, oldcdataModel);
+                bool isSame = CommonMethod.IsEdited(sourceOfEnquiry, oldcdataModel);
                 if (!isSame)
                 {
                     await Alert.ShowWarning("No changes detected.");
@@ -256,25 +238,22 @@
                 }
             }
             ShowPopup = false;
-            category.IsValid = true;
-            category.CreatedBy = username;
-            category.GroupCode = groupcode;
-            category.BranchCode = branchcode;
-            category.CreatedDate = DateTime.Now;
-            string apiUrl = "Category/AddOrUpdateCategory";
-            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, category);
+            sourceOfEnquiry.IsValid = true;
+            sourceOfEnquiry.CreatedBy = username;
+            string apiUrl = "SourceOfEnquiry/AddOrUpdateSourceOfEnquiry";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, sourceOfEnquiry);
             var responsecode = apiResponse.Code;
             if (responsecode == 0)
             {
-                await Alert.ShowWarning("Category" + @Localizer["Already"]);
+                await Alert.ShowWarning("Source of Enquiry" + @Localizer["Already"]);
             }
             else if (responsecode == 1)
             {
-                await Alert.ShowSuccess("Category" + @Localizer["Inserted"]);
+                await Alert.ShowSuccess("Source of Enquiry" + @Localizer["Inserted"]);
             }
             else if (responsecode == 2)
             {
-                await Alert.ShowUpdate("Category" + @Localizer["Updated"]);
+                await Alert.ShowUpdate("Source of Enquiry" + @Localizer["Updated"]);
             }
             else
             {
@@ -282,7 +261,7 @@
             }
 
             await LoadData();
-            category = new RTECategoryModel();
+            sourceOfEnquiry = new SourceOfEnquiryModel();
         }
         catch (Exception ex)
         {
@@ -295,25 +274,24 @@
         }
     }
 
-    private void EditCategory(RTECategoryModel item)
+    private void EditSourceOfEnquiry(SourceOfEnquiryModel item)
     {
-        category = new RTECategoryModel
-            {
-                CategoryId = item.CategoryId,
-                CategoryName = item.CategoryName,
-                DisplayOrder = item.DisplayOrder
-            };
-        oldcdataModel = CommonMethod.CreateSnapshot(category);
+        sourceOfEnquiry = new SourceOfEnquiryModel
+        {
+            SourceId = item.SourceId,
+            SourceName = item.SourceName
+        };
+        oldcdataModel = CommonMethod.CreateSnapshot(sourceOfEnquiry);
         ShowPopup = true;
     }
 
     private void ClosePopup()
     {
-        category = new();
+        sourceOfEnquiry = new();
         ShowPopup = false;
     }
 
-    private async Task ChangeCategoryStatus(int id, bool isValid)
+    private async Task ChangeSourceOfEnquiryStatus(int id, bool isValid)
     {
         try
         {
@@ -322,12 +300,12 @@
             if (!isConfirmed)
                 return;
 
-            string apiUrl = "Category/DeleteCategory";
+            string apiUrl = "SourceOfEnquiry/DeleteSourceOfEnquiry";
 
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
 
             if (apiResponse.Success)
-            {   
+            {
                 if (isActivate)
                     await Alert.ShowActive(Localizer["Activated"]);
                 else
