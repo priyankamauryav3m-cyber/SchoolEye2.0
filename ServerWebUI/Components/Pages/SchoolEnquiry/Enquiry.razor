@@ -21,6 +21,11 @@
         min-width: 75px;
     }
 
+    .quickgrid[theme="default"] > tbody > tr.registered-row > td {
+        color: #15d910 !important;
+        font-weight: 600;
+    }
+
     .border-box {
         display: flex;
         align-items: center;
@@ -82,8 +87,8 @@
             cursor: pointer;
         }
     /* .quickgrid tbody tr.selectRow td {
-        background-color: #cce5ff !important;
-    } */
+            background-color: #cce5ff !important;
+        } */
 </style>
 <section class="main-container">
     <div class="row m-0 main-row">
@@ -131,7 +136,7 @@
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
                         <div class="grid-box-with-btn">
-                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table" RowClass="GetRowClass">
                                 <TemplateColumn Title="" Align="Align.Center">
                                     <ChildContent>
                                         <div class="d-flex align-items-center justify-content-center">
@@ -163,7 +168,7 @@
                                         </div>
                                     </ColumnOptions>
                                 </TemplateColumn>
-                                <TemplateColumn Title="Contact No." Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.MobileNo)" Align="Align.Center">
+                                <TemplateColumn Title="Contact No." Sortable="true" class="text-center" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.MobileNo)" Align="Align.Center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.MobileNo) ? " " : context.MobileNo)
                                     </ChildContent>
@@ -380,11 +385,10 @@
                                 <div class="form-box-group static-label">
                                     <InputSelect @bind-Value="enquiryModel.SourceOfEnquiry" class="floating-input">
                                         <option value="">-- Select Source --</option>
-                                        <option value="Facebook">Facebook</option>
-                                        <option value="Instagram">Instagram</option>
-                                        <option value="Google">Google</option>
-                                        <option value="Walking">Walking</option>
-                                        <option value="Referral">Referral</option>
+                                        @foreach (var source in sourceOfEnquirilist)
+                                        {
+                                            <option value="@source.SourceName">@source.SourceName</option>
+                                        }
                                     </InputSelect>
                                     <label class="floating-label">Source of Enquiry</label>
                                 </div>
@@ -529,7 +533,7 @@
                                     </InputRadioGroup>
                                 </div>
 
-                            </div>  
+                            </div>
                         </div>
                         <div class="col-12 col-sm-6">
                             <div class="form-box-group static-label">
@@ -784,7 +788,7 @@ else
     private List<FollowupDetailsResponse> followupDetaillist = new();
     private List<EnquiryListResponse> enquiryList = new();
     private List<CountryModel> countrylist = new();
-    // private List<EnquiryModel> enquirList = new();
+    private List<SourceOfEnquiryModel> sourceOfEnquirilist = new();
     private bool ShowPopup = false;
     private bool ShowPopupEnquery = false;
     private bool ShowPopupFollowup = false;
@@ -835,6 +839,12 @@ else
         else if (data.Count > 1)
         {
             await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (!string.IsNullOrEmpty(data[0].RegistrationNo))
+        {
+            await Alert.ShowWarning("Registration have already done.");
+            StateHasChanged();
             return;
         }
         SeletedData = moduleQuery.Where(x => x.IsSelected).FirstOrDefault();
@@ -970,8 +980,9 @@ else
         groupcode = groupResult.Value;
         var username = await sessionStorage.GetAsync<string>("UserName");
         UserName = username.Value;
-        var dashboard = await sessionStorage.GetAsync<string>("Dashboard");
-        PermissionState.DashboardUrl = "/" + dashboard.Value;
+        // var dashboard = await sessionStorage.GetAsync<string>("Dashboard");
+        // PermissionState.DashboardUrl = "/" + dashboard.Value;
+        sourceOfEnquirilist = await httpService.Get<List<SourceOfEnquiryModel>>("SourceOfEnquiry/GetSourceOfEnquiry") ?? new();
         IsLoading = false;
 
 
@@ -1200,6 +1211,12 @@ else
         enquiryModel = new();
         OpenRegPopup = false;
     }
+    private string GetRowClass(EnquiryListResponse item)
+    {
+        if (string.IsNullOrWhiteSpace(item.RegistrationNo) || item.RegistrationNo == "0")
+            return "";
 
+        return "registered-row";
+    }
 }
 

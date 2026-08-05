@@ -13,6 +13,7 @@
 @inject SweetAlertService Alert
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
 @inject ICommonMethod _commonmethod
 @inject IHttpClientFactory ClientFactory
 @inject IJSRuntime JS
@@ -154,7 +155,11 @@
             <div class="page-heading d-flex align-items-center justify-content-end">
 
                 <div class="d-flex align-items-center gap-2">
-
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="SaveStudentDetails">
+                            Enter Details
+                        </button>
+                    </div>
                     <div class="form-box">
                         <button class="table-btn" @onclick="PrintRec">
                             Print Rec.
@@ -299,6 +304,8 @@
         </div>
     </div>
 }
+
+<StudentDetails IsVisible="@showModal" OnSearch="SearchRegEnterDetails" RegId="@regId" SessionId="@session" CurrectUrl="@currentUrl" OnClose="@CloseModal" />
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
@@ -312,6 +319,7 @@ else
     }
 }
 @code {
+    private bool showModal { get; set; }
     private bool IsAllSelected;
     public bool IsSelected { get; set; }
     private List<BranchClassModel> classlist = new();
@@ -332,6 +340,9 @@ else
     private List<SessionModel> sessionlist = new();
     private List<BranchNameMst> branchlist = new();
     private List<MstDistance> distanceslist = new();
+    private RegistrationDto registrationDto = new();
+    private long regId;
+    private long session;
     private void ToggleAll()
     {
         foreach (var row in registrationlist)   
@@ -504,7 +515,36 @@ else
         ShowPopup = false;
     }
 
+    private async Task SaveStudentDetails()
+    {
+      
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            regId = data[0].RegistrationId;
+            session = data[0].SessionId;
+            showModal = true;
+            StateHasChanged();
+        
+  
 
+
+
+    }
+    private void CloseModal()
+    {
+        showModal = false;
+       
+        StateHasChanged();
+    }
 
 }
 

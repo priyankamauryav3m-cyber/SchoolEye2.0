@@ -1774,4 +1774,17 @@ namespace DomainModel.Admin
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
     }
+    public class PipelineStageDto
+    {
+        public string Stage { get; set; }
+        public int TotalCount { get; set; }
+        public string Percentage { get; set; }
+    }
+
+    public class AdminDashboardResponse
+    {
+        public AdminDashboardModal Dashboard { get; set; } = new();
+        public List<PipelineStageDto> Pipeline { get; set; } = new();
+        public List<FeeHeadCollectionDto> FeeHeadCollection { get; set; } = new();
+    }
 }
