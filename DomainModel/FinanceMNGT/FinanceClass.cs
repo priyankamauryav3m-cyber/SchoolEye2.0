@@ -816,6 +816,7 @@ namespace DomainModel.FinanceMNGT
         public string? AppliedFrom { get; set; }
         public string? StudentName { get; set; }
         public string? MobileNo { get; set; }
+        public string? RegistrationNo { get; set; }
     }
  
     public class AddFollowupRequest : CommonClass

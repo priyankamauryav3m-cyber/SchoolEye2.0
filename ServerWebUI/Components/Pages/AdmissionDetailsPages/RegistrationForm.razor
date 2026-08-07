@@ -334,9 +334,10 @@
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " autocomplete="off" maxlength="30" @bind-Value="registration.PaymentMode" Label="Payment Mode">
-                                        <option Value="@("Cash")">Cash</option>
-                                        <option Value="@("Online")">Online</option>
-                                        <option Value="@("Other")">Other</option>
+                                        @foreach(var data in paymentlist)
+                                        {
+                                            <option value="@data.ModeName">@data.ModeName</option>
+                                        }
 
                                     </InputSelect>
                                     <label class="floating-label">Payment Mode</label>
@@ -398,7 +399,7 @@
     private long CurrentSession;
     private string? username;
     [Parameter] public EnquiryListResponse IncomingData { get; set; }
-
+    private List<PaymentModel> paymentlist = new();
     protected override async Task OnInitializedAsync()
     {
         registration.BranchCode = branchcode;
@@ -489,7 +490,7 @@
         classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
         string ApiUri1 = "Session/GetSession";
         sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
-
+        paymentlist = await httpService.Get<List<PaymentModel>>("PaymentMode/GetBankPaymentMode") ?? new();
     }
     private async Task OnDOBChanged()
     {

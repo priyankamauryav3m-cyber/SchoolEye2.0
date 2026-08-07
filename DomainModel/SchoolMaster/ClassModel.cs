@@ -910,5 +910,75 @@ namespace DomainModel.SchoolMaster
 
         public string? CreatedBy { get; set; }
     }
+    public class StudentModel
+    {
+        public int StudentId { get; set; } = 0;
+
+        [Required(ErrorMessage = "Student Name is required")]
+        [StringLength(200, ErrorMessage = "Student Name cannot exceed 200 characters")]
+        public string StudentName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Gender is required")]
+        public string Gender { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Date of Birth is required")]
+        [DataType(DataType.Date)]
+        public DateTime? DateOfBirth { get; set; }
+
+        [Required(ErrorMessage = "Email Address is required")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address")]
+        public string EmailAddress { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Country is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Country is required")]
+        public int CountryId { get; set; }
+
+        [Required(ErrorMessage = "State is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "State is required")]
+        public int StateId { get; set; }
+
+        [Required(ErrorMessage = "City is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "City is required")]
+        public int CityId { get; set; }
+
+        [Required(ErrorMessage = "Display Order is required")]
+        public int DisplayOrder { get; set; }
+
+        // Optional - JPG/PNG up to 2MB, set after calling UploadPhoto
+        public string? PhotoPath { get; set; }
+        public string? StudentPhoto { get; set; }
+
+        public bool IsActive { get; set; } = true;
+        public string CreatedBy { get; set; } = string.Empty;
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+    }
+    public class InteractionPanelModel
+    {
+        public int PID { get; set; }
+
+        public string GroupCode { get; set; } = string.Empty;
+
+        public string BranchCode { get; set; } = string.Empty;
+
+        [Display(Name = "Session")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, long.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public long SessionId { get; set; }
+
+        [Display(Name = "Panel Name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(100, ErrorMessage = "Panel Name cannot exceed 100 characters.")]
+        public string PanelName { get; set; } = string.Empty;
+
+        [Display(Name = "Remarks")]
+        [StringLength(250, ErrorMessage = "Remarks cannot exceed 250 characters.")]
+        public string? Remarks { get; set; }
+
+        public bool IsValid { get; set; } = true;
+
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        public string CreatedBy { get; set; } = string.Empty;
+    }
 }
 

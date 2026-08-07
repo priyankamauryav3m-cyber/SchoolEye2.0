@@ -83,9 +83,9 @@
                                 <option value="@data.ConcessionId">@data.Concession </option>
                             }
                         </InputSelect>
-                    </div>  
-                        
+                    </div>
 
+                        
                     <div class="form-box">
                         <div class="d-flex gap-2">
                             <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
@@ -394,46 +394,40 @@
                                                 <label class="floating-label">To Date</label>
                                             </div>
                                         </div>
-                                        <div class="col-12 col-sm-6 col-md-2">
-                                            <div class="form-box-group">
-                                                <input type="search" class="floating-input" placeholder=" "  @bind="@studentNoFilter"  />
-                                                <label class="floating-label">Student No.</label>
-                                                @if (_showDropdown && filteredStudents.Any())
-                                                {
-                                                    <div class="dropdown-box">
-                                                        <div class="dropdown-header">
-                                                            <div class="col-4"><b>Student No</b></div>
-                                                            <div class="col-6"><b>Student Name</b></div>
-                                                            <div class="col-2"><b>Class</b></div>
+                                        @if (isViewMode == true)
+                                        {
+                                            <div class="col-12 col-sm-6 col-md-3">
+                                                <div class="form-box-group">
+                                                    <input type="search" class="floating-input" placeholder=" " @bind="@studentNoFilter" />
+                                                    <label class="floating-label">Student No.</label>
+
+                                                </div>
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="col-12 col-sm-6 col-md-2">
+                                                <div class="form-box-group">
+                                                    <input type="search" class="floating-input" placeholder=" " @bind="@studentNoFilter" />
+                                                    <label class="floating-label">Student No.</label>
+
+                                                </div>
+
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-1">
+                                                <div class="form-box-group static-label">
+                                                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                                                        <div class="visible content">Search</div>
+                                                        <div class="hidden content">
+                                                            <i class="bi bi-search"></i>
                                                         </div>
-                                                        @foreach (var item in filteredStudents)
-                                                        {
-                                                            <div class="dropdown-item search-item"
-                                                                 @onclick="() => SelectStudent(item)">
+                                                    </button>
 
-                                                                <div class="col-4">@item.ControlNo</div>
-                                                                <div class="col-6">@item.StudentName</div>
-                                                                <div class="col-2">@item.ClassName</div>
-
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                }
-                                            </div>
-
-                                        </div>
-                                        <div class="col-12 col-sm-6 col-md-1">
-                                            <div class="form-box-group static-label">
-                                                <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
-                                                    <div class="visible content">Search</div>
-                                                    <div class="hidden content">
-                                                        <i class="bi bi-search"></i>
-                                                    </div>
-                                                </button>
+                                                </div>
 
                                             </div>
-
-                                        </div>
+                                        }
                                         @if (isViewMode == true)
                                         {
                                             <div class="col-12 col-sm-6 col-md-3">
@@ -472,135 +466,171 @@
                                         }
 
                                     </div>
-                                    <div class="quick-main mt-4">
-                                        <div class="grid-box-with-btn">
-                                            @if (isViewMode == true)
-                                            {
-                                                <QuickGrid Items="@MappedconcessionQueryable" Class="table">
-                                                    <TemplateColumn Title="Concession" Align="Align.Left">
-                                                        <ChildContent>
-                                                            @{
-                                                                var firstItem = context.FirstOrDefault();
-                                                            }
+                                    <div class="card">
+                                        <div class="card-body table-card p-0">
+                                            <div class="quick-main mt-4">
+                                                <div class="grid-box-with-btn">
+                                                    @if (isViewMode == true)
+                                                    {
+                                                        <QuickGrid Items="@MappedconcessionQueryable" Class="table">
+                                                            <TemplateColumn Title="Concession" Align="Align.Left">
+                                                                <ChildContent>
+                                                                    @{
+                                                                        var firstItem = context.FirstOrDefault();
+                                                                    }
 
-                                                            @if (firstItem != null)
-                                                            {
-                                                                @(string.IsNullOrWhiteSpace(firstItem.ConcessionName) ? " " : firstItem.ConcessionName)
-                                                            }
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                    <TemplateColumn Title="Fee Head" Align="Align.Left">
-                                                        <ChildContent>
-                                                            @foreach (var item in context)
-                                                            {
-                                                                <div class="m-0">
-                                                                    @(string.IsNullOrWhiteSpace(item.FeeHeadName) ? " " : item.FeeHeadName)
-                                                                </div>
+                                                                    @if (firstItem != null)
+                                                                    {
+                                                                        @(string.IsNullOrWhiteSpace(firstItem.ConcessionName) ? " " : firstItem.ConcessionName)
+                                                                    }
+                                                                </ChildContent>
+                                                            </TemplateColumn>
+                                                            <TemplateColumn Title="Fee Head" Align="Align.Left">
+                                                                <ChildContent>
+                                                                    @foreach (var item in context)
+                                                                    {
+                                                                        <div class="m-0">
+                                                                            @(string.IsNullOrWhiteSpace(item.FeeHeadName) ? " " : item.FeeHeadName)
+                                                                        </div>
 
-                                                                @if (item != context.Last())
-                                                                {
-                                                                    <hr class="my-1 row-tb" />
-                                                                }
-                                                            }
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                    <TemplateColumn Title="VALUE (% OR AMOUNT)" Class="text-right" Align="Align.Center">
-                                                        <ChildContent>
-                                                            @foreach (var item in context)
-                                                            {
-                                                                <div class="m-0 ">
-                                                                    @(item.ConcessionType == 0 ? $"{item.ConcessionValue:0}%" : $"{item.ConcessionValue}")
-                                                                </div>
+                                                                        @if (item != context.Last())
+                                                                        {
+                                                                            <hr class="my-1 row-tb" />
+                                                                        }
+                                                                    }
+                                                                </ChildContent>
+                                                            </TemplateColumn>
+                                                            <TemplateColumn Title="VALUE (% OR AMOUNT)" Class="text-right" Align="Align.Center">
+                                                                <ChildContent>
+                                                                    @foreach (var item in context)
+                                                                    {
+                                                                        <div class="m-0 ">
+                                                                            @(item.ConcessionType == 0 ? $"{item.ConcessionValue:0}%" : $"{item.ConcessionValue}")
+                                                                        </div>
 
-                                                                @if (item != context.Last())
-                                                                {
-                                                                    <hr class="my-1 row-tb" />
-                                                                }
-                                                            }
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                    <TemplateColumn Title="Approve Remarks" Align="Align.Left">
-                                                        <ChildContent>
-                                                            @foreach (var item in context)
-                                                            {
-                                                                <div class="m-0 ">
-                                                                    @(string.IsNullOrWhiteSpace(item.ApproveRemarks) ? " " : item.ApproveRemarks)
-                                                                </div>
+                                                                        @if (item != context.Last())
+                                                                        {
+                                                                            <hr class="my-1 row-tb" />
+                                                                        }
+                                                                    }
+                                                                </ChildContent>
+                                                            </TemplateColumn>
+                                                            <TemplateColumn Title="Approve Remarks" Align="Align.Left">
+                                                                <ChildContent>
+                                                                    @foreach (var item in context)
+                                                                    {
+                                                                        <div class="m-0 ">
+                                                                            @(string.IsNullOrWhiteSpace(item.ApproveRemarks) ? " " : item.ApproveRemarks)
+                                                                        </div>
 
-                                                                @if (item != context.Last())
-                                                                {
-                                                                    <hr class="my-1 row-tb" />
-                                                                }
-                                                            }
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                    <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
-                                                        <ChildContent>
-                                                            @{
-                                                                var firstItem = context.FirstOrDefault();
-                                                            }
+                                                                        @if (item != context.Last())
+                                                                        {
+                                                                            <hr class="my-1 row-tb" />
+                                                                        }
+                                                                    }
+                                                                </ChildContent>
+                                                            </TemplateColumn>
+                                                            <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                                                <ChildContent>
+                                                                    @{
+                                                                        var firstItem = context.FirstOrDefault();
+                                                                    }
 
-                                                            @if (firstItem != null)
-                                                            {
-                                                                @if (firstItem.Status == 0)
-                                                                {
-                                                                    <span class="badge rounded-pill bg-warning text-dark">Pending... </span>
-                                                                }
-                                                                else if (firstItem.Status == 1)
-                                                                {
-                                                                    <span class="badge rounded-pill bg-success"> Approved </span>
-                                                                }
-                                                                else if (firstItem.Status == 2)
-                                                                {
-                                                                    <span class="badge rounded-pill bg-danger"> Rejected</span>
-                                                                }
-                                                            }
-                                                        </ChildContent>
-                                                    </TemplateColumn>
+                                                                    @if (firstItem != null)
+                                                                    {
+                                                                        @if (firstItem.Status == 0)
+                                                                        {
+                                                                            <span class="badge rounded-pill bg-warning text-dark">Pending... </span>
+                                                                        }
+                                                                        else if (firstItem.Status == 1)
+                                                                        {
+                                                                            <span class="badge rounded-pill bg-success"> Approved </span>
+                                                                        }
+                                                                        else if (firstItem.Status == 2)
+                                                                        {
+                                                                            <span class="badge rounded-pill bg-danger"> Rejected</span>
+                                                                        }
+                                                                    }
+                                                                </ChildContent>
+                                                            </TemplateColumn>
 
                                                     
-                                                </QuickGrid>
-                                            }
-                                            else
-                                            {
-                                                <QuickGrid Items="@ConcessionmoduleQuery" Pagination="@MapConpagination" Class="table">
-                                                    <TemplateColumn Class="text-center" Title="" Align="Align.Left">
-                                                        <ChildContent>
-                                                            <div>
-                                                                <input type="checkbox" @bind="context.IsSelected" disabled="@IsGeneralSelected" @onclick:stopPropagation="true" />
-                                                            </div>
-                                                        </ChildContent>
-                                                    </TemplateColumn>
+                                                        </QuickGrid>
+                                                    }
+                                                    else
+                                                    {
+                                                        if (StudentGrid == true)
+                                                        {
+                                                            <QuickGrid Items="@filteredStudents" Pagination="@pagination" Class="table">
+                                                                <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" class="text-center" Align="Align.Center" Sortable="true">
 
-                                                    <TemplateColumn Title="FEE HEAD" Align="Align.Left">
-                                                        <ChildContent>
-                                                            @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
-                                                        </ChildContent>
-                                                    </TemplateColumn>
+                                                                </PropertyColumn>
+                                                                <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" Sortable="true">
 
-                                                    <TemplateColumn Title="TYPE(% OR AMOUNT)" Class="text-center" Align="Align.Center">
-                                                        <ChildContent>
-                                                            <div>
-                                                                <input type="checkbox" @bind="context.IsSelectedPersentage" disabled="@IsGeneralSelected" @onclick:stopPropagation="true" />
-                                                            </div>
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                    <TemplateColumn Title="VALUE (% OR AMOUNT)" Align="Align.Center">
-                                                        <ChildContent>
+                                                                </PropertyColumn>
+                                                                <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class Name" Align="Align.Center" class="text-center" Sortable="true">
+
+                                                                </PropertyColumn>
+                                                                <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father Name" Align="Align.Left" Sortable="true">
+
+                                                                </PropertyColumn>
+                                                                <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mobile No" class="text-center" Align="Align.Center" Sortable="true">
+
+                                                                </PropertyColumn>
+                                                                <TemplateColumn Align="Align.Center" Title="Action">
+                                                                    <div class="action-btn-group">
+                                                                        <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => SelectStudent(context)">
+                                                                            <i class="fas fa-hand-pointer"></i> &nbsp; Select
+                                                                        </button>
+
+                                                                    </div>
+                                                                </TemplateColumn>
+                                                            </QuickGrid>
+                                                        }
+                                                        else
+                                                        {
+                                                            <QuickGrid Items="@ConcessionmoduleQuery" Pagination="@MapConpagination" Class="table">
+                                                                <TemplateColumn Class="text-center" Title="" Align="Align.Left">
+                                                                    <ChildContent>
+                                                                        <div>
+                                                                            <input type="checkbox" @bind="context.IsSelected" disabled="@IsGeneralSelected" @onclick:stopPropagation="true" />
+                                                                        </div>
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+
+                                                                <TemplateColumn Title="FEE HEAD" Align="Align.Left">
+                                                                    <ChildContent>
+                                                                        @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+
+                                                                <TemplateColumn Title="TYPE(% OR AMOUNT)" Class="text-center" Align="Align.Center">
+                                                                    <ChildContent>
+                                                                        <div>
+                                                                            <input type="checkbox" @bind="context.IsSelectedPersentage" disabled="@IsGeneralSelected" @onclick:stopPropagation="true" />
+                                                                        </div>
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                                <TemplateColumn Title="VALUE (% OR AMOUNT)" Align="Align.Center">
+                                                                    <ChildContent>
 
 
-                                                            <input type="text" value="@context.ConcessionApplicable" disabled="@IsGeneralSelected" @oninput="(e => OnValueChanged(e, context))" maxlength="@(context.IsSelectedPersentage ? 6 : 3)"
-                                                                   onkeypress="return /^[0-9]$/.test(event.key)" placeholder="@(context.IsSelectedPersentage ? "Enter Amount" : "Enter % (Max 100)")" class="grid-input w-100" />
+                                                                        <input type="text" value="@context.ConcessionApplicable" disabled="@IsGeneralSelected" @oninput="(e => OnValueChanged(e, context))" maxlength="@(context.IsSelectedPersentage ? 6 : 3)"
+                                                                               onkeypress="return /^[0-9]$/.test(event.key)" placeholder="@(context.IsSelectedPersentage ? "Enter Amount" : "Enter % (Max 100)")" class="grid-input w-100" />
 
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                </QuickGrid>
-                                            }
-                                        </div>
-                                        <div class="footer-pagination">
-                                            <div class="d-flex align-items-center">
-                                                <div class="welcome-text w-100">
-                                                    <Paginator State="@MapConpagination" />
+                                                                    </ChildContent>
+                                                                </TemplateColumn>
+                                                            </QuickGrid>
+
+                                                        }
+                                                    }
+                                                </div>
+                                                <div class="footer-pagination">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="welcome-text w-100">
+                                                            <Paginator State="@MapConpagination" />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -976,8 +1006,8 @@ else
 
 <CustomAlert @ref="customAlert" Title="Alert" />
 @code {
-    private bool _showDropdown = true;
     bool isViewMode = false;
+    bool StudentGrid = false;
     private CustomAlert customAlert;
     private bool ShowPopup;
 
@@ -1095,23 +1125,7 @@ else
 
 
     }
-    // private void OnValueChanged(ChangeEventArgs e, CommonDomain context)
-    // {
-    //     if (decimal.TryParse(e.Value?.ToString(), out var value))
-    //     {
 
-    //         if (!context.IsSelectedPersentage)
-    //         {
-    //             if (value > 100)
-    //                 value = 0;
-    //         }
-    //         context.ConcessionApplicable = value;
-    //     }
-    //     else
-    //     {
-    //         context.ConcessionApplicable = 0;
-    //     }
-    // }
     private async Task OnValueChanged(ChangeEventArgs e, CommonDomain context)
     {
         if (!decimal.TryParse(e.Value?.ToString(), out decimal value))
@@ -1135,13 +1149,7 @@ else
 
         context.ConcessionApplicable = value;
     }
-    private async Task OnInputChange(ChangeEventArgs e)
-    {
-        await SearchStudentData();
-        studentNoFilter = e.Value?.ToString();
 
-        _showDropdown = !string.IsNullOrWhiteSpace(studentNoFilter);
-    }
     protected IQueryable<CommonDomain> ConcessionmoduleQuery
     {
         get
@@ -1152,17 +1160,28 @@ else
     }
     protected IQueryable<StudentWithConcessionDto> filteredStudents
     {
+        // get
+        // {
+        //     if (string.IsNullOrWhiteSpace(studentNoFilter))
+        //         return Enumerable.Empty<StudentWithConcessionDto>().AsQueryable();
+
+        //     return Searchstudentlist
+        //         .Where(x =>
+        //             (x.StudentName?.Contains(studentNoFilter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        //             (x.ControlNo?.Contains(studentNoFilter, StringComparison.OrdinalIgnoreCase) ?? false)
+        //         )
+        //         .AsQueryable();
+        // }
         get
         {
-            if (string.IsNullOrWhiteSpace(studentNoFilter))
-                return Enumerable.Empty<StudentWithConcessionDto>().AsQueryable();
+            var result = Searchstudentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
-            return Searchstudentlist
-                .Where(x =>
-                    (x.StudentName?.Contains(studentNoFilter, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (x.ControlNo?.Contains(studentNoFilter, StringComparison.OrdinalIgnoreCase) ?? false)
-                )
-                .AsQueryable();
+            }
+            return result;
         }
     }
     protected IQueryable<StudentWithConcessionDto> moduleQuery
@@ -1181,6 +1200,7 @@ else
     }
     private async Task MapConcessionWithStudent()
     {
+        StudentGrid = true;
         concessionRemarks.Status = "";
         isViewMode = false;
         OpenConcession = true;
@@ -1191,7 +1211,6 @@ else
     {
 
         isViewMode = true;
-        _showDropdown = false;
         concessionRemarks.Status = item.Status.ToString();
         concessionManage.StudentId = item.StudentId;
         concessionManage.SessionId = item.SessionId;
@@ -1664,7 +1683,8 @@ else
     {
         try
         {
-            _showDropdown = true;
+            isViewMode = false;
+            StudentGrid = true;
             IsLoading = true;
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
@@ -1689,9 +1709,8 @@ else
     }
     private void SelectStudent(StudentWithConcessionDto item)
     {
+        StudentGrid = false;
         studentNoFilter = item.ControlNo;
-
-        _showDropdown = false;
 
         selectedData = new StudentWithConcessionDto
         {

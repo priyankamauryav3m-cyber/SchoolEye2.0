@@ -39,6 +39,7 @@ namespace Infrastructure.Admin
                 parameters.Add("@AppliedFrom", request.AppliedFrom);
                 parameters.Add("@StudentName", request.StudentName);
                 parameters.Add("@MobileNo", request.MobileNo);
+                parameters.Add("@RegistrationNo", request.RegistrationNo);
                 var result = await connection.QueryAsync<EnquiryListResponse>(
                     "USP_GetEnquiryListData",
                     parameters,

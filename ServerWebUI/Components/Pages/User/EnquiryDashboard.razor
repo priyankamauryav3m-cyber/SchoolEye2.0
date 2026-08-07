@@ -192,7 +192,7 @@
             <!-- Stat cards (unchanged) -->
             <div class="row g-3 mb-3 ">
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white ">
+                    <div class="stat-card p-3 bg-white " style="cursor:pointer;" @onclick="GoToEnquiry">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -224,7 +224,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white ">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick="GoToEnquiry">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -240,7 +240,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white ">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick="GoToAdmission">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -582,7 +582,16 @@
         },
         Legend = new ApexCharts.Legend { Position = ApexCharts.LegendPosition.Top }
     };
-
+    private void GoToEnquiry()
+    {
+        NavigationManager.NavigateTo("/enquiry");
+        StateHasChanged();
+    }
+    private void GoToAdmission()
+    {
+        NavigationManager.NavigateTo("/admitStudent");
+        StateHasChanged();
+    }
     // private ApexCharts.ApexChartOptions<TItem> GetDonutOptions<TItem>(List<string> orderedColors) where TItem : class => new()
     // {
     //     Chart = new ApexCharts.Chart

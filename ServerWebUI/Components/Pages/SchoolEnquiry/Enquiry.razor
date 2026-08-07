@@ -23,7 +23,7 @@
 
     .quickgrid[theme="default"] > tbody > tr.registered-row > td {
         color: #15d910 !important;
-        font-weight: 600;
+      
     }
 
     .border-box {
@@ -117,7 +117,7 @@
                         </div>
                     </div>
                     <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
+                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick='()=>SearchStudent("Enquiry")'>
                             <div class="visible content">Search</div>
                             <div class="hidden content">
                                 <i class="bi bi-search"></i>
@@ -729,7 +729,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick='() => SearchStudent("Enquiry")'>
                         <div class="visible content">Search</div>
                         <div class="hidden content">
                             <i class="bi bi-search"></i>
@@ -825,6 +825,7 @@ else
         {
             await LoadData();
             CurrentSession = await CommonMethod.SetCurrentSessionData();
+            await SearchStudent("");
             StateHasChanged();
         }
     }
@@ -927,12 +928,23 @@ else
         }
     }
 
-    private async Task SearchStudent()
+    private async Task SearchStudent(string value)
     {
+
 
         requestlist.GroupCode = groupcode;
         requestlist.BranchCode = branchcode;
         requestlist.SessionId = CurrentSession;
+        if (value == "Enquiry")
+        {
+
+        }
+        else
+        {
+            requestlist.FromDate=null;
+            requestlist.ToDate=null;
+            requestlist.RegistrationNo="0";
+        }
         IsLoading = true;
         ShowPopup = false;
         StateHasChanged();

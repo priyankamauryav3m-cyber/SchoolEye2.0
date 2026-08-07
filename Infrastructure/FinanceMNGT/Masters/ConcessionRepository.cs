@@ -136,8 +136,6 @@ namespace Infrastructure.FinanceMNGT.FeeMNGTMasters
                 parameters.Add("@SessionId", searchAny.SessionId);
                 parameters.Add("@ControlNo", searchAny.RequestName);
                 parameters.Add("@StudentName", searchAny.RequestName2);
-     
-
                 var result = await con.QueryAsync<StudentWithConcessionDto>(
                     "ADM_UspGetSearchedStudent",
                     parameters,
