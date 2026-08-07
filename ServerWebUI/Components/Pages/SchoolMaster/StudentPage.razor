@@ -1,0 +1,896 @@
+﻿@page "/student"
+@using System.ComponentModel.DataAnnotations
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net
+@using System.Net.Http.Headers
+@using System.Text.Json
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Student </p>
+                <div class="d-flex gap-2">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddStudent" />
+                    <button class="ui fade op-1 animated button form-btn" @onclick="AddStudent">
+                        <div class="visible content justify-content-center">Add</div>
+                        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => x.StudentName)" Title="Student Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="StudentName ..." />
+                                        </div>
+                                    </ColumnOptions>
+
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => x.Gender)" Title="Gender" Sortable="true" Align="Align.Left">
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => x.EmailAddress)" Title="Email Address" Sortable="true" Align="Align.Left">
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => x.DateOfBirth)" Title="Date of Birth" Class="text-center" Sortable="true" Align="Align.Center">
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" Class="text-center" Sortable="true" Align="Align.Center">
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsActive == true)">
+
+                                            @(context.IsActive == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsActive" CurrentUrl="@currentUrl" OnEditClick="() => EditStudent(context)" OnStatusClick="() => ChangeStudentStatus(context.StudentId, context.IsActive)" />
+                                    <div class="action-btn-group">
+
+                                        @if (context.IsActive)
+                                        {
+                                            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditStudent(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+
+                                            <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeStudentStatus(context.StudentId, context.IsActive)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                           
+                                        }
+                                        else
+                                        {
+                                            <button disabled class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditStudent(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn-icon active-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeStudentStatus(context.StudentId, context.IsActive)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                    
+                                        }
+                                    </div>
+
+                                </TemplateColumn>
+
+                            </QuickGrid>
+
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (ShowPopup)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-9 col-md-6 col-lg-5 col-xl-8">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Student</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <EditForm Model="@student" OnValidSubmit="@OnSave">
+                            <DataAnnotationsValidator />
+                            <div class="modal-body">
+                                <div class="row m-0 form-row">
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input"
+                                                       placeholder=" "
+                                                       Value="@student.StudentName"
+                                                       ValueExpression="@(() => student.StudentName)"
+                                                       ValueChanged="@((string val) => OnStudentNameChanged(val))" />
+                                            <label class="floating-label">
+                                                Student Name <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.StudentName)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="student.Gender">
+                                                <option value="" selected>--Select--</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                Gender <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.Gender)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="student.EmailAddress" />
+                                            <label class="floating-label">
+                                                Email Address <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.EmailAddress)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputDate class="floating-input" @bind-Value="student.DateOfBirth" />
+                                            <label class="floating-label">
+                                                Date of Birth <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.DateOfBirth)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputNumber class="floating-input" placeholder=" " @bind-Value="student.DisplayOrder" />
+                                            <label class="floating-label">
+                                                Display Order <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.DisplayOrder)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="student.CountryId" @bind-Value:after="OnCountryChanged">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var c in countrylist.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@c.CountryId">@c.CountryName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                Country <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.CountryId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="student.StateId" @bind-Value:after="OnStateChanged">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var s in filteredStateList.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@s.StateId">@s.StateName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                State <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.StateId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="student.CityId">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var ct in filteredCityList.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@ct.DistrictId">@ct.DistrictName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                City <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => student.CityId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputFile OnChange="OnPhotoSelected" class="floating-input" accept=".jpg,.jpeg,.png" />
+                                            <label class="floating-label">Photo</label>
+                                            @if (isUploadingPhoto)
+                                            {
+                                                <span class="text-muted">Uploading...</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(student.PhotoPath))
+                                            {
+                                                <div class="mt-2">
+                                                    <img src="@student.PhotoPath" alt="Student Photo" style="height:60px;width:60px;object-fit:cover;border-radius:6px;" />
+                                                </div>
+                                            }
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <div class="form-group btn-gr">
+                                    <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                </div>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+            @* <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
+                    <div class="modal-content clearfix main-popup">
+
+                        <div class="head-btn">
+                            <h5 class="modal-title">Add / Edit</h5>
+                            <button class="close-btn">X</button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="row m-0 form-row">
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 1</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 2</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 3</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 4</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 5</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 6</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 7</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 8</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 9</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 10</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 11</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 12</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 13</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 14</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 15</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 16</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 17</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 18</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 19</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " />
+                                        <label class="floating-label">Field 20</label>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <SaveUpdateButton TextSave="Submit" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div> *@
+        }
+
+    </div>
+
+</div>
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+
+@code {
+
+    // public class StudentModel
+    // {
+    //     public int StudentId { get; set; }
+
+    //     [Display(Name = "Student Name")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Student Name can contain only letters and spaces.")]
+    //     [StringLength(100, ErrorMessage = "Student Name cannot exceed 100 characters.")]
+    //     public string StudentName { get; set; } = string.Empty;
+
+    //     [Display(Name = "Gender")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     public string Gender { get; set; } = string.Empty;
+
+    //     [Display(Name = "Email Address")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+    //     [StringLength(100, ErrorMessage = "Email Address cannot exceed 100 characters.")]
+    //     public string EmailAddress { get; set; } = string.Empty;
+
+    //     [Display(Name = "Date of Birth")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     public DateTime? DOB { get; set; }
+
+    //     [Display(Name = "Display Order")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     [Range(1, 100, ErrorMessage = "Display Order must be between 1 and 100.")]
+    //     public int DisplayOrder { get; set; }
+
+    //     [Display(Name = "Country")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     public int CountryId { get; set; }
+
+    //     [Display(Name = "State")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     public int StateId { get; set; }
+
+    //     [Display(Name = "City")]
+    //     [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+    //     public int CityId { get; set; }
+
+    //     [Display(Name = "Photo")]
+    //     public IBrowserFile? StudentPhoto { get; set; }
+
+    //     public string? PhotoPath { get; set; }
+
+    //     public bool IsValid { get; set; } = true;
+
+    //     public string CreatedBy { get; set; } = string.Empty;
+
+    //     public DateTime CreatedDate { get; set; } = DateTime.Now;
+    // }
+
+    private bool IsLoading = true;
+    private StudentModel student = new();
+    private string oldcdataModel = "";
+    private List<StudentModel> studentlist = new();
+    private List<CountryModel> countrylist = new();
+    private List<StateModel> statelist = new();
+    private List<DistrictModel> citylist = new();
+    private List<StateModel> filteredStateList = new();
+    private List<DistrictModel> filteredCityList = new();
+    private bool ShowPopup = false;
+    private bool isUploadingPhoto = false;
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string username = "";
+    HttpResponseMessage response;
+    private EditContext editContext;
+    bool isSaving = false;
+    bool isUploading = false;
+    string? uploadError;
+    string? statusMessage;
+    bool statusIsError = false;
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private async Task HandlePhotoSelected(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        var file = e.File;
+
+        if (file.Size > 2 * 1024 * 1024)
+        {
+            uploadError = "File size must not exceed 2MB.";
+            return;
+        }
+
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (ext != ".jpg" && ext != ".jpeg" && ext != ".png")
+        {
+            uploadError = "Only JPG or PNG files are allowed.";
+            return;
+        }
+
+        try
+        {
+            isUploading = true;
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream(2 * 1024 * 1024);
+            var streamContent = new StreamContent(stream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(streamContent, "file", file.Name);
+
+            var response = await httpService.Post<ApiResponse<string>>("Student/UploadPhoto", content);
+            if (response != null && response.Success)
+            {
+                student.PhotoPath = response.Data;
+            }
+            else
+            {
+                uploadError = response?.Message ?? "Upload failed.";
+            }
+        }
+        catch
+        {
+            uploadError = "An error occurred while uploading the photo.";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+    async Task SaveStudent()
+    {
+        isSaving = true;
+        statusMessage = null;
+
+        try
+        {
+            var response = await httpService.Post<ApiResponse<object>>("Student/AddOrUpdateStudent", student);
+
+            if (response != null && response.Success)
+            {
+                statusIsError = response.Code == 0;
+                statusMessage = response.Message;
+
+                if (response.Code == 1 || response.Code == 2)
+                {
+                    student = new();
+                    filteredStateList = new();
+                    filteredCityList = new();
+                }
+            }
+            else
+            {
+                statusIsError = true;
+                statusMessage = response?.Message ?? "Unexpected error occurred";
+            }
+        }
+        catch
+        {
+            statusIsError = true;
+            statusMessage = "An error occurred while saving the record.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value;
+            await LoadLookups();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
+        statelist = await httpService.Get<List<StateModel>>("State/GetState") ?? new();
+        citylist = await httpService.Get<List<DistrictModel>>("District/GetDistrict") ?? new();
+    }
+
+    private void OnCountryChanged()
+    {
+        student.StateId = 0;
+        student.CityId = 0;
+        filteredStateList = statelist.Where(x => x.CountryId == student.CountryId).ToList();
+        filteredCityList = new();
+        StateHasChanged();
+    }
+
+    private void OnStateChanged()
+    {
+        student.CityId = 0;
+        filteredCityList = citylist.Where(x => x.StateId == student.StateId).ToList();
+        StateHasChanged();
+    }
+
+    private void OnStudentNameChanged(string value)
+    {
+        student.StudentName =
+            System.Text.RegularExpressions.Regex
+            .Replace(value ?? "", "[^a-zA-Z ]", "");
+        StateHasChanged();
+    }
+
+    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            isUploadingPhoto = true;
+            StateHasChanged();
+
+            var file = e.File;
+            if (file == null) return;
+
+            const long maxSize = 2 * 1024 * 1024; // 2 MB
+            using var stream = file.OpenReadStream(maxSize);
+            using var content = new MultipartFormDataContent();
+            using var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/Student/UploadStudentPhoto", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var savedPath = await response.Content.ReadAsStringAsync();
+                student.PhotoPath = savedPath.Trim('"');
+            }
+            else
+            {
+                await Alert.ShowWarning("Photo upload failed. Please try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            isUploadingPhoto = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        string apiUri = $"Student/GetStudent?studentId={0}";
+        var response = await httpService.Get<ApiResponse<List<StudentModel>>>(apiUri) ?? new();
+        if (response.Success == true)
+        {
+            studentlist = response.Data ?? new();
+        }
+        IsLoading = false;
+
+
+    }
+    protected IQueryable<StudentModel> FilteredItems
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.EmailAddress != null && x.EmailAddress.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsActive);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsActive);
+            }
+            return result;
+        }
+    }
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+    private void AddStudent()
+    {
+        student = new();
+        filteredStateList = new();
+        filteredCityList = new();
+        ShowPopup = true;
+    }
+
+    private async Task OnSave()
+    {
+
+        try
+        {
+
+            if (student.StudentId > 0)
+            {
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                bool isSame = CommonMethod.IsEdited(student, oldcdataModel);
+                if (!isSame)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+            ShowPopup = false;
+            student.IsActive = true;
+            student.CreatedBy = username;
+            student.CreatedDate = DateTime.Now;
+            // IBrowserFile is a client-only handle and cannot be JSON-serialized -
+            // the photo is already uploaded separately and PhotoPath holds the saved path.
+            student.StudentPhoto = null;
+            string apiUrl = "Student/AddOrUpdateStudent";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, student);
+            var responsecode = apiResponse.Code;
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("Student" + @Localizer["Already"]);
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Student" + @Localizer["Inserted"]);
+            }
+            else if (responsecode == 2)
+            {
+                await Alert.ShowUpdate("Student" + @Localizer["Updated"]);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await LoadData();
+            student = new StudentModel();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private void EditStudent(StudentModel item)
+    {
+        student = new StudentModel
+        {
+            StudentId = item.StudentId,
+            StudentName = item.StudentName,
+            Gender = item.Gender,
+            EmailAddress = item.EmailAddress,
+            DateOfBirth = item.DateOfBirth,
+            DisplayOrder = item.DisplayOrder,
+            CountryId = item.CountryId,
+            StateId = item.StateId,
+            CityId = item.CityId,
+            PhotoPath = item.PhotoPath
+        };
+
+        filteredStateList = statelist.Where(x => x.CountryId == student.CountryId).ToList();
+        filteredCityList = citylist.Where(x => x.StateId == student.StateId).ToList();
+
+        oldcdataModel = CommonMethod.CreateSnapshot(student);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        student = new();
+        ShowPopup = false;
+    }
+
+    private async Task ChangeStudentStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "Student/DeleteStudent";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+}

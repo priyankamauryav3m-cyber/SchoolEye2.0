@@ -94,6 +94,13 @@ namespace Infrastructure.StudentDocument
             var pdfBytes = document.GeneratePdf();
             return pdfBytes;
         }
+        public async Task<byte[]> GenerateStudentPdf(RegistrationReceiptResponse students)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var document = new PrinReceiptDocument { SelectedRow = students };
+            var pdfBytes = document.GeneratePdf();
+            return pdfBytes;
+        }
         public async Task<byte[]> GenerateStudentListPdf(List<RegistrationDto> students)
         {
             QuestPDF.Settings.License = LicenseType.Community;
@@ -990,8 +997,8 @@ namespace Infrastructure.StudentDocument
                 ws.Cell(row, 11).Value = s.CommentText;
                 ws.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
                 ws.Cell(row, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                ws.Range(row, 3,row,6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-                ws.Range(row, 7,row,8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Range(row, 3, row, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Range(row, 7, row, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 ws.Cell(row, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
                 ws.Cell(row, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
                 ws.Cell(row, 11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
@@ -1016,6 +1023,120 @@ namespace Infrastructure.StudentDocument
 
             return stream.ToArray();
 
+        }
+        public async Task<byte[]> GenerateRegistrationReceiptExcel(List<RegistrationReceiptResponse> receipts)
+        {
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Registration Fee Report");
+            ws.Range(1, 1, 1, 7).Merge();
+            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 20;
+            ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Range(2, 1, 2, 7).Merge();
+            ws.Cell(2, 1).Value = "Registration Fee Report";
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Font.FontSize = 14;
+            ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Range(3, 1, 3, 7).Merge();
+
+            ws.Cell(3, 1).Value = "Registration Fee Receipt";
+
+            ws.Cell(3, 1).Style.Font.Bold = true;
+            ws.Cell(3, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Range(4, 1, 4, 7).Merge();
+            ws.Cell(4, 1).Value = $"Print Date : {DateTime.Now:dd-MM-yyyy hh:mm tt}";
+
+            ws.Cell(4, 1).Style.Font.Bold = true;
+            ws.Cell(4, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            int headerRow = 5;
+
+            ws.Cell(headerRow, 1).Value = "Sr.";
+            ws.Cell(headerRow, 2).Value = "Reg. No.";
+            ws.Cell(headerRow, 3).Value = "Student Name";
+            ws.Cell(headerRow, 4).Value = "Class";
+            ws.Cell(headerRow, 5).Value = "Amount";
+            ws.Cell(headerRow, 6).Value = "Receipt Date";
+            ws.Cell(headerRow, 7).Value = "Payment Mode";
+
+            var headerRange = ws.Range(headerRow, 1, headerRow, 7);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            int row = headerRow + 1;
+            int srNo = 1;
+            foreach (var item in receipts)
+            {
+                ws.Cell(row, 1).Value = srNo++;
+                ws.Cell(row, 2).Value = item.RegistrationNo ?? "";
+                ws.Cell(row, 3).Value = item.StudentName ?? "";
+                ws.Cell(row, 4).Value = item.ClassName ?? "";
+                ws.Cell(row, 5).Value = item.Amount;
+                if (DateTime.TryParse(item.ReceiptDate, out DateTime receiptDate))
+                {
+                    ws.Cell(row, 6).Value = receiptDate;
+                    ws.Cell(row, 6).Style.DateFormat.Format = "dd-MMM-yy";
+                }
+                else
+                {
+                    ws.Cell(row, 6).Value = item.ReceiptDate ?? "";
+                }
+
+                ws.Cell(row, 7).Value = item.PaymentMode ?? "";
+                ws.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.Cell(row, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.Cell(row, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+                ws.Cell(row, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.Cell(row, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                ws.Cell(row, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.Cell(row, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(row, 5).Style.NumberFormat.Format = "0.00";
+
+                row++;
+            }
+            var usedRange = ws.RangeUsed();
+            if (usedRange != null)
+            {
+                usedRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+                usedRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+            ws.Column(1).Width = 8;
+            ws.Column(2).Width = 15;
+            ws.Column(3).Width = 28;
+            ws.Column(4).Width = 15;
+            ws.Column(5).Width = 14;
+            ws.Column(6).Width = 18;
+            ws.Column(7).Width = 18;
+            ws.Rows().AdjustToContents();
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.Margins.Top = 0.5;
+            ws.PageSetup.Margins.Bottom = 0.5;
+            ws.PageSetup.Margins.Left = 0.3;
+            ws.PageSetup.Margins.Right = 0.3;
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return stream.ToArray();
+        }
+        public async Task<byte[]> GenerateStudentReceiptToPdfData(List<RegistrationReceiptResponse> students)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var document = new RegistrationReceiptPdfDocument(students);
+
+            return document.GeneratePdf();
         }
 
     }

@@ -335,7 +335,7 @@ namespace DomainModel.Admin
         public string? CreatedBy { get; set; }
         [Display(Name = "Payment mode")]
         [StringLength(30, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
-        public string? PaymentMode { get; set; }
+        public string? PaymentMode { get; set; } = "Cash";
 
         [Display(Name = "Remarks")]
         [StringLength(300, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
@@ -365,11 +365,11 @@ namespace DomainModel.Admin
         public int Sibling { get; set; }
         public decimal? RegistrationFee { get; set; }
         public string? PaymentMode { get; set; } = "";
-        public string? FatherEMail { get; set; } 
+        public string? FatherEMail { get; set; }
         public int Points { get; set; } = 0;
         public int IsReservedSeat { get; set; } = 0;
     }
-    public class RegistrationSearchDto:MNGTCommon
+    public class RegistrationSearchDto : MNGTCommon
     {
         public string? ClassCode { get; set; }
         public string? Gender { get; set; }
@@ -690,7 +690,7 @@ namespace DomainModel.Admin
         public string? FatherEMail { get; set; }
 
         public decimal FatherAnnualIncome { get; set; }
- 
+
         public string? FatherContactNo { get; set; }
         public string? FatherAchievement { get; set; }
         public string? FatherMotherTongue { get; set; }
@@ -795,7 +795,7 @@ namespace DomainModel.Admin
         public string? Line1 { get; set; }
 
         [Display(Name = "Address Line1")]
-       [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         [StringLength(150, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
         public string? PermanentLine1 { get; set; }
 
@@ -913,7 +913,7 @@ namespace DomainModel.Admin
 
     #region  -------------------------- Session Master -------------
 
-    public class SessionModel:CommonClass
+    public class SessionModel : CommonClass
     {
 
         [Display(Name = "Session name")]
@@ -1059,7 +1059,7 @@ namespace DomainModel.Admin
         public string? MotherContactNo { get; set; }
         [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
         public string? MotherEmailId { get; set; }
-        public int MotherOccupation { get; set; }   
+        public int MotherOccupation { get; set; }
         public string? MotherOccupationOther { get; set; }
 
         [Display(Name = "SMS mobile no.")]
@@ -1104,7 +1104,7 @@ namespace DomainModel.Admin
         public List<FeeHeadDto>? FeeHeadList { get; set; }
 
     }
-    public class CommonDomain:MNGTCommon
+    public class CommonDomain : MNGTCommon
     {
         public int ConcStudId { get; set; }
         public bool FieldBool1 { get; set; }
@@ -1408,7 +1408,7 @@ namespace DomainModel.Admin
         public bool IsSelected { get; set; }
         public string? CreatedBy { get; set; }
     }
-    public class CancelRegistration: CommonClass
+    public class CancelRegistration : CommonClass
     {
         public string? RegistrationNo { get; set; }
         public string? AppStatus { get; set; }
@@ -1418,7 +1418,7 @@ namespace DomainModel.Admin
         public string? formateType { get; set; }
         public int Mode { get; set; }
     }
-    public class CommonDomainLarge: CommonClass
+    public class CommonDomainLarge : CommonClass
     {
         public bool isEmail { get; set; }
         public bool isSMS { get; set; }
@@ -1524,7 +1524,7 @@ namespace DomainModel.Admin
     {
         public string Text { get; set; } = "";
         public string Url { get; set; } = "";
-        public bool IsCurrent { get; set; } 
+        public bool IsCurrent { get; set; }
     }
     public class GenerationIdConfigurationModel
     {
@@ -1786,5 +1786,30 @@ namespace DomainModel.Admin
         public AdminDashboardModal Dashboard { get; set; } = new();
         public List<PipelineStageDto> Pipeline { get; set; } = new();
         public List<FeeHeadCollectionDto> FeeHeadCollection { get; set; } = new();
+    }
+
+    public class RegistrationReceiptResponse:MNGTCommon
+    {
+        public string? RegistrationNo { get; set; }
+        public long RegistrationId { get; set; }
+        public decimal Amount { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public string? ReceiptDate { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? DOB { get; set; }
+        public string? FatherName { get; set; }
+        public string? SMSMobileNo { get; set; }
+    }
+    public class RegistrationReceiptRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? RegistrationNo { get; set; }
+        public long RegistrationId { get; set; }
+        public DateTime? FromDate { get; set; } = DateTime.Today;
+        public DateTime? ToDate { get; set; } = DateTime.Today;
     }
 }

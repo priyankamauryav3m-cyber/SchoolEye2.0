@@ -1172,4 +1172,343 @@ namespace Infrastructure.FileGenerate
     }
 
     #endregion
+
+
+    #region---------------- Print Receipt --------------
+    public class RegistrationReceiptPdfDocument : IDocument
+    {
+        private readonly List<RegistrationReceiptResponse> _receipts;
+        private readonly DateTime? _fromDate;
+        private readonly DateTime? _toDate;
+
+        public RegistrationReceiptPdfDocument( List<RegistrationReceiptResponse> receipts)
+        {
+            _receipts = receipts;
+        }
+
+        public DocumentMetadata GetMetadata() =>DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() =>DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(18);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(9).FontColor(Colors.Black));
+                page.Header().Element(ComposeHeader);
+
+                page.Content().Element(ComposeContent);
+
+                page.Footer().Element(ComposeFooter);
+            });
+        }
+        private void ComposeHeader(IContainer container)
+        {
+            byte[] logoBytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png"));
+
+            container.Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    row.ConstantItem(85).Height(50).AlignMiddle().Image(logoBytes, ImageScaling.FitArea);
+                    row.RelativeItem()
+                       .Column(c =>
+                       {
+                           c.Item().AlignCenter().Text("V3M International School").FontSize(18).ExtraBold();
+                           c.Item().PaddingTop(2).AlignCenter().Text("Registration Fee Collection Report").FontSize(11).SemiBold();
+
+                           c.Item().PaddingTop(2).AlignCenter().Text(text => { text.Span("Registration Fee Receipt").FontSize(10).SemiBold(); });
+                       });
+                        row.ConstantItem(140).AlignBottom().AlignRight()
+                        .Text(text =>
+                       {
+                           text.DefaultTextStyle(x => x.FontSize(8)); 
+                           text.Span("Print Date : ").SemiBold();
+                           text.Span(DateTime.Now.ToString("dd/MM/yyyy hh:mm tt"));
+                       });
+                });
+
+                col.Item().PaddingTop(8);
+            });
+        }
+        private void ComposeContent(IContainer container)
+        {
+            container.Table(table =>
+            {
+
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.ConstantColumn(30); 
+                    columns.ConstantColumn(65); 
+                    columns.RelativeColumn(3);  
+                    columns.ConstantColumn(45); 
+                    columns.ConstantColumn(60); 
+                    columns.ConstantColumn(70); 
+                    columns.ConstantColumn(55); 
+                });
+
+                table.Header(header =>
+                {
+                    header.Cell().Element(HeaderCell).Text("Sr.");
+                    header.Cell().Element(HeaderCell).Text("Reg. No."); 
+                    header.Cell().Element(HeaderCell).Text("Student Name");
+                    header.Cell().Element(HeaderCell).Text("Class"); 
+                    header.Cell().Element(HeaderCell).Text("Amount"); 
+                    header.Cell().Element(HeaderCell).Text("Date"); 
+                    header.Cell().Element(HeaderCell).Text("Mode");
+                });
+
+                int srNo = 1;
+
+                foreach (var item in _receipts)
+                {
+                    table.Cell().Element(CompactCell).Text(srNo.ToString()); 
+                    table.Cell().Element(CompactCell).Text(item.RegistrationNo ?? "");
+                    table.Cell().Element(NameCell).Text(item.StudentName ?? "");
+                    table.Cell().Element(CompactCell).Text(item.ClassName ?? "");
+                    table.Cell().Element(RightCell).Text(item.Amount.ToString("0.00")); 
+                    table.Cell().Element(CompactCell).Text(item.ReceiptDate ?? "");
+                    table.Cell().Element(CompactCell).Text(item.PaymentMode ?? "");
+
+                    srNo++;
+                }
+
+                if (_receipts.Any())
+                {
+                    table.Cell().ColumnSpan(4).Element(TotalLabelCell).Text("Total");
+                    table.Cell().Element(TotalAmountCell).Text(_receipts.Sum(x => x.Amount).ToString("0.00"));
+                    table.Cell().ColumnSpan(2).Element(TotalLabelCell).Text("");
+                }
+            });
+        }
+
+        private static IContainer HeaderCell(IContainer container)
+        {
+            return container.Border(1).PaddingVertical(4).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(8).ExtraBold());
+        }
+
+        private static IContainer CompactCell(IContainer container)
+        {
+            return container.Border(1).PaddingVertical(3).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
+        }
+
+        private static IContainer NameCell(IContainer container)
+        {
+            return container.Border(1).PaddingVertical(3).PaddingHorizontal(3).AlignLeft().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
+        }
+
+        private static IContainer RightCell(IContainer container)
+        {
+            return container.Border(1).PaddingVertical(3).PaddingHorizontal(3).AlignRight().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
+        }
+
+        private static IContainer TotalLabelCell(IContainer container)
+        {
+            return container.Border(1).PaddingVertical(4).PaddingHorizontal(3).AlignRight().AlignMiddle().DefaultTextStyle(x => x.FontSize(8).Bold());
+        }
+
+        private static IContainer TotalAmountCell(IContainer container)
+        {
+            return container.Border(1).PaddingVertical(4).PaddingHorizontal(3).AlignRight().AlignMiddle().DefaultTextStyle(x => x.FontSize(8).Bold());
+        }
+
+        private void ComposeFooter(IContainer container)
+        {
+            container
+                .PaddingTop(15)
+                .Column(col =>
+                {
+                    col.Item()
+                       .Row(row =>
+                       {
+                           row.RelativeItem().AlignLeft().Text("Generated on:").ExtraBold().Italic();
+                           row.RelativeItem().AlignRight().Text($"{DateTime.Now:dd-MM-yyyy}").ExtraBold().Italic();
+                       });
+
+                    col.Item().PaddingTop(3).PaddingBottom(5).Height(1).Background(Colors.Grey.Darken1);
+
+                    col.Item().PaddingTop(3).AlignRight()
+                       .Text(text =>
+                       {
+                           text.Span("Page ").Bold();
+
+                           text.CurrentPageNumber() .Bold();
+
+                           text.Span(" of ") .Bold();
+
+                           text.TotalPages() .Bold();
+                       });
+                });
+        }
+    }
+
+    public class PrinReceiptDocument : IDocument
+    {
+        public RegistrationReceiptResponse SelectedRow { get; set; }
+
+
+        public DocumentMetadata GetMetadata() => new DocumentMetadata();
+
+        public DocumentSettings GetSettings() => new DocumentSettings();
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(20);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Header().ShowOnce().Element(ComposeHeader);
+
+                page.Content().Element(ComposeContent);
+
+                page.Footer().Element(ComposeFooter);
+            });
+        }
+
+        void ComposeHeader(IContainer container)
+        {
+            container.Border(1)
+                .BorderColor(Colors.Black)
+                .Padding(10)
+                .Column(col =>
+                {
+                    col.Item().AlignCenter().Text("V3M International School")
+                        .Bold().FontSize(14);
+
+                    col.Item().AlignCenter().Text(
+                        "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017")
+                        .FontSize(9);
+                });
+        }
+
+        void ComposeContent(IContainer container)
+        {
+            if (SelectedRow == null)
+                return;
+
+            container
+                 .Border(1)
+                 .BorderColor(Colors.Black)
+                 .Padding(15)
+                 .Column(col =>
+                 {
+                     col.Spacing(6);
+
+                     col.Item().Row(row =>
+                     {
+                         row.RelativeItem().Text(text =>
+                         {
+                             text.Span("Registration No : ").Bold();
+                             text.Span(SelectedRow.RegistrationNo ?? " ");
+                         });
+
+                         row.RelativeItem().AlignRight().Text(text =>
+                         {
+                             text.Span("Registration Date : ").Bold();
+                             text.Span(SelectedRow.ReceiptDate ?? " ");
+                         });
+                     });
+
+                     col.Item().Row(row =>
+                     {
+                         row.RelativeItem().Text(text =>
+                         {
+                             text.Span("Student Name : ").Bold();
+                             text.Span(SelectedRow.StudentName ?? "");
+                         });
+
+                         row.RelativeItem().AlignRight().Text(text =>
+                         {
+                             text.Span("Father Name : ").Bold();
+                             text.Span(SelectedRow.FatherName ?? " ");
+                         });
+                     });
+
+                     col.Item().Row(row =>
+                     {
+                         row.RelativeItem().Text(text =>
+                         {
+                             text.Span("Applied Class : ").Bold();
+                             text.Span(SelectedRow.ClassName ?? " ");
+                         });
+
+                         row.RelativeItem().AlignRight().Text(text =>
+                         {
+                             text.Span("DOB : ").Bold();
+                             text.Span(SelectedRow.DOB ?? " ");
+                         });
+                     });
+
+                     col.Item().Row(row =>
+                     {
+                         row.RelativeItem().Text(text =>
+                         {
+                             text.Span("Contact No : ").Bold();
+                             text.Span(SelectedRow.SMSMobileNo ?? " ");
+                         });
+
+                         row.RelativeItem().AlignRight().Text(text =>
+                         {
+                             text.Span("Amount : ").Bold();
+                             text.Span(SelectedRow.Amount.ToString("0.00"));
+                         });
+                     });
+
+                     col.Item().Row(row =>
+                     {
+                         row.RelativeItem().Text(text =>
+                         {
+                             text.Span("Payment Mode : ").Bold();
+                             text.Span(SelectedRow.PaymentMode ?? " ");
+                         });
+                     });
+
+                     col.Item().PaddingTop(50)
+                         .AlignLeft()
+                         .Text("This receipt is computer generated and doesn't require signature.")
+                         .FontSize(8)
+                         .Italic();
+                 });
+
+
+        }
+
+        void ComposeFooter(IContainer container)
+        {
+            container.PaddingTop(40).Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem()
+                        .AlignLeft()
+                        .Text("Generated on:")
+                        .ExtraBold().Italic();
+
+                    row.RelativeItem()
+                        .AlignRight()
+                        .Text($"{DateTime.Now:dd-MM-yyyy}")
+                        .ExtraBold().Italic();
+                });
+
+                col.Item()
+                    .PaddingTop(3).PaddingBottom(5)
+                    .Height(1)
+                    .Background(Colors.Grey.Darken1);
+                col.Item().PaddingTop(3).AlignRight().Text(text =>
+                {
+                    text.Span("Page ").Bold();
+                    text.CurrentPageNumber().Bold();
+                    text.Span(" of ").Bold();
+                    text.TotalPages().Bold();
+                });
+            });
+        }
+    }
+    #endregion
 }

@@ -9,10 +9,10 @@ using MyApp.Common;
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
-    [ApiExplorerSettings(GroupName = "Admission")]
-   // [Authorize]
-    [Route("api/[controller]")]
-    [ApiController]
+        [ApiExplorerSettings(GroupName = "Admission")]
+       // [Authorize]
+        [Route("api/[controller]")]
+        [ApiController]
     public class AdminDashboardController : ControllerBase
     {
 

@@ -14,7 +14,78 @@
 @inject IJSRuntime JS
 @inject BookmarkState BookmarkState
 @inject SweetAlertService Alert
+<style>
+    .profile-link {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
 
+        .profile-link i {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .profile-link p {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+    /* Help */
+    .help-link i,
+    .help-link p {
+        color: #2563eb;
+    }
+
+    /* FAQs */
+    .faq-link i,
+    .faq-link p {
+        color: #7c3aed;
+    }
+
+    /* My Profile */
+    .profile-menu-link i,
+    .profile-menu-link p {
+        color: #059669;
+    }
+
+    /* Switch Role */
+    .role-link i,
+    .role-link p {
+        color: #ea580c;
+    }
+
+    /* Password */
+    .password-link i,
+    .password-link p {
+        color: #db2777;
+    }
+
+    .logout-link i,
+    .logout-link p {
+        color: #dc2626;
+    }
+
+    /* Logout arrow animation */
+    .logout-icon {
+        animation: logoutArrow 1.2s ease-in-out infinite;
+    }
+
+    @@keyframes logoutArrow {
+        0% {
+            transform: translateX(0);
+        }
+
+        50% {
+            transform: translateX(5px);
+        }
+
+        100% {
+            transform: translateX(0);
+        }
+    }
+</style>
 <header class="main-header d-flex">
     <div class="menu-control bg-white">
         <div class="schooleye-sec">
@@ -214,38 +285,44 @@
                             <div class="row m-0 my-1 profile-link-body py-1">
 
                                 <div class="col-4 p-1">
-                                    <div class="bookmark-nav-link profile-link">
+                                    <div class="bookmark-nav-link profile-link help-link">
                                         <i class="bi bi-headset"></i>
                                         <p>Help</p>
                                     </div>
                                 </div>
+
                                 <div class="col-4 p-1">
-                                    <div class="bookmark-nav-link profile-link">
+                                    <div class="bookmark-nav-link profile-link faq-link">
                                         <i class="bi bi-chat-left-text"></i>
                                         <p>FAQs</p>
                                     </div>
                                 </div>
+
                                 <div class="col-4 p-1">
-                                    <div class="bookmark-nav-link profile-link">
+                                    <div class="bookmark-nav-link profile-link profile-menu-link">
                                         <i class="bi bi-person"></i>
                                         <p>My Profile</p>
                                     </div>
                                 </div>
+
                                 <div class="col-4 p-1">
-                                    <div class="bookmark-nav-link profile-link">
+                                    <div class="bookmark-nav-link profile-link role-link">
                                         <i class="bi bi-people"></i>
                                         <p>Switch Role</p>
                                     </div>
                                 </div>
+
                                 <div class="col-4 p-1">
-                                    <div class="bookmark-nav-link profile-link">
+                                    <div class="bookmark-nav-link profile-link password-link">
                                         <i class="bi bi-key"></i>
                                         <p>Password</p>
                                     </div>
                                 </div>
-                                <div class="col-4 p-1" >
-                                    <a  @onclick="Logout" class="bookmark-nav-link profile-link">
-                                        <i class="bi bi-box-arrow-right"></i>
+
+                                <div class="col-4 p-1">
+                                    <a @onclick="Logout"
+                                       class="bookmark-nav-link profile-link logout-link">
+                                        <i class="bi bi-box-arrow-right logout-icon"></i>
                                         <p>Log Out</p>
                                     </a>
                                 </div>

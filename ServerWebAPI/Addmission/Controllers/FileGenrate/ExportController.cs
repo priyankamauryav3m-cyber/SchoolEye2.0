@@ -308,6 +308,44 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 Message = "PDFList generated successfully"
             });
         }
+        [HttpPost("GenerateAllStudentReceiptPdf")]
+        public async Task<IActionResult> GenerateReceiptPdf([FromBody] List<RegistrationReceiptResponse> hrList)
+        {
+            var pdfBytes = await _generateFile.GenerateStudentReceiptToPdfData(hrList);
+            var base64Pdf = Convert.ToBase64String(pdfBytes);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Pdf,
+                Message = "PDFList generated successfully"
+            });
+        }
+        [HttpPost("GenerateAllStudentReceiptExcel")]
+        public async Task<IActionResult> GenerateAllReceiptExcel([FromBody] List<RegistrationReceiptResponse> hrList)
+        {
+            var pdfBytes = await _generateFile.GenerateRegistrationReceiptExcel(hrList);
+            var base64Pdf = Convert.ToBase64String(pdfBytes);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Pdf,
+                Message = "PDFList generated successfully"
+            });
+        }
+        [HttpPost("GenerateStudentReceiptPdfData")]
+        public async Task<IActionResult> GenerateRecepitPdf([FromBody] RegistrationReceiptResponse registrationReceipt)
+        {
+            var pdfBytes = await _generateFile.GenerateStudentPdf(registrationReceipt);
+
+            var base64Pdf = Convert.ToBase64String(pdfBytes);
+
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Data = base64Pdf,
+                Message = "PDF generated successfully"
+            });
+        }
     }
 
 }

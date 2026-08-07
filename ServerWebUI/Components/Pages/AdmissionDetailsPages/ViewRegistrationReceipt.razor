@@ -1,0 +1,430 @@
+﻿@page "/ViewRegistrationReceipt"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using System.Net
+@using System.Text.Json
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JSs
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@inject ICommonMethod _commonMethod
+@inject IJSRuntime JS
+<style>
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid thead th:last-child {
+        width: 75px;
+    }
+
+    .quickgrid thead th:nth-child(2) {
+        width: 200px;
+    }
+    .quickgrid thead th:first-child {
+       width: 20px;
+    }
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">View Registration Receipt</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="branchcode" class="form-input">
+                            @foreach (var cs in branchlist)
+                            {
+                                <option Value="@cs.BranchCode">@cs.BranchName</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudent" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RegistrationNo) ? " " : x.RegistrationNo)" Sortable="true"  Title="Registration No" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Registration no...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Sortable="true" Title="Student Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student name...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Sortable="true" class="text-center" Title="Class Name" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.Amount)" Sortable="true" class="text-right" Title="Amount" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ReceiptDate) ? " " : x.ReceiptDate)" Sortable="true" class="text-center" Title="Receipt Date" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? " " : x.PaymentMode)" Sortable="true" class="text-center" Title="Payment Mode" Align="Align.Center">
+
+                                </PropertyColumn>
+
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Print="OnPrintClick" />
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print Rec." Print="PrintRec" />
+               
+                    
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search Data</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="registrationReceiptRequest.RegistrationNo" />
+                                <label class="floating-label">Registration No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="registrationReceiptRequest.FromDate" />
+                                <label class="floating-label">From Date</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="registrationReceiptRequest.ToDate" />
+                                <label class="floating-label">To Date</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudent" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+@code {
+    private string? registrationNo;
+    private string? UserName;
+    private string branchcode = "";
+    private string? groupcode;
+    private string? nameFilter = "";
+    private string? currentUrl = "";
+    private long CurrentSession;
+    private bool ShowPopup = false;
+    private bool IsLoading = false;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private List<RegistrationReceiptResponse> registrationReceiptlist = new();
+    private RegistrationReceiptRequest registrationReceiptRequest = new();
+    private List<SessionModel> sessionlist = new();
+    private List<BranchNameMst> branchlist = new();
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonMethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    protected IQueryable<RegistrationReceiptResponse> moduleQuery
+    {
+        get
+        {
+            var result = registrationReceiptlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.RegistrationNo != null && x.RegistrationNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+        StateHasChanged();
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        StateHasChanged();
+    }
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        string ApiUri = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri) ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        if (branchlist.Any())
+        {
+            branchcode = branchlist.First().BranchCode;
+        }
+        IsLoading = false;
+        StateHasChanged();
+    }
+    private async Task SearchStudent()
+    {
+        try
+        {
+
+            IsLoading = true;
+            registrationReceiptRequest.GroupCode = groupcode;
+            registrationReceiptRequest.BranchCode = branchcode;
+            registrationReceiptRequest.SessionId = CurrentSession;
+            var apiResponse = await httpService.Post<ApiResponse<List<RegistrationReceiptResponse>>>("RegistrationReceipt/GetRegistrationReceipt", registrationReceiptRequest);
+            if (apiResponse.Success == true)
+            {
+                registrationReceiptlist = apiResponse.Data ?? new();
+                ShowPopup = false;
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(apiResponse.Message);
+            }
+        }
+        catch
+        {
+            return;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task OnPrintClick()
+    {
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("There is nothing to print");
+            return;
+        }
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+        if (isPdf)
+        {
+            await PrintPdfList();
+            StateHasChanged();
+        }
+        else if (isExcel)
+        {
+
+            await PrintExcel();
+            StateHasChanged();
+        }
+
+    }
+   
+    private async Task PrintPdfList()
+    {
+        try
+        {
+
+            var data = moduleQuery.ToList();
+
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAllStudentReceiptPdf", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+              //  await JS.InvokeVoidAsync("downloadPdf", base64, "StudentList.pdf");
+                await JS.InvokeVoidAsync("viewPdf", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task PrintExcel()
+    {
+        try
+        {
+            var data = moduleQuery.ToList();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAllStudentReceiptExcel", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "StudentReceipts.xlsx");
+                //await JS.InvokeVoidAsync("openExcelDirect", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+    }
+    private async Task PrintRec()
+    {
+        try
+        {
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            var selected = data.First();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentReceiptPdfData", selected);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                // await JS.InvokeVoidAsync("downloadPdf", base64, "StudentList.pdf");
+                await JS.InvokeVoidAsync("viewPdf", base64);
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+
+
+    }
+}
