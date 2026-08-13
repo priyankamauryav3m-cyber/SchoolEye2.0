@@ -1,136 +1,187 @@
 ﻿@page "/ApplicationStatus"
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
-@using System.Net
-@using System.Text.Json
-@using Microsoft.AspNetCore.Mvc
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
 @inject Shared.IHttpService httpService
-@inject IJSRuntime JSs
+@inject IJSRuntime JS
 @inject HttpClient Http
 @inject IStringLocalizer<Resource> Localizer
 @inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Authorization
-@inject IHttpClientFactory ClientFactory
-@inject IJSRuntime JS
-<style>
- 
-        .quickgrid thead th:nth-last-child(2) {
-            width: 100px 
-        }
-        .quickgrid thead th:last-child {
-            width: 75px;
-        }
 
-</style>
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">View Application Status</p>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <InputSelect @bind-Value="sessionName" name="session" class="form-input">
-                            <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option>@data.SessionName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
-                        <InputSelect @bind-Value="branchCode" name="gender" id="gender" class="form-input">
-                            <option value="0" selected>Select-Branch</option>
-                            <option value="01">V3M International School</option>
-                        </InputSelect>
-                    </div>
-                 
-                    <div class="form-box">
-                        <input type="text" @bind="registrationNo" placeholder="Reg.No" class="form-input">
-                    </div>
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByRegistrationNo" tabindex="0">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
-                        </button>
-                    </div>
+            <PageHeading >
+                <div class="form-box">
+                    <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">
+                                @data.SessionName
+                            </option>
+                        }
+                    </InputSelect>
                 </div>
-            </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="schoolbranchcode" class="form-input" autocomplete="off">
+                        <option value="" selected>--Select--</option>
+                        @foreach (var cs in branchlist)
+                        {
+                            <option Value="@cs.BranchCode">@cs.BranchName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputText class="form-input" placeholder="Enter Reg.No " @bind-Value="searchRequest.RegistrationNo" />
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchApplicationStatus">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">
             <div class="card">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
-                        <div class="grid-box-with-btn">
-                            <QuickGrid Items="@moduleQuery"@key="statusList" Class="table ">
-
-                                <PropertyColumn Property="@(x => x.StatusName)" Title="STEP" />
-                            <TemplateColumn Title="STATUS" Class="text-center" Align="Align.Center">
-                                    @if (context.IsDone)
-                                {
-                                    <span class="text-success fs-4">✔</span>
-                                }
-                                else
-                                {
-                                    <span class="text-danger fs-4">✖</span>
-                                }
-                            </TemplateColumn>
-
-                        </QuickGrid>
-
+                        <div class="grid-box" style="height: calc(100vh - 220px);">
+                            <QuickGrid Items="@statusQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StatusName) ? " " : x.StatusName)" Title="Status Name" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StatusDate) ? " " : x.StatusDate)" Title="Status Date" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @if (context.IsDone == 1)
+                                        {
+                                            <i class="bi bi-check-circle-fill" style="color:#28a745; font-size:18px;"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
                         </div>
-                       
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
                 </div>
             </div>
         </div>
-
-       
     </div>
 </div>
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
 
+}
 
 @code {
-    private string? registrationNo;
-    private string? branchCode;
-    private string? sessionName;
-    private List<RegistrationStatusModel> statusList = new();
+
+    private long CurrentSession;
+    private string schoolbranchcode = string.Empty;
     private List<SessionModel> sessionlist = new();
-    protected IQueryable<RegistrationStatusModel> moduleQuery => statusList.AsQueryable();
+    private List<BranchNameMst> branchlist = new();
+    private List<RegistrationStatusResponse> statuslist = new();
+    private bool IsLoading = false;
+    private RegistrationRequest searchRequest = new();
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private string? branchcode;
+    private string? groupcode;
+    private string currentUrl = "";
+    private string username = "";
+
+    private IQueryable<RegistrationStatusResponse> statusQuery => statuslist.AsQueryable();
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await  LoadData();
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            schoolbranchcode = branchcode ?? string.Empty;
+
+            await LoadData();
             StateHasChanged();
         }
     }
+
     private async Task LoadData()
     {
-  
-        string ApiUri = "Session/GetSession";
-        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri) ?? new();
-
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
         StateHasChanged();
     }
-    private async Task SearchByRegistrationNo()
+    private async Task SearchApplicationStatus()
     {
-        string url =
-         $"ApplicationStatus/registration-status" +
-         $"?groupCode=01" +
-         $"&branchCode={branchCode}" +
-         $"&sessionName={sessionName}" +
-         $"&registrationNo={registrationNo}";
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = schoolbranchcode;
+        searchRequest.SessionId = CurrentSession;
 
-        var response = await httpService.Get<List<RegistrationStatusModel>>(url) ?? new();
-        statusList = response ?? new();
-        StateHasChanged(); 
-       
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<List<RegistrationStatusResponse>>>(
+                "Registration/GetRegistrationStatus", searchRequest);
+
+            statuslist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No registration documents found.");
+            }
+        }
+        catch
+        {
+            statuslist = new();
+            await Alert.ShowWarning("An error occurred while fetching registration status.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 }

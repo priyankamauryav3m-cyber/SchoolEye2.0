@@ -434,7 +434,7 @@
                                                 <ValidationMessage For="@(() => registration.MotherFName)" />
                                             </div>
                                         </div>
-                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                        @* <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherMName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
                                                 <label class="floating-label">Middle Name</label>
@@ -445,7 +445,7 @@
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherLName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
                                                 <label class="floating-label">Last Name</label>
                                             </div>
-                                        </div>
+                                        </div> *@
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
@@ -533,7 +533,7 @@
                                                 <ValidationMessage For="@(() => registration.FatherFName)" />
                                             </div>
                                         </div>
-                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                                        @* <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherMName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
                                                 <label class="floating-label">Middle Name</label>
@@ -544,7 +544,7 @@
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherLName" autocomplete="off" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" maxlength="100" />
                                                 <label class="floating-label">Last Name</label>
                                             </div>
-                                        </div>
+                                        </div> *@
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
@@ -718,7 +718,7 @@
     private int correctResult;
     private string? inputcaptcha;
     private bool termsaccept = false;
-
+    private long CurrentSession;
     private void OnStudentTypeChanged()
     {
         if (registration.SpecialNeeds)
@@ -743,7 +743,7 @@
     {
         if (firstRender)
         {
-
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
             SessionName = await _commonmethod.GetCurrentSession();
             GenerateMathProblem();
@@ -840,7 +840,7 @@
             registration.CreatedBy = username;
             registration.GroupCode = groupcode;
             registration.BranchCode = branchcode;
-            registration.SessionName = SessionName;
+            registration.SessionId = CurrentSession;
             string apiUrl = "Registration/OnlineRegistration";
             var apiResponse = await httpClient.PostAsJsonAsync(apiUrl, registration);
             if (apiResponse.IsSuccessStatusCode)

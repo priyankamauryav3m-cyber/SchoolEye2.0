@@ -1,0 +1,93 @@
+﻿@implements IDisposable
+@inject MenuState MenuState
+@inject NavigationManager NavigationManager
+
+<div class="page-heading d-flex align-items-center justify-content-between">
+
+    <p class="m-0 page-name px-1">
+        <button type="button"
+                class="icon-btn icon-btn-white"
+                @onclick="GoBackToDashboard">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        @PageName
+    </p>
+
+    <div class="d-flex align-items-center gap-2">
+        @ChildContent
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string PageName { get; set; } = "";
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        MenuState.OnChange += OnMenuStateChanged;
+
+        SetPageName();
+    }
+    private void GoBackToDashboard()
+    {
+        NavigationManager.NavigateTo(MenuState.DashboardUrl);
+    }
+    private void OnMenuStateChanged()
+    {
+        SetPageName();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLocationChanged(
+        object? sender,
+        LocationChangedEventArgs e)
+    {
+        SetPageName();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SetPageName()
+    {
+        var currentUrl = NavigationManager.ToBaseRelativePath(
+            NavigationManager.Uri);
+
+        currentUrl = "/" + currentUrl
+            .Split('?')[0]
+            .Trim('/');
+
+        foreach (var module in MenuState.Features)
+        {
+            foreach (var feature in module.Features)
+            {
+                var activity = feature.Activites.FirstOrDefault(x =>
+                    string.Equals(
+                        x.URL?.TrimEnd('/'),
+                        currentUrl.TrimEnd('/'),
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (activity != null)
+                {
+                    PageName =
+                        $"{module.MName} / " +
+                        $"{feature.FeaturesName} / " +
+                        $"{activity.DisplayName}";
+
+                    return;
+                }
+            }
+        }
+
+        PageName = "";
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        MenuState.OnChange -= OnMenuStateChanged;
+    }
+}

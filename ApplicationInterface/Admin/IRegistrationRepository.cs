@@ -33,13 +33,21 @@ namespace ApplicationInterface.SuperAdmin
 
         public Task<IEnumerable<CommonDomain>> GetFeeHeadConcession(string groupCode, string branchCode, int SessionId, string concessionId, int isMappedOnly);
         public Task<string> InsertOnlineRegistration(OnlineRegistration online);
-        public Task<string> RegistrationCancel(CancelRegistration online);
+        public Task<string> RegistrationCancel(RegistrationStatus online);
         public Task<IEnumerable<CommonDomainLarge>> RFM_GetRegFormatTypeDate(FormateType formateType);
         public Task<string> RFM_AddUpdateRegFormat(CommonDomainLarge commonDomainLarge);
         public Task<int> RFM_Active(int Id);
        public Task<IEnumerable<RegistrationDto>> GetRegistrationDetails(RegistrationSearchDto model);
 
         public Task<int> UpdateRegistrationStatus(UpdateRegistrationStatusModel model);
+        public Task<string> DirectAdmissionStatusData(RegistrationStatus online);
+        public Task<StudentListResponse> AdmitChildAsync(AdmitChildRequest request);
+        public Task<string> VerifyAndTakeDocument(StudentDocumentModel model);
+
+        public Task<string> DeActivateDocumentData(StudentDocumentModel model);
+
+        public Task<IEnumerable<ClassRegistrationDocumentsResponse>> GetClassRegistrationDocumentsAsync(ClassRegistrationDocumentsRequest request);
+        public Task<IEnumerable<RegistrationStatusResponse>> GetRegistrationStatusData(RegistrationRequest request);
 
 
     }

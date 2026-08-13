@@ -1,0 +1,450 @@
+﻿@page "/classdocument"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Class Document Mapping </p>
+                <div class="d-flex gap-2">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="mapping.ClassCode" class="form-input" @bind-Value:after="SearchMapStudent">
+                            <option value="">-- Select Class --</option>
+                            @foreach (var data in classlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.ClassCode">@data.ClassName </option>
+                            }
+                        </InputSelect>
+                    </div>
+                    @* <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchMapStudent">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+                        </button>
+                    </div> *@
+                    <ActionButtonGroup ButtonText="Map"  CurrentUrl="@currentUrl" Add="OpenMapPopup" />
+                </div> 
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocumentName) ? " " : x.DocumentName)" Title="Document" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Document ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Title="Class Name" class="text-center" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Class ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocumentType) ? " " : x.DocumentType)" Title="Document Type" class="text-center" Sortable="true" Align="Align.Center">
+
+                                </PropertyColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="d-flex justify-content-center gap-2">
+
+                                        @if (context.IsMandatory)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning custom-tooltip"
+                                                    data-tooltip="Mark as Non-Mandatory"
+                                                    @onclick="() => UpdateMandatory(context)">
+                                                <i class="fa-solid fa-star"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success custom-tooltip"
+                                                    data-tooltip="Mark as Mandatory"
+                                                    @onclick="() => UpdateMandatory(context)">
+                                                <i class="fa-regular fa-star"></i>
+                                            </button>
+                                        }
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger custom-tooltip"
+                                                data-tooltip="Unmap Document"
+                                                @onclick="() => DeleteMapping(context)">
+                                            <i class="fa fa-unlock-alt"></i>
+                                        </button>
+
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (ShowPopup)
+        {
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Map Document with Class</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <EditForm Model="@mapping" OnValidSubmit="@OnSave">
+                            <DataAnnotationsValidator />
+                            <div class="modal-body">
+                                <div class="row m-0 form-row">
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="mapping.ClassCode">
+                                                <option value="" selected>--Select--</option>
+                                                @foreach (var c in classlist)
+                                                {
+                                                    <option value="@c.ClassCode">@c.ClassName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                Class <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => mapping.ClassCode)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="mapping.DocumentId">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var d in documentlist)
+                                                {
+                                                    <option value="@d.DocId">@d.DocumentName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                Document <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => mapping.DocumentId)" />
+                                        </div>
+                                    </div>
+
+                                   
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <div class="form-group btn-gr">
+                                    <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                </div>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+@code {
+    private bool IsLoading = false;
+    private ClassDocumentModel mapping = new();
+    private List<ClassDocumentModel> mappinglist = new();
+    private List<DocumentModel> documentlist = new();
+    private List<BranchClassModel> classlist = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private UpdateClassDocumentRequest updateClassDocument = new();
+    private bool ShowPopup = false;
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string nameFilter = string.Empty;
+    private string username = "";
+    private string? branchcode;
+    private string? groupcode;
+    HttpResponseMessage response;
+    private EditContext editContext;
+
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+    }
+    private async Task UpdateMandatory(ClassDocumentModel item)
+    {
+        if (item.IsMandatory == true)
+        {
+
+            var submit = await Alert.ShowConfirm("Are you sure, you want to mark selected document as non-mandatory?");
+            if (!submit)
+            {
+                StateHasChanged();
+                return;
+            }
+
+        }
+        else
+        {
+            var submit = await Alert.ShowConfirm("Are you sure, you want to mark selected document as mandatory?");
+            if (!submit)
+            {
+                StateHasChanged();
+                return;
+            }
+        }
+        updateClassDocument.GroupCode =groupcode;
+        updateClassDocument.BranchCode =branchcode;
+        updateClassDocument.DocumentId = item.DocumentId;
+        updateClassDocument.ClassCode = item.ClassCode;
+        updateClassDocument.CreatedBy = username;
+        updateClassDocument.TransType = item.IsMandatory ? 0 : 1;
+        updateClassDocument.IsMandatory = item.IsMandatory ? false : true;
+        var apiresponse = await httpService.Post<ApiResponse<UpdateClassDocumentRequest>>("ClassDocument/UpdateMandatory", updateClassDocument);
+        if (apiresponse.Success == true)
+        {
+            if (apiresponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Document has been mark as mandatory successfully.");
+                StateHasChanged();
+                updateClassDocument = new();
+
+
+            }
+            else if (apiresponse.Code == 2)
+            {
+                await Alert.ShowSuccess("Document has been mark as non-mandatory successfully.");
+                StateHasChanged();
+                //await SearchMapStudent();
+            }
+            else if (apiresponse.Code == 3)
+            {
+                await Alert.ShowWarning("Document already mark as non-mandatory");
+                StateHasChanged();
+                //await SearchMapStudent();
+            }
+            else if (apiresponse.Code == 0)
+            {
+                await Alert.ShowWarning("Document already mark as mandatory.");
+                StateHasChanged();
+                //await SearchMapStudent();
+            }
+        }
+        await SearchMapStudent();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value;
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+
+
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        string ApiUri1 = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri1) ?? new();
+        string ApiUri = "Document/GetDocument";
+        documentlist = await httpService.Get<List<DocumentModel>>(ApiUri) ?? new();
+
+        IsLoading = false;
+    }
+    protected IQueryable<ClassDocumentModel> FilteredItems
+    {
+        get
+        {
+            var result = mappinglist.AsQueryable();
+
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.DocumentName != null &&
+                     x.DocumentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase))
+                    ||
+                    (x.ClassName != null &&
+                     x.ClassName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase))
+                );
+            }
+
+            return result;
+        }
+    }
+    private void OpenMapPopup()
+    {
+        mapping = new();
+        ShowPopup = true;
+    }
+
+    // Insert-only: this calls the existing ADM_MapDocumentWithClass procedure.
+    // There is no update path - mapping a Document to a Class is a one-time
+    // action; to change it, delete the row and map again.
+    private async Task OnSave()
+    {
+        try
+        {
+            ShowPopup = false;
+            mapping.GroupCode = groupcode ?? string.Empty;
+            mapping.BranchCode = branchcode ?? string.Empty;
+            mapping.CreatedBy = username;
+            mapping.CreatedDate = DateTime.Now;
+
+            string apiUrl = "ClassDocument/MapDocument";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, mapping);
+            var responsecode = apiResponse.Code;
+
+            if (responsecode == 0)
+            {
+                await Alert.ShowWarning("This Document is already mapped to the selected Class.");
+            }
+            else if (responsecode == 1)
+            {
+                await Alert.ShowSuccess("Document mapped to Class successfully.");
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+
+            await LoadData();
+            mapping = new ClassDocumentModel();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task SearchMapStudent()
+    {
+        IsLoading = true;
+        if (string.IsNullOrEmpty(mapping.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class");
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.RequestName = mapping.ClassCode;
+        string ApiUri = "ClassDocument/GetClassDocument";
+        mappinglist = await httpService.Post<List<ClassDocumentModel>>(ApiUri, searchAnyRequest) ?? new();
+        IsLoading = false;
+    }
+    private void ClosePopup()
+    {
+        mapping = new();
+        ShowPopup = false;
+    }
+    private async Task DeleteMapping(ClassDocumentModel documentModel)
+    {
+        try
+        {
+            // bool isConfirmed = await JS.InvokeAsync<bool>("showDeleteConfirm");
+            // if (!isConfirmed)
+            //     return;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to unmap document?");
+            if (!submit)
+            {
+                StateHasChanged();
+                return;
+            }
+            documentModel.GroupCode = groupcode;
+            documentModel.BranchCode = branchcode;
+            documentModel.CreatedBy = username;
+            string apiUrl = "ClassDocument/DeleteClassDocument";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, documentModel);
+            if (apiResponse.Success)
+            {
+                if (apiResponse.Code == 1)
+                {
+                    await Alert.ShowSuccess("Document unmapped successfully.");
+                    await SearchMapStudent();
+                    StateHasChanged();
+                }
+                else if (apiResponse.Code == 0)
+                {
+                    await Alert.ShowWarning("Document mapping not found.");
+                    await SearchMapStudent();
+                    StateHasChanged();
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+}

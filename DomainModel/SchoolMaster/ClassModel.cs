@@ -980,5 +980,42 @@ namespace DomainModel.SchoolMaster
 
         public string CreatedBy { get; set; } = string.Empty;
     }
+    public class ClassDocumentModel
+    {
+        public int DDocId { get; set; }
+
+        public string GroupCode { get; set; } = string.Empty;
+
+        public string BranchCode { get; set; } = string.Empty;
+
+        [Display(Name = "Document")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select a valid Document.")]
+        public int DocumentId { get; set; }
+        public string? DocumentName{ get; set; }
+        public string?  DocumentType { get; set; }
+        public string?  ClassName { get; set; }
+
+        [Display(Name = "Class")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string ClassCode { get; set; } = string.Empty;
+
+        public string CreatedBy { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        [Display(Name = "Mandatory")]
+        public bool IsMandatory { get; set; }  
+    }
+    public class UpdateClassDocumentRequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public long DocumentId { get; set; }
+        public string ClassCode { get; set; } = string.Empty;
+        public bool IsMandatory { get; set; }
+        public int TransType { get; set; }
+        public string CreatedBy { get; set; } = string.Empty;
+    }
 }
 

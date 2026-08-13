@@ -21,9 +21,10 @@
     .quickgrid tbody tr.selectRow td {
         background-color: #cce5ff !important;
     }
+
     .quickgrid thead th:last-child {
         min-width: 75px;
-    }         
+    }
 </style>
 <div class="main-container">
     <div class="row m-0 main-row">
@@ -38,7 +39,7 @@
                     </div>
                     <div class="form-box">
                         <InputSelect class="form-input" placeholder=" " @bind-Value="CurrentSession" name="session">
-                            <option  value="" selected>--Select--</option>
+                            <option value="" selected>--Select--</option>
                             @foreach (var data in sessionlist.Where(x => x.IsValid == true))
                             {
                                 <option value="@data.SessionId">@data.SessionName </option>
@@ -47,7 +48,7 @@
                     </div>
                     <div class="form-box">
                         <InputSelect class="form-input" placeholder=" " @bind-Value="searchModel.ClassCode" name="gender" id="gender">
-                            <option  value="" selected>--Select--</option>
+                            <option value="" selected>--Select--</option>
                             <option value="" selected>All</option>
                             @foreach (var cs in classlist.Where(x => x.IsValid == true))
                             {
@@ -156,8 +157,13 @@
 
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
+                        <button class="table-btn" @onclick="AdmitChildStudent">
+                            AdmitChild
+                        </button>
+                    </div>
+                    <div class="form-box">
                         <button type="button" class="table-btn" @onclick="SaveStudentDetails">
-                            Enter Details
+                            View Details
                         </button>
                     </div>
                     <div class="form-box">
@@ -165,11 +171,21 @@
                             Print Rec.
                         </button>
                     </div>
-                    @* <div class="form-box">
-                        <button class="table-btn" @onclick="OnPrintClick">
-                            Print List
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="DirectAdmission">
+                            Direct Admission
                         </button>
-                    </div> *@
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="AddIntraction">
+                            Intraction
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="AddOrVerifyDoument">
+                            Document
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -191,7 +207,9 @@
 
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.AppStatus">
-                                    <option value="3" selected>Details Entered</option>
+                                    <option value="2" selected>Details Entered</option>
+                                    <option value="3">Intraction Done</option>
+                                    <option value="4">Selected For Admission</option>
                                 </InputSelect>
                                 <label class="floating-label">App.Status</label>
                             </div>
@@ -202,7 +220,7 @@
 
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="searchModel.Gender" maxlength="10" required>
-                                    <option  value="" selected>--Select--</option>
+                                    <option value="" selected>--Select--</option>
                                     @foreach (var cs in genderModallist.Where(x => x.IsValid == true))
                                     {
                                         <option Value="@cs.GenderName">@cs.GenderName</option>
@@ -245,7 +263,7 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.TransportDistance" id="gender">
-                                    <option  value="" selected>--Select--</option>
+                                    <option value="" selected>--Select--</option>
                                     @foreach (var item in distanceslist)
                                     {
                                         <option value="@item.DistanceId">@item.DistanceName</option>
@@ -300,10 +318,260 @@
                         </div>
                     </button>
                 </div>
-            </div>  
+            </div>
         </div>
     </div>
 }
+
+<!-- ===================== INTERACTION POPUP ===================== -->
+@if (ShowInteractionPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Interaction</h5>
+                    <button data-access="Close" type="button" @onclick="CloseInteractionPopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@interactionModel" OnValidSubmit="OnSubmitInteraction">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                    <p class="total-text-with-bg bg-light-gray">
+                                        Student Details
+                                    </p>
+                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " value="@selectedStudentRow?.RegistrationNo" readonly />
+                                    <label class="floating-label">Reg. No.</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " value="@selectedStudentRow?.StudentName" readonly />
+                                    <label class="floating-label">Student Name</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " value="@selectedStudentRow?.ClassName" readonly />
+                                    <label class="floating-label">Class</label>
+                                </div>
+                            </div>
+
+                            <!-- ---------- Teacher Details (read-only) ---------- -->
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                    <p class="total-text-with-bg bg-light-gray">
+                                        Teacher Details
+                                    </p>
+                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                <div class="form-box-group static-label">
+                                    @* <InputSelect class="floating-input" placeholder=" " @bind-Value="selectedEmployeeId" @bind-Value:after="OnTeacherChanged">
+                                        <option value="">--Select--</option>
+                                        @foreach (var emp in teacherlist)
+                                        {
+                                            <option value="@emp.EmployeeId">@emp.FirstName</option>
+                                        }
+                                    </InputSelect> *@
+                                    <input class="floating-input" placeholder=" " value="@selectedTeacher?.FirstName" readonly />
+                                    <label class="floating-label">Teacher Name</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " value="@selectedTeacher?.Gender" readonly />
+                                    <label class="floating-label">Gender</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                <div class="form-box-group">
+                                    <input class="floating-input" placeholder=" " value="@selectedTeacher?.EmpMobileNo" readonly />
+                                    <label class="floating-label">Mobile No.</label>
+                                </div>
+                            </div>
+
+                            <!-- ---------- Interaction (editable / submitted) ---------- -->
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                    <p class="total-text-with-bg bg-light-gray">
+                                        Interaction
+                                    </p>
+                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                </div>
+                            </div>
+
+                            <!-- Clickable yellow star rating -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                <div class="form-box-group static-label">
+                                    <label class="floating-label">Star Rating</label>
+                                    <div class="border-box d-flex justify-content-center align-items-center gap-1">
+                                        @for (int i = 1; i <= 5; i++)
+                                        {
+                                            var starValue = i;
+                                            <i class="bi @(interactionModel.StarRating >= starValue ? "bi-star-fill" : "bi-star")"
+                                               style="color:#ffc107; font-size:20px; cursor:pointer;"
+                                               @onclick="() => SetStarRating(starValue)"></i>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Readonly label derived from the star rating -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                <div class="form-box-group static-label">
+                                    <input class="floating-input" placeholder=" " value="@GetStarRatingLabel()" readonly />
+                                    <label class="floating-label">Rating</label>
+                                </div>
+                            </div>
+
+                            <!-- Recommendation Yes/No -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                <div class="form-box-group static-label">
+                                    <label class="floating-label">Recommendation</label>
+                                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                        <InputRadioGroup @bind-Value="interactionModel.Recommendation">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="true" />
+                                                <label class="form-label">Yes</label>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="false" />
+                                                <label class="form-label">No</label>
+                                            </div>
+                                        </InputRadioGroup>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- File upload -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                <div class="form-box-group static-label">
+                                    <InputFile class="floating-input" OnChange="OnFileSelected" />
+                                    <label class="floating-label">Attachment</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
+                                <div class="form-box-group">
+                                    <InputTextArea class="floating-input" placeholder=" " rows="3" @bind-Value="interactionModel.InteractionComments" maxlength="1000" />
+                                    <label class="floating-label">
+                                        Remarks <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => interactionModel.InteractionComments)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="ui animated button form-btn backBtn" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content">
+                                <i class="fa fa fa-save"></i>
+                            </div>
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowDocumentPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-7">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title">Verify Document</h5>
+                    <div class="d-flex align-items-center ">
+                        <button data-access="Close" type="button" @onclick="CloseDocumentPopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@CurrentSessionName" readonly />
+                                <label class="floating-label">Session</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedStudentRow?.RegistrationNo" readonly />
+                                <label class="floating-label">Registration No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedStudentRow?.StudentName" readonly />
+                                <label class="floating-label">Name</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box-with-btn" style="height: 320px;">
+                                    <QuickGrid Items="@documentQuery" Class="table">
+                                        <TemplateColumn Class="text-center" Title="" Align="Align.Center">
+                                            <ChildContent>
+                                                <input type="checkbox" checked="@context.IsSelected" @onchange="() => SelectDocumentRow(context)" @onclick:stopPropagation="true" />
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocumentName) ? " " : x.DocumentName)" Title="Document" Align="Align.Left" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remarks) ? " " : x.Remarks)" Title="Remarks" Align="Align.Left" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocPath) ? " " : x.DocPath)" Title="Date" Class="text-center" Align="Align.Center" />
+                                        <TemplateColumn Title="Att." Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+
+                                                <a href="@(string.IsNullOrWhiteSpace(context.DocPath) ? " " : context.DocPath)" target="_blank"><i class="bi bi-paperclip"></i></a>
+
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Taken" Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                @if (context.Verified == 1)
+                                                {
+                                                    <i class="bi bi-check-circle-fill" style="color:#28a745; font-size:18px;"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination">
+                                    <div class="d-flex align-items-center">
+                                        <div class="welcome-text w-100">
+                                            <Paginator State="@pagination" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="table-btn" @onclick="VerifyAndTakeDocument">Verified And Taken</button>
+                    <button type="button" class="table-btn" @onclick="DeActivateDocument">Deactivate</button>
+                    @* <button type="button" class="table-btn" @onclick="CloseDocumentPopup">Close</button> *@
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@CloseDocumentPopup" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 
 <StudentDetails IsVisible="@showModal" OnSearch="SearchRegEnterDetails" RegId="@regId" SessionId="@session" CurrectUrl="@currentUrl" OnClose="@CloseModal" />
 @if (IsLoading)
@@ -326,6 +594,7 @@ else
     private bool IsLoading = false;
     private List<GenderModal> genderModallist = new();
     private RegistrationSearchDto searchModel = new();
+    private AdmitChildRequest admitChildRequest = new();
     private List<RegistrationDto> registrationlist = new();
     private bool ShowPopup = false;
     PaginationState pagination = new() { ItemsPerPage = 15 };
@@ -341,14 +610,62 @@ else
     private List<BranchNameMst> branchlist = new();
     private List<MstDistance> distanceslist = new();
     private RegistrationDto registrationDto = new();
+    private RegistrationStatus registrationStatus = new();
     private long regId;
     private long session;
+    private string username = "";
+
+    // ---------------- Interaction popup state ----------------
+    private bool ShowInteractionPopup = false;
+    private InteractionCommentsModel interactionModel = new();
+    private List<EmployeeModel> teacherlist = new();
+    private string selectedEmployeeId = string.Empty;
+    private EmployeeModel selectedTeacher = new();
+    private RegistrationDto? selectedStudentRow;
+    private bool ShowDocumentPopup = false;
+    private List<ClassRegistrationDocumentsResponse> documentlist = new();
+    private ClassRegistrationDocumentsResponse? selectedDocument;
+    private ClassRegistrationDocumentsRequest documentsRequest = new();
+    private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
+
+    private IQueryable<ClassRegistrationDocumentsResponse> documentQuery => documentlist.AsQueryable();
+
     private void ToggleAll()
     {
-        foreach (var row in registrationlist)   
+        foreach (var row in registrationlist)
             row.IsSelected = IsAllSelected;
     }
+    private void SetStarRating(int value)
+    {
+        interactionModel.StarRating = value;
+    }
 
+    private string GetStarRatingLabel()
+    {
+        return interactionModel.StarRating switch
+        {
+            1 => "Poor",
+            2 => "Good",
+            3 => "Very Good",
+            4 => "Great",
+            5 => "Excellent",
+            _ => string.Empty
+        };
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        interactionModel.FileName = file.Name;
+
+        // TODO: replace with your actual upload/storage call and set the real path
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        // interactionModel.FilePath = await SaveFileToServerOrStorage(ms, file.Name);
+    }
     private async Task OpenDateFrom(string value)
     {
         if (value == "DateFrom")
@@ -360,9 +677,135 @@ else
             await JS.InvokeVoidAsync("openDatePicker", dateToInput);
         }
     }
+    private async Task DirectAdmission()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            return;
+        }
 
+        StateHasChanged();
+        try
+        {
+            IsLoading = true;
+
+            registrationStatus.GroupCode = groupcode;
+            registrationStatus.BranchCode = branchcode;
+            registrationStatus.SessionId = CurrentSession;
+            registrationStatus.RegistrationId = data[0].RegistrationId;
+            registrationStatus.AppStatus = "4";
+            registrationStatus.CreatedBy = username;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to approve selected student for admission.?");
+            if (!submit)
+            {
+                StateHasChanged();
+                IsLoading = false;
+                return;
+            }
+            string apiUrl = "registration/DirectAdmissionStatus";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, registrationStatus);
+            if (apiResponse.Success && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Direct admission status updated successfully.");
+            }
+            else
+            {
+                await Alert.ShowWarning("Direct admission status not updated.");
+            }
+
+        }
+        catch
+        {
+            return;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task AdmitChildStudent()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            return;
+        }
+
+        StateHasChanged();
+        try
+        {
+            IsLoading = true;
+
+            admitChildRequest.GroupCode = groupcode;
+            admitChildRequest.BranchCode = branchcode;
+            admitChildRequest.SessionId = CurrentSession;
+            admitChildRequest.RegistrationId = data[0].RegistrationId;
+            admitChildRequest.CreatedBy = username;
+            var submit = await Alert.ShowConfirm("Are you sure, you want to admit selected student?");
+            if (!submit)
+            {
+                StateHasChanged();
+                IsLoading = false;
+                return;
+            }
+            string apiUrl = "registration/AdmitChild";
+            var apiResponse = await httpService.Post<ApiResponse<StudentListResponse>>(apiUrl, admitChildRequest);
+            if (apiResponse.Success && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Student admitted successfully.");
+                var responseData = apiResponse.Data;
+                if (responseData != null)
+                {
+                    responseData.RegistrationNo = data[0].RegistrationNo;
+                    var studentList = new List<StudentListResponse>
+                    {
+                        responseData
+                    };
+                    var response = await httpService.Post<ApiResponse<string>>("Export/GenerateSlip", studentList);
+                    if (response.Success && !string.IsNullOrEmpty(response.Data))
+                    {
+                        await JS.InvokeVoidAsync("viewPdf", response.Data);
+                    }
+                }
+            }
+            else
+            {
+                await Alert.ShowWarning("Failed to admit student.");
+            }
+
+        }
+        catch
+        {
+            return;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
     private async Task LoadData()
     {
+        var userResult = await sessionStorage.GetAsync<string>("UserName");
+        username = userResult.Value;
         var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
         branchcode = branchResult.Value;
         var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
@@ -517,24 +960,23 @@ else
 
     private async Task SaveStudentDetails()
     {
-      
-            var data = moduleQuery.Where(x => x.IsSelected).ToList();
-            if (data.Count == 0)
-            {
-                await JS.InvokeVoidAsync("showSelectRecordAlert");
-                return;
-            }
-            else if (data.Count > 1)
-            {
-                await JS.InvokeVoidAsync("showSelectRecordAlert");
-                return;
-            }
-            regId = data[0].RegistrationId;
-            session = data[0].SessionId;
-            showModal = true;
-            StateHasChanged();
-        
-  
+
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        regId = data[0].RegistrationId;
+        session = data[0].SessionId;
+        showModal = true;
+        StateHasChanged();
+
 
 
 
@@ -542,9 +984,252 @@ else
     private void CloseModal()
     {
         showModal = false;
-       
+
         StateHasChanged();
     }
 
-}
+    private async Task AddIntraction()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
 
+        selectedStudentRow = data[0];
+        await LoadTeacherList();
+        ShowInteractionPopup = true;
+        StateHasChanged();
+    }
+
+    private async Task LoadTeacherList()
+    {
+        selectedTeacher.GroupCode = groupcode;
+        selectedTeacher.BranchCode = branchcode;
+        var result = await httpService.Post<EmployeeModel>("InteractionPanel/GetEmployeeDetails", selectedTeacher) ?? new();
+        selectedTeacher = result;
+        // teacherlist = result.Where(x => x.EmployeeType == "Teacher").ToList();
+    }
+
+    private void OnTeacherChanged()
+    {
+        selectedTeacher = teacherlist.FirstOrDefault(x => x.EmployeeId == selectedEmployeeId);
+    }
+
+    private void CloseInteractionPopup()
+    {
+        ShowInteractionPopup = false;
+    }
+
+    private async Task OnSubmitInteraction()
+    {
+        ShowInteractionPopup = false;
+        if (selectedTeacher == null)
+        {
+            await Alert.ShowWarning("Please select a teacher.");
+            return;
+        }
+        interactionModel.InteractionBy = selectedTeacher.EmployeeId;
+        interactionModel.GroupCode = groupcode;
+        interactionModel.BranchCode = branchcode;
+        interactionModel.SessionId = CurrentSession;
+        interactionModel.RegistrationId = selectedStudentRow.RegistrationId;
+        interactionModel.CreatedBy = username;
+        interactionModel.CreatedDate = DateTime.Now;
+        interactionModel.IsValid = true;
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            string apiUrl = "InteractionPanel/AddOrUpdateInteraction";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, interactionModel);
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Interaction" + Localizer["Inserted"]);
+                ShowInteractionPopup = false;
+                interactionModel = new();
+            }
+            else
+            {
+                await Alert.ShowWarning("Failed to save interaction.");
+            }
+        }
+        catch
+        {
+            await Alert.ShowWarning("Failed to save interaction.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddOrVerifyDoument()
+    {
+
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+       
+        selectedStudentRow = data[0];
+        await LoadDocumentList();
+        selectedDocument = null;
+        ShowDocumentPopup = true;
+        StateHasChanged();
+    }
+
+    private async Task LoadDocumentList()
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            documentsRequest.RegistrationId = selectedStudentRow!.RegistrationId;
+            documentsRequest.ClassCode = selectedStudentRow.ClassCode;
+            documentsRequest.SessionId = CurrentSession;
+            documentsRequest.GroupCode = groupcode;
+            documentsRequest.BranchCode = branchcode;
+            string apiUrl = $"Registration/GetClassRegistrationDocuments";
+            var apiResponse = await httpService.Post<ApiResponse<List<ClassRegistrationDocumentsResponse>>>(apiUrl, documentsRequest);
+            if (apiResponse.Success == true)
+            {
+                documentlist = apiResponse.Data ?? new();
+            }
+        }
+        catch
+        {
+            documentlist = new();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseDocumentPopup()
+    {
+        ShowDocumentPopup = false;
+        StateHasChanged();
+    }
+    private void SelectDocumentRow(ClassRegistrationDocumentsResponse doc)
+    {
+        foreach (var item in documentlist)
+            item.IsSelected = false;
+
+        doc.IsSelected = true;
+        selectedDocument = doc;
+    }
+
+    private async Task VerifyAndTakeDocument()
+    {
+
+        ShowDocumentPopup = false;
+        if (documentlist[0].Verified == 1)
+        {
+            await Alert.ShowWarning("Document already verified.");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (selectedDocument == null)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        var model = new StudentDocumentModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            RegistrationId = selectedStudentRow!.RegistrationId,
+            DocumentId = selectedDocument.DocumentId,
+            CreatedBy = username
+        };
+
+        ShowDocumentPopup = false;
+        StateHasChanged();
+
+        var apiResponse = await httpService.Post<ApiResponse<object>>("Registration/VerifyAndTakeDocument", model);
+        if (apiResponse.Success && apiResponse.Code == 1)
+        {
+            await Alert.ShowSuccess("Document verified and saved successfully.");
+            await LoadDocumentList();
+            ShowDocumentPopup = true;
+            StateHasChanged();
+        }
+        else if (apiResponse.Success && apiResponse.Code == 2)
+        {
+            await Alert.ShowSuccess("Document record updated successfully.");
+        }
+        else
+        {
+            await Alert.ShowWarning("Document not verified.");
+        }
+    }
+
+    private async Task DeActivateDocument()
+    {
+        ShowDocumentPopup = false;
+        if (documentlist[0].Verified == 0)
+        {
+            await Alert.ShowWarning("Document already deactivated.");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (selectedDocument == null)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        var model = new StudentDocumentModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            RegistrationId = selectedStudentRow!.RegistrationId,
+            DocumentId = selectedDocument.DocumentId,
+            CreatedBy = username
+        };
+
+        ShowDocumentPopup = false;
+        StateHasChanged();
+
+        var apiResponse = await httpService.Post<ApiResponse<object>>("Registration/DeActivateDocument", model);
+        if (apiResponse.Success && apiResponse.Code == 1)
+        {
+            await Alert.ShowSuccess("Document record deactivated successfully.");
+            await LoadDocumentList();
+            ShowDocumentPopup = true;
+            StateHasChanged();
+        }
+        else
+        {
+            await Alert.ShowWarning("Document not deactivated.");
+        }
+    }
+}

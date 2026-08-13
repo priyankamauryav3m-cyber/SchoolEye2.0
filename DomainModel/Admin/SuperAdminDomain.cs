@@ -361,6 +361,7 @@ namespace DomainModel.Admin
         public string? ApplicationStatus { get; set; } = "";
         public string? FatherName { get; set; } = "";
         public string? ClassName { get; set; }
+        public string? ClassCode { get; set; }
         public string? FatherContactNo { get; set; } = "";
         public int Sibling { get; set; }
         public decimal? RegistrationFee { get; set; }
@@ -387,7 +388,7 @@ namespace DomainModel.Admin
         public string? PointsFrom { get; set; }
         public string? PointsTo { get; set; }
         public string? StatusSrc { get; set; } = "0,1,2";
-        public int AppStatus { get; set; } = 3;
+        public int AppStatus { get; set; } = 2;
         public string? StudentName { get; set; }
         public string? FatherName { get; set; }
         public string? MotherName { get; set; }
@@ -1169,32 +1170,20 @@ namespace DomainModel.Admin
     public class StudentListResponse
     {
 
+        public string? RegistrationNo { get; set; }
         public string? StudentNo { get; set; }
-
         public string? ControlNo { get; set; }
-
         public string? AdmissionNo { get; set; }
-
         public string? StudentName { get; set; }
-
         public string? RollNo { get; set; }
-
         public string? Gender { get; set; }
-
         public string? DateOfBirth { get; set; }
-
         public string? ClassCode { get; set; }
-
         public string? ClassName { get; set; }
-
         public string? SectionId { get; set; }
-
         public string? SectionName { get; set; }
-
         public string? ClassSection { get; set; }
-
         public int IsReservedSeat { get; set; }
-
         public string? SMSMobileNo { get; set; }
 
         public string? FatherName { get; set; }
@@ -1204,6 +1193,9 @@ namespace DomainModel.Admin
         public string? DistanceName { get; set; }
 
         public string? AdmissionDate { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? Address { get; set; }
+        public string? FatherEmail { get; set; }
         public bool IsSelected { get; set; }
 
     }
@@ -1278,7 +1270,7 @@ namespace DomainModel.Admin
 
         public string? LastClassMonth { get; set; } = string.Empty;
 
-        [Required]
+        //[Required]
         public bool SpecialNeeds { get; set; } = false;
 
         public string? SpecialneedsDetail { get; set; } = string.Empty;
@@ -1408,9 +1400,10 @@ namespace DomainModel.Admin
         public bool IsSelected { get; set; }
         public string? CreatedBy { get; set; }
     }
-    public class CancelRegistration : CommonClass
+    public class RegistrationStatus : CommonClass
     {
         public string? RegistrationNo { get; set; }
+        public long RegistrationId { get; set; }
         public string? AppStatus { get; set; }
     }
     public class FormateType : CommonClass
@@ -1449,6 +1442,7 @@ namespace DomainModel.Admin
         public string? BranchCode { get; set; }
         public long SessionId { get; set; }
         public long RegistrationId { get; set; }
+        public string? CreatedBy { get; set; }
 
     }
 
@@ -1788,7 +1782,7 @@ namespace DomainModel.Admin
         public List<FeeHeadCollectionDto> FeeHeadCollection { get; set; } = new();
     }
 
-    public class RegistrationReceiptResponse:MNGTCommon
+    public class RegistrationReceiptResponse : MNGTCommon
     {
         public string? RegistrationNo { get; set; }
         public long RegistrationId { get; set; }
@@ -1812,4 +1806,248 @@ namespace DomainModel.Admin
         public DateTime? FromDate { get; set; } = DateTime.Today;
         public DateTime? ToDate { get; set; } = DateTime.Today;
     }
+
+    #region-------------- Prepare list-----------------------
+    public class RegistrationInfoListRequest : MNGTCommon
+    {
+        public string? ClassCode { get; set; }
+        public string? StreamCode { get; set; }
+        public long? RegistrationFrom { get; set; }
+        public long? RegistrationTo { get; set; }
+        public string? Gender { get; set; }
+        public string? DistanceFromSchool { get; set; }
+        public int PointsFrom { get; set; }
+        public int PointsTo { get; set; }
+        public int ListNo { get; set; }
+        public string ListPrepared { get; set; } = "All";
+        public string? ApplicationStatus { get; set; }
+    }
+    public class RegistrationInfoListResponse : MNGTCommon
+    {
+        public long RegistrationId { get; set; }
+        public string? RegistrationNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Gender { get; set; }
+        public string? ClassName { get; set; }
+        public DateTime? AppliedDate { get; set; }
+        public DateTime? AdmissionDate { get; set; }
+        public int Points { get; set; }
+        public string? ApplicationStatus { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherContactNo { get; set; }
+        public string? FatherEMail { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherContactNo { get; set; }
+        public string? MotherEMail { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public int IsReservedSeat { get; set; }
+        public int Sibling { get; set; }
+        public string? ListName { get; set; }
+        public int PublishStatus { get; set; }
+        public string? PublishDate { get; set; }
+    }
+
+    public class PublishListModel
+    {
+        public int LID { get; set; }
+
+        [StringLength(20, ErrorMessage = "Group Code cannot exceed 20 characters.")]
+        public string GroupCode { get; set; } = string.Empty;
+
+        [StringLength(20, ErrorMessage = "Branch Code cannot exceed 20 characters.")]
+        public string BranchCode { get; set; } = string.Empty;
+
+        public int ListNo { get; set; }
+
+        [Required(ErrorMessage = "List Name is required.")]
+        [StringLength(200, ErrorMessage = "List Name cannot exceed 200 characters.")]
+        public string ListName { get; set; } = string.Empty;
+
+        public int PublishStatus { get; set; }
+        public DateTime? PublishDate { get; set; }
+        public DateTime CreatedDate { get; set; }
+
+        [StringLength(50, ErrorMessage = "Created By cannot exceed 50 characters.")]
+        public string CreatedBy { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; }
+        public long? SessionId { get; set; }
+    }
+
+    public class AddStudentInListRequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public long SessionId { get; set; }
+        public string RegistrationNo { get; set; } = string.Empty;
+        public string? RegistrationId { get; set; }
+        public int PublishListNo { get; set; }
+        public string CreatedBy { get; set; } = string.Empty;
+    }
+
+
+
+    #endregion
+
+    public class AdmitChildRequest
+    {
+        public string GroupCode { get; set; } = "";
+        public string BranchCode { get; set; } = "";
+        public long SessionId { get; set; }
+        public long RegistrationId { get; set; }
+        public string CreatedBy { get; set; } = "";
+    }
+    public class StudentDetailsModel
+    {
+        public string? StudentNo { get; set; }
+        public string? StudentName { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public string? RegistrationNo { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? CurrentSession { get; set; }
+    }
+    public class InteractionCommentsModel
+    {
+        public int IID { get; set; }
+
+        [StringLength(20, ErrorMessage = "Group Code cannot exceed 20 characters.")]
+        public string GroupCode { get; set; } = string.Empty;
+        [StringLength(20, ErrorMessage = "Branch Code cannot exceed 20 characters.")]
+        public string BranchCode { get; set; } = string.Empty;
+
+        [StringLength(50, ErrorMessage = "Interaction By cannot exceed 50 characters.")]
+        public string InteractionBy { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Interaction Comments are required.")]
+        [StringLength(1000, ErrorMessage = "Interaction Comments cannot exceed 1000 characters.")]
+        public string InteractionComments { get; set; } = string.Empty;
+
+        public bool IsApproved { get; set; }
+        public bool IsValid { get; set; } = true;
+
+        [StringLength(50, ErrorMessage = "Created By cannot exceed 50 characters.")]
+        public string CreatedBy { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; }
+
+        [StringLength(255, ErrorMessage = "File Name cannot exceed 255 characters.")]
+        public string? FileName { get; set; }
+
+        [StringLength(500, ErrorMessage = "File Path cannot exceed 500 characters.")]
+        public string? FilePath { get; set; }
+
+        [StringLength(1000, ErrorMessage = "General Remarks cannot exceed 1000 characters.")]
+        public string? GeneralRemarks { get; set; }
+
+        [StringLength(1000, ErrorMessage = "Finance Remarks cannot exceed 1000 characters.")]
+        public string? FinanceRemarks { get; set; }
+        public long? SessionId { get; set; }
+        public long? RegistrationId { get; set; }
+
+        [Range(0, 5, ErrorMessage = "Star Rating must be between 0 and 5.")]
+        public int StarRating { get; set; }
+        public bool Recommendation { get; set; }
+    }
+    public class EmployeeModel
+    {
+        public int SeedId { get; set; }
+
+        public string? BranchCode { get; set; }
+
+        public string? GroupCode { get; set; }
+
+        public string EmployeeId { get; set; } = string.Empty;
+
+        public string EmployeeType { get; set; } = string.Empty;
+
+        public string FirstName { get; set; } = string.Empty;
+
+        public string Gender { get; set; } = string.Empty;
+
+        public string EmpMobileNo { get; set; } = string.Empty;
+    }
+    #region  -------------------------- Student Document Verification (Admission > Map Documents) -------------
+    public class StudentDocumentModel
+    {
+
+        public long ASDID { get; set; }
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long? SessionId { get; set; }
+
+        [Required(ErrorMessage = "Registration Id is required.")]
+        public long RegistrationId { get; set; }
+
+        [Required(ErrorMessage = "Document Id is required.")]
+        public long DocumentId { get; set; }
+
+        [StringLength(500, ErrorMessage = "Remarks cannot exceed 500 characters.")]
+        public string? Remarks { get; set; }
+        public DateTime CreatedDate { get; set; }
+
+        [StringLength(50, ErrorMessage = "Created By cannot exceed 50 characters.")]
+        public string CreatedBy { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Document Path cannot exceed 500 characters.")]
+        public string? DocPath { get; set; }
+    }
+    public class ClassRegistrationDocumentsRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? DocumentType { get; set; }
+        public long RegistrationId { get; set; }
+    }
+    public class ClassRegistrationDocumentsResponse:MNGTCommon
+    {
+        public int DocumentId { get; set; }
+        public string? DocumentName { get; set; }
+        public string? Remarks { get; set; }
+        public int Verified { get; set; }
+        public string? DocDate { get; set; }
+        public string? DocPath { get; set; }
+    }
+    public class RegistrationRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public string? RegistrationNo { get; set; }
+        public long SessionId { get; set; }
+    }
+    public class RegistrationStatusResponse
+    {
+        public int SeedId { get; set; }
+        public string? StatusName { get; set; }
+        public string? StatusDate { get; set; }
+        public int ApplicationStatus { get; set; }
+        public int IsDone { get; set; }
+    }
+    public class PublishingListResponse
+    {
+        public string? Gender { get; set; }
+        public string? ClassName { get; set; }
+        public DateTime? AppliedDate { get; set; }
+        public DateTime? AdmissionDate { get; set; }
+        public int Points { get; set; }
+        public string? ApplicationStatus { get; set; }
+        public int ListNo { get; set; }
+        public long RegistrationId { get; set; }
+        public string?   RegistrationNo{ get; set; }
+    }
+    public class PublishingListRequest : MNGTCommon
+    {
+        public string? ClassCode { get; set; }
+        public long RegistrationId { get; set; }
+        public int ListNo { get; set; }
+
+    }
+
+    #endregion
+
+
+
 }

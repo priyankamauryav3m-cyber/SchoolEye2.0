@@ -1,4 +1,5 @@
 using ApplicationInterface.SchoolMaster;
+using DomainModel.Admin;
 using DomainModel.SchoolMaster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -111,6 +112,68 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
                     ApiResponse<string>.Fail("Something went wrong."));
             }
         }
+        [HttpPost("AddOrUpdateInteraction")]
+        public async Task<IActionResult> AddOrUpdate([FromBody] InteractionCommentsModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                var result = await _service.AddUpdateInteractionComments(model);
+                return result switch
+                {
+                    "1" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Interaction comment added successfully.",
+                        Code = 1
+                    }),
+                    "2" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Interaction comment updated successfully.",
+                        Code = 2
+                    }),
+                    _ => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Unknown operation result"
+                    })
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while saving the interaction comment."
+                });
+            }
+        }
 
+        [HttpPost("GetEmployeeDetails")]
+        public async Task<IActionResult> GetEmployee(EmployeeModel employee)
+        {
+            try
+            {
+                var data = await _service.GetEmployeeList(employee);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "An error occurred while fetching interaction panel data.",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }

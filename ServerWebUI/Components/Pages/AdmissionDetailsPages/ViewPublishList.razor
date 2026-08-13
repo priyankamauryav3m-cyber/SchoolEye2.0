@@ -1,0 +1,264 @@
+﻿@page "/ViewPublishList"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading >
+                <div class="form-box">
+                    <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">
+                                @data.SessionName
+                            </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="schoolbranchcode" class="form-input" autocomplete="off">
+                        <option value="" selected>--Select--</option>
+                        @foreach (var cs in branchlist)
+                        {
+                            <option Value="@cs.BranchCode">@cs.BranchName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="rightClassFilter">
+                        <option value="">All</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ListNo">
+                        <option value="0">--Select List--</option>
+                        @foreach (var ln in publishListNoList)
+                        {
+                            <option value="@ln.ListNo">List @ln.ListNo</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchPublishList">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn" >
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RegistrationNo) ? " " : x.RegistrationNo)" Title="Reg. No." Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Title="Class" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.AppliedDate.HasValue ? x.AppliedDate.Value.ToString("dd-MM-yyyy") : " ")" Title="Applied Date" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.AdmissionDate.HasValue ? x.AdmissionDate.Value.ToString("dd-MM-yyyy") : " ")" Title="Admission Date" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.Points)" Title="Points" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ApplicationStatus) ? " " : x.ApplicationStatus)" Title="App. Status" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.ListNo)" Title="List No." Sortable="true" Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - "PageHeading" is your existing shared component (Title param + child
+    //   content), same as used on ApplicationStatus.razor.
+    // - listNoOptions is a plain 1-10 range for the "List" dropdown since no
+    //   API was given for available list numbers. Replace with an API-driven
+    //   list if one exists (e.g. distinct ListNo values from PrepareList).
+    // - PublishingListRequest.RegistrationId is left at its default (0) since
+    //   this page searches by Class/List/Session/Branch, not a single
+    //   registration.
+    // ---------------------------------------------------------------------
+
+    private long CurrentSession;
+    private string schoolbranchcode = string.Empty;
+    private string rightClassFilter = string.Empty;
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchNameMst> branchlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<PublishingListResponse> publishList = new();
+
+    private PublishingListRequest searchRequest = new();
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string currentUrl = "";
+    private string username = "";
+
+    private List<PublishListModel> publishListNoList = new();
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected IQueryable<PublishingListResponse> moduleQuery
+    {
+        get
+        {
+            var result = publishList.AsQueryable();
+
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.RegistrationNo != null && x.RegistrationNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.ClassName != null && x.ClassName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+
+            return result;
+        }
+    }
+    private async Task LoadPublishListNo()
+    {
+        var searchAnyRequest = new PublishingListRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = schoolbranchcode,
+            SessionId = CurrentSession
+        };
+
+        string ApiUri = "PrepareList/GetPublishList";
+        var apiResponse = await httpService.Post<ApiResponse<List<PublishListModel>>>(ApiUri, searchAnyRequest) ?? new();
+        if (apiResponse.Success)
+        {
+            publishListNoList = apiResponse.Data ?? new();
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            schoolbranchcode = branchcode ?? string.Empty;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        await LoadPublishListNo();
+        StateHasChanged();
+    }
+
+    private async Task SearchPublishList()
+    {
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = schoolbranchcode;
+        searchRequest.SessionId = CurrentSession;
+        searchRequest.ClassCode = rightClassFilter;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<List<PublishingListResponse>>>("ViewPublishList/PublishingList", searchRequest);
+
+            publishList = (apiResponse != null && apiResponse.Success)? (apiResponse.Data ?? new()): new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+            else if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            publishList = new();
+            await Alert.ShowWarning("An error occurred while fetching the publishing list.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

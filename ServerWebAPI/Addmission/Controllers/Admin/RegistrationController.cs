@@ -503,6 +503,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+        [AllowAnonymous]
         [HttpPost("OnlineRegistration")]
         public async Task<IActionResult> OnlineRegistrationData([FromBody] OnlineRegistration online)
         {
@@ -526,7 +527,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
         [HttpPost("RegistrationCancel")]
-        public async Task<IActionResult> Registratiocancel([FromBody] CancelRegistration online)
+        public async Task<IActionResult> Registratiocancel([FromBody] RegistrationStatus online)
         {
             try
             {
@@ -726,5 +727,262 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
             }
         }
+        [HttpPost("DirectAdmissionStatus")]
+        public async Task<IActionResult> DirectAdmissionStatusData([FromBody] RegistrationStatus online)
+        {
+            if (online == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request.",
+                    Code = 0
+                });
+            }
+
+            try
+            {
+                var result = await _service.DirectAdmissionStatusData(online);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Data retrieved successfully.",
+                    Code = 1,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "An error occurred while getting the data.",
+                        Code = -1
+                    });
+            }
+        }
+        [HttpPost("AdmitChild")]
+        public async Task<IActionResult> AdmitChild( [FromBody] AdmitChildRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid request.",
+                    Code = 0
+                });
+            }
+
+            try
+            {
+                var result = await _service.AdmitChildAsync(request);
+                if (result == null )
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Student admission failed.",
+                        Code = 0
+                    });
+                }
+
+                return Ok(new ApiResponse<StudentListResponse>
+                {
+                    Success = true,
+                    Message = "Student admitted successfully.",
+                    Code = 1,
+                    Data = result
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while admitting student.",
+                    Code = -1
+                });
+            }
+        }
+        [HttpPost("VerifyAndTakeDocument")]
+        public async Task<IActionResult> VerifyAndTakeDocument([FromBody] StudentDocumentModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                var result = await _service.VerifyAndTakeDocument(model);
+                return result switch
+                {
+                    "1" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Document verified and saved successfully.",
+                        Code = 1
+                    }),
+                    "2" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Document record updated successfully.",
+                        Code = 2
+                    }),
+                    _ => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Unknown operation result"
+                    })
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while verifying the document."
+                });
+            }
+        }
+
+
+        [HttpPost("DeActivateDocument")]
+        public async Task<IActionResult> DeActivateDocumentData([FromBody] StudentDocumentModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                var result = await _service.DeActivateDocumentData(model);
+                return result switch
+                {
+                    "1" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Document record Deactivated successfully.",
+                        Code = 1
+                    }),
+                    _ => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Unknown operation result"
+                    })
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while verifying the document."
+                });
+            }
+        }
+
+        [HttpPost("GetClassRegistrationDocuments")]
+        public async Task<IActionResult> GetClassRegistrationDocuments([FromBody] ClassRegistrationDocumentsRequest request)
+        {
+            try
+            {
+                var data =
+                    await _service.GetClassRegistrationDocumentsAsync(request);
+
+                if (data == null || !data.Any())
+                {
+                    return NotFound(new ApiResponse<IEnumerable<ClassRegistrationDocumentsResponse>>
+                    {
+                        Success = false,
+                        Message = "No registration documents found.",
+                        Code = 0,
+                        Data = null
+                    });
+                }
+
+                return Ok(new ApiResponse<IEnumerable<ClassRegistrationDocumentsResponse>>
+                {
+                    Success = true,
+                    Message = "Registration documents retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"GetClassRegistrationDocuments Error: {ex.Message}");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message =
+                            "An error occurred while fetching registration documents.",
+                        Code = 0,
+                        Data = null
+                    });
+            }
+        }
+        [HttpPost("GetRegistrationStatus")]
+        public async Task<IActionResult> GetRegistrationStatusData([FromBody] RegistrationRequest request)
+        {
+            try
+            {
+                var data =
+                    await _service.GetRegistrationStatusData(request);
+                if (data == null || !data.Any())
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "No registration documents found.",
+                        Code = 0,
+                        Data = null
+                    });
+                }
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Registration documents retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"GetClassRegistrationDocuments Error: {ex.Message}");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message =
+                            "An error occurred while fetching registration documents.",
+                        Code = 0,
+                        Data = null
+                    });
+            }
+        }
+
     }
 }

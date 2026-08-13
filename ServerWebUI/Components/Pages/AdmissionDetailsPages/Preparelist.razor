@@ -1,0 +1,885 @@
+﻿@page "/PreparePublishList"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.AdmissionDetailsPages
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }</style>
+    <div class="main-container">
+        <div class="row m-0 main-row">
+            <div class="col-12 p-1" id="main-header">
+                <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
+                    <p class="m-0 page-name px-1">Prepare/Publish List</p>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="form-box">
+                            <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.SessionId">@data.SessionName </option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="form-box">
+                            <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ApplicationStatus" @bind-Value:after='()=>OnSearchPrepareList("ApplicationStatus")'>
+                                <option value="4">Selected For Admission</option>
+                                <option value="5">Admission Done</option>
+                            </InputSelect>
+                        </div>
+                        <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                        <div class="form-box">
+                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="OnSearch">
+                                <div class="visible content">Search</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== LEFT PANEL (Source list) ===================== -->
+            <div class="col-6 p-1">
+                <div class="card">
+                    <div class="row m-0 px-1 mt-2 align-items-center justify-content-end">
+                        <div class="col-10 px-1">
+                            <div class="form-box">
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="@searchRequest.ListPrepared">
+
+                                        <div class="radio-item">
+                                            <InputRadio id="all" Value="@("All")" />
+                                            <label for="all">All</label>
+                                        </div>
+
+                                        <div class="radio-item">
+                                            <InputRadio id="published" Value="@("Published")" />
+                                            <label for="published">Published</label>
+                                        </div>
+
+                                        <div class="radio-item">
+                                            <InputRadio id="prepared" Value="@("Prepared")" />
+                                            <label for="prepared">Prepared</label>
+                                        </div>
+
+                                        <div class="radio-item">
+                                            <InputRadio id="notSelected" Value="@("NotSelected")" />
+                                            <label for="notSelected">Not Selected</label>
+                                        </div>
+
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="col-auto">
+                            <button class="icon-btn" @onclick="MoveSelectedToRight" title="Move selected to prepared list">
+                                <i class="bi bi-play-fill"></i>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <hr class="mb-0 mt-2" />
+                    <div class="card-body table-card p-0 scrollbar-thin">
+                        <div class="quick-main">
+                            <div class="grid-box-with-btn" style="height: calc(100vh - 323px);">
+                                <QuickGrid Items="@FilteredLeftItems" Class="table" Pagination="@pagination">
+                                    <TemplateColumn Class="text-center" Title="" Align="Align.Center">
+                                        <HeaderTemplate>
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <input type="checkbox" @bind="SelectAllLeft" @bind:after="ToggleSelectAllLeft" @onclick:stopPropagation="true" />
+                                            </div>
+                                        </HeaderTemplate>
+                                        <ChildContent>
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RegistrationNo) ? " " : x.RegistrationNo)" class="text-center" Title="Reg. No." Sortable="true" Align="Align.Left">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" autofocus @bind="regNoFilter" @bind:event="oninput" placeholder="Reg. No..." />
+                                            </div>
+                                        </ColumnOptions>
+                                    </PropertyColumn>
+                                    <TemplateColumn Title="Student Name" Sortable="true" SortBy="@(GridSort<RegistrationInfoListResponse>.ByAscending(x => x.StudentName))" Align="Align.Left">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Student Name..." />
+                                            </div>
+                                        </ColumnOptions>
+                                        <ChildContent>
+                                            @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.AppliedDate)" Title="App. Date" class="text-center" Sortable="true" Align="Align.Center" />
+                                    <TemplateColumn Title="List Name" Sortable="true" Align="Align.Left">
+                                        <div class="text-primary fw-semibold">
+                                            @(string.IsNullOrWhiteSpace(context.ListName) ? " " : context.ListName)
+                                        </div>
+                                    </TemplateColumn>
+                                    <PropertyColumn Property="@(x => x.Points)" Title="Points" Sortable="true" class="text-center" Align="Align.Center" />
+                                </QuickGrid>
+                            </div>
+                            <div class="footer-pagination">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="welcome-text w-100">
+                                        <Paginator State="@pagination" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== RIGHT PANEL (Prepared/Published list) ===================== -->
+            <div class="col-6 p-1">
+                <div class="card">
+                    <div class="row m-0 px-1 mt-2 align-items-center">
+                        <div class="col-auto px-1">
+                            <button class="icon-btn" @onclick="MoveBackToLeft" title="Move selected back">
+                                <i class="bi bi-caret-left-fill"></i>
+                            </button>
+                        </div>
+                        <div class="col-6 col-sm-3 px-1">
+                            @* <div class="form-box">
+                                <InputSelect class="form-input" placeholder=" " @bind-Value="rightClassFilter">
+                                    <option value="">All</option>
+                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@cs.ClassCode">@cs.ClassName</option>
+                                    }
+                                </InputSelect>
+                            </div> *@
+                            <div class="form-box">
+                                <div class="position-relative">
+                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                        @SelectedTextRight
+                                    </button>
+                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                                        <div class="form-check">
+                                            <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllClassRight" @bind:after="ToggleSelectAllClassRight" />
+                                            <span> All</span>
+                                        </div>
+                                        @foreach (var item in classlist.Where(x => x.IsValid))
+                                        {
+                                            <div class="form-check">
+                                                <input class="form-check-input map-checkbox"
+                                                       type="checkbox"
+                                                       checked="@SelectedClassCodesRight.Contains(item.ClassCode)"
+                                                       @onchange="e => ToggleClassRight(item.ClassCode, e)" />
+
+                                                <span>@item.ClassName</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3 px-1">
+                            <div class="form-box">
+                                <InputSelect class="form-input" placeholder=" " @bind-Value="rightListTypeFilter">
+                                    <option value="Prepared">Prepared</option>
+                                    <option value="Published">Published</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3 px-1">
+                            <div class="form-box">
+                                <InputSelect class="form-input" placeholder=" " @bind-Value="rightListFilter"  @bind-Value:after='() => OnSearchPrepareList("ListName")'>
+                                    <option value="0">-Select-</option>
+                                    @foreach (var cs in publishList.Where(x => x.IsActive == true))
+                                    {
+                                        <option value="@cs.ListNo">@cs.ListName</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-2 px-1 text-end">
+                            <div class="form-box">
+                                <button class="table-btn" type="button" @onclick="CreateNewList">New</button>
+                            </div>
+
+                        </div>
+                    </div>
+                    <hr class="mb-0 mt-2" />
+                    <div class="card-body table-card p-0 scrollbar-thin">
+                        <div class="quick-main">
+                            <div class="grid-box-with-btn" style="height: calc(100vh - 323px);">
+                                <QuickGrid Items="@FilteredRightItems" Class="table" Pagination="@pagination1">
+                                      
+                                    <TemplateColumn Class="text-center" Title="" Align="Align.Center">
+                                        <HeaderTemplate>
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <input type="checkbox" @bind="SelectAllRight" @bind:after="ToggleSelectAllRight" @onclick:stopPropagation="true" />
+                                            </div>
+                                        </HeaderTemplate>
+                                        <ChildContent>
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RegistrationNo) ? " " : x.RegistrationNo)" class="text-center" Title="Reg. No." Sortable="true" Align="Align.Left">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" autofocus @bind="regNoFilter" @bind:event="oninput" placeholder="Reg. No..." />
+                                            </div>
+                                        </ColumnOptions>
+                                    </PropertyColumn>
+                                    <TemplateColumn Title="Student Name" Sortable="true" SortBy="@(GridSort<RegistrationInfoListResponse>.ByAscending(x => x.StudentName))" Align="Align.Left">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Student Name..." />
+                                            </div>
+                                        </ColumnOptions>
+                                        <ChildContent>
+                                            @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                        </ChildContent>
+                                    </TemplateColumn>
+                                    <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.AppliedDate)" Title="App. Date" class="text-center" Sortable="true" Align="Align.Center" />
+                                    <PropertyColumn Property="@(x => x.Points)" Title="Points" Sortable="true" class="text-center" Align="Align.Center" />
+                                </QuickGrid>
+                            </div>
+                            <div class="footer-pagination">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="welcome-text w-100">
+                                        <Paginator State="@pagination1" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== FOOTER : PUBLISH ===================== -->
+            <div class="col-12 p-1">
+                <div class="page-heading d-flex align-items-center justify-content-end">
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="PublishList">Publish</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== SEARCH POPUP (fixed size per Rule A5) ===================== -->
+    @if (ShowSearchPopup)
+    {
+        <div class="custom-modal row m-0 ">
+            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">Search</h5>
+                        <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <EditForm Model="@searchRequest" OnValidSubmit="OnSearch">
+                        <div class="modal-body">
+                            <div class="row m-0 form-row">
+
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <div class="position-relative">
+                                            <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                                @SelectedText
+                                            </button>
+                                            <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                                                <div class="form-check">
+                                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
+                                                    <span> All</span>
+                                                </div>
+                                                @foreach (var item in classlist.Where(x => x.IsValid))
+                                                {
+                                                    <div class="form-check">
+                                                        <input class="form-check-input map-checkbox"
+                                                               type="checkbox"
+                                                               checked="@SelectedClassCodesLeft.Contains(item.ClassCode)"
+                                                               @onchange="e => ToggleClassLeft(item.ClassCode, e)" />
+
+                                                        <span>@item.ClassName</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <label class="floating-label">Class</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <InputNumber class="floating-input" placeholder=" " @bind-Value="searchRequest.RegistrationFrom" />
+                                        <label class="floating-label">Reg. No. From</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <InputNumber class="floating-input" placeholder=" " @bind-Value="searchRequest.RegistrationTo" />
+                                        <label class="floating-label">Reg. No. To</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.DistanceFromSchool">
+                                            <option value="">--Select--</option>
+                                            @foreach (var d in distancelist.Where(x => x.IsValid == true))
+                                            {
+                                                <option value="@d.DistanceId">@d.DistanceName</option>
+                                            }
+                                        </InputSelect>
+                                        <label class="floating-label">Distance</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.Gender">
+                                            <option value="">--Select--</option>
+                                            @foreach (var g in genderModallist.Where(x => x.IsValid == true))
+                                            {
+                                                <option value="@g.GenderName">@g.GenderName</option>
+                                            }
+                                        </InputSelect>
+                                        <label class="floating-label">Gender</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <InputNumber class="floating-input" placeholder=" " @bind-Value="searchRequest.PointsFrom" />
+                                        <label class="floating-label">Points From</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group">
+                                        <InputNumber class="floating-input" placeholder=" " @bind-Value="searchRequest.PointsTo" />
+                                        <label class="floating-label">Points To</label>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <!-- SaveUpdateButton's own submit also runs OnSearch (OnValidSubmit) -
+                                 popup fields are only applied to the grids when this is pressed,
+                                 not as the user types/selects. -->
+                                <SaveUpdateButton TextSave="Search" OnClickCancel="ClosePopup" />
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (ShowPopup)
+    {
+        <div class="custom-modal row m-0 align-items-center">
+            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">
+                            Add Publish List
+                        </h5>
+                        <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <EditForm Model="@publishListModel" OnValidSubmit="OnSaveList">
+                        <DataAnnotationsValidator />
+                        <div class="modal-body">
+                            <div class="row m-0 form-row">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect @bind-Value="schoolbranchcode" class="floating-input" autocomplete="off" disabled readonly>
+                                            @foreach (var cs in branchlist)
+                                            {
+                                                <option Value="@cs.BranchCode">@cs.BranchName</option>
+                                            }
+
+                                        </InputSelect>
+                                        <label class="floating-label">Branch</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect @bind-Value="@CurrentSession" class="floating-input" disabled readonly>
+                                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                            {
+                                                <option value="@data.SessionId">@data.SessionName </option>
+                                            }
+                                        </InputSelect>
+                                        <label class="floating-label">Session</label>
+                                    </div>
+                                </div>
+
+                   
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="form-box-group">
+                                        <InputText class="floating-input" placeholder=" " @bind-Value="publishListModel.ListName" />
+                                        <label class="floating-label">
+                                            List Name <span class="required">*</span>
+                                        </label>
+                                        <ValidationMessage For="@(() => publishListModel.ListName)" />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (IsLoading)
+    {
+        <div class="grid-loader-overlay">
+            <img src="images/loading.gif" alt="Loading..." />
+        </div>
+    }
+    else
+    {
+
+    }
+
+@code {
+    // ---------------------------------------------------------------------
+    // NOTE / ASSUMPTIONS:
+    // - RegistrationInfoListRequest / RegistrationInfoListResponse, GenderModal,
+    //   BranchClassModel (with bool IsSelected for the multiselect), SessionModel,
+    //   DistanceModel are used exactly as they exist in your project.
+    // - RegistrationInfoListResponse is assumed to expose a "ListPrepared" string
+    //   ("Published" / "Prepared" / anything else = Not Selected) so it lines up
+    //   1:1 with searchRequest.ListPrepared used for the header radio + API filter.
+    //   If your response model uses a different field name for this, rename the
+    //   two spots below marked "// ListPrepared field on response".
+    // - API route: GET/POST api/PrepareList/GetRegistrationInfoList
+    // ---------------------------------------------------------------------
+
+    private bool IsLoading;
+
+    private RegistrationInfoListRequest searchRequest = new() { ListPrepared = "All" };
+
+    private List<GenderModal> genderModallist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SessionModel> sessionlist = new();
+    private List<DistanceModel> distancelist = new();
+    private PublishListModel publishListModel = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private AddStudentInListRequest studentInListRequest = new();
+    private List<PublishListModel> publishList = new();
+    private List<RegistrationInfoListResponse> leftList = new();
+    private List<RegistrationInfoListResponse> rightList = new();
+    private List<BranchNameMst> branchlist = new();
+    private long CurrentSession;
+    private bool ShowSearchPopup;
+    private bool SelectAll;
+    private bool SelectAllClassRight;
+    private bool SelectAllLeft;
+    private bool SelectAllRight;
+    private bool ShowPopup;
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private PaginationState pagination1 = new() { ItemsPerPage = 15 };
+    private string nameFilter = string.Empty;
+    private string regNoFilter = string.Empty;
+    private string rightClassFilter = string.Empty;
+    private int rightListFilter = 0;
+    private string rightListTypeFilter = "Prepared";
+    private string newListName = string.Empty;
+
+    private string username = string.Empty;
+    private string branchcode = string.Empty;
+    private string groupcode = string.Empty;
+    private string schoolbranchcode = "01";
+    private string? currentUrl;
+    private HashSet<string> SelectedClassCodesLeft = new();
+    private HashSet<string> SelectedClassCodesRight = new();
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+            await LoadData();
+            await GetListData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+
+        string ApiUri3 = "Distance/GetDistance";
+        distancelist = await httpService.Get<List<DistanceModel>>(ApiUri3) ?? new();
+        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        StateHasChanged();
+    }
+
+    private IQueryable<RegistrationInfoListResponse> FilteredLeftItems
+    {
+        get
+        {
+            var query = leftList.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(nameFilter))
+                query = query.Where(x => x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(regNoFilter))
+                query = query.Where(x => x.RegistrationNo != null && x.RegistrationNo.Contains(regNoFilter, StringComparison.OrdinalIgnoreCase));
+            return query;
+        }
+    }
+
+    private IQueryable<RegistrationInfoListResponse> FilteredRightItems
+    {
+        get
+        {
+            var query = rightList.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(rightClassFilter))
+                query = query.Where(x => x.ClassName == rightClassFilter);
+            return query;
+        }
+    }
+
+
+
+    private void ToggleSelectAllLeft()
+    {
+        foreach (var item in FilteredLeftItems)
+            item.IsSelected = SelectAllLeft;
+    }
+
+    private void ToggleSelectAllRight()
+    {
+        foreach (var item in FilteredRightItems)
+            item.IsSelected = SelectAllRight;
+    }
+
+    // ---------------- Multiselect class dropdown (search popup) ----------------
+
+    private string SelectedText => SelectAll ? "All Class Selected" : SelectedClassCodesLeft.Any() ? string.Join(", ", classlist.Where(x => SelectedClassCodesLeft.Contains(x.ClassCode)).Select(x => x.ClassName)) : "--Select Class--";
+    private string SelectedClassCodes => SelectAll ? string.Join(",", classlist.Where(x => x.IsValid).Select(x => x.ClassCode)) : string.Join(",", SelectedClassCodesLeft);
+    private string SelectedTextRight => SelectAllClassRight ? "All Class Selected" : SelectedClassCodesRight.Any() ? string.Join(", ", classlist.Where(x => SelectedClassCodesRight.Contains(x.ClassCode)).Select(x => x.ClassName)) : "--Select Class--";
+    private string SelectedClassCodesRightString => SelectAllClassRight ? string.Join(",", classlist.Where(x => x.IsValid).Select(x => x.ClassCode)) : string.Join(",", SelectedClassCodesRight);
+    private void ToggleClassLeft(string classCode, ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+            SelectedClassCodesLeft.Add(classCode);
+        else
+            SelectedClassCodesLeft.Remove(classCode);
+
+        SelectAll = false;
+    }
+    private void ToggleSelectAll()
+    {
+        SelectedClassCodesLeft.Clear();
+
+        if (SelectAll)
+        {
+            foreach (var item in classlist.Where(x => x.IsValid))
+            {
+                SelectedClassCodesLeft.Add(item.ClassCode);
+            }
+        }
+    }
+    private void ToggleClassRight(string classCode, ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+            SelectedClassCodesRight.Add(classCode);
+        else
+            SelectedClassCodesRight.Remove(classCode);
+
+        SelectAllClassRight = false;
+    }
+    private void ToggleSelectAllClassRight()
+    {
+        SelectedClassCodesRight.Clear();
+
+        if (SelectAllClassRight)
+        {
+            foreach (var item in classlist.Where(x => x.IsValid))
+            {
+                SelectedClassCodesRight.Add(item.ClassCode);
+            }
+        }
+    }
+    private async Task OnSaveList()
+    {
+        ShowPopup = false;
+        try
+        {
+            publishListModel.BranchCode = schoolbranchcode;
+            publishListModel.GroupCode = groupcode;
+            publishListModel.CreatedBy = username;
+            publishListModel.SessionId = CurrentSession;
+            string ApiUri = "PrepareList/AddPublishList";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(ApiUri, publishListModel) ?? new();
+            if (apiResponse.Success == true && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("List" + @Localizer["Inserted"]);
+                publishListModel = new();
+                await GetListData();
+                StateHasChanged();
+
+            }
+        }
+        catch
+        {
+            return;
+        }
+
+    }
+    private void OpenSearch()
+    {
+        ShowSearchPopup = true;
+    }
+    private async Task GetListData()
+    {
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.SessionId = CurrentSession;
+        string ApiUri = "PrepareList/GetPublishList";
+        var apiResponse = await httpService.Post<ApiResponse<List<PublishListModel>>>(ApiUri, searchAnyRequest) ?? new();
+        if (apiResponse.Success)
+        {
+            publishList = apiResponse.Data ?? new();
+        }
+    }
+
+    private void ClosePopup()
+    {
+        ShowSearchPopup = false;
+        ShowPopup = false;
+        publishListModel = new();
+        StateHasChanged();
+    }
+
+    // The ONLY place that calls the API - triggered exclusively by the Search
+    // button click (header button, or the popup's Submit which also fires
+    // OnValidSubmit="OnSearch"). Nothing else (radio change, dropdown change,
+    // typing) calls this automatically.
+    private async Task OnSearch()
+    {
+        IsLoading = true;
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.ClassCode = SelectedClassCodes;
+
+        string ApiUri = "PrepareList/GetRegistrationInfoList";
+        var result = await httpService.Post<ApiResponse<List<RegistrationInfoListResponse>>>(ApiUri, searchRequest) ?? new();
+        if (result.Success == true)
+        {
+            leftList = result.Data.ToList();
+
+        }
+        IsLoading = false;
+        ShowSearchPopup = false;
+        StateHasChanged();
+    }
+    private async Task OnSearchPrepareList(string value)
+    {
+        if (rightListFilter == 0)
+        {
+            // await Alert.ShowWarning("Please select a publish list.");
+            StateHasChanged();
+            rightList.Clear();
+            return;
+        }
+        if (value == "ApplicationStatus")
+        {
+
+        }
+        else
+        {
+            searchRequest.ApplicationStatus = "";
+        }
+        IsLoading = true;
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+        searchRequest.ClassCode = SelectedClassCodesRightString;
+        searchRequest.ListNo = rightListFilter;
+        string ApiUri = "PrepareList/GetPublishingListDetails";
+        var result = await httpService.Post<ApiResponse<List<RegistrationInfoListResponse>>>(ApiUri, searchRequest) ?? new();
+        if (result.Success == true)
+        {
+            rightList = result.Data.ToList();
+
+        }
+        else
+        {
+            rightList = new List<RegistrationInfoListResponse>();
+        }
+        IsLoading = false;
+        ShowSearchPopup = false;
+        StateHasChanged();
+    }
+
+    private async Task MoveSelectedToRight()
+    {
+        var selected = leftList.Where(x => x.IsSelected).ToList();
+        if (selected.Count==0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            return;
+        }
+        if (rightListFilter == 0)
+        {
+            await Alert.ShowWarning("Please select a publish list.");
+
+            return;
+        }
+        IsLoading = true;
+
+        try
+        {
+            studentInListRequest.GroupCode = groupcode;
+            studentInListRequest.BranchCode = branchcode;
+            studentInListRequest.SessionId = CurrentSession;
+            studentInListRequest.CreatedBy = username;
+            studentInListRequest.PublishListNo = rightListFilter;
+            studentInListRequest.RegistrationId = string.Join(",", selected.Select(x => x.RegistrationId));
+            string ApiUri = "PrepareList/AddStudentInList";
+
+            var apiresponse = await httpService.Post<ApiResponse<object>>(ApiUri, studentInListRequest);
+
+            if (apiresponse?.Success == true && apiresponse.Code == 1)
+            {
+                await OnSearchPrepareList("");
+                await OnSearch();
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task MoveBackToLeft()
+    {
+        var selected = rightList.Where(x => x.IsSelected).ToList();
+        if (selected.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            return;
+        }
+        if (rightListFilter == 0)
+        {
+            await Alert.ShowWarning("Please select a publish list.");
+
+            return;
+        }
+        IsLoading = true;
+
+        try
+        {
+            studentInListRequest.GroupCode = groupcode;
+            studentInListRequest.BranchCode = branchcode;
+            studentInListRequest.SessionId = CurrentSession;
+            studentInListRequest.CreatedBy = username;
+            studentInListRequest.PublishListNo = rightListFilter;
+            studentInListRequest.RegistrationId = string.Join(",", selected.Select(x => x.RegistrationId));
+            string ApiUri = "PrepareList/DeleteStudentInList";
+
+            var apiresponse = await httpService.Post<ApiResponse<object>>(ApiUri, studentInListRequest);
+
+            if (apiresponse?.Success == true && apiresponse.Code == 1)
+            {
+                await OnSearchPrepareList("");
+                await OnSearch();
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CreateNewList()
+    {
+        ShowPopup = true;
+        publishListModel = new();
+        StateHasChanged();
+    }
+
+    private async Task PublishList()
+    {
+        // var selected = rightList.Where(x => x.IsSelected).ToList();
+        // if (!selected.Any())
+        // {
+        //     await JS.InvokeVoidAsync("showSelectRecordAlert");
+        //     StateHasChanged();
+        //     return;
+        // }
+        if (rightListFilter == 0)
+        {
+            await Alert.ShowWarning("Please select a publish list.");
+
+            return;
+        }
+        IsLoading = true;
+        try
+        {
+            studentInListRequest.GroupCode = groupcode;
+            studentInListRequest.BranchCode = branchcode;
+            studentInListRequest.SessionId = CurrentSession;
+            studentInListRequest.PublishListNo = rightListFilter;
+            string ApiUri = "PrepareList/PublishStudentInList";
+
+            var apiresponse = await httpService.Post<ApiResponse<object>>(ApiUri, studentInListRequest);
+
+            if (apiresponse?.Success == true && apiresponse.Code == 1)
+            {
+                await OnSearch();
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -18,8 +18,10 @@
 @using System.Text.RegularExpressions;
 @using ServerWebUI.Components.AlertComponent
 @using ServerWebUI.Components.Pages.CommonPages
+@using ServerWebUI.Components.Pages.SchoolEnquiry
 @inject IStringLocalizer<Resource> Localizer
-
+@using ApexCharts
+@inject CommonMethod EnquiryState
 <style>
     /* ... same styles as before, unchanged ... */
     .chart-container {
@@ -224,7 +226,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick="GoToEnquiry">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick="GoToRegistration">
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -533,7 +535,7 @@
         <img src="images/loading.gif" alt="Loading..." />
     </div>
 }
-
+@* <Enquiry Dashboardvalue="@SendDashboardvalue" /> *@
 <CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
@@ -547,6 +549,7 @@
     private string branchcode = "";
     private string groupcode = "";
     private string UserName = "";
+    private string SendDashboardvalue = "";
 
     private List<BranchClassModel> classlist = new();
     private List<MonthModel> monthlist = new();
@@ -584,6 +587,14 @@
     };
     private void GoToEnquiry()
     {
+       // SendDashboardvalue="GetEnquiry";
+        EnquiryState.DashboardValue = "GetEnquiry";
+        NavigationManager.NavigateTo("/enquiry");
+        StateHasChanged();
+    }
+    private void GoToRegistration()
+    {
+        EnquiryState.DashboardValue = "GetRegistration";
         NavigationManager.NavigateTo("/enquiry");
         StateHasChanged();
     }
