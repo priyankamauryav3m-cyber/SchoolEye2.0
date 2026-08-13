@@ -59,67 +59,37 @@ namespace Infrastructure.SchoolMaster
 
         // Loops through every row submitted by the editable grid and upserts
         // each one via the stored procedure, collecting the per-row '0'/'1'/'2' result.
-        public async Task<int> AddUpdateGenerationIdConfiguration(List<GenerationIdConfigurationModel> objList)
+        public async Task<int> AddUpdateGenerationIdConfiguration(GenerationIdConfigurationModel x)
         {
             try
             {
-                DataTable dt = new DataTable();
-
-                dt.Columns.Add("Sid", typeof(int));
-                dt.Columns.Add("GroupCode", typeof(string));
-                dt.Columns.Add("BranchCode", typeof(string));
-                dt.Columns.Add("BTCID", typeof(int));
-                dt.Columns.Add("BranchCodeRequired", typeof(bool));
-                dt.Columns.Add("BTCRequired", typeof(bool));
-                dt.Columns.Add("SessionRequired", typeof(bool));
-                dt.Columns.Add("PatternFor", typeof(string));
-                dt.Columns.Add("KeyWord", typeof(string));
-                dt.Columns.Add("PreFix", typeof(string));
-                dt.Columns.Add("KeyValue", typeof(int));
-                dt.Columns.Add("KeyValueLength", typeof(int));
-                dt.Columns.Add("ResetFlag", typeof(bool));
-                dt.Columns.Add("ClassGroup", typeof(string));
-                dt.Columns.Add("IsValid", typeof(bool));
-                dt.Columns.Add("CreatedBy", typeof(string));
-                dt.Columns.Add("SessionId", typeof(long));
-                objList.ForEach(x =>
-                {
-                    dt.Rows.Add(
-                        x.Sid,
-                        x.GroupCode,
-                        x.BranchCode,
-                        x.BTCID.HasValue ? x.BTCID.Value : DBNull.Value,
-                        x.BranchCodeRequired,
-                        x.BTCRequired,
-                        x.SessionRequired,
-                        (object?)x.PatternFor ?? DBNull.Value,
-                        x.KeyWord,
-                        x.PreFix,
-                        x.KeyValue,
-                        x.KeyValueLength,
-                        x.ResetFlag,
-                        (object?)x.ClassGroup ?? DBNull.Value,
-                        x.IsValid,
-                        x.CreatedBy,
-                        (object?)x.SessionId ?? DBNull.Value
-                    );
-                });
-
                 using SqlConnection connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
                 using SqlCommand cmd = new SqlCommand("V3M_InsertUpdate_GenerationIdConfiguration", connection);
-
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                SqlParameter tvp = cmd.Parameters.AddWithValue("@Data", dt);
-                tvp.SqlDbType = SqlDbType.Structured;
-                tvp.TypeName = "dbo.GenerationIdConfigurationType";
+                cmd.Parameters.AddWithValue("@Sid", x.Sid);
+                cmd.Parameters.AddWithValue("@GroupCode", (object?)x.GroupCode ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@BranchCode", (object?)x.BranchCode ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@BTCID", x.BTCID.HasValue ? x.BTCID.Value : DBNull.Value);
+                cmd.Parameters.AddWithValue("@BranchCodeRequired", x.BranchCodeRequired);
+                cmd.Parameters.AddWithValue("@BTCRequired", x.BTCRequired);
+                cmd.Parameters.AddWithValue("@SessionRequired", x.SessionRequired);
+                cmd.Parameters.AddWithValue("@PatternFor", (object?)x.PatternFor ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@KeyWord", (object?)x.KeyWord ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@PreFix", (object?)x.PreFix ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@KeyValue", x.KeyValue);
+                cmd.Parameters.AddWithValue("@KeyValueLength", x.KeyValueLength);
+                cmd.Parameters.AddWithValue("@ResetFlag", x.ResetFlag);
+                cmd.Parameters.AddWithValue("@ClassGroup", (object?)x.ClassGroup ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@IsValid", x.IsValid);
+                cmd.Parameters.AddWithValue("@CreatedBy", (object?)x.CreatedBy ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@SessionId", (object?)x.SessionId ?? DBNull.Value);
 
                 SqlParameter output = new("@ReturnValue", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.Output
                 };
-
                 cmd.Parameters.Add(output);
 
                 await cmd.ExecuteNonQueryAsync();

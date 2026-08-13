@@ -1,3 +1,4 @@
+using DomainModel.Admin;
 using DomainModel.SchoolMaster;
 
 namespace ApplicationInterface.SchoolMaster
@@ -7,9 +8,11 @@ namespace ApplicationInterface.SchoolMaster
 
         public Task<IEnumerable<InteractionPanelModel>> GetAllAsync();
 
-        // public Task<int> AddUpdateInteractionPanel(InteractionPanelModel objPanel);
         public Task<string> AddUpdateInteractionPanel(InteractionPanelModel objPanel);
 
         public Task<int> DeleteInteractionPanelData(int pid);
+        public Task<string> AddUpdateInteractionComments(InteractionCommentsModel model);
+
+        public Task<EmployeeModel> GetEmployeeList(EmployeeModel emp);
     }
 }

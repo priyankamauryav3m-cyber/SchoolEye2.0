@@ -687,7 +687,7 @@ else
         }
         else
         {
-            searchModel.StatusSrc = active == "-3" ? "-3" : "0,1,2";
+            searchModel.StatusSrc = active == "-3" ? "-3" : "0,1";
         }
         searchModel.GroupCode = groupcode;
         searchModel.BranchCode = branchcode;
@@ -698,6 +698,7 @@ else
         }
         if (searchModel.DateFrom.HasValue && searchModel.DateTo.HasValue && searchModel.DateFrom.Value.Date > searchModel.DateTo.Value.Date)
         {
+            ShowPopup = false;
             return;
         }
         IsLoading = true;

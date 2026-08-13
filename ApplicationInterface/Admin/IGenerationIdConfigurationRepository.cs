@@ -10,7 +10,7 @@ namespace ApplicationInterface.SchoolMaster
         public Task<IEnumerable<KeyWordModel>> GetAllKeyword();
 
         // Bulk save: the editable grid submits the whole list at once.
-        public Task<int> AddUpdateGenerationIdConfiguration(List<GenerationIdConfigurationModel> objList);
+        public Task<int> AddUpdateGenerationIdConfiguration(GenerationIdConfigurationModel objList);
 
         public Task<int> DeleteGenerationIdConfigurationData(int sid);
     }

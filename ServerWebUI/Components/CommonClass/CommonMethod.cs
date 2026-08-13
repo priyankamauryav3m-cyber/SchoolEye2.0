@@ -16,7 +16,7 @@ namespace ServerWebUI.Components.CommonClass
     {
         private readonly IJSRuntime JS;
         private readonly IHttpService _http;
-
+        public string? DashboardValue { get; set; }
 
         private List<SessionModel> sessionlist = new();
         public string sessionvalue { get; set; }

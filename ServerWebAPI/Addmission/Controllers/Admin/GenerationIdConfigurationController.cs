@@ -42,9 +42,9 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
             }
         }
         [HttpPost("AddOrUpdateGenerationIdConfiguration")]
-        public async Task<IActionResult> AddUpdateGenerationIdConfiguration([FromBody] List<GenerationIdConfigurationModel> objList)
+        public async Task<IActionResult> AddUpdateGenerationIdConfiguration([FromBody] GenerationIdConfigurationModel objList)
         {
-            if (objList == null || !objList.Any())
+            if (objList == null )
             {
                 return BadRequest(new ApiResponse<object>
                 {

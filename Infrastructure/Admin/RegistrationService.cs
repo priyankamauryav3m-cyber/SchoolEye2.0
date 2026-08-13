@@ -348,16 +348,11 @@ namespace Infrastructure.SuperAdmin
             {
                 using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
-
                 var parameters = new DynamicParameters();
-
-                // ===== BASIC =====
                 parameters.Add("@GroupCode", res.GroupCode);
                 parameters.Add("@BranchCode", res.BranchCode);
                 parameters.Add("@SessionId", res.SessionId);
                 parameters.Add("@RegistrationId", res.RegistrationId);
-
-                // ===== FATHER =====
                 parameters.Add("@FatherTitle", res.FatherTitle);
                 parameters.Add("@FatherName", res.FatherName);
                 parameters.Add("@FatherMiddleName", res.FatherMiddleName);
@@ -380,8 +375,6 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@fatherSchool", res.FatherSchool);
                 parameters.Add("@fatherAadharNo", res.FatherAadharNo);
                 parameters.Add("@FatherPlaceOfBirth", res.FatherPlaceOfBirth);
-
-                // ===== MOTHER =====
                 parameters.Add("@MotherTitle", res.MotherTitle);
                 parameters.Add("@MotherName", res.MotherName);
                 parameters.Add("@MotherMiddleName", res.MotherMiddleName);
@@ -405,7 +398,6 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@motherSchool", res.MotherSchool);
                 parameters.Add("@motherAadharNo", res.MotherAadharNo);
                 parameters.Add("@MotherPlaceOfBirth", res.MotherPlaceOfBirth);
-                // ===== COMMON =====
                 parameters.Add("@SMSMobileNo", res.SMSMobileNo);
                 parameters.Add("@contactEmailId", res.ContactEmailId);
                 parameters.Add("@CreatedBy", res.CreatedBy);
@@ -783,7 +775,7 @@ namespace Infrastructure.SuperAdmin
                 var param = new DynamicParameters();
                 param.Add("@GroupCode", online.GroupCode);
                 param.Add("@BranchCode", online.BranchCode);
-                param.Add("@SessionName", online.SessionName);
+                param.Add("@SessionId", online.SessionId);
                 param.Add("@ClassCode", online.ClassCode);
                 param.Add("@ChildFirstName", online.ChildFirstName?.ToUpper());
                 param.Add("@ChildMiddleName", online.ChildMiddleName ?? "");
@@ -865,7 +857,7 @@ namespace Infrastructure.SuperAdmin
                 throw;
             }
         }
-        public async Task<string> RegistrationCancel(CancelRegistration online)
+        public async Task<string> RegistrationCancel(RegistrationStatus online)
         {
             try
             {
@@ -1013,6 +1005,7 @@ namespace Infrastructure.SuperAdmin
                     cmd.Parameters.AddWithValue("@BranchCode", model.BranchCode);
                     cmd.Parameters.AddWithValue("@SessionId", model.SessionId);
                     cmd.Parameters.AddWithValue("@RegistrationId", model.RegistrationId);
+                    cmd.Parameters.AddWithValue("@CreatedBy", model.CreatedBy);
                     SqlParameter returnParameter = new SqlParameter();
                     returnParameter.Direction = ParameterDirection.ReturnValue;
                     cmd.Parameters.Add(returnParameter);
@@ -1022,5 +1015,201 @@ namespace Infrastructure.SuperAdmin
                 }
             }
         }
+        public async Task<string> DirectAdmissionStatusData(RegistrationStatus online)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", online.GroupCode);
+                param.Add("@BranchCode", online.BranchCode);
+                param.Add("@SessionId", online.SessionId);
+                param.Add("@RegistrationId", online.RegistrationId);
+                param.Add("@CreatedBy", online.CreatedBy);
+                param.Add("@AppStatus", online.AppStatus);
+                //param.Add("@GeneralRemarks", online.GeneralRemarks);
+                //param.Add("@FinanceRemarks", online.FinanceRemarks);
+                int rows = await con.ExecuteAsync(
+                    "V3M_ADM_InsertUpdateRegistrationStatus",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+                return rows.ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<StudentListResponse> AdmitChildAsync(AdmitChildRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var p = new DynamicParameters();
+                p.Add("@GroupCode", request.GroupCode);
+                p.Add("@BranchCode", request.BranchCode);
+                p.Add("@SessionId", request.SessionId);
+                p.Add("@RegistrationId", request.RegistrationId);
+                p.Add("@CreatedBy", request.CreatedBy);
+                p.Add("@StudentNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                p.Add("@ControlNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                p.Add("@LoginId", dbType: DbType.String, size: 30, direction: ParameterDirection.Output);
+                await con.ExecuteAsync("V3M_ADM_UspAdmitChild", p, commandType: CommandType.StoredProcedure);
+                var studentNo = p.Get<string>("@StudentNo") ?? "";
+                var loginId = p.Get<string>("@LoginId") ?? "";
+                if (string.IsNullOrWhiteSpace(studentNo) || string.IsNullOrWhiteSpace(loginId))
+                {
+                    return null;
+                }
+                var student = await con.QueryFirstOrDefaultAsync<StudentListResponse>(
+                 @"SELECT *,CONVERT(VARCHAR(50), DateOfBirth, 103) AS DateOfBirth,(select top 1 isnull(SessionName,'') 
+                from MstBranchSession where CurrentSession=1 and IsValid=1) CurrentSession
+                FROM vwStudentDetails WHERE StudentNo=@StudentNo AND GroupCode=@GroupCode AND BranchCode=@BranchCode AND SessionId=@SessionId",
+                new { StudentNo = studentNo, request.GroupCode, request.BranchCode, request.SessionId });
+
+                if (student == null)
+                {
+                    return null;
+                }
+                var passwordParam = new DynamicParameters();
+                passwordParam.Add("@GroupCode", request.GroupCode);
+                passwordParam.Add("@BranchCode", request.BranchCode);
+                passwordParam.Add("@SessionId", request.SessionId);
+                passwordParam.Add("@StudentName", student.StudentName);
+                passwordParam.Add("@StudentDOBYear", student.DateOfBirth);
+                passwordParam.Add("@StudentPassword", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                await con.ExecuteAsync("UspGenerateStudentPassword", passwordParam, commandType: CommandType.StoredProcedure);
+                var password = passwordParam.Get<string>("@StudentPassword") ?? "";
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    return student;
+                }
+                var encryptedPassword = EncryptPassword(password.Replace("V3M", "+"), useHashing: true);
+                var updateParam = new DynamicParameters();
+                updateParam.Add("@GroupCode", request.GroupCode);
+                updateParam.Add("@BranchCode", request.BranchCode);
+                updateParam.Add("@SessionId", request.SessionId);
+                updateParam.Add("@LoginId", loginId);
+                updateParam.Add("@Password", encryptedPassword);
+                updateParam.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                await con.ExecuteAsync("UspUpdateStudentPassword", updateParam, commandType: CommandType.StoredProcedure);
+                return student;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error while fetching student details: " + ex.Message);
+            }
+        }
+        public async Task<string> VerifyAndTakeDocument(StudentDocumentModel model)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", model.GroupCode);
+                param.Add("@BranchCode", model.BranchCode);
+                param.Add("@SessionId", model.SessionId);
+                param.Add("@RegistrationId", model.RegistrationId);
+                param.Add("@DocumentId", model.DocumentId);
+                param.Add("@CreatedBy", model.CreatedBy);
+
+                param.Add(
+                    "@ReturnValue",
+                    dbType: DbType.String, size: 50, direction: ParameterDirection.Output
+                );
+                await con.ExecuteAsync(
+                    "USP_VerifyAndTakeDocument",
+                    param, commandType: CommandType.StoredProcedure
+                );
+                return param.Get<string>("@ReturnValue") ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<string> DeActivateDocumentData(StudentDocumentModel model)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", model.GroupCode);
+                param.Add("@BranchCode", model.BranchCode);
+                param.Add("@SessionId", model.SessionId);
+                param.Add("@RegistrationId", model.RegistrationId);
+                param.Add("@DocumentId", model.DocumentId);
+                param.Add("@CreatedBy", model.CreatedBy);
+                param.Add(
+                    "@ReturnValue",
+                    dbType: DbType.String, size: 50, direction: ParameterDirection.Output
+                );
+                await con.ExecuteAsync(
+                    "USP_DeActivateDocument",
+                    param, commandType: CommandType.StoredProcedure
+                );
+                return param.Get<string>("@ReturnValue") ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<ClassRegistrationDocumentsResponse>> GetClassRegistrationDocumentsAsync(ClassRegistrationDocumentsRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@DocumentType", request.DocumentType);
+                param.Add("@RegistrationId", request.RegistrationId);
+                return await con.QueryAsync<ClassRegistrationDocumentsResponse>(
+                    "USP_GetClassRegistrationDocuments",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"GetClassRegistrationDocuments Error: {ex.Message}");
+
+                throw;
+            }
+        }
+        public async Task<IEnumerable<RegistrationStatusResponse>> GetRegistrationStatusData(RegistrationRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var parameters = new DynamicParameters();
+                parameters.Add("@GroupCode", request.GroupCode);
+                parameters.Add("@BranchCode", request.BranchCode);
+                parameters.Add("@RegistrationNo", request.RegistrationNo);
+                parameters.Add("@SessionId", request.SessionId);
+                var result = await con.QueryAsync<RegistrationStatusResponse>(
+                    "ADM_UspGetRegistrationStatus",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
     }
+
 }

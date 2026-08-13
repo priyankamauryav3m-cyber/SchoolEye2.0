@@ -17,7 +17,7 @@
 @rendermode InteractiveServer
 
 <style>
-    .grid-box-with-btn .gic-input {
+    .grid-box .gic-input {
         width: 100%;
         border: none;
         border-bottom: 1px solid #d9dce3;
@@ -30,12 +30,12 @@
         border-radius: 0;
     }
 
-        .grid-box-with-btn .gic-input:focus {
+        .grid-box .gic-input:focus {
             border-bottom: 1px solid #4a6cf7;
             background: #f7f9ff;
         }
 
-    .grid-box-with-btn .gic-checkbox {
+    .grid-box .gic-checkbox {
         width: 16px;
         height: 16px;
         cursor: pointer;
@@ -105,7 +105,8 @@
             <div class="card">
                 <div class="card-body table-card p-0 scrollbar-thin">
                     <div class="quick-main">
-                        <div class="grid-box-with-btn">
+                        <div class="grid-box">
+                          
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
                                 <TemplateColumn Title="Keyword" Sortable="true" SortBy="GridSort<ConfigRowVm>.ByAscending(x=>x.Data.KeyWord)" Align="Align.Left">
                                     <ChildContent>
@@ -132,7 +133,6 @@
                                         </div>
                                     </ColumnOptions>
                                 </TemplateColumn>
-
                                 <TemplateColumn Sortable="true" SortBy="GridSort<ConfigRowVm>.ByAscending(x => x.Data.PreFix)" Title="Prefix" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
@@ -193,7 +193,7 @@
                                     </ChildContent>
                                 </TemplateColumn>
 
-                                <TemplateColumn Title="Pattern For" Align="Align.Left">
+                               @*  <TemplateColumn Title="Pattern For" Align="Align.Left">
                                     <ChildContent>
                                         @if (context.IsEditing)
                                         {
@@ -229,7 +229,7 @@
                                             @(context.Data.BTCRequired ? "Yes" : "No")
                                         }
                                     </ChildContent>
-                                </TemplateColumn>
+                                </TemplateColumn> *@
                                 <TemplateColumn Class="text-center" Title="Reset Flag" Align="Align.Center">
                                     <ChildContent>
                                         @if (context.IsEditing)
@@ -265,7 +265,27 @@
                                         </span>
                                     </ChildContent>
                                 </TemplateColumn>
+                                <TemplateColumn Class="text-center" Title="Action" Align="Align.Center">
+                                    <ChildContent>
+                                        @if (context.IsEditing)
+                                        {
 
+                                            <button class="btn btn-sm btn-success me-1" title="Save" @onclick="() => SubmitIdGeneration(context)">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+
+                                            <button class="btn btn-sm btn-secondary" title="Cancel" @onclick="() => CancelEdit(context)">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-primary" title="Edit" @onclick="() => context.IsEditing = true">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                        }
+                                    </ChildContent>
+                                </TemplateColumn>
 
                             </QuickGrid>
                         </div>
@@ -277,16 +297,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 p-1">
-            <div class="page-heading d-flex align-items-center justify-content-end">
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="table-btn" @onclick="SubmitPassword">
-                        Submit
-                    </button>
                 </div>
             </div>
         </div>
@@ -361,6 +371,16 @@ else
     private string? SetPassword;
     private string PasswordError = "";
     private string nameFilter = "";
+   
+    private void CancelEdit(ConfigRowVm row)
+    {
+        row.IsEditing = false;
+        if (row.Data.Sid == 0)
+        {
+            gridRows.Remove(row);
+        }
+    }
+    
     private async Task SubmitPassword()
     {
         SetPassword = "";
@@ -414,7 +434,7 @@ else
         }
         ShowPopup = false;
         SetPassword = "";
-        await SubmitIdGeneration();
+      //  await SubmitIdGeneration();
     }
     private void ClosePopup()
     {
@@ -440,6 +460,7 @@ else
     {
         public GenerationIdConfigurationModel Data { get; set; } = new();
         public bool IsEditing { get; set; } = false;
+
     }
 
     protected override void OnInitialized()
@@ -475,7 +496,7 @@ else
         IsLoading = true;
         string ApiUri = $"GenerationIdConfiguration/GetGenerationIdConfiguration/{CurrentSession}";
         var data = await httpService.Get<List<GenerationIdConfigurationModel>>(ApiUri) ?? new();
-        gridRows = data.Select(x => new ConfigRowVm { Data = x, IsEditing = true }).ToList();
+        gridRows = data.Select(x => new ConfigRowVm { Data = x, IsEditing = false }).ToList();
         schoolbranchcode= gridRows[0].Data.BranchCode;
         StateHasChanged();
         IsLoading = false;
@@ -567,8 +588,7 @@ else
             StateHasChanged();
         }
     }
-
-    private async Task SubmitIdGeneration()
+    private async Task SubmitIdGeneration(ConfigRowVm row)
     {
         try
         {
@@ -578,49 +598,47 @@ else
                 return;
             }
 
-            var editedRows = gridRows.Where(x => x.IsEditing || x.Data.Sid == 0).ToList();
-
-            if (!editedRows.Any())
+            if (string.IsNullOrWhiteSpace(row.Data.KeyWord))
             {
-                await Alert.ShowWarning("No changes to save.");
+                await Alert.ShowWarning("Keyword is required.");
+                return;
+            }
+            else if (string.IsNullOrWhiteSpace(row.Data.PreFix))
+            {
+                await Alert.ShowWarning("Prefix is required.");
+                return;
+            }
+            else if (row.Data.KeyValue <= 0)
+            {
+                await Alert.ShowWarning("Key Value must be greater than 0.");
+                return;
+            }
+            else if (row.Data.KeyValueLength <= 0)
+            {
+                await Alert.ShowWarning("Key Value Length must be greater than 0.");
                 return;
             }
 
-            foreach (var row in editedRows)
-            {
-                if (string.IsNullOrWhiteSpace(row.Data.KeyWord) || string.IsNullOrWhiteSpace(row.Data.PreFix) || row.Data.KeyValue <= 0 || row.Data.KeyValueLength <= 0)
-                {
-                    await Alert.ShowWarning("Keyword, Prefix, Key Value and Key Value Length are required for all rows.");
-                    return;
-                }
-
-                row.Data.SessionId = CurrentSession;
-                row.Data.GroupCode = groupcode ?? string.Empty;
-                row.Data.BranchCode = schoolbranchcode ?? string.Empty;
-                row.Data.IsValid = true;
-                row.Data.CreatedBy = username;
-                row.Data.CreatedDate = DateTime.Now;
-            }
+            row.Data.SessionId = CurrentSession;
+            row.Data.GroupCode = groupcode ?? string.Empty;
+            row.Data.BranchCode = schoolbranchcode ?? string.Empty;
+            row.Data.IsValid = true;
+            row.Data.CreatedBy = username;
+            row.Data.CreatedDate = DateTime.Now;
 
             bool isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
             if (!isConfirmed)
                 return;
 
             string apiUrl = "GenerationIdConfiguration/AddOrUpdateGenerationIdConfiguration";
-            var payload = editedRows.Select(x => x.Data).ToList();
-            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, payload);
 
-            if (apiResponse.Code == 0)
-            {
+            // Sirf ek object jayega, list nahi
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, row.Data);
 
-            }
-            else if (apiResponse.Success)
-            {
-
-            }
             if (apiResponse.Code == 0)
             {
                 await Alert.ShowWarning("Keyword" + @Localizer["Already"]);
+                return;
             }
             else if (apiResponse.Code == 1)
             {
@@ -635,6 +653,7 @@ else
                 return;
             }
 
+            row.IsEditing = false;
             await LoadData();
         }
         catch (Exception ex)
@@ -646,4 +665,84 @@ else
             StateHasChanged();
         }
     }
+
+
+    // private async Task SubmitIdGeneration()
+    // {
+    //     try
+    //     {
+    //         if (CurrentSession == 0)
+    //         {
+    //             await Alert.ShowWarning("Please select a Session.");
+    //             return;
+    //         }
+
+    //         var editedRows = gridRows.Where(x => x.IsEditing || x.Data.Sid == 0).ToList();
+
+    //         if (!editedRows.Any())
+    //         {
+    //             await Alert.ShowWarning("No changes to save.");
+    //             return;
+    //         }
+
+    //         foreach (var row in editedRows)
+    //         {
+    //             if (string.IsNullOrWhiteSpace(row.Data.KeyWord) || string.IsNullOrWhiteSpace(row.Data.PreFix) || row.Data.KeyValue <= 0 || row.Data.KeyValueLength <= 0)
+    //             {
+    //                 await Alert.ShowWarning("Keyword, Prefix, Key Value and Key Value Length are required for all rows.");
+    //                 return;
+    //             }
+
+    //             row.Data.SessionId = CurrentSession;
+    //             row.Data.GroupCode = groupcode ?? string.Empty;
+    //             row.Data.BranchCode = schoolbranchcode ?? string.Empty;
+    //             row.Data.IsValid = true;
+    //             row.Data.CreatedBy = username;
+    //             row.Data.CreatedDate = DateTime.Now;
+    //         }
+
+    //         bool isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+    //         if (!isConfirmed)
+    //             return;
+
+    //         string apiUrl = "GenerationIdConfiguration/AddOrUpdateGenerationIdConfiguration";
+    //         var payload = editedRows.Select(x => x.Data).ToList();
+    //         var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, payload);
+
+    //         if (apiResponse.Code == 0)
+    //         {
+
+    //         }
+    //         else if (apiResponse.Success)
+    //         {
+
+    //         }
+    //         if (apiResponse.Code == 0)
+    //         {
+    //             await Alert.ShowWarning("Keyword" + @Localizer["Already"]);
+    //         }
+    //         else if (apiResponse.Code == 1)
+    //         {
+    //             await Alert.ShowSuccess("Generation Id Configuration" + @Localizer["Inserted"]);
+    //         }
+    //         else if (apiResponse.Code == 2)
+    //         {
+    //             await Alert.ShowSuccess("Generation Id Configuration" + @Localizer["Updated"]);
+    //         }
+    //         else
+    //         {
+    //             return;
+    //         }
+
+    //         await LoadData();
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         await Alert.ShowCustomAlert(@Localizer["Admin"]);
+    //     }
+    //     finally
+    //     {
+    //         StateHasChanged();
+    //     }
+    // }
 }

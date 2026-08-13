@@ -1,5 +1,7 @@
 using ApplicationInterface.SchoolMaster;
 using Dapper;
+using DocumentFormat.OpenXml.EMMA;
+using DomainModel.Admin;
 using DomainModel.SchoolMaster;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -88,5 +90,65 @@ namespace Infrastructure.SchoolMaster
                 throw new Exception("Error while inserting/updating Interaction Panel", ex);
             }
         }
+        public async Task<string> AddUpdateInteractionComments(InteractionCommentsModel model)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@IID", model.IID);
+                param.Add("@GroupCode", model.GroupCode);
+                param.Add("@BranchCode", model.BranchCode);
+                param.Add("@SessionId", model.SessionId);
+                param.Add("@RegistrationId", model.RegistrationId);
+                param.Add("@InteractionBy", model.InteractionBy);
+                param.Add("@InteractionComments", model.InteractionComments);
+                param.Add("@IsApproved", model.IsApproved);
+                param.Add("@StarRating", model.StarRating);
+                param.Add("@FileName", model.FileName);
+                param.Add("@FilePath", model.FilePath);
+                param.Add("@GeneralRemarks", model.GeneralRemarks);
+                param.Add("@FinanceRemarks", model.FinanceRemarks);
+                param.Add("@IsValid", model.IsValid);
+                param.Add("@CreatedBy", model.CreatedBy);
+                param.Add("@Recommendation ", model.Recommendation);
+                param.Add("@ReturnValue", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(
+                    "USP_ADM_InteractionComments",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return param.Get<string>("@ReturnValue") ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<EmployeeModel?> GetEmployeeList(EmployeeModel emp)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", emp.GroupCode);
+                param.Add("@BranchCode", emp.BranchCode);
+
+                return await con.QueryFirstOrDefaultAsync<EmployeeModel>(
+                    "USP_GetEmployeeData",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 }

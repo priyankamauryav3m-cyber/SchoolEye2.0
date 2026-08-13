@@ -352,7 +352,7 @@ namespace Infrastructure.FileGenerate
                                 table.Cell().Border(1).Padding(5).Text(value ?? "");
                             }
 
-                            Row("Registration No.", student.StudentNo);
+                            Row("Registration No.", student.RegistrationNo);
                             Row("Admission No. Allotted", student.AdmissionNo);
                             Row("Date of Admission", student.AdmissionDate);
                             Row("Name of the Student", student.StudentName);
@@ -360,14 +360,14 @@ namespace Infrastructure.FileGenerate
                             Row("Father's Name", student.FatherName);
                             Row("Mother's Name", student.MotherName);
                             Row("Date of Birth", student.DateOfBirth);
-                            Row("Address", "GGN, Gkdjkh - U2331");
+                            Row("Address", student.Address);
                             Row("SMS Mobile", student.SMSMobileNo);
                             Row("Father's Mobile", student.SMSMobileNo);
                             Row("Mother's Mobile", student.SMSMobileNo);
-                            Row("Contact Email", "abhishek@gmail.com");
+                            Row("Contact Email", student.FatherEmail);
                             Row("Class Admitted", student.ClassName);
                             Row("Date of Fee Deposit", "");
-                            Row("Mode of Payment", "Cash");
+                            Row("Mode of Payment", student.PaymentMode);
                         });
                         col.Item().Container()
                        .Border(1)

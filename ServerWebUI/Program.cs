@@ -206,6 +206,8 @@ try
     builder.Services.AddApexCharts();
     builder.Services.AddScoped<PermissionState>();
     builder.Services.AddScoped<BookmarkState>();
+    builder.Services.AddScoped<CommonMethod>();
+    builder.Services.AddScoped<MenuState>();
     builder.Services.AddScoped(sp =>
     {
         var settings = sp.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;

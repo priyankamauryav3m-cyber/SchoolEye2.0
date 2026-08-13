@@ -4,7 +4,7 @@
 @if (AddAction)
 {
     <button class="ui fade op-1 animated button form-btn" @onclick="AdmitClick">
-        <div class="visible content justify-content-center">Add</div>
+        <div class="visible content justify-content-center">@ButtonText</div>
         <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
     </button>
 }
@@ -53,7 +53,8 @@
     [Parameter] public EventCallback Add { get; set; }
     [Parameter] public EventCallback Delete { get; set; }
     [Parameter] public string CurrentUrl { get; set; }
-    private bool AddAction => Add.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action1);
+    [Parameter] public string ButtonText { get; set; }="Add";
+    private bool AddAction => Add.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action1); 
     private bool EditAction => OnEditClick.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action2);
     private bool DeleteAction => OnStatusClick.HasDelegate && PermissionState.HasPermission(CurrentUrl, x => x.Action3);
     [Parameter] public EventCallback OnStatusClick { get; set; }

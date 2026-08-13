@@ -2636,6 +2636,7 @@
         registrationStatusModel.BranchCode = branchcode;
         registrationStatusModel.SessionId = SessionId;
         registrationStatusModel.RegistrationId = RegId;
+        registrationStatusModel.CreatedBy = username;
         var apiresponse = await httpService.Post<ApiResponse<object>>("Registration/UpdateStudentStatus", registrationStatusModel);
         if (apiresponse.Success && apiresponse.Code == 2)
         {

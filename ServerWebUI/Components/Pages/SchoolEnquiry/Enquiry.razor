@@ -16,6 +16,7 @@
 @inject HttpClient Http
 @inject SweetAlertService Alert
 @rendermode InteractiveServer
+@inject CommonMethod EnquiryState
 <style>
     .quickgrid thead th:nth-last-child(2) {
         min-width: 75px;
@@ -93,10 +94,57 @@
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
+            <PageHeading >
+
+                <div class="form-box">
+                    <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                        <option value="0">-- Select Session --</option>
+
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">
+                                @data.SessionName
+                            </option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup"
+                                @onclick="OpenSearch"
+                                data-id="popup"
+                                tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn"
+                            tabindex="0"
+                            @onclick='() => SearchStudent("Enquiry")'>
+
+                        <div class="visible content">
+                            Search
+                        </div>
+
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+
+                    </button>
+                </div>
+
+                <div class="form-box">
+                    <ActionButtonGroup CurrentUrl="@currentUrl"
+                                       Add="AddEnquiry" />
+                </div>
+
+            </PageHeading>
+            @* <div class="page-heading d-flex align-items-center justify-content-between">
                 <p class="m-0 page-name px-1">
                     Enquiry
-                    @* <NavigationPage /> *@
                 </p>
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
@@ -129,7 +177,7 @@
 
                     </div>
                 </div>
-            </div>
+            </div> *@
         </div>
         <div class="col-12 p-1">
             <div class="card">
@@ -777,6 +825,11 @@ else
 <CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
+    // [Parameter] public string? Dashboardvalue { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "key")]
+    public string? EncryptedValue { get; set; }
+    public string? Dashboardvalue { get; set; }
     private CustomAlert customAlert;
     private bool IsLoading = false;
     private CountryModel country = new();
@@ -813,22 +866,38 @@ else
     {
         OpenRegPopup = true;
     }
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         PermissionState.OnChange += StateHasChanged;
         currentUrl = Nav.Uri;
+
         StateHasChanged();
     }
+    private bool _dataLoaded;
+
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadData();
             CurrentSession = await CommonMethod.SetCurrentSessionData();
-            await SearchStudent("");
+            await LoadData();
+            var dashboardValue = EnquiryState.DashboardValue;
+            if (!string.IsNullOrWhiteSpace(dashboardValue))
+            {
+                await SearchStudent(dashboardValue);
+                EnquiryState.DashboardValue = null;
+            }
             StateHasChanged();
         }
+
     }
+    // protected override async Task OnParametersSetAsync()
+    // {
+
+       
+    //     StateHasChanged();
+    // }
     private async Task NewRegistrations()
     {
         var data = moduleQuery.Where(x => x.IsSelected).ToList();
@@ -930,7 +999,7 @@ else
 
     private async Task SearchStudent(string value)
     {
-
+        // value = Dashboardvalue;
 
         requestlist.GroupCode = groupcode;
         requestlist.BranchCode = branchcode;
@@ -939,11 +1008,16 @@ else
         {
 
         }
-        else
+        else if (value == "GetRegistration")
         {
             requestlist.FromDate=null;
             requestlist.ToDate=null;
             requestlist.RegistrationNo="0";
+        }
+        else if (value == "GetEnquiry")
+        {
+            requestlist.FromDate = null;
+            requestlist.ToDate = null;
         }
         IsLoading = true;
         ShowPopup = false;
