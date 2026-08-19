@@ -598,7 +598,7 @@
                     <h5 class="modal-title">Menu Activity</h5>
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
-                <EditForm Model="@controlAccess" OnSubmit="OnSuperAdminSave">
+                @* <EditForm Model="@controlAccess" OnSubmit="OnSuperAdminSave"> *@
                     <div class="modal-body">
                         <input type="hidden" name="__RequestVerificationToken" />
                         <div class="form-row row gap-10-0 pl-3 fix-row-div">
@@ -611,9 +611,9 @@
                                 </div>
                             </div>
                             <div class="col-12 col-sm-6 col-md-6 mt-3">
-                                <form class="expanding-search-form">
+                                <div class="expanding-search-form">
                                     <input id="global-search" type="search" placeholder="Search by module name..." class="form-input w-webkit" @bind="SearchText" @bind:event="oninput" />
-                                </form>
+                                </div>
                             </div>
                             <div class="col-12">
                                 <div class="divider-box d-flex justify-content-between align-items-center gap-2">
@@ -799,7 +799,6 @@
 
 
                                     </div>
-
                                 </div>
                             </div>
 
@@ -810,9 +809,9 @@
                             Total Modules : @TotalModuleCount
                         </span>
                         <div class="form-group btn-gr">
-                            <button type="submit" class="ui fade op-1 animated button form-btn">
+                            <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSuperAdminSave">
                                 <div class="visible content">Save</div>
-                                <div class="hidden content">
+                                <div class="hidden content">    
                                     <i class="fa fa-save"></i>
                                 </div>
                             </button>
@@ -825,7 +824,7 @@
                             </button>
                         </div>
                     </div>
-                </EditForm>
+                @* </EditForm> *@
             </div>
         </div>
     </div>

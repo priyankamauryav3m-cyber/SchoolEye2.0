@@ -16,7 +16,7 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <PageHeading >
+            <PageHeading>
                 <div class="form-box">
                     <InputSelect @bind-Value="@CurrentSession" class="form-input">
                         <option value="0">-- Select Session --</option>
@@ -61,14 +61,28 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StatusDate) ? " " : x.StatusDate)" Title="Status Date" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
                                     <ChildContent>
-                                        @if (context.IsDone == 1)
+                                        @* @if (context.IsDone == 1)
                                         {
                                             <i class="bi bi-check-circle-fill" style="color:#28a745; font-size:18px;"></i>
                                         }
                                         else
                                         {
                                             <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
-                                        }
+                                        } *@
+                                        <div class="text-center">
+                                            @if (context.IsDone == 1)
+                                            {
+                                                <span class="badge rounded-pill bg-success"> Success </span>
+                                            }
+                                            else if (context.StatusName == "Registration")
+                                            {
+                                                <span class="badge rounded-pill bg-primary"> Done </span> 
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill bg-warning text-dark"> Pending.. </span>
+                                            }
+                                        </div>
                                     </ChildContent>
                                 </TemplateColumn>
                             </QuickGrid>

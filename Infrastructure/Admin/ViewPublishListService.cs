@@ -44,6 +44,29 @@ namespace Infrastructure.Admin
                 throw;
             }
         }
+        public async Task<bool> UpdateAdmissionActiveList(PublishingListRequest model)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", model.GroupCode);
+                param.Add("@BranchCode", model.BranchCode);
+                param.Add("@SessionId", model.SessionId);
+                param.Add("@ListNo", model.ListNo);
+                await con.ExecuteAsync(
+                    "UspUpdateAdmissionActiveList",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
 
     }
 }

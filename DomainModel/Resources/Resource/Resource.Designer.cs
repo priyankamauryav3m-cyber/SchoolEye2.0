@@ -772,7 +772,7 @@ namespace DomainModel.Resources.Resource {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to saved successfully!.
+        ///   Looks up a localized string similar to   saved successfully!.
         /// </summary>
         public static string Saved {
             get {

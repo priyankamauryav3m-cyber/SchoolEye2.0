@@ -35,8 +35,19 @@ window.showUpdateConfirm = function () {
     }).then(result => result.isConfirmed);
 };
 
+// window.showSelectRecordAlert = function () {
+//     Swal.fire({
+//         icon: 'warning',
+//         title: 'Please select a record !',
+//         timer: 10000,
+//         timerProgressBar: true,
+//         confirmButtonText: 'OK',
+//         allowOutsideClick: true,
+//         allowEscapeKey: true
+//     });
+// };
 window.showSelectRecordAlert = function () {
-    Swal.fire({
+    return Swal.fire({
         icon: 'warning',
         title: 'Please select a record !',
         timer: 10000,

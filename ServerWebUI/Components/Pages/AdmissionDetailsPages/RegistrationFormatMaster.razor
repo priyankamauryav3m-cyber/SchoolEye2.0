@@ -110,13 +110,13 @@
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table table-striped table-bordered">
 
                                 @* <PropertyColumn Property="@(x => x.Name)" Title="FARMATE NAME" /> *@
-                                <TemplateColumn Title="F0RMAT NAME" Sortable="true" SortBy="@(GridSort<CommonDomainLarge>.ByAscending(x => x.Name))" Align="Align.Left">
+                                <TemplateColumn Title="Formate Name" Sortable="true" SortBy="@(GridSort<CommonDomainLarge>.ByAscending(x => x.Name))" Align="Align.Left">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.Name) ? " " : context.Name)
                                     </ChildContent>
 
                                 </TemplateColumn>
-                                <TemplateColumn Title="EMAIL TEXT" Align="Align.Left">
+                                <TemplateColumn Title="Email Text" Align="Align.Left">
                                     <ChildContent>
                                         <div @onclick="() => ShowFullText(context.EmailText)" class="sms-text" title="@context.EmailText">
                                             @(string.IsNullOrWhiteSpace(context.EmailText) ? " " : context.EmailText)
@@ -124,7 +124,7 @@
                                     </ChildContent>
 
                                 </TemplateColumn>
-                                <TemplateColumn Title="SMS TEXT" Align="Align.Left">
+                                <TemplateColumn Title="SMS Text" Align="Align.Left">
                                     <ChildContent>
                                         <div @onclick="() => ShowFullText(context.SMSText)" class="sms-text" title="@context.SMSText">
                                             @(string.IsNullOrWhiteSpace(context.SMSText) ? " " : context.SMSText)
@@ -136,9 +136,9 @@
                                         @(string.IsNullOrWhiteSpace(context.StartDate) ? " " : context.StartDate)
                                     </ChildContent>
                                 </TemplateColumn> *@
-                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.StartDate)" Sortable="true" Title="START DATE" />
-                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.EndDate)" Sortable="true" Title="END DATE" />
-                                <TemplateColumn Title="START TIME" Align="Align.Left">
+                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.StartDate)" Sortable="true" Title="Start Date" />
+                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.EndDate)" Sortable="true" Title="End Date" />
+                                <TemplateColumn Title="Start Time" Align="Align.Left">
                                     <ChildContent>
                                         @{
                                             DateTime time;
@@ -146,7 +146,7 @@
                                         @(DateTime.TryParse(context.StartTime, out time) ? time.ToString("HH:mm") : " ")
                                     </ChildContent>
                                 </TemplateColumn>
-                                <TemplateColumn Title="END TIME" Align="Align.Left">
+                                <TemplateColumn Title="End Time" Align="Align.Left">
                                     <ChildContent>
                                         @{
                                             DateTime time;
@@ -156,7 +156,7 @@
 
                                 </TemplateColumn>
 
-                                <TemplateColumn class="text-center" Title="ISSMS" Align="Align.Center">
+                                <TemplateColumn class="text-center" Title="Is Sms" Align="Align.Center">
                                     <ChildContent>
                                         <div>
                                             @if (context.isSMS == true)
@@ -172,7 +172,7 @@
                                     </ChildContent>
 
                                 </TemplateColumn>
-                                <TemplateColumn class="text-center" Title="ISEMAIL" Align="Align.Center">
+                                <TemplateColumn class="text-center" Title="Is Email" Align="Align.Center">
                                     <ChildContent>
                                         <div>
                                             @if (context.isEmail == true)
@@ -189,13 +189,13 @@
 
                                 </TemplateColumn>
 
-                                <TemplateColumn Title="DESCRIPTION" Align="Align.Left">
+                                <TemplateColumn Title="Description" Align="Align.Left">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.Description) ? " " : context.Description)
                                     </ChildContent>
                                 </TemplateColumn>
                                 @* <PropertyColumn Property="@(x => x.Description)" Title="DESCRIPTION" /> *@
-                                <TemplateColumn Title="STATUS" Class="text-center" Align="Align.Center">
+                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
                                     @if (context.IsValid)
                                     {
                                         <img class="grid-status" src="/images/status-success.png" />

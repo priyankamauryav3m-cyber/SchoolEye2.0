@@ -1,6 +1,7 @@
 ﻿using ApplicationInterface.FinanceMNGT;
 using ApplicationInterface.FinanceMNGT.FeeMNGTMasters;
 using Azure.Core;
+using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -505,6 +506,199 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
+        [HttpPost("VerifyAndTakeDocument")]
+        public async Task<IActionResult> VerifyAndTakeDocument([FromBody] StudentDocumentModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                var result = await _service.VerifyAndTakeDocument(model);
+                return result switch
+                {
+                    "1" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Document verified and saved successfully.",
+                        Code = 1
+                    }),
+                    _ => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Unknown operation result"
+                    })
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while verifying the document."
+                });
+            }
+        }
 
-    }
+        //[HttpPost("GetClassStudentDocuments")]
+        //public async Task<IActionResult> GetClassStudentDocuments([FromBody] ClassStudentDocumentRequest request)
+        //{
+        //    if (request == null)
+        //    {
+        //        return BadRequest(new ApiResponse<object>
+        //        {
+        //            Success = false,
+        //            Message = "Data not found."
+        //        });
+        //    }
+        //    try
+        //    {
+        //        var data = await _service.GetClassStudentDocuments(request);
+        //        if (data == null || !data.Any())
+        //        {
+        //            return Ok(new ApiResponse<object>
+        //            {
+        //                Success = true,
+        //                Message = "No documents found.",
+        //                Code = 0,
+        //                Data = Enumerable.Empty<ClassStudentDocumentModel>()
+        //            });
+        //        }
+        //        return Ok(new ApiResponse<object>
+        //        {
+        //            Success = true,
+        //            Data = data
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Exception: {ex.Message}");
+        //        return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+        //        {
+        //            Success = false,
+        //            Message = "An error occurred while fetching the document checklist."
+        //        });
+        //    }
+        //}
+
+        [HttpPost("DeactivateStudentDocument")]
+        public async Task<IActionResult> DeactivateStudentDocument([FromBody] ClassStudentDocumentRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                await _service.DeactivateStudentDocument(request);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Student document deactivated successfully.",
+                    Code = 1
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while deactivating the document."
+                });
+            }
+        }
+
+        #region Handover Dose
+
+        [HttpPost("HandoverStudentDocument")]
+        public async Task<IActionResult> HandoverStudentDocumentData([FromBody] StudentDocumentModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                var result = await _service.HandoverStudentDocumentData(model);
+                return result switch
+                {
+                    "-1" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Data Allready Exist.",
+                        Code = 1
+                    }),
+                    "1" => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Handover verified and saved successfully.",
+                        Code = 2
+                    }),
+                    _ => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Unknown operation result"
+                    })
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while verifying the Handover."
+                });
+            }
+        }
+
+        [HttpPost("UnMapStudentHandoverDocument")]
+        public async Task<IActionResult> UnMapStudentHandoverDocumentData([FromBody] ClassStudentDocumentRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                await _service.UnMapStudentHandoverDocumentData(request);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Student Handover UnMap successfully.",
+                    Code = 1
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while deactivating the Handover."
+                });
+            }
+        }
+        #endregion
+
+    }   
 }

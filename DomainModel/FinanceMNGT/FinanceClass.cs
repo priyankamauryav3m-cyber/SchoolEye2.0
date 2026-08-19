@@ -805,18 +805,61 @@ namespace DomainModel.FinanceMNGT
         public string? AdmissionDate { get; set; }
 
     }
+    public class EnquiryListResponseDto : CommonClass
+    {
+        public int EnquiryId { get; set; }
+        public string? EnquiryNo { get; set; }
+        public string? StudentFirstName { get; set; }
+        public string? StudentMiddleName { get; set; }
+        public string? StudentLastName { get; set; }
+        public string? FatherName { get; set; }
+        public string? MobileNo { get; set; }
+        public string? Gender { get; set; }
+        public DateTime DateOfBirth { get; set; } = DateTime.Today;
+        //public DateTime DOB { get; set; } = DateTime.Today;
+        public string? ClassName { get; set; }
+        public DateTime EnquiryDate { get; set; } = DateTime.Today;
+        public int EnquiryStatus { get; set; }
+        public int IsOnline { get; set; }
+        public string? RegistrationNo { get; set; }
+        public long? RegistrationId { get; set; }
+        public string? LastFollowUpId { get; set; }
+        public string? NextDate { get; set; }
+        public string? NextFollowupDate { get; set; }
+        public string? FollowUpRemark { get; set; }
+        public int FollowupStatus { get; set; }
+        public string? ClassCode { get; set; }
+        public string? MotherName { get; set; }
+        //[RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        public string? Email { get; set; }
+
+        public string? ContactNo { get; set; }
+        public string? SourceOfEnquiry { get; set; }
+        public string? Address { get; set; }
+        public string? Remarks { get; set; }
+        public string? Area { get; set; }
+        public string? EnquiryType { get; set; }
+        public string? LastSchool { get; set; }
+
+        public string? EnquiryConverttoReg { get; set; }
+        public string? RegistrationDate { get; set; }
+        public string? ConvertedRegtoAdm { get; set; }
+        public string? AdmissionDate { get; set; }
+
+    }
     public class EnquiryRequestDto : CommonClass
     {
 
         public string? Course { get; set; }
         public DateTime? FromDate { get; set; } = DateTime.Today;
         public DateTime? ToDate { get; set; } = DateTime.Today;
-        public string? DateWorkAs { get; set; }
+        public string? DateWorkAs { get; set; } = "0";
         public string? FollowStatus { get; set; }
         public string? AppliedFrom { get; set; }
         public string? StudentName { get; set; }
         public string? MobileNo { get; set; }
         public string? RegistrationNo { get; set; }
+        public string? Source { get; set; }
     }
  
     public class AddFollowupRequest : CommonClass

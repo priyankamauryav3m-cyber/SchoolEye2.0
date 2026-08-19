@@ -1748,6 +1748,7 @@ namespace DomainModel.Admin
         public int TotalRegistration { get; set; }
         public int TotalAdmission { get; set; }
         public int TodayAdmission { get; set; }
+        public int TodayConversion { get; set; }
         public int TodayFollowup { get; set; }
         public int PendingRegistration { get; set; }
         public int PendingAdmission { get; set; }
@@ -1949,6 +1950,9 @@ namespace DomainModel.Admin
         [Range(0, 5, ErrorMessage = "Star Rating must be between 0 and 5.")]
         public int StarRating { get; set; }
         public bool Recommendation { get; set; }
+        public string? FinanceDept { get; set; }
+        public string? RemarksPrincipal { get; set; }
+        public string? Remarks { get; set; }
     }
     public class EmployeeModel
     {
@@ -1969,15 +1973,10 @@ namespace DomainModel.Admin
         public string EmpMobileNo { get; set; } = string.Empty;
     }
     #region  -------------------------- Student Document Verification (Admission > Map Documents) -------------
-    public class StudentDocumentModel
+    public class StudentDocumentModel : MNGTCommon
     {
 
         public long ASDID { get; set; }
-        public string? GroupCode { get; set; }
-        public string? BranchCode { get; set; }
-        public long? SessionId { get; set; }
-
-        [Required(ErrorMessage = "Registration Id is required.")]
         public long RegistrationId { get; set; }
 
         [Required(ErrorMessage = "Document Id is required.")]
@@ -1985,13 +1984,11 @@ namespace DomainModel.Admin
 
         [StringLength(500, ErrorMessage = "Remarks cannot exceed 500 characters.")]
         public string? Remarks { get; set; }
-        public DateTime CreatedDate { get; set; }
 
-        [StringLength(50, ErrorMessage = "Created By cannot exceed 50 characters.")]
-        public string CreatedBy { get; set; } = string.Empty;
 
         [StringLength(500, ErrorMessage = "Document Path cannot exceed 500 characters.")]
         public string? DocPath { get; set; }
+        public string? DocumentName { get; set; }
     }
     public class ClassRegistrationDocumentsRequest
     {
@@ -2001,16 +1998,32 @@ namespace DomainModel.Admin
         public string? ClassCode { get; set; }
         public string? DocumentType { get; set; }
         public long RegistrationId { get; set; }
+        public long StudentId { get; set; }
     }
-    public class ClassRegistrationDocumentsResponse:MNGTCommon
+    public class ClassRegistrationDocumentsResponse : MNGTCommon
     {
         public int DocumentId { get; set; }
         public string? DocumentName { get; set; }
         public string? Remarks { get; set; }
         public int Verified { get; set; }
         public string? DocDate { get; set; }
+        public string? HandoverDate { get; set; }
         public string? DocPath { get; set; }
     }
+    public class ClassStudentDocumentRequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public long SessionId { get; set; }
+        public string ClassCode { get; set; } = string.Empty;
+        public long StudentId { get; set; }
+        public string? DocumentType { get; set; }
+        public int DocumentId { get; set; }
+        public string? CreatedBy { get; set; }
+        public bool IsValid { get; set; }
+        public int ASDID { get; set; }
+    }
+
     public class RegistrationRequest
     {
         public string? GroupCode { get; set; }
@@ -2026,17 +2039,23 @@ namespace DomainModel.Admin
         public int ApplicationStatus { get; set; }
         public int IsDone { get; set; }
     }
-    public class PublishingListResponse
+    public class PublishingListResponse : MNGTCommon
     {
         public string? Gender { get; set; }
         public string? ClassName { get; set; }
+        public string? StudentName { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherEmail { get; set; }
         public DateTime? AppliedDate { get; set; }
         public DateTime? AdmissionDate { get; set; }
         public int Points { get; set; }
         public string? ApplicationStatus { get; set; }
         public int ListNo { get; set; }
         public long RegistrationId { get; set; }
-        public string?   RegistrationNo{ get; set; }
+        public string? RegistrationNo { get; set; }
+        public string? SessionName { get; set; }
     }
     public class PublishingListRequest : MNGTCommon
     {
@@ -2048,6 +2067,319 @@ namespace DomainModel.Admin
 
     #endregion
 
+    public class FutureStudentAdmissionModel
+    {
+        public string GroupCode { get; set; } = string.Empty;
 
+        public string BranchCode { get; set; } = string.Empty;
+
+        public string SessionName { get; set; } = string.Empty;
+
+        [Display(Name = "First Name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "First Name can contain only letters and spaces.")]
+        [StringLength(50)]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Display(Name = "Middle Name")]
+        [RegularExpression(@"^[a-zA-Z\s]*$", ErrorMessage = "Middle Name can contain only letters and spaces.")]
+        [StringLength(50)]
+        public string? MiddleName { get; set; }
+
+        [Display(Name = "Last Name")]
+        [RegularExpression(@"^[a-zA-Z\s]*$", ErrorMessage = "Last Name can contain only letters and spaces.")]
+        [StringLength(50)]
+        public string? LastName { get; set; }
+
+        [Display(Name = "Gender")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string Gender { get; set; } = string.Empty;
+
+        [Display(Name = "Class")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string ClassCode { get; set; } = string.Empty;
+
+        [Display(Name = "Date of Birth")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string DateOfBirth { get; set; } = string.Empty;
+
+        [Display(Name = "Religion")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select Religion.")]
+        public int Religion { get; set; }
+
+        [Display(Name = "Social Category")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select Social Category.")]
+        public int SocialCategoryId { get; set; }
+
+        [Display(Name = "Nationality")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select Nationality.")]
+        public int NationalityId { get; set; }
+
+        public int IsUsingTpt { get; set; }
+
+        public int RouteDistance { get; set; }
+
+        public string FatherTitle { get; set; } = string.Empty;
+
+        [Display(Name = "Father First Name")]
+        [StringLength(50)]
+        public string FatherFirstName { get; set; } = string.Empty;
+
+        [Display(Name = "Father Last Name")]
+        [StringLength(50)]
+        public string FatherLastName { get; set; } = string.Empty;
+
+        [Display(Name = "Father Middle Name")]
+        [StringLength(50)]
+        public string FatherMiddleName { get; set; } = string.Empty;
+
+        public string FatherContactNo { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Please enter a valid Father Email.")]
+        public string FatherEmailId { get; set; } = string.Empty;
+
+        public int FatherOccupation { get; set; }
+
+        public string FatherOccupationOther { get; set; } = string.Empty;
+
+        public string MotherTitle { get; set; } = string.Empty;
+
+        [Display(Name = "Mother First Name")]
+        [StringLength(50)]
+        public string MotherFirstName { get; set; } = string.Empty;
+
+        [Display(Name = "Mother Last Name")]
+        [StringLength(50)]
+        public string MotherLastName { get; set; } = string.Empty;
+
+        [Display(Name = "Mother Middle Name")]
+        [StringLength(50)]
+        public string MotherMiddleName { get; set; } = string.Empty;
+
+        public string MotherContactNo { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Please enter a valid Mother Email.")]
+        public string MotherEmailId { get; set; } = string.Empty;
+
+        public int MotherOccupation { get; set; }
+
+        public string MotherOccupationOther { get; set; } = string.Empty;
+
+        public string SMSContactNo { get; set; } = string.Empty;
+
+        public string AddressLine1 { get; set; } = string.Empty;
+
+        public string AddressLine2 { get; set; } = string.Empty;
+
+        public string PinCode { get; set; } = string.Empty;
+
+        public string AddContactNo { get; set; } = string.Empty;
+
+        public string AddressTo { get; set; } = string.Empty;
+
+        public string CreatedBy { get; set; } = string.Empty;
+
+        public string PreviousBranchCode { get; set; } = string.Empty;
+
+        public string StudentNo { get; set; } = string.Empty;
+
+        public int SocietyId { get; set; }
+
+        public string SiblingID { get; set; } = "0";
+
+        public string isEWS { get; set; } = "0";
+
+        public string AdmissionDate { get; set; } = "0";
+
+        public string SectionId { get; set; } = "0";
+
+        public string stuManualAdmNo { get; set; } = string.Empty;
+
+        public string StudentControlStudentNo { get; set; } = string.Empty;
+
+        public string ControlNo { get; set; } = string.Empty;
+
+        public string LoginId { get; set; } = string.Empty;
+
+        public string StudentAadharNo { get; set; } = string.Empty;
+
+        public string FatherAadharNo { get; set; } = string.Empty;
+
+        public string MotherAadharNo { get; set; } = string.Empty;
+
+        public string RegNo { get; set; } = string.Empty;
+
+        public int MapConAndChallan { get; set; }
+
+        public int ConcessionId { get; set; }
+
+        public string ConcessionFromDate { get; set; } = string.Empty;
+
+        public string ConcessionToDate { get; set; } = string.Empty;
+
+        public string ConcessionDetails { get; set; } = string.Empty;
+
+        public string ConcessionRemarks { get; set; } = string.Empty;
+
+        public string ChildAadharName { get; set; } = string.Empty;
+
+        public string Caste { get; set; } = string.Empty;
+
+        public string ApaarId { get; set; } = string.Empty;
+
+        public string PENNo { get; set; } = string.Empty;
+    }
+
+    public class ClassListRequest
+    {
+        public List<GetSearchedViewStudentModel> Students { get; set; } = new();
+
+        public int BlankColumnCount { get; set; } = 1;
+    }
+    #region  -------------------------- Admission Searched Student (V3M_ADM_UspGetSearchedStudent) -------------
+    public class AdmSearchedStudentRequest
+    {
+        public bool? ValidStuStatus { get; set; }
+
+        public string? GroupCode { get; set; }
+
+        public string? BranchCode { get; set; }
+
+        public long SessionId { get; set; }
+
+        public string? ClassCode { get; set; }
+
+        public int SectionId { get; set; }
+
+        public string? Gender { get; set; }
+
+        public string? ControlNo { get; set; }
+
+        public string? StudentName { get; set; }
+
+        public string? IsEWS { get; set; }
+
+        public string? JoinType { get; set; }
+    }
+
+    public class AdmSearchedStudentResponse
+    {
+        public long StudentId { get; set; }
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+
+        public string? Gender { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
+
+        public string? ClassCode { get; set; }
+
+        public string? ClassName { get; set; }
+
+        public string? ClassSection { get; set; }
+
+        public int? SectionId { get; set; }
+
+        public string? SectionName { get; set; }
+
+        public int? RollNo { get; set; }
+
+        public string? SMSMobileNo { get; set; }
+
+        public string? FatherName { get; set; }
+
+        public string? FatherContactNo { get; set; }
+
+        public string? MotherName { get; set; }
+
+        public string? MotherContactNo { get; set; }
+
+        public string? IsReservedSeat { get; set; }
+
+        public string? ImagePath { get; set; }
+
+        public string? MotherImagePath { get; set; }
+
+        public string? FatherImagePath { get; set; }
+
+        public DateTime? AdmissionDate { get; set; }
+
+        public string? AdmClass { get; set; }
+
+        public string? AdmSession { get; set; }
+        public string? BoardRollNo { get; set; }
+        public string? StudentCategoryName { get; set; }
+        public int? SocietyId { get; set; }
+
+        public string? AadhaarNo { get; set; }
+        public string? ReligionName { get; set; }
+
+        public string? Visitor1ImagePath { get; set; }
+        public string? Visitor2ImagePath { get; set; }
+
+        public string? Visitor3ImagePath { get; set; }
+
+        public string? Visitor4ImagePath { get; set; }
+    }
+    public class MapStudentRollNoRequest
+    {
+
+        public string? GroupCode { get; set; }
+
+        public string? BranchCode { get; set; }
+
+        public long SessionId { get; set; }
+
+
+        [Required(ErrorMessage = "Class Code is required.")]
+
+        [StringLength(50, ErrorMessage = "Class Code cannot exceed 50 characters.")]
+
+        public string? ClassCode { get; set; }
+
+        public int SectionId { get; set; }
+
+        public string? OrderBy { get; set; }
+
+
+        [Required(ErrorMessage = "Created By is required.")]
+
+        [StringLength(50, ErrorMessage = "Created By cannot exceed 50 characters.")]
+
+        public string? CreatedBy { get; set; }
+
+    }
+    #endregion
+    public class UpdateStudentCBSERegNoRequest
+    {
+
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+
+        public long SessionId { get; set; }
+
+        [Required(ErrorMessage = "Class Code is required.")]
+        [StringLength(50)]
+        public string? ClassCode { get; set; }
+
+        public int SectionId { get; set; }
+
+        [Required(ErrorMessage = "Created By is required.")]
+        [StringLength(50)]
+        public string? CreatedBy { get; set; }
+
+        //[Required(ErrorMessage = "At least one student is required.")]
+        //[MinLength(1, ErrorMessage = "At least one student is required.")]
+        //public List<StudentCBSERegNoItem> Students { get; set; } = new();
+    }
+    public class StudentCBSERegNoResult
+    {
+
+        public long StudentId { get; set; }
+
+        public bool IsUpdated { get; set; }
+
+    }
 
 }

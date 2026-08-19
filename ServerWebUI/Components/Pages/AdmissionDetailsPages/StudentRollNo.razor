@@ -1,0 +1,386 @@
+@page "/StudentRollNo"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading>
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ClassCode" @bind-Value:after="OnClassChanged">
+                        <option value="">--Select Class--</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.SectionId">
+                        <option value="0">--Select Section--</option>
+                        @foreach (var sec in classsectionslist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-center align-items-center gap-3 p-2">
+                        <label class="form-label me-1">Define Roll Number Preference</label>
+                        <InputRadioGroup @bind-Value="definePreference">
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio Value="@("No")" />
+                                <label class="form-label">No</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio Value="@("Yes")" />
+                                <label class="form-label">Yes</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                </div>
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-center align-items-center gap-3 p-2">
+                        <InputRadioGroup @bind-Value="orderByPreference">
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio Value="@("Name")" />
+                                <label class="form-label">By Name</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio Value="@("AdmissionNo")" />
+                                <label class="form-label">By Admission No</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudents">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <TemplateColumn Title="Roll No." Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <input class="form-input text-right" style="width:100px;" value="@context.RollNo" readonly="@(definePreference != "Yes")"
+                                               @onchange="e => context.RollNo = ParseRollNo(e.Value)" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OnSubmit">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - ClassSectionModal has SectionId (int), SectionCode (string), SectionName.
+    // - "Define Roll Number Preference" (No/Yes) toggles whether the Roll No.
+    //   box is editable; since only one bulk-assign endpoint was given
+    //   (STU_UspMapStudentRollNoByPreference), typed edits are kept in memory
+    //   for display only and are not individually persisted - Submit always
+    //   triggers the OrderBy-based auto assignment. Tell me if there's a
+    //   separate per-student save endpoint and I'll wire it in.
+    // - SearchAnyRequestModel / ClassSectionModal reused exactly as used on
+    //   your other pages for the class->section lookup.
+    // ---------------------------------------------------------------------
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<ClassSectionModal> classsectionslist = new();
+    private List<AdmSearchedStudentResponse> studentlist = new();
+
+    private AdmSearchedStudentRequest searchRequest = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private string definePreference = "Yes";
+    private string orderByPreference = "AdmissionNo";
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<AdmSearchedStudentResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+
+        StateHasChanged();
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchRequest.SectionId = 0;
+        classsectionslist = new();
+        await GetSectionData();
+    }
+
+    private async Task GetSectionData()
+    {
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = searchRequest.ClassCode;
+
+            string ApiUri1 = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<ClassSectionModal>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                classsectionslist = apiResponse.Data ?? new();
+            }
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+    }
+    private async Task SearchStudents()
+    {
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class.");
+            StateHasChanged();
+            return;
+        }
+
+        if (searchRequest.SectionId == 0)
+        {
+            await Alert.ShowWarning("Please select a section.");
+            StateHasChanged();
+            return;
+        }
+
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "StudentRollNo/GetSearchedStudentRollNo";
+            var apiResponse = await httpService.Post<ApiResponse<List<AdmSearchedStudentResponse>>>(apiUrl, searchRequest);
+
+            studentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+            for (int i = 0; i < studentlist.Count; i++)
+            {
+                studentlist[i].RollNo = i + 1;
+            }
+
+            if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+            if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while fetching students.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private int? ParseRollNo(object? value)
+    {
+        return int.TryParse(value?.ToString(), out var rollNo) ? rollNo : null;
+    }
+
+    private async Task OnSubmit()
+    {
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class.");
+            return;
+        }
+        if (searchRequest.SectionId == 0)
+        {
+            await Alert.ShowWarning("Please select a section.");
+            StateHasChanged();
+            return;
+        }
+
+        var selectedSection = classsectionslist.FirstOrDefault(x => x.SectionId == searchRequest.SectionId);
+        var model = new MapStudentRollNoRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            ClassCode = searchRequest.ClassCode,
+            SectionId = selectedSection?.SectionId ?? 0,
+            OrderBy = orderByPreference,
+            CreatedBy = username
+        };
+
+        var isConfirmed = await Alert.ShowConfirm("Are you sure you want to assign roll numbers?");
+        if (!isConfirmed) return;
+
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            string apiUrl = "StudentRollNo/ViewStudentRollNoPreference";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Roll numbers assigned successfully.");
+                await SearchStudents();
+            }
+            else
+            {
+                await Alert.ShowWarning("Roll numbers were not assigned.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

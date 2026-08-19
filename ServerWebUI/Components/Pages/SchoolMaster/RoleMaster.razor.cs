@@ -582,11 +582,11 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                 {
                     if (apiResponse1.ActionType == "Update")
                     {
-                        await Alert.ShowSuccess("Access" + @Localizer["Updated"]);
+                        await Alert.ShowSuccess("Access " + @Localizer["Updated"]);
                     }
                     else
                     {
-                        await Alert.ShowSuccess("Access" + @Localizer["Saved"]);
+                        await Alert.ShowSuccess("Access " + @Localizer["Saved"]);
                     }
                 }
                
