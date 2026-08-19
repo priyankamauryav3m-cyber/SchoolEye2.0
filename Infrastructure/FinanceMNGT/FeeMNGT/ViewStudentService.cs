@@ -1,6 +1,7 @@
 ﻿using ApplicationInterface.FinanceMNGT;
 using Azure.Core;
 using Dapper;
+using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -297,8 +298,8 @@ namespace Infrastructure.FinanceMNGT
                 param.Add("@Subjects", model.Subjects);
                 param.Add("@IsTCAttach", model.IsTCAttach);
                 param.Add("@IsSubjectApproved", model.IsSubjectApproved);
-                param.Add("@ResultStatus", dbType: DbType.Int32,direction: ParameterDirection.Output);
-                await con.ExecuteAsync( "Usp_StudentPersonalDetails", param, commandType: CommandType.StoredProcedure);
+                param.Add("@ResultStatus", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                await con.ExecuteAsync("Usp_StudentPersonalDetails", param, commandType: CommandType.StoredProcedure);
                 return param.Get<int>("@ResultStatus");
             }
             catch (SqlException ex)
@@ -313,7 +314,7 @@ namespace Infrastructure.FinanceMNGT
             }
         }
 
-        public  async Task<StudentPassportVisaModel> GetStudentOtherDetails(SearchAnyRequestModel requestModel)
+        public async Task<StudentPassportVisaModel> GetStudentOtherDetails(SearchAnyRequestModel requestModel)
 
         {
             try
@@ -412,7 +413,7 @@ namespace Infrastructure.FinanceMNGT
                 parameters.Add("@StudentId", request.StudentId);
                 parameters.Add("@Line1", request.Line1);
                 parameters.Add("@Line2", request.Line2);
-                ;parameters.Add("@PinCode", request.PinCode);
+                ; parameters.Add("@PinCode", request.PinCode);
                 parameters.Add("@ContactNo", request.ContactNo);
                 parameters.Add("@AddressTo", request.AddressTo);
                 parameters.Add("@AddressType", request.AddressType);
@@ -533,7 +534,7 @@ namespace Infrastructure.FinanceMNGT
                 param.Add("@Visitor3SignImagePath", res.Visitor3SignImagePath);
                 param.Add("@Visitor4SignImagePath", res.Visitor4SignImagePath);
                 param.Add("@VisitorFSignImagePath", res.VisitorFSignImagePath);
-                param.Add("@VisitorMSignImagePath", res.VisitorMSignImagePath); 
+                param.Add("@VisitorMSignImagePath", res.VisitorMSignImagePath);
                 param.Add("@CreatedBy", res.CreatedBy);
                 return await con.ExecuteAsync(
                     "Usp_StudentVisitorsDetails",
@@ -573,6 +574,148 @@ namespace Infrastructure.FinanceMNGT
                 throw new Exception($"Error while saving Student Visitor Details: {ex.Message}", ex);
             }
         }
+        public async Task<string> VerifyAndTakeDocument(StudentDocumentModel model)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var parameters = new DynamicParameters();
+                parameters.Add("@GroupCode", model.GroupCode);
+                parameters.Add("@BranchCode", model.BranchCode);
+                parameters.Add("@SessionId", model.SessionId);
+                parameters.Add("@RegistrationId", model.RegistrationId);
+                parameters.Add("@StudentId", model.StudentId);
+                parameters.Add("@DocumentId", model.DocumentId);
+                parameters.Add("@DocPath", model.DocPath);
+                parameters.Add("@Remarks", model.Remarks);
+                parameters.Add("@IsValid", model.IsValid);
+                parameters.Add("@DocumentName", model.DocumentName);
+                parameters.Add("@CreatedBy", model.CreatedBy);
+                parameters.Add(
+                    "@ReturnValue",
+                    dbType: DbType.String,
+                    size: 50,
+                    direction: ParameterDirection.Output
+                );
+                await con.ExecuteAsync(
+                    "USP_VerifyAndTakeStudentDocument",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+                return parameters.Get<string>("@ReturnValue") ?? "0";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        //public async Task<IEnumerable<ClassStudentDocumentModel>> GetClassStudentDocuments(ClassStudentDocumentRequest request)
+        //{
+        //    try
+        //    {
+        //        using var con = new SqlConnection(_connectionString);
+        //        var param = new DynamicParameters();
+        //        param.Add("@GroupCode", request.GroupCode);
+        //        param.Add("@BranchCode", request.BranchCode);
+        //        param.Add("@DocumentType", request.DocumentType);
+        //        param.Add("@ClassCode", request.ClassCode);
+        //        param.Add("@StudentId", request.StudentId);
+        //        return await con.QueryAsync<ClassStudentDocumentModel>(
+        //            "V3M_ADM_UspGetClassStudentDocuments",
+        //            param,
+        //            commandType: CommandType.StoredProcedure);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Exception: {ex.Message}");
+        //        throw;
+        //    }
+        //}
+        public async Task<int> DeactivateStudentDocument(ClassStudentDocumentRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@DocumentId", request.DocumentId);
+                param.Add("@CreatedBy", request.CreatedBy);
+
+                return await con.ExecuteAsync(
+                    "V3M_ADM_UspDeactivateStudentDocument",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+        public async Task<string> HandoverStudentDocumentData(StudentDocumentModel model)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var parameters = new DynamicParameters();
+                parameters.Add("@GroupCode", model.GroupCode);
+                parameters.Add("@BranchCode", model.BranchCode);
+                parameters.Add("@DocumentId", model.DocumentId);
+                parameters.Add("@StudentId", model.StudentId);
+                parameters.Add("@SessionId", model.SessionId);
+                parameters.Add("@Remarks", model.Remarks);
+                parameters.Add("@CreatedBy", model.CreatedBy);
+
+                parameters.Add(
+                    "@Result",
+                    dbType: DbType.Int32,
+                    direction: ParameterDirection.Output
+                );
+                await con.ExecuteAsync(
+                    "ADM_HandoverStudentDocument",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+                int result = parameters.Get<int>("@Result");
+                return result.ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<int> UnMapStudentHandoverDocumentData(ClassStudentDocumentRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@DocumentId", request.DocumentId);
+                param.Add("@CreatedBy", request.CreatedBy);
+                return await con.ExecuteAsync(
+                    "V3M_ADM_UspDeactivateStudentDocument",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+
 
     }
 }

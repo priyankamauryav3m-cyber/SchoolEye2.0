@@ -10,6 +10,7 @@ namespace ApplicationInterface.Admin
     public interface IViewPublishListRepository
     {
         public Task<IEnumerable<PublishingListResponse>> GetPublishingList(PublishingListRequest model);
+        public Task<bool> UpdateAdmissionActiveList(PublishingListRequest model);
 
     }
 }

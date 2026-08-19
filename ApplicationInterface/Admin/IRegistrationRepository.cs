@@ -43,7 +43,6 @@ namespace ApplicationInterface.SuperAdmin
         public Task<string> DirectAdmissionStatusData(RegistrationStatus online);
         public Task<StudentListResponse> AdmitChildAsync(AdmitChildRequest request);
         public Task<string> VerifyAndTakeDocument(StudentDocumentModel model);
-
         public Task<string> DeActivateDocumentData(StudentDocumentModel model);
 
         public Task<IEnumerable<ClassRegistrationDocumentsResponse>> GetClassRegistrationDocumentsAsync(ClassRegistrationDocumentsRequest request);

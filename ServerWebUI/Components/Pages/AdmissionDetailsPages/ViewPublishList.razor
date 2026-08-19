@@ -1,9 +1,10 @@
 ﻿@page "/ViewPublishList"
+@using System.Text.Json
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
-@using Microsoft.AspNetCore.Authorization
 @using ServerWebUI.Components.Pages.CommonPages
 @inject Shared.IHttpService httpService
 @inject IJSRuntime JS
@@ -16,7 +17,7 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <PageHeading >
+            <PageHeading>
                 <div class="form-box">
                     <InputSelect @bind-Value="@CurrentSession" class="form-input">
                         <option value="0">-- Select Session --</option>
@@ -70,12 +71,31 @@
             <div class="card">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
-                        <div class="grid-box-with-btn" >
+                        <div class="grid-box-with-btn">
                             <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RegistrationNo) ? " " : x.RegistrationNo)" Title="Reg. No." Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
                                         <div class="search-box">
                                             <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Sortable="true" Align="Align.Left" >
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="StudentName..." />
                                         </div>
                                     </ColumnOptions>
                                 </PropertyColumn>
@@ -88,10 +108,9 @@
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => x.AppliedDate.HasValue ? x.AppliedDate.Value.ToString("dd-MM-yyyy") : " ")" Title="Applied Date" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.AdmissionDate.HasValue ? x.AdmissionDate.Value.ToString("dd-MM-yyyy") : " ")" Title="Admission Date" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.Points)" Title="Points" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mobile No." Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ApplicationStatus) ? " " : x.ApplicationStatus)" Title="App. Status" Sortable="true" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => x.ListNo)" Title="List No." Sortable="true" Class="text-center" Align="Align.Center" />
+                               <PropertyColumn Property="@(x => x.Points)" Title="Points" Sortable="true" Class="text-center" Align="Align.Center" />
                             </QuickGrid>
                         </div>
                         <div class="footer-pagination">
@@ -102,6 +121,26 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button class="table-btn" @onclick="OnActivityListClick">
+                            Activity List
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OpenSMSPopup">
+                            Send SMS
+                        </button>
+                    </div>
+
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Print="OnPrintClick" />
+
                 </div>
             </div>
         </div>
@@ -118,7 +157,7 @@ else
 {
 
 }
-
+<SendMessage ShowPopup="@showSMS" OnClose="@CloseModal" />
 @code {
     // ---------------------------------------------------------------------
     // ASSUMPTIONS (adjust if different in your project):
@@ -135,6 +174,8 @@ else
     private long CurrentSession;
     private string schoolbranchcode = string.Empty;
     private string rightClassFilter = string.Empty;
+    private bool IsAllSelected;
+    private bool showSMS;
 
     private List<SessionModel> sessionlist = new();
     private List<BranchNameMst> branchlist = new();
@@ -171,7 +212,8 @@ else
             {
                 result = result.Where(x =>
                     (x.RegistrationNo != null && x.RegistrationNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-                    (x.ClassName != null && x.ClassName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+                    (x.ClassName != null && x.ClassName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
             }
 
             return result;
@@ -239,13 +281,13 @@ else
         {
             var apiResponse = await httpService.Post<ApiResponse<List<PublishingListResponse>>>("ViewPublishList/PublishingList", searchRequest);
 
-            publishList = (apiResponse != null && apiResponse.Success)? (apiResponse.Data ?? new()): new();
+            publishList = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
 
-            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            if (apiResponse == null && apiResponse.Code == 0)
             {
                 await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
             }
-            else if (apiResponse != null && !apiResponse.Success)
+            else if (apiResponse == null && !apiResponse.Success)
             {
                 await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
             }
@@ -260,5 +302,142 @@ else
             IsLoading = false;
             StateHasChanged();
         }
+    }
+    private async Task OnPrintClick()
+    {
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("No data found. Please search first.");
+            return;
+        }
+
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+
+        if (isPdf)
+        {
+            await PrintPdfList(data);
+        }
+        else if (isExcel)
+        {
+            await PrintExcel(data);
+        }
+    }
+
+    private async Task PrintPdfList(List<PublishingListResponse> data)
+    {
+        try
+        {
+            var response = await httpService.Post<ApiResponse<object>>("Export/GeneratePublishingListPdfData", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadPdf", base64, "PublishingList.pdf");
+                //await JS.InvokeVoidAsync("viewPdf", base64);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task PrintExcel(List<PublishingListResponse> data)
+    {
+        try
+        {
+            var response = await httpService.Post<ApiResponse<object>>("Export/GeneratePublishingListExcel", data);
+            if (response != null && response.Success)
+            {
+                var base64 = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", base64, "PublishingList.xlsx");
+                //await JS.InvokeVoidAsync("openExcelDirect", base64);
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task OnActivityListClick()
+    {
+        var model = new PublishingListRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = schoolbranchcode,
+            SessionId = CurrentSession,
+            ListNo = searchRequest.ListNo
+        };
+
+        var isConfirmed = await Alert.ShowConfirm("Previous activated list will be deactivated, Are you sure, you want to active the selected list?");
+        if (!isConfirmed) return;
+
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>("ViewPublishList/UpdateAdmissionActiveList", model);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Selected list active successfully");
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Admission active list was not updated.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleAll()
+    {
+        foreach (var row in publishList)
+            row.IsSelected = IsAllSelected;
+    }
+
+    private void OpenSMSPopup()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        showSMS = true;
+        StateHasChanged();
+    }
+
+    private void CloseModal()
+    {
+        showSMS = false;
+        StateHasChanged();
     }
 }

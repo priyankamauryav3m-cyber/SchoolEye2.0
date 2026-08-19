@@ -112,6 +112,9 @@ namespace Infrastructure.SchoolMaster
                 param.Add("@IsValid", model.IsValid);
                 param.Add("@CreatedBy", model.CreatedBy);
                 param.Add("@Recommendation ", model.Recommendation);
+                param.Add("@Remarks", model.Remarks);
+                param.Add("@PrincipalRemarks", model.RemarksPrincipal);
+                param.Add("@FinanceDept", model.FinanceDept);
                 param.Add("@ReturnValue", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
 
                 await con.ExecuteAsync(

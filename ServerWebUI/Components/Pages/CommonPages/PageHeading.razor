@@ -21,9 +21,8 @@
 
 @code {
 
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
+    [Parameter]public RenderFragment? ChildContent { get; set; }
+    [Parameter]public string? Tittle { get; set; }
     private string PageName { get; set; } = "";
 
     protected override void OnInitialized()
@@ -73,9 +72,9 @@
                 if (activity != null)
                 {
                     PageName =
-                        $"{module.MName} / " +
-                        $"{feature.FeaturesName} / " +
-                        $"{activity.DisplayName}";
+                        // $"{module.MName} / " +
+                        // $"{feature.FeaturesName} / " +
+                        $"{Tittle}";
 
                     return;
                 }

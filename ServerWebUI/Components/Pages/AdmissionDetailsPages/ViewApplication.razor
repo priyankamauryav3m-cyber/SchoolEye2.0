@@ -152,7 +152,7 @@
             </div>
         </div>
 
-        <div class="col-12 p-2">
+        <div class="col-12 p-1">
             <div class="page-heading d-flex align-items-center justify-content-end">
 
                 <div class="d-flex align-items-center gap-2">
@@ -210,6 +210,7 @@
                                     <option value="2" selected>Details Entered</option>
                                     <option value="3">Intraction Done</option>
                                     <option value="4">Selected For Admission</option>
+                                    <option value="5"> Admission Done</option>
                                 </InputSelect>
                                 <label class="floating-label">App.Status</label>
                             </div>
@@ -432,7 +433,6 @@
                                     <label class="floating-label">Rating</label>
                                 </div>
                             </div>
-
                             <!-- Recommendation Yes/No -->
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
@@ -451,7 +451,6 @@
                                     </div>
                                 </div>
                             </div>
-
                             <!-- File upload -->
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
@@ -461,7 +460,7 @@
                             </div>
                             <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
                                 <div class="form-box-group">
-                                    <InputTextArea class="floating-input" placeholder=" " rows="3" @bind-Value="interactionModel.InteractionComments" maxlength="1000" />
+                                    <InputTextArea class="floating-input" placeholder=" " rows="3" @bind-Value="interactionModel.Remarks" maxlength="1000" />
                                     <label class="floating-label">
                                         Remarks <span class="required">*</span>
                                     </label>
@@ -991,21 +990,30 @@ else
     private async Task AddIntraction()
     {
         var data = moduleQuery.Where(x => x.IsSelected).ToList();
-        if (data.Count == 0)
+        if (data[0].ApplicationStatus != "3")
         {
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
-            return;
+            
+            if (data.Count == 0)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+            else if (data.Count > 1)
+            {
+                await JS.InvokeVoidAsync("showSelectRecordAlert");
+                return;
+            }
+
+            selectedStudentRow = data[0];
+            await LoadTeacherList();
+            ShowInteractionPopup = true;
+            StateHasChanged();
         }
-        else if (data.Count > 1)
+        else
         {
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
-            return;
+            await Alert.ShowWarning("Already intraction done");
         }
 
-        selectedStudentRow = data[0];
-        await LoadTeacherList();
-        ShowInteractionPopup = true;
-        StateHasChanged();
     }
 
     private async Task LoadTeacherList()
@@ -1156,7 +1164,6 @@ else
             StateHasChanged();
             return;
         }
-
         var model = new StudentDocumentModel
         {
             GroupCode = groupcode,
@@ -1166,10 +1173,8 @@ else
             DocumentId = selectedDocument.DocumentId,
             CreatedBy = username
         };
-
         ShowDocumentPopup = false;
         StateHasChanged();
-
         var apiResponse = await httpService.Post<ApiResponse<object>>("Registration/VerifyAndTakeDocument", model);
         if (apiResponse.Success && apiResponse.Code == 1)
         {

@@ -21,8 +21,8 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> ExportStudentToExcel(List<StudentListResponse> model);
         public Task<byte[]> GenerateRegForms(List<StudentListResponse> model);
         public Task<byte[]> BonafideCertificate(StudentListResponse model);
-        public Task<byte[]> GenerateStudentEnqueryListExcelData(List<EnquiryListResponse> students);
-        public Task<byte[]> GenerateStudentEnquerySummaryData(List<EnquiryListResponse> students);
+        public Task<byte[]> GenerateStudentEnqueryListExcelData(List<EnquiryListResponseDto> students);
+        public Task<byte[]> GenerateStudentEnquerySummaryData(List<EnquiryListResponseDto> students);
         public Task<byte[]> GenerateStudentConcessionListExcelData(List<StudentWithConcessionDto> students);
         public Task<byte[]> GenerateStudentMapTransportListExcelData(List<TransportStudentDataModel> students);
         public Task<byte[]> GenerateStudentNotPromotedlistData(List<StudentNotPromotedModel> students);
@@ -34,6 +34,10 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateRegistrationReceiptExcel(List<RegistrationReceiptResponse> students);
         public Task<byte[]> GenerateStudentReceiptToPdfData(List<RegistrationReceiptResponse> students);
         public Task<byte[]> GenerateStudentPdf(RegistrationReceiptResponse students);
-
+        public Task<byte[]> GeneratePublishingListExcel(List<PublishingListResponse> publishingList);
+        public Task<byte[]> GeneratePublishingListPdf(List<PublishingListResponse> publishingList);
+        //  public Task<byte[]> GenerateClassList(List<GetSearchedViewStudentModel> model);
+        Task<byte[]> GenerateClassListPdf(ClassListRequest reques);
+        Task<byte[]> GenerateClassListExcel(ClassListRequest request);
     }
 }

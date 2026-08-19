@@ -7,21 +7,22 @@ using MyApp.Common;
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
-    [Authorize]
     [ApiExplorerSettings(GroupName = "Admission")]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class ViewPublishListController : ControllerBase
+    public class StudentRollNoController : ControllerBase
     {
-        private readonly IViewPublishListRepository _service;
-        public ViewPublishListController(IViewPublishListRepository viewPublishListRepository)
+        private readonly IStudentRollNoRepository _service;
+
+        public StudentRollNoController(IStudentRollNoRepository studentRollNoRepository)
         {
-            _service = viewPublishListRepository;
+            _service = studentRollNoRepository;
         }
-        [HttpPost("PublishingList")]
-        public async Task<IActionResult> PublishingList([FromBody] PublishingListRequest model)
+        [HttpPost("ViewStudentRollNoPreference")]
+        public async Task<IActionResult> ViewStudentRollNoPreferenceData([FromBody] MapStudentRollNoRequest request)
         {
-            if (model == null)
+            if (request == null)
             {
                 return BadRequest(new ApiResponse<object>
                 {
@@ -31,20 +32,63 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             try
             {
-                var data = await _service.GetPublishingList(model);
+                var result = await _service.ViewStudentRollNoPreference(request);
+                if (result == 1)
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Roll numbers mapped successfully.",
+                        Code = 1
+                    });
+                }
+                return Ok(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Roll number mapping failed. See server logs for details.",
+                    Code = 0
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while mapping student roll numbers."
+                });
+            }
+        }
+     
+
+        [HttpPost("GetSearchedStudentRollNo")]
+        public async Task<IActionResult> GetSearchedStudentRollNo([FromBody] AdmSearchedStudentRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+
+            try
+            {
+                var data = await _service.GetSearchedStudentRollNo(request);
 
                 if (data == null || !data.Any())
                 {
-                    return Ok(new ApiResponse<IEnumerable<PublishingListResponse>>
+                    return Ok(new ApiResponse<object>
                     {
                         Success = true,
-                        Message = "No records found.",
+                        Message = "No students found.",
                         Code = 0,
-                        Data = Enumerable.Empty<PublishingListResponse>()
+                        Data = Enumerable.Empty<AdmSearchedStudentResponse>()
                     });
                 }
 
-                return Ok(new ApiResponse<IEnumerable<PublishingListResponse>>
+                return Ok(new ApiResponse<object>
                 {
                     Success = true,
                     Data = data
@@ -56,54 +100,11 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "An error occurred while fetching the publishing list."
+                    Message = "An error occurred while searching for students."
                 });
             }
         }
-        [HttpPost("UpdateAdmissionActiveList")]
-        public async Task<IActionResult> UpdateAdmissionActiveList([FromBody] PublishingListRequest model)
-        {
-            if (model == null)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Data not found.",
-                    Code = 0
-                });
-            }
-            try
-            {
-                var result = await _service.UpdateAdmissionActiveList(model);
 
-                if (!result)
-                {
-                    return Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Admission active list was not updated.",
-                        Code = 0
-                    });
-                }
-
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Admission active list updated successfully.",
-                    Code = 1
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "An error occurred while updating the admission active list.",
-                    Code = -1
-                });
-            }
-        }
 
     }
 }

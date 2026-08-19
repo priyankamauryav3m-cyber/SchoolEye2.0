@@ -186,7 +186,7 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
         }
 
         [HttpPost("GenerateStudentEnqueryListExcel")]
-        public async Task<IActionResult> GenerateStudentEnqueryListExcelData([FromBody] List<EnquiryListResponse> students)
+        public async Task<IActionResult> GenerateStudentEnqueryListExcelData([FromBody] List<EnquiryListResponseDto> students)
         {
             var bytes = await _generateFile.GenerateStudentEnqueryListExcelData(students);
             var base64Pdf = Convert.ToBase64String(bytes);
@@ -200,8 +200,8 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
         }
 
         [HttpPost("GenerateStudentEnquerySummary")]
-        public async Task<IActionResult> GenerateStudentEnquerySummaryData([FromBody] List<EnquiryListResponse> students)
-        {
+        public async Task<IActionResult> GenerateStudentEnquerySummaryData([FromBody] List<EnquiryListResponseDto> students)
+        {   
             var bytes = await _generateFile.GenerateStudentEnquerySummaryData(students);
             var base64Pdf = Convert.ToBase64String(bytes);
 
@@ -344,6 +344,62 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 Success = true,
                 Data = base64Pdf,
                 Message = "PDF generated successfully"
+            });
+        }
+        [HttpPost("GeneratePublishingListExcel")]
+        public async Task<IActionResult> GeneratePublishingListExcel([FromBody] List<PublishingListResponse> publishingList)
+        {
+            var excelBytes = await _generateFile  .GeneratePublishingListExcel(publishingList);
+
+            var base64Excel = Convert.ToBase64String(excelBytes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Excel,
+                Message = "Publishing List Excel generated successfully"
+            });
+        }
+        [HttpPost("GeneratePublishingListPdfData")]
+        public async Task<IActionResult> GeneratePublishingListPdf([FromBody] List<PublishingListResponse> publishingList)
+        {
+            var pdfBytes = await _generateFile.GeneratePublishingListPdf(publishingList);
+
+            var base64Pdf = Convert.ToBase64String(pdfBytes);
+
+            return Ok(new ApiResponse<string>
+            {
+                Success = true,
+                Data = base64Pdf,
+                Message = "Publishing List PDF generated successfully"
+            });
+        }
+        [HttpPost("GenerateClassListPdf")]
+        public async Task<IActionResult> GenerateClassListPdf([FromBody] ClassListRequest request)
+        {
+            var pdfBytes = await _generateFile.GenerateClassListPdf( request);
+
+            var base64Pdf = Convert.ToBase64String(pdfBytes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Pdf,
+                Message = "Class List PDF generated successfully"
+            });
+        }
+        [HttpPost("GenerateClassListExcel")]
+        public async Task<IActionResult> GenerateClassListExcel([FromBody] ClassListRequest request)
+        {
+            var excelBytes = await _generateFile.GenerateClassListExcel( request);
+
+            var base64Excel = Convert.ToBase64String(excelBytes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Excel,
+                Message = "Class List Excel generated successfully"
             });
         }
     }

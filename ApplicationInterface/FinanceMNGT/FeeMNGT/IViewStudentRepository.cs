@@ -1,4 +1,5 @@
-﻿using DomainModel.FinanceMNGT;
+﻿using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,12 @@ namespace ApplicationInterface.FinanceMNGT
         public Task<StudentVisitorsModel> GetStudentVisitorsData(SearchAnyRequestModel model);
         public Task<int> SaveStudentVisitorsData(StudentVisitorsModel res);
         public Task<int> RemoveProfileImageData(ProfileImageModal model);
+        public Task<string> VerifyAndTakeDocument(StudentDocumentModel model);
+       // public Task<IEnumerable<ClassStudentDocumentModel>> GetClassStudentDocuments(ClassStudentDocumentRequest request);
+        public Task<int> DeactivateStudentDocument(ClassStudentDocumentRequest request);
+        public Task<string> HandoverStudentDocumentData(StudentDocumentModel model);
+        public Task<int> UnMapStudentHandoverDocumentData(ClassStudentDocumentRequest request);
+
 
 
 

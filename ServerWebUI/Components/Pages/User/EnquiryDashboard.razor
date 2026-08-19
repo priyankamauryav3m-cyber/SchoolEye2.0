@@ -157,13 +157,16 @@
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="content">
-
             <!-- 1. Header / Filters -->
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
                     <div class="page-heading d-flex align-items-center justify-content-between">
                         <p class="m-0 page-name px-1">Enquiry Dashboard</p>
                         <div class="d-flex align-items-center gap-2">
+                            <div class="form-box">
+                                  
+                                <p class="m-0 page-name px-1">@SearchFilterText</p>
+                            </div>
                             <div class="form-box">
                                 <InputSelect @bind-Value="@CurrentSession" class="form-input">
                                     <option value="0">-- Select Session --</option>
@@ -194,7 +197,7 @@
             <!-- Stat cards (unchanged) -->
             <div class="row g-3 mb-3 ">
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white " style="cursor:pointer;" @onclick="GoToEnquiry">
+                    <div class="stat-card p-3 bg-white " style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -226,7 +229,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick="GoToRegistration">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -242,7 +245,7 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick="GoToAdmission">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -266,28 +269,28 @@
                         <h6 class="card-title-custom mb-3">Enquiry Summary</h6>
                         <div class="row g-3">
                             <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-green d-flex g-1 align-items-center ">
+                                <div class="mini-stat-card mini-stat-green d-flex g-1 align-items-center " style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayEnquiery")'>
                                     <div class="stat-icon green me-2"><i class="fas fa-user-plus"></i></div>
                                     <span class="text-muted small d-block">Today Enquiry</span>
                                     <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayEnquiry</h5>
                                 </div>
                             </div>
                             <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-blue d-flex align-items-center">
+                                <div class="mini-stat-card mini-stat-blue d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayFollowup")'>
                                     <div class="stat-icon blue me-2"><i class="fas fa-headset"></i></div>
                                     <span class="text-muted small">Today Follow-up</span>
                                     <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayFollowup</h5>
                                 </div>
                             </div>
                             <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
+                                <div class="mini-stat-card mini-stat-yellow d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayConversion")'>
                                     <div class="stat-icon orange me-2"><i class="fas fa-exchange-alt"></i></div>
                                     <span class="text-muted small">Today Conversion</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayAdmission</h5>
+                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayConversion</h5>
                                 </div>
                             </div>
                             <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
+                                <div class="mini-stat-card mini-stat-purple d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("BasedOnSource")'>
                                     <div class="stat-icon purple me-2"><i class="fas fa-chart-pie"></i></div>
                                     <div class="d-flex flex-column">
                                         <span class="text-muted small">Based on Source</span>
@@ -305,7 +308,32 @@
                         <h6 class="card-title-custom mb-3">Enquiry Report Based on Source</h6>
                         <div class="row align-items-center">
                             <div class="col-12 col-md-6 text-center">
-                                <div class="donut-container" @key='$"{sourceReports.Count}-{string.Join(",", hiddenSources)}"'>
+                                @{
+                                    var visibleSources = sourceReports
+                                        .Where(x => !hiddenSources.Contains(x.SourceName))
+                                        .ToList();
+
+                                    var sourceChartKey = string.Join("|",
+                                        visibleSources.Select(x => $"{x.SourceName}:{x.TotalCount}"));
+                                }
+                                <div class="donut-container" @key="sourceChartKey">
+                                    @if (visibleSources.Any())
+                                    {
+                                        var sourceColorOptions = GetDonutOptions<SourceReportModel>(
+                                            visibleSources.Select(x => GetColor(x.SourceName)).ToList());
+
+                                        <ApexChart TItem="SourceReportModel"
+                                                   Options="sourceColorOptions">
+                                            <ApexPointSeries TItem="SourceReportModel"
+                                                             Items="visibleSources"
+                                                             Name="Source"
+                                                             SeriesType="SeriesType.Donut"
+                                                             XValue="x => x.SourceName"
+                                                             YValue="x => (decimal)x.TotalCount" />
+                                        </ApexChart>
+                                    }
+                                </div>
+                                @* <div class="donut-container" @key='$"{sourceReports.Count}-{string.Join(",", hiddenSources)}"'>
                                     @if (sourceReports.Any())
                                     {
                                         var visibleSources = sourceReports.Where(x => !hiddenSources.Contains(x.SourceName)).ToList();
@@ -319,7 +347,7 @@
                                                              YValue="x => (decimal)x.TotalCount" />
                                         </ApexChart>
                                     }
-                                </div>
+                                </div> *@
                             </div>
                             <div class="col-12 col-md-6 mt-3 mt-md-0">
                                 <table class="table table-borderless custom-table mb-0">
@@ -373,7 +401,6 @@
                             @{
                                 var seriesType = selectedChartType == "line" ? SeriesType.Line : SeriesType.Bar;
                             }
-
                             @if (selectedReport == "Sessionwise")
                             {
                                 var data = sessionComparison.TakeLast(5).ToList();
@@ -410,7 +437,32 @@
                         <h6 class="card-title-custom mb-3">Follow-up Report Dashboard</h6>
                         <div class="row align-items-center">
                             <div class="col-12 col-md-6 d-flex align-items-center justify-content-center">
-                                <div class="donut-container" @key='$"{pipeline.Count}-{string.Join(",", hiddenStages)}"'>
+                                @{
+                                    var visiblePipeline = pipeline
+                                        .Where(x => !hiddenStages.Contains(x.Stage))
+                                        .ToList();
+
+                                    var pipelineChartKey = string.Join("|",
+                                        visiblePipeline.Select(x => $"{x.Stage}:{x.TotalCount}"));
+                                }
+
+                                <div class="donut-container" @key="pipelineChartKey">
+                                    @if (visiblePipeline.Any())
+                                    {
+                                        var pipelineColorOptions = GetDonutOptions<PipelineModel>(
+                                            visiblePipeline.Select(x => GetColor(x.Stage)).ToList());
+
+                                        <ApexChart TItem="PipelineModel" Options="pipelineColorOptions">
+                                            <ApexPointSeries TItem="PipelineModel"
+                                                             Items="visiblePipeline"
+                                                             Name="Pipeline"
+                                                             SeriesType="SeriesType.Donut"
+                                                             XValue="x => x.Stage"
+                                                             YValue="x => (decimal)x.TotalCount" />
+                                        </ApexChart>
+                                    }
+                                </div>
+                                @* <div class="donut-container" @key='$"{pipeline.Count}-{string.Join(",", hiddenStages)}"'>
                                     @if (pipeline.Any())
                                     {
                                         var visiblePipeline = pipeline.Where(x => !hiddenStages.Contains(x.Stage)).ToList();
@@ -424,7 +476,7 @@
                                                              YValue="x => (decimal)x.TotalCount" />
                                         </ApexChart>
                                     }
-                                </div>
+                                </div> *@
                             </div>
                             <div class="col-12 col-md-6 mt-3 mt-md-0">
                                 <table class="table table-borderless custom-table mb-0">
@@ -550,7 +602,6 @@
     private string groupcode = "";
     private string UserName = "";
     private string SendDashboardvalue = "";
-
     private List<BranchClassModel> classlist = new();
     private List<MonthModel> monthlist = new();
     private List<SessionModel> sessionlist = new();
@@ -569,7 +620,7 @@
     private List<TodayFollowupModel> todayFollowups = new();
     private List<TodayAdmissionModel> todayAdmissions = new();
     private EnquiryDashboardSearchRequest searchAnyRequest = new();
-
+    private string SearchFilterText = "";
     // Toggle state — replaces the old JS toggleSource()/togglePipeline()
     private List<string> hiddenSources = new();
     private List<string> hiddenStages = new();
@@ -585,24 +636,54 @@
         },
         Legend = new ApexCharts.Legend { Position = ApexCharts.LegendPosition.Top }
     };
-    private void GoToEnquiry()
+    private void GoToEnquiry(string value)
     {
-       // SendDashboardvalue="GetEnquiry";
-        EnquiryState.DashboardValue = "GetEnquiry";
-        NavigationManager.NavigateTo("/enquiry");
-        StateHasChanged();
+        if (value == "TotalEnquiry")
+        {
+            EnquiryState.DashboardValue = "GetEnquiry";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TotalRegistration")
+        {
+            EnquiryState.DashboardValue = "GetRegistration";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TotalAdmission")
+        {
+            EnquiryState.DashboardValue = "Admission";
+            NavigationManager.NavigateTo("/admitStudent");
+            StateHasChanged();
+        }
+        else if(value=="TodayEnquiery")
+        {
+            EnquiryState.DashboardValue = "Date";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TodayFollowup")
+        {
+            EnquiryState.DashboardValue = "Followup";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TodayConversion")
+        {
+            EnquiryState.DashboardValue = "Conversion";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "BasedOnSource")
+        {
+            EnquiryState.DashboardValue = "Source";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        // SendDashboardvalue="GetEnquiry";
+
     }
-    private void GoToRegistration()
-    {
-        EnquiryState.DashboardValue = "GetRegistration";
-        NavigationManager.NavigateTo("/enquiry");
-        StateHasChanged();
-    }
-    private void GoToAdmission()
-    {
-        NavigationManager.NavigateTo("/admitStudent");
-        StateHasChanged();
-    }
+
     // private ApexCharts.ApexChartOptions<TItem> GetDonutOptions<TItem>(List<string> orderedColors) where TItem : class => new()
     // {
     //     Chart = new ApexCharts.Chart
@@ -637,6 +718,7 @@
                 }
             }
         }
+       
     };
 
     // ===================== Load =====================
@@ -671,6 +753,32 @@
 
     private async Task SearchEnquiries()
     {
+        var className = string.IsNullOrWhiteSpace(searchAnyRequest.ClassCode)
+      ? "All Classes"
+      : classlist
+          .FirstOrDefault(x => x.ClassCode == searchAnyRequest.ClassCode)
+          ?.ClassName ?? "All Classes";
+
+        var sourceName = string.IsNullOrWhiteSpace(searchAnyRequest.Source)
+            ? "All Sources"
+            : searchAnyRequest.Source;
+
+        var monthName = string.IsNullOrWhiteSpace(searchAnyRequest.Month)
+            ? "All Months"
+            : monthlist
+                .FirstOrDefault(x => x.MonthNo.ToString() == searchAnyRequest.Month)
+                ?.MonthName ?? "All Months";
+
+        var fromDate = searchAnyRequest.FromDate.HasValue
+            ? searchAnyRequest.FromDate.Value.ToString("dd/MM/yyyy")
+            : "All Dates";
+
+        var toDate = searchAnyRequest.ToDate.HasValue
+            ? searchAnyRequest.ToDate.Value.ToString("dd/MM/yyyy")
+            : "All Dates";
+
+        SearchFilterText = $"{className} / {sourceName} / {monthName} / {fromDate} / {toDate}";
+        dashboard = new();
         ShowPopup = false;
         await LoadDashboard();
         StateHasChanged();
@@ -684,9 +792,7 @@
             searchAnyRequest.GroupCode = groupcode;
             searchAnyRequest.BranchCode = branchcode;
             searchAnyRequest.SessionId = CurrentSession;
-
             dashboard = await httpService.Post<EnquiryDashboardResponse>("AdminDashboard/GetEnquiryDashboardData", searchAnyRequest) ?? new();
-
             admissionDashboardpipeline = dashboard.Dashboard ?? new();
             sessionComparison = dashboard.SessionComparison ?? new();
             sourceReports = dashboard.SourceReport ?? new();
@@ -699,14 +805,19 @@
             followupStatus = dashboard.FollowupStatus ?? new();
             todayFollowups = dashboard.TodayFollowups ?? new();
             todayAdmissions = dashboard.TodayAdmissions ?? new();
-
+            StateHasChanged();
             // reset toggle state on fresh data
-            hiddenSources.Clear();
-            hiddenStages.Clear();
+            // hiddenSources.Clear();
+            // hiddenStages.Clear();
+        }
+        catch
+        {
+            
         }
         finally
         {
             IsLoading = false;
+            StateHasChanged();
         }
     }
 

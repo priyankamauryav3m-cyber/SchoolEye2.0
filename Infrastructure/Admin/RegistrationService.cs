@@ -1173,6 +1173,7 @@ namespace Infrastructure.SuperAdmin
                 param.Add("@ClassCode", request.ClassCode);
                 param.Add("@DocumentType", request.DocumentType);
                 param.Add("@RegistrationId", request.RegistrationId);
+                param.Add("@StudentId", request.StudentId);
                 return await con.QueryAsync<ClassRegistrationDocumentsResponse>(
                     "USP_GetClassRegistrationDocuments",
                     param,

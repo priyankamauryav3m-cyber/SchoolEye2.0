@@ -25,6 +25,10 @@
     .quickgrid thead th:last-child {
         min-width: 75px;
     }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 50px;
+    }
 </style>
 
 
@@ -47,11 +51,10 @@
                             </InputSelect>
                         </div>
                         <div class="form-box">
-
-                            <button class="form-input" type="button" data-bs-toggle="dropdown">
+                            <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
                                 @SelectedText
                             </button>
-                            <div class="dropdown-menu" style="max-height:350px; overflow-y:auto;">
+                            <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
 
                                 <div class="form-check">
                                     <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
@@ -207,19 +210,25 @@
                         <div class="form-box">
                             <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Export" Export="ExportToExcel" />
                         </div>
-                        <div class="form-box">
+                        <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Details" AdmitClicked="DetailsPopupOpen" />
+                        @* <div class="form-box">
                             <button type="button" class="table-btn" @onclick="DetailsPopupOpen">Details</button>
-                        </div>
+                        </div> *@
                         <div class="form-box">
                             <button class="table-btn" @onclick="OpenStudentVisitorDetails">Visitor</button>
                         </div>
-                        @*     <div class="form-box">
-                            <button class="table-btn">Document </button>
+                        <div class="form-box">
+                            <button class="table-btn" type="button" @onclick="OpenDocumentPopup">Document</button>
                         </div>
                         <div class="form-box">
-                            <button class="table-btn">Handover Docs</button>
+                            <button class="table-btn" type="button" @onclick="OpenHandoverDocsPopup">Handover Docs</button>
                         </div>
                         <div class="form-box">
+                            <button class="table-btn" type="button" @onclick="GenerateClassList">
+                                Class List
+                            </button>
+                        </div>
+                        @*   <div class="form-box">
                         <button type="button" class="table-btn" @onclick="DetailsPopupOpen">
                             Details
                         </button>
@@ -668,6 +677,213 @@
 }
 
 
+@if (ShowHandoverPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title">Handover Document</h5>
+                    <button data-access="Close" type="button" @onclick="CloseHandoverPopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedStudentRow?.ControlNo" readonly />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedStudentRow?.StudentName" readonly />
+                                <label class="floating-label">Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="selectedHandoverDocumentId">
+                                    <option value="0">No Items</option>
+                                    @foreach (var doc in documentDropdownList)
+                                    {
+                                        <option value="@doc.DocumentId">@doc.DocumentName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Document</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-8 col-md-8 col-lg-8 px-2  ">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="handoverRemarks" />
+                                <label class="floating-label">Remarks</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-8 col-md-8 col-lg-4 px-2 d-flex justify-content-end align-items-end">
+                            <div class="form-box-group">
+                                <button type="button" class="table-btn" @onclick="OnHandover">Handover</button>
+                            </div>
+                        </div>
+                     
+                    </div>
+
+                    <div class="card mt-2">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box" style="height: 320px;">
+                                    <QuickGrid Items="@documentQuery" Class="table">
+                                        <TemplateColumn Class="text-center" Title="" Align="Align.Center">
+                                            <ChildContent>
+                                                <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocumentName) ? " " : x.DocumentName)" Title="Document" Align="Align.Left" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.HandoverDate) ? " " : x.HandoverDate)" Title="Date" Class="text-center" Align="Align.Center" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remarks) ? " " : x.Remarks)" Title="Remarks" Align="Align.Left" />
+                                    </QuickGrid>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="table-btn" @onclick="OnUnMap">UnMap</button>
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@CloseHandoverPopup" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowDocumentPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title">Verify Document</h5>
+                    <div class="d-flex align-items-center">
+                        <button data-access="Close" type="button" @onclick="CloseDocumentPopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@CurrentSessionName" readonly />
+                                <label class="floating-label">Session</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedStudentRow?.ControlNo" readonly />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedStudentRow?.StudentName" readonly />
+                                <label class="floating-label">Name</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box-with-btn" style="height: 320px;">
+                                    <QuickGrid Items="@documentQuery" Class="table">
+                                        <TemplateColumn Class="text-center" Title="" Align="Align.Center">
+                                            <ChildContent>
+                                                <input type="checkbox" @bind="@context.IsSelected" @onclick:stopPropagation="true" />
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocumentName) ? " " : x.DocumentName)" Title="Document" Align="Align.Left" />
+                                        <TemplateColumn Title="Remarks" Align="Align.Left">
+                                            <ChildContent>
+                                                <input class="form-input w-100" @bind="context.Remarks" @bind:event="oninput" placeholder=" " />
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocDate) ? " " : x.DocDate)" Title="Date" Class="text-center" Align="Align.Center" />
+                                        <TemplateColumn Title="Att." Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                <label for="@("file-" + context.DocumentId)" style="cursor:pointer;">
+                                                    <i class="bi bi-paperclip" style="@(string.IsNullOrWhiteSpace(context.DocPath) ? "" : "color:#28a745;")"></i>
+                                                </label>
+                                                <InputFile id="@("file-" + context.DocumentId)" style="display:none;" OnChange="e => OnFileSelected(e, context)" />
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Taken" Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                @if (context.Verified == 1)
+                                                {
+                                                    <i class="bi bi-check-circle-fill" style="color:#28a745; font-size:18px;"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="table-btn" @onclick="VerifyAndTakeDocument">Verified And Taken</button>
+                    <button type="button" class="table-btn" @onclick="DeActivateDocument">Deactivate</button>
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@CloseDocumentPopup" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@if(OpenClassList)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title">
+                        Select no of blank column
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <button data-access="Close" type="button" @onclick="CloseClasslistPopup" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12  px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input"@bind-Value="blankColumnCount">
+                                    <option value="1">1 Blank </option>
+                                    <option value="2">2 Blank </option>
+                                    <option value="3">3 Blank </option>
+                                    <option value="4">4 Blank </option>
+                                    <option value="5">5 Blank </option>
+                                </InputSelect>
+
+                                <label class="floating-label">
+                                    No Of Column
+                                </label>
+                            </div>
+                        </div>
+                    
+                    </div>
+               
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    @* <button type="button" class="table-btn" @onclick="OnPrintClick">Print</button> *@
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Print="OnPrintClick" />
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@CloseClasslistPopup" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
@@ -683,10 +899,16 @@ else
 <AdmitChild IsVisible="@addstudent" OnClose="@ClosePopup" />
 <StudentViewDetails IsVisible="@OpenDetail" SessionId="@CurrentSession" CurrectUrl="@currentUrl" StudentId="@SelectedStudentId" OnClose="@ClosePopup" />
 <StudentVisitorDetails IsVisible="@OpenVisitorDetail" SessionId="@CurrentSession" StudentMobileNo="@SelectedStudentMobileNo"
-                       CurrectUrl="@currentUrl" StudentId="@SelectedStudentId" StudentName="@SelectedStudentName" OnClose="@ClosePopup" StudentNo="@SelectedStudentNo" />
+ CurrectUrl="@currentUrl" StudentId="@SelectedStudentId" StudentName="@SelectedStudentName" OnClose="@ClosePopup" StudentNo="@SelectedStudentNo" />
 @code {
+    private bool ShowDocumentPopup = false;
+    private List<ClassRegistrationDocumentsResponse> documentlist = new();
+    private ClassRegistrationDocumentsResponse? selectedDocument;
+    private ClassRegistrationDocumentsRequest documentsRequest = new();
+    private GetSearchedViewStudentModel? selectedStudentRow;
     private bool SelectAll = true;
     private bool OpenDetail = false;
+    private bool OpenClassList = false;
     private bool OpenVisitorDetail = false;
     private bool SelectAllSection = true;
     private bool IsAllSelected;
@@ -720,6 +942,337 @@ else
     private string? branchcode;
     private string? groupcode;
     private string? currentUrl;
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private IQueryable<ClassRegistrationDocumentsResponse> documentQuery => documentlist.AsQueryable();
+    private IQueryable<ClassRegistrationDocumentsResponse> handoverDocumentQuery => handoverDocumentlist.AsQueryable();
+    private int blankColumnCount = 1;
+    private List<ClassDocumentModel> mappinglist = new();
+    private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
+    private bool ShowHandoverPopup = false;
+    private List<ClassDocumentModel> documentDropdownList = new();
+    private List<ClassRegistrationDocumentsResponse> handoverDocumentlist = new();
+    private long selectedHandoverDocumentId;
+    private string handoverRemarks = string.Empty;
+    private async Task OpenDocumentPopup()
+    {
+        var data = SearchedstudentmoduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        else if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        selectedStudentRow = data[0];
+        selectedDocument = null;
+
+        await LoadDocumentList();
+
+        ShowDocumentPopup = true;
+        StateHasChanged();
+    }
+    private async Task OpenHandoverDocsPopup()
+    {
+        var data = SearchedstudentmoduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0 || data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        selectedStudentRow = data[0];
+        selectedHandoverDocumentId = 0;
+        handoverRemarks = string.Empty;
+
+        await LoadDocumentDropdown();
+        await LoadDocumentList();
+
+        ShowHandoverPopup = true;
+        StateHasChanged();
+    }
+
+    private async Task OnUnMap()
+    {
+        var selected = handoverDocumentlist.Where(x => x.IsSelected).ToList();
+        if (selected.Count == 0 || selected.Count > 1)
+        {
+            ShowHandoverPopup = false;
+            StateHasChanged();
+
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+
+            ShowHandoverPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        var doc = selected[0];
+
+        var model = new ClassStudentDocumentRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = selectedStudentRow!.StudentId,
+            DocumentId = doc.DocumentId,
+            CreatedBy = UserName
+        };
+
+        ShowHandoverPopup = false;
+        StateHasChanged();
+
+        var apiResponse = await httpService.Post<ApiResponse<object>>("ViewStudent/UnMapStudentHandoverDocument", model);
+        if (apiResponse != null && apiResponse.Success)
+        {
+            await Alert.ShowSuccess("Document unmapped successfully.");
+        }
+        else
+        {
+            await Alert.ShowWarning("Document was not unmapped.");
+        }
+
+        ShowHandoverPopup = true;
+        StateHasChanged();
+
+        await LoadDocumentDropdown();
+        await LoadDocumentList();
+    }
+    private void CloseHandoverPopup()
+    {
+        ShowHandoverPopup = false;
+    }
+
+    private async Task OnHandover()
+    {
+        if (selectedHandoverDocumentId <= 0)
+        {
+            ShowHandoverPopup = false;
+            StateHasChanged();
+
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+
+            ShowHandoverPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        var model = new StudentDocumentModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = selectedStudentRow!.StudentId,
+            DocumentId = selectedHandoverDocumentId,
+            Remarks = handoverRemarks,
+            CreatedBy = UserName
+        };
+
+        ShowHandoverPopup = false;
+        StateHasChanged();
+
+        var apiResponse = await httpService.Post<ApiResponse<object>>("ViewStudent/HandoverStudentDocument", model);
+        if (apiResponse != null && apiResponse.Success)
+        {
+            await Alert.ShowSuccess("Document handed over successfully.");
+            handoverRemarks = string.Empty;
+            selectedHandoverDocumentId = 0;
+            await LoadDocumentDropdown();
+            await LoadDocumentList();
+            StateHasChanged();
+        }
+        else
+        {
+            await Alert.ShowWarning("Document was not handed over.");
+        }
+
+        ShowHandoverPopup = true;
+        StateHasChanged();
+
+
+    }
+    private async Task LoadDocumentDropdown()
+    {
+        searchAnyRequest.RequestName = selectedStudentRow!.ClassCode;
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+
+        string ApiUri = "ClassDocument/GetClassDocument";
+        documentDropdownList = await httpService.Post<List<ClassDocumentModel>>(ApiUri, searchAnyRequest) ?? new();
+    }
+    private async Task LoadDocumentList()
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            documentsRequest.StudentId = selectedStudentRow!.StudentId;
+            documentsRequest.ClassCode = selectedStudentRow.ClassCode;
+            documentsRequest.SessionId = CurrentSession;
+            documentsRequest.GroupCode = groupcode;
+            documentsRequest.BranchCode = branchcode;
+
+            string apiUrl = "Registration/GetClassRegistrationDocuments";
+            var apiResponse = await httpService.Post<ApiResponse<List<ClassRegistrationDocumentsResponse>>>(apiUrl, documentsRequest);
+            documentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+        }
+        catch
+        {
+            documentlist = new();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e, ClassRegistrationDocumentsResponse doc)
+    {
+        var file = e.File;
+        if (file == null) return;
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        doc.DocPath = file.Name;
+
+        StateHasChanged();
+    }
+
+    private void CloseDocumentPopup()
+    {
+        ShowDocumentPopup = false;
+    }
+    private void CloseClasslistPopup()
+    {
+        OpenClassList = false;
+    }
+    private async Task VerifyAndTakeDocument()
+    {
+        ShowDocumentPopup = false;
+        var data = documentQuery.Where(x => x.IsSelected).ToList();
+        if (data[0].Verified == 1)
+        {
+            await Alert.ShowWarning("Document already verified.");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (data.Count == 0 || data.Count > 1)
+        {
+            ShowDocumentPopup = false;
+            StateHasChanged();
+
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        selectedDocument = data[0];
+        var model = new StudentDocumentModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = selectedStudentRow!.StudentId,
+            DocumentId = selectedDocument.DocumentId,
+            DocumentName = selectedDocument.DocumentName,
+            Remarks = selectedDocument.Remarks,
+            DocPath = selectedDocument.DocPath,
+            IsValid = true,
+            CreatedBy = UserName
+        };
+
+        ShowDocumentPopup = false;
+        StateHasChanged();
+        var submit = await Alert.ShowConfirm("Are you sure, you want to activate selected document?");
+        if (!submit)
+        {
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+        var apiResponse = await httpService.Post<ApiResponse<object>>("ViewStudent/VerifyAndTakeDocument", model);
+        if (apiResponse.Success && apiResponse.Code == 1)
+        {
+            await Alert.ShowSuccess("Document verified and taken.");
+            StateHasChanged();
+        }
+        else if (apiResponse.Success && apiResponse.Code == 2)
+        {
+            await Alert.ShowSuccess("Document record updated successfully.");
+        }
+        else
+        {
+            await Alert.ShowWarning("Document not verified.");
+        }
+        StateHasChanged();
+    }
+
+    private async Task DeActivateDocument()
+    {
+        ShowDocumentPopup = false;
+        var data = documentQuery.Where(x => x.IsSelected).ToList();
+
+        if (data[0].Verified == 0)
+        {
+            await Alert.ShowWarning("Document already deactivated.");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (data.Count == 0 || data.Count > 1)
+        {
+            ShowDocumentPopup = false;
+            StateHasChanged();
+
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        selectedDocument = data[0];
+        var model = new ClassStudentDocumentRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = selectedStudentRow!.StudentId,
+            DocumentId = selectedDocument.DocumentId,
+            CreatedBy = UserName
+        };
+
+        ShowDocumentPopup = false;
+        StateHasChanged();
+        var submit = await Alert.ShowConfirm("Are you sure, you want to deactivate selected document?");
+        if (!submit)
+        {
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+        var apiResponse = await httpService.Post<ApiResponse<object>>("ViewStudent/DeactivateStudentDocument", model);
+        if (apiResponse.Success)
+        {
+            await Alert.ShowSuccess("Document deactivated successfully.");
+            StateHasChanged();
+        }
+        else
+        {
+            await Alert.ShowWarning("Document not deactivated.");
+        }
+        StateHasChanged();
+    }
     private void ToggleAll()
     {
         if (roleId == "8")
@@ -775,6 +1328,7 @@ else
             {
                 item.IsSelected = true;
             }
+            await GetSearchedStudent();
             StateHasChanged();
         }
     }
@@ -818,6 +1372,84 @@ else
 
             }
             return result;
+        }
+    }
+    private void GenerateClassList()
+    {
+        OpenClassList=true;
+        StateHasChanged();
+    }
+    private async Task PrintPdfList(  List<GetSearchedViewStudentModel> data)
+    {
+        var request = new ClassListRequest
+        {
+            Students = data,
+            BlankColumnCount = blankColumnCount
+        };
+
+        string ApiUri = "Export/GenerateClassListPdf";
+
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, request);
+
+        if (response != null && response.Success && response.Data != null)
+        {
+            var base64Pdf = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Pdf))
+            {
+                // await JS.InvokeVoidAsync("downloadFileFromBase64", "ClassList.pdf",  "application/pdf", base64Pdf);
+                await JS.InvokeVoidAsync("viewPdf", response.Data);
+            }
+        }
+    }
+    private async Task PrintExcel( List<GetSearchedViewStudentModel> data)
+    {
+        var request = new ClassListRequest
+        {
+            Students = data,
+            BlankColumnCount = blankColumnCount
+        };
+
+        string ApiUri = "Export/GenerateClassListExcel";
+
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, request);
+
+        if (response != null && response.Success && response.Data != null)
+        {
+            var base64Excel = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Excel))
+            {
+     
+                await JS.InvokeVoidAsync("downloadExcel", base64Excel, "ClassList.xlsx");
+            }
+        }
+    }
+    private async Task OnPrintClick()
+    {
+        OpenClassList = false;
+        var data = SearchedstudentmoduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("Data not fountd");
+            return;
+        }
+
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+
+        if (isPdf)
+        {
+            await PrintPdfList(data);
+            StateHasChanged();
+        }
+        else if (isExcel)
+        {
+            await PrintExcel(data);
+            StateHasChanged();
         }
     }
     private async Task ExportToExcel()
@@ -925,19 +1557,8 @@ else
 
         StateHasChanged();
     }
-    private string SelectedText
-    {
-        get
-        {
-            if (SelectAll && classlist.Any())
-                return "All";
-            var selected = classlist.Where(x => x.IsSelected).Select(x => x.ClassName).ToList();
-            if (!selected.Any())
-                return "Select Class";
-
-            return string.Join(", ", selected);
-        }
-    }
+    private string SelectedText => SelectAll ? "All Class Selected" :
+        string.Join(", ", classlist.Where(x => x.IsSelected).Select(x => x.ClassName));
     private string SelectedSectionText
     {
         get
@@ -1010,6 +1631,7 @@ else
             {
                 getSearchedViewStudentlist = apiResponse.Data ?? new List<GetSearchedViewStudentModel>();
                 studentRequestModel = new();
+                IsLoading = false;
             }
             else
             {
