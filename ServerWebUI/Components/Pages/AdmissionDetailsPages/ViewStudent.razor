@@ -997,7 +997,7 @@ else
 
     private async Task OnUnMap()
     {
-        var selected = handoverDocumentlist.Where(x => x.IsSelected).ToList();
+        var selected = documentQuery.Where(x => x.IsSelected).ToList();
         if (selected.Count == 0 || selected.Count > 1)
         {
             ShowHandoverPopup = false;

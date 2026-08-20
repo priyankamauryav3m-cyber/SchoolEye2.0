@@ -2365,7 +2365,6 @@ namespace DomainModel.Admin
 
         public int SectionId { get; set; }
 
-        [Required(ErrorMessage = "Created By is required.")]
         [StringLength(50)]
         public string? CreatedBy { get; set; }
 
@@ -2373,13 +2372,23 @@ namespace DomainModel.Admin
         //[MinLength(1, ErrorMessage = "At least one student is required.")]
         //public List<StudentCBSERegNoItem> Students { get; set; } = new();
     }
-    public class StudentCBSERegNoResult
+    public class AddUpdateStudentBoardRollNoRequest
     {
+        public string GroupCode { get; set; } = string.Empty;
 
-        public long StudentId { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
 
-        public bool IsUpdated { get; set; }
+        // Example:
+        // 80050,BR001~80051,BR002~80052,BR003
+        public string StudentId { get; set; } = string.Empty;
 
+        public long SessionId { get; set; }
+
+        public string ClassCode { get; set; } = string.Empty;
+
+        public int SectionId { get; set; }
+
+        public string CreatedBy { get; set; } = string.Empty;
     }
 
 }
