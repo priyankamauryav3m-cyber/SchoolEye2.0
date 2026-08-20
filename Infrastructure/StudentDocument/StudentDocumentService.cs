@@ -1840,5 +1840,14 @@ namespace Infrastructure.StudentDocument
 
             return await Task.FromResult(stream.ToArray());
         }
+        public async Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> request)
+        {
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var document = new StudentBoardRollNoPdfDocument(request);
+
+            return await Task.FromResult(document.GeneratePdf());
+        }
     }
 }

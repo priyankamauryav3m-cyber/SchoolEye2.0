@@ -38,6 +38,7 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GeneratePublishingListPdf(List<PublishingListResponse> publishingList);
         //  public Task<byte[]> GenerateClassList(List<GetSearchedViewStudentModel> model);
         Task<byte[]> GenerateClassListPdf(ClassListRequest reques);
+        Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> reques);
         Task<byte[]> GenerateClassListExcel(ClassListRequest request);
     }
 }

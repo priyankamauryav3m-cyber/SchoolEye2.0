@@ -415,6 +415,10 @@ namespace Infrastructure.FinanceMNGT
                 parameters.Add("@Line2", request.Line2);
                 ; parameters.Add("@PinCode", request.PinCode);
                 parameters.Add("@ContactNo", request.ContactNo);
+                parameters.Add("@EmergencyPersonName", request.EmergencyPersonName);
+                parameters.Add("@EmergencyPersonRelationShip", request.EmergencyPersonRelationShip);
+                parameters.Add("@EmergencyPersonContactNo", request.EmergencyPersonContactNo);
+                parameters.Add("@EmergencyPersonAddress", request.EmergencyPersonAddress);
                 parameters.Add("@AddressTo", request.AddressTo);
                 parameters.Add("@AddressType", request.AddressType);
                 parameters.Add("@CreatedBy", request.CreatedBy);

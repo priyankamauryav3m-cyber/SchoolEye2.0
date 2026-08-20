@@ -46,6 +46,34 @@ namespace Infrastructure.Admin
                 throw;
             }
         }
+        public async Task<string> AddUpdateStudentBoardRollNo(AddUpdateStudentBoardRollNoRequest request)
+        {
+            using var con = new SqlConnection(_connectionString);
+
+            var parameters = new DynamicParameters();
+
+            parameters.Add("@GroupCode", request.GroupCode, DbType.String);
+            parameters.Add("@BranchCode", request.BranchCode, DbType.String);
+            parameters.Add("@StudentId", request.StudentId, DbType.String);
+            parameters.Add("@SessionId", request.SessionId, DbType.Int64);
+            parameters.Add("@ClassCode", request.ClassCode, DbType.String);
+            parameters.Add("@SectionId", request.SectionId, DbType.Int32);
+            parameters.Add("@CreatedBy", request.CreatedBy, DbType.String);
+
+            parameters.Add(
+                "@ReturnValue",
+                dbType: DbType.String,
+                direction: ParameterDirection.Output,
+                size: -1
+            );
+
+            await con.ExecuteAsync("V3M_STU_UspAddUpdateStudentBoardRollNo",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return parameters.Get<string>("@ReturnValue") ?? string.Empty;
+        }
         //public async Task<List<StudentCBSERegNoResult>> AddUpdateStudentCBSERegNo(UpdateStudentCBSERegNoRequest request)
         //{
         //    try

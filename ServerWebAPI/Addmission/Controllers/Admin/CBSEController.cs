@@ -65,7 +65,50 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
             }
         }
+        [HttpPost("AddUpdateStudentBoardRollNo")]
+        public async Task<IActionResult> AddUpdateStudentBoardRollNo( [FromBody] AddUpdateStudentBoardRollNoRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = "Invalid request.",
+                        Data = string.Empty
+                    });
+                }
 
+                if (string.IsNullOrWhiteSpace(request.StudentId))
+                {
+                    return BadRequest(new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = "Student data is required.",
+                        Data = string.Empty
+                    });
+                }
+
+                var result = await _service.AddUpdateStudentBoardRollNo(request);
+
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Message = "Board Roll Number updated successfully.",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = string.Empty
+                });
+            }
+        }
         //[HttpPost("AddUpdateStudentCBSERegNo")]
         //public async Task<IActionResult> AddUpdateStudentCBSERegNo([FromBody] UpdateStudentCBSERegNoRequest request)
         //{

@@ -1954,7 +1954,7 @@ namespace Infrastructure.FileGenerate
                     page.Margin(20);
                     page.PageColor(Colors.White);
 
-                  page.DefaultTextStyle(x => x.FontSize(9));
+                    page.DefaultTextStyle(x => x.FontSize(9));
 
                     page.Header()
                         .Element(ComposeHeader);
@@ -2368,6 +2368,397 @@ namespace Infrastructure.FileGenerate
                             text.CurrentPageNumber().Bold();
                             text.Span(" of ").Bold();
                             text.TotalPages().Bold();
+                        });
+                });
+        }
+    }
+
+    #endregion
+
+
+    #region---------------- Print Student With Board ROll No ------------------
+
+    public class StudentBoardRollNoPdfDocument : IDocument
+    {
+        private readonly List<AdmSearchedStudentResponse> _students;
+
+        public StudentBoardRollNoPdfDocument(
+            List<AdmSearchedStudentResponse> students)
+        {
+            _students = students
+                ?? new List<AdmSearchedStudentResponse>();
+        }
+
+        public DocumentMetadata GetMetadata()
+        {
+            return DocumentMetadata.Default;
+        }
+
+        public DocumentSettings GetSettings()
+        {
+            return DocumentSettings.Default;
+        }
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+
+                // Margin 20
+                page.Margin(20);
+
+                page.PageColor(Colors.White);
+
+                page.DefaultTextStyle(x =>
+                    x.FontSize(7)
+                     .FontColor(Colors.Black));
+
+                // Har page par header aur logo
+                page.Header()
+                    .Element(ComposeHeader);
+
+                page.Content()
+                    .PaddingTop(5)
+                    .Element(ComposeContent);
+
+                page.Footer()
+                    .Element(ComposeFooter);
+            });
+        }
+
+
+        // =====================================================
+        // HEADER - EVERY PAGE
+        // =====================================================
+
+        private void ComposeHeader(IContainer container)
+        {
+            byte[]? logoBytes = null;
+
+            string logoPath = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "Logos",
+                "logo (1).png");
+
+            if (File.Exists(logoPath))
+            {
+                logoBytes = File.ReadAllBytes(logoPath);
+            }
+
+            container.Column(col =>
+            {
+                // SCHOOL HEADER
+                col.Item()
+                    .Row(row =>
+                    {
+                        // LOGO
+                        row.ConstantItem(80)
+                            .Height(65)
+                            .AlignLeft()
+                            .AlignMiddle()
+                            .Element(logo =>
+                            {
+                                if (logoBytes != null)
+                                {
+                                    logo.Image(
+                                        logoBytes,
+                                        ImageScaling.FitArea);
+                                }
+                            });
+
+
+                        // SCHOOL DETAILS
+                        row.RelativeItem()
+                            .AlignCenter()
+                            .Column(c =>
+                            {
+                                c.Item()
+                                    .AlignCenter()
+                                    .Text("Cambridge School, Noida")
+                                    .FontSize(16)
+                                    .ExtraBold();
+
+                                c.Item()
+                                    .AlignCenter()
+                                    .Text(
+                                        "Sector-27, Noida, Uttar Pradesh 201301")
+                                    .FontSize(8)
+                                    .ExtraBold();
+
+                                c.Item()
+                                    .PaddingTop(2)
+                                    .AlignCenter()
+                                    .Text(
+                                        "noida.cambridgeschool.edu.in")
+                                    .FontSize(8)
+                                    .Bold();
+
+                                c.Item()
+                                    .PaddingTop(6)
+                                    .AlignCenter()
+                                    .Text("Student Board Roll No")
+                                    .FontSize(11)
+                                    .Bold();
+                            });
+
+
+                        // RIGHT EMPTY SPACE
+                        row.ConstantItem(80);
+                    });
+
+
+                // DATE
+                col.Item()
+                    .PaddingTop(4)
+                    .AlignRight()
+                    .Text(text =>
+                    {
+                        text.Span("Date : ")
+                            .FontSize(7)
+                            .Bold();
+
+                        text.Span(
+                            DateTime.Now.ToString(
+                                "dd-MM-yyyy HH:mm:ss"))
+                            .FontSize(7);
+                    });
+
+
+                col.Item()
+                    .PaddingBottom(3);
+            });
+        }
+
+
+        // =====================================================
+        // CONTENT
+        // =====================================================
+
+        private void ComposeContent(IContainer container)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.ConstantColumn(40);       // Sl No
+                    columns.ConstantColumn(70);       // Student No
+                    columns.RelativeColumn(2.2f);     // Student Name
+                    columns.ConstantColumn(45);       // Class
+                    columns.ConstantColumn(55);       // Section
+                    columns.ConstantColumn(75);       // Date Of Birth
+                    columns.ConstantColumn(80);       // Board Roll No
+                });
+
+
+                // =============================================
+                // TABLE HEADER
+                // Auto repeat on every page
+                // =============================================
+
+                table.Header(header =>
+                {
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Sl No");
+
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Student No");
+
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Student Name");
+
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Class");
+
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Section");
+
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Date of Birth");
+
+                    header.Cell()
+                        .Element(HeaderCell)
+                        .Text("Board Roll No");
+                });
+
+
+                // =============================================
+                // STUDENT DATA
+                // =============================================
+
+                int srNo = 1;
+
+                foreach (var item in _students)
+                {
+                    // Sl No
+                    table.Cell()
+                        .Element(CenterCell)
+                        .Text(srNo.ToString());
+
+
+                    // Student No
+                    table.Cell()
+                        .Element(CenterCell)
+                        .Text(item.ControlNo ?? "");
+
+
+                    // Student Name
+                    table.Cell()
+                        .Element(NameCell)
+                        .Text(item.StudentName ?? "");
+
+
+                    // Class
+                    table.Cell()
+                        .Element(CenterCell)
+                        .Text(item.ClassName ?? "");
+
+
+                    // Section
+                    table.Cell()
+                        .Element(CenterCell)
+                        .Text(item.SectionName ?? "");
+
+
+                    // Date Of Birth
+                    table.Cell()
+                        .Element(CenterCell)
+                        .Text(
+                            item.DateOfBirth.HasValue
+                                ? item.DateOfBirth.Value
+                                    .ToString("dd-MM-yyyy")
+                                : ""
+                        );
+
+
+                    // Board Roll No
+                    table.Cell()
+                        .Element(CenterCell)
+                        .Text(item.BoardRollNo ?? "");
+
+
+                    srNo++;
+                }
+            });
+        }
+
+
+        // =====================================================
+        // HEADER CELL
+        // =====================================================
+
+        private static IContainer HeaderCell(
+            IContainer container)
+        {
+            return container
+                .Border(1)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(5)
+                .PaddingHorizontal(2)
+                .AlignCenter()
+                .AlignMiddle()
+                .DefaultTextStyle(x =>
+                    x.FontSize(7)
+                     .ExtraBold());
+        }
+
+
+        // =====================================================
+        // CENTER CELL
+        // =====================================================
+
+        private static IContainer CenterCell(
+            IContainer container)
+        {
+            return container
+                .Border(1)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(2)
+                .AlignCenter()
+                .AlignMiddle()
+                .DefaultTextStyle(x =>
+                    x.FontSize(7));
+        }
+
+
+        // =====================================================
+        // STUDENT NAME CELL
+        // =====================================================
+
+        private static IContainer NameCell(
+            IContainer container)
+        {
+            return container
+                .Border(1)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(4)
+                .AlignLeft()
+                .AlignMiddle()
+                .DefaultTextStyle(x =>
+                    x.FontSize(7));
+        }
+
+
+        // =====================================================
+        // FOOTER
+        // =====================================================
+
+        private void ComposeFooter(IContainer container)
+        {
+            container
+                .PaddingTop(8)
+                .Column(col =>
+                {
+                    col.Item()
+                        .Row(row =>
+                        {
+                            row.RelativeItem()
+                                .AlignLeft()
+                                .Text("Generated on:")
+                                .ExtraBold()
+                                .Italic()
+                                .FontSize(7);
+
+                            row.RelativeItem()
+                                .AlignRight()
+                                .Text(
+                                    $"{DateTime.Now:dd-MM-yyyy}")
+                                .ExtraBold()
+                                .Italic()
+                                .FontSize(7);
+                        });
+
+                    col.Item()
+                        .PaddingTop(3)
+                        .PaddingBottom(3)
+                        .Height(1)
+                        .Background(Colors.Grey.Darken1);
+
+                    col.Item()
+                        .AlignRight()
+                        .Text(text =>
+                        {
+                            text.Span("Page ")
+                                .Bold();
+
+                            text.CurrentPageNumber()
+                                .Bold();
+
+                            text.Span(" of ")
+                                .Bold();
+
+                            text.TotalPages()
+                                .Bold();
                         });
                 });
         }

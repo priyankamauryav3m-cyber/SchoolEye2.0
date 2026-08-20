@@ -137,7 +137,6 @@ else
 {
 
 }
-
 @code {
     // ---------------------------------------------------------------------
     // ASSUMPTIONS (adjust if different in your project):
@@ -312,10 +311,61 @@ else
         return Task.CompletedTask;
     }
 
-    private Task OnSubmit()
+    private async Task OnSubmit()
     {
-        // TODO: no submit/save endpoint specified yet for Board Roll No - wire this once provided.
-        return Task.CompletedTask;
+        if (studentlist.Count == 0)
+        {
+            await Alert.ShowWarning("Please search for students first.");
+            return;
+        }
+
+        if (studentlist.Any(x => string.IsNullOrWhiteSpace(x.BoardRollNo)))
+        {
+            await Alert.ShowWarning("Board roll no can not be blank.");
+            return;
+        }
+
+        // Build "StudentId,BoardRollNo~StudentId,BoardRollNo~..."
+        var studentIdString = string.Join("~", studentlist.Select(x => $"{x.StudentId},{x.BoardRollNo}"));
+
+        var model = new AddUpdateStudentBoardRollNoRequest
+        {
+            GroupCode = groupcode ?? string.Empty,
+            BranchCode = branchcode ?? string.Empty,
+            StudentId = studentIdString,
+            SessionId = CurrentSession,
+            ClassCode = searchRequest.ClassCode ?? string.Empty,
+            SectionId = searchRequest.SectionId,
+            CreatedBy = username
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "CBSC/AddUpdateStudentBoardRollNo";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess(apiResponse.Message ?? "Board roll no updated successfully.");
+                await SearchStudents();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Board roll no was not updated.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
     private Task OnPrint()
