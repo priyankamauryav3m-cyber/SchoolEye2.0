@@ -59,7 +59,46 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
             }
         }
-     
+        [HttpPost("AllocateSection")]
+        public async Task<IActionResult> AllocateSection([FromBody] AllocateSectionRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found."
+                });
+            }
+            try
+            {
+                var result = await _service.AllocateSection(request);
+                if (result != null)
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Section allocated successfully.",
+                        Code = 1
+                    });
+                }
+                return Ok(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Section allocation failed. See server logs for details.",
+                    Code = 0
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while allocating section."
+                });
+            }
+        }
 
         [HttpPost("GetSearchedStudentRollNo")]
         public async Task<IActionResult> GetSearchedStudentRollNo([FromBody] AdmSearchedStudentRequest request)

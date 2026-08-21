@@ -75,6 +75,32 @@ namespace Infrastructure.Admin
                 throw;
             }
         }
+        public async Task<string?> AllocateSection(AllocateSectionRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionId", request.SectionId);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@ReturnValue", dbType: DbType.String, size: -1, direction: ParameterDirection.Output);
+                await con.ExecuteAsync(
+                    "STU_UspAllocateSection",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+                return param.Get<string?>("@ReturnValue");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
 
     }
 }

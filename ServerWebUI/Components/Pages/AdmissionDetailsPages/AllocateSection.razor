@@ -1,0 +1,703 @@
+@page "/AllocateSection"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+<style>
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 50px;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Allocate Section">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ClassCode" @bind-Value:after="OnClassChanged">
+                        <option value="">-Select Class-</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.SectionCode" @bind-Value:after="OnSectionChanged">
+                        <option value="0">-Select Section-</option>
+                        @foreach (var sec in sectionlist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-between align-items-center gap-5 px-2">
+                        <label class="form-label">Max Strength</label>
+                        <span class="form-label">@maxStrength</span>
+                    </div>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="OnSetSectionRollNo">Set Section Roll No.</button>
+                </div>
+            </PageHeading>
+        </div>
+
+
+        <!-- ===================== LEFT PANEL (Not Allocated) ===================== -->
+        <div class="col-6 p-1">
+            <div class="card">
+                <div class="row m-0 px-1 mt-2 align-items-center">
+                    <div class="col-3 px-1">
+                        <div class="form-box">
+                            <label class="form-label">Total Student</label>
+                            <input class="form-input" value="@leftList.Count" readonly />
+                        </div>
+                    </div>
+                    <div class="col-3 px-1">
+                        <div class="form-box">
+                            <label class="form-label">Not Allocated</label>
+                            <input class="form-input" value="@leftList.Count" readonly />
+                        </div>
+                    </div>
+                    <div class="col-2 px-1">
+                        <div class="form-box">
+                            <label class="form-label">Male</label>
+                            <input class="form-input" value="@LeftMaleCount" readonly />
+                        </div>
+                    </div>
+                    <div class="col-2 px-1">
+                        <div class="form-box">
+                            <label class="form-label">Female</label>
+                            <input class="form-input" value="@LeftFemaleCount" readonly />
+                        </div>
+                    </div>
+                    <div class="col-auto ms-auto px-1 mt-3">
+                        <button class="icon-btn" @onclick="MoveSelectedToRight" title="Move selected to allocated section">
+                            <i class="bi bi-play-fill"></i>
+                        </button>
+                    </div>
+                </div>
+                <hr class="mb-0 mt-2" />
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@leftQuery" Class="table" Pagination="@leftPagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="SelectAllLeft" @bind:after="ToggleSelectAllLeft" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected"
+                                                   disabled="@(!string.IsNullOrWhiteSpace(context.SectionName))"
+                                                   @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? "NA" : x.SectionName)" Title="Section" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@leftPagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== RIGHT PANEL (Allocated) ===================== -->
+        <div class="col-6 p-1">
+            <div class="card">
+                <div class="row m-0 px-1 mt-2 align-items-center">
+                    <div class="col-auto px-1 mt-3">
+                        <button class="icon-btn" @onclick="MoveBackToLeft" title="Move selected back">
+                            <i class="bi bi-caret-left-fill"></i>
+                        </button>
+                    </div>
+                    <div class="col-4  px-1 ms-auto">
+                        <div class="form-box">
+                            <label class="form-label">Allocated</label>
+                            <input class="form-input" value="@rightList.Count" readonly />
+                        </div>
+                    </div>
+                    <div class="col-2    px-1">
+                        <div class="form-box">
+                            <label class="form-label">Male</label>
+                            <input class="form-input" value="@RightMaleCount" readonly />
+                        </div>
+                    </div>
+                    <div class="col-3   px-1">
+                        <div class="form-box">
+                            <label class="form-label">Female</label>
+                            <input class="form-input" value="@RightFemaleCount" readonly />
+                        </div>
+                    </div>
+                </div>
+                <hr class="mb-0 mt-2" />
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@rightQuery" Class="table" Pagination="@rightPagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="SelectAllRight" @bind:after="ToggleSelectAllRight" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Title="Roll No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@rightPagination" />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+   
+
+
+    
+    </div>
+</div>
+
+@if (Showpopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-6">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn d-flex align-items-center justify-content-between">
+                    <h5 class="modal-title">Set Student Roll No.</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@CurrentSessionName" readonly />
+                                <label class="floating-label">Session Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedClassName" readonly />
+                                <label class="floating-label">Class Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " value="@selectedSectionnName" readonly />
+                                <label class="floating-label">Section Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-6 px-2">
+                            <div class="form-box-group static-label">
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3 p-2">
+                                    <InputRadioGroup @bind-Value="definePreference">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("No")" />
+                                            <label class="form-label">No</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("Yes")" />
+                                            <label class="form-label">Yes</label>
+                                        </div>
+                                    </InputRadioGroup>
+                                    <label class="floating-label">Define Roll Number Preference</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-4 col-md-4 col-lg-6 px-2">
+                            <div class="form-box-group static-label">
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3 p-2">
+                                    <InputRadioGroup @bind-Value="orderByPreference">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("Name")" />
+                                            <label class="form-label">By Name</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("AdmissionNo")" />
+                                            <label class="form-label">By Admission No</label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="table-btn" @onclick="SetRollNo">Set Roll No</button>
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@ClosePopup" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - StuSearchedStudentResponse needs an "IsSelected" bool property for
+    //   the grid checkboxes (not on the model as originally pasted - add it).
+    // - Left panel = students of the selected class with no SectionName
+    //   (unallocated). Right panel = students matching selected ClassCode +
+    //   SectionCode (already allocated to that section).
+    // - SectionModel is assumed to carry a "MaxStrength" field for the
+    //   disabled Max Strength box; if it's on a different model/endpoint,
+    //   tell me and I'll point maxStrength at the right source.
+    // - "Set Section Roll No." has no endpoint specified, so it's a stub
+    //   (TODO) - give me the endpoint + payload and I'll wire it in.
+    // - Move left/right is purely a local, in-memory list move (no API) -
+    //   actual persistence happens whenever "Set Section Roll No." is wired.
+    // ---------------------------------------------------------------------
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<StuSearchedStudentResponse> leftList = new();
+    private List<StuSearchedStudentResponse> rightList = new();
+
+    private StuSearchedStudentRequest searchRequest = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private bool SelectAllLeft;
+    private bool SelectAllRight;
+    private bool Showpopup;
+
+    private PaginationState leftPagination = new() { ItemsPerPage = 15 };
+    private PaginationState rightPagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private int maxStrength;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+    private string selectedClassName = "";
+    private string selectedSectionnName = "";
+    private string definePreference = "Yes";
+    private string orderByPreference = "AdmissionNo";
+
+    private IQueryable<StuSearchedStudentResponse> leftQuery => leftList.AsQueryable();
+    private IQueryable<StuSearchedStudentResponse> rightQuery => rightList.AsQueryable();
+
+    private int LeftMaleCount => leftList.Count(x => x.Gender == "Male");
+    private int LeftFemaleCount => leftList.Count(x => x.Gender == "Female");
+    private int RightMaleCount => rightList.Count(x => x.Gender == "Male");
+    private int RightFemaleCount => rightList.Count(x => x.Gender == "Female");
+    private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+
+        StateHasChanged();
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchRequest.SectionCode = string.Empty;
+        sectionlist = new();
+        rightList = new();
+        maxStrength = 0;
+
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            leftList = new();
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchRequest.ClassCode;
+
+        string sectionApiUri = "ClassSection/GetClassWithSection";
+        var sectionApiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(sectionApiUri, searchAny) ?? new();
+        if (sectionApiResponse.Success)
+        {
+            sectionlist = sectionApiResponse.Data ?? new();
+        }
+
+        await SearchLeftStudents();
+        StateHasChanged();
+    }
+
+    private async Task OnSectionChanged()
+    {
+        maxStrength = sectionlist.FirstOrDefault(x => x.SectionId == Convert.ToInt32(searchRequest.SectionCode))?.MaxStrength ?? 0;
+
+        if (string.IsNullOrEmpty(searchRequest.SectionCode))
+        {
+            rightList = new();
+            StateHasChanged();
+            return;
+        }
+
+        await SearchRightStudents();
+        StateHasChanged();
+    }
+
+    private async Task SearchLeftStudents()
+    {
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var requestForLeft = new StuSearchedStudentRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                ClassCode = searchRequest.ClassCode
+            };
+
+            string apiUrl = "AdmissionDate/GetSearchedStudent";
+            var apiResponse = await httpService.Post<ApiResponse<List<StuSearchedStudentResponse>>>(apiUrl, requestForLeft);
+
+            var result = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            leftList = result.ToList();
+        }
+        catch
+        {
+            leftList = new();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchRightStudents()
+    {
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var requestForRight = new StuSearchedStudentRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                ClassCode = searchRequest.ClassCode,
+                SectionCode = searchRequest.SectionCode
+            };
+
+            string apiUrl = "AdmissionDate/GetSearchedStudent";
+            var apiResponse = await httpService.Post<ApiResponse<List<StuSearchedStudentResponse>>>(apiUrl, requestForRight);
+
+            rightList = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+        }
+        catch
+        {
+            rightList = new();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleSelectAllLeft()
+    {
+        foreach (var item in leftList)
+            item.IsSelected = SelectAllLeft;
+    }
+
+    private void ToggleSelectAllRight()
+    {
+        foreach (var item in rightList)
+            item.IsSelected = SelectAllRight;
+    }
+
+    private async Task MoveSelectedToRight()
+    {
+        var selected = leftList.Where(x => x.IsSelected).ToList();
+        // if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        // {
+        //     await Alert.ShowWarning("Please select a class.");
+        //     StateHasChanged();
+        //     return;
+        // }
+        if (string.IsNullOrEmpty(searchRequest.SectionCode) || searchRequest.SectionCode=="0")
+        {
+            await Alert.ShowWarning("Please select a section.");
+            return;
+        }
+        if (selected.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            foreach (var item in selected)
+            {
+                var model = new AllocateSectionRequest
+                {
+                    GroupCode = groupcode,
+                    BranchCode = branchcode,
+                    StudentId = item.StudentId,
+                    SessionId = CurrentSession,
+                    ClassCode = searchRequest.ClassCode,
+                    SectionId = Convert.ToInt32(searchRequest.SectionCode),
+                    CreatedBy = username
+                };
+
+                var apiResponse = await httpService.Post<ApiResponse<object>>("StudentRollNo/AllocateSection", model);
+                if (!(apiResponse != null && apiResponse.Success && apiResponse.Code == 1))
+                {
+                    await Alert.ShowWarning("Section allocation failed.");
+                    break;
+                }
+            }
+
+            await SearchLeftStudents();
+            await SearchRightStudents();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task MoveBackToLeft()
+    {
+        var selected = rightList.Where(x => x.IsSelected).ToList();
+        if (string.IsNullOrEmpty(searchRequest.SectionCode) || searchRequest.SectionCode == "0")
+        {
+            await Alert.ShowWarning("Please select a section.");
+            return;
+        }
+        if (selected.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            foreach (var item in selected)
+            {
+                var model = new AllocateSectionRequest
+                {
+                    GroupCode = groupcode,
+                    BranchCode = branchcode,
+                    StudentId = item.StudentId,
+                    SessionId = CurrentSession,
+                    ClassCode = searchRequest.ClassCode,
+                    SectionId = 0,
+                    CreatedBy = username
+                };
+
+                var apiResponse = await httpService.Post<ApiResponse<object>>("StudentRollNo/AllocateSection", model);
+                if (!(apiResponse != null && apiResponse.Success && apiResponse.Code == 1))
+                {
+                    await Alert.ShowWarning("Section allocation failed.");
+                    break;
+                }
+            }
+
+            await SearchLeftStudents();
+            await SearchRightStudents();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private void ClosePopup()
+    {
+        Showpopup = false;
+    }
+    private async Task SetRollNo()
+    {
+        Showpopup = false;
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var request = new MapStudentRollNoRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                ClassCode = searchRequest.ClassCode,
+                SectionId = Convert.ToInt32(searchRequest.SectionCode),
+                OrderBy = orderByPreference,
+                CreatedBy = username
+
+            };
+            var submit = await Alert.ShowConfirm("Are you sure, you want to re-generate selected class-section roll no?");
+            if (!submit)
+            {
+                StateHasChanged();
+                IsLoading = false;
+                Showpopup = true;
+                return;
+            }
+            string apiUrl = "StudentRollNo/ViewStudentRollNoPreference";
+            var apiResponse = await httpService.Post<ApiResponse<string>>(apiUrl, request);
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Roll no assigned to student(s) successfully.");
+                selectedClassName = "";
+                selectedSectionnName = "";
+                Showpopup = false;
+
+            }
+        }
+        catch
+        {
+            return;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task OnSetSectionRollNo()
+    {
+
+        var selectedSection = sectionlist.FirstOrDefault(x => x.SectionId == Convert.ToInt32(searchRequest.SectionCode));
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class.");
+            StateHasChanged();
+            return;
+        }
+        if (selectedSection == null)
+        {
+            await Alert.ShowWarning("Please select a section.");
+            StateHasChanged();
+            return;
+        }
+        selectedSectionnName = selectedSection.SectionName;
+        selectedClassName = searchRequest.ClassCode;
+        Showpopup = true;
+
+    }
+}

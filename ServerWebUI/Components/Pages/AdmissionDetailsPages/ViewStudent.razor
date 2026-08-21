@@ -737,8 +737,9 @@
                                             </ChildContent>
                                         </TemplateColumn>
                                         <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocumentName) ? " " : x.DocumentName)" Title="Document" Align="Align.Left" />
-                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.HandoverDate) ? " " : x.HandoverDate)" Title="Date" Class="text-center" Align="Align.Center" />
+                                        @* <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.HandoverDate) ? " " : x.HandoverDate)" Title="Date" Class="text-center" Align="Align.Center" /> *@
                                         <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remarks) ? " " : x.Remarks)" Title="Remarks" Align="Align.Left" />
+                                        <PropertyColumn Property="@(x => x.HandoverDate)" Title="Remarks" Align="Align.Left" />
                                     </QuickGrid>
                                 </div>
                             </div>
@@ -802,25 +803,38 @@
                                                 <input class="form-input w-100" @bind="context.Remarks" @bind:event="oninput" placeholder=" " />
                                             </ChildContent>
                                         </TemplateColumn>
-                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocDate) ? " " : x.DocDate)" Title="Date" Class="text-center" Align="Align.Center" />
+                                        @* <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.DocDate) ? " " : x.DocDate)" Title="Date" Class="text-center" Align="Align.Center" /> *@
+                                        <PropertyColumn Property="@(x => x.DocDate)" Title="Date" Class="text-center" Align="Align.Center" />
                                         <TemplateColumn Title="Att." Class="text-center" Align="Align.Center">
                                             <ChildContent>
-                                                <label for="@("file-" + context.DocumentId)" style="cursor:pointer;">
-                                                    <i class="bi bi-paperclip" style="@(string.IsNullOrWhiteSpace(context.DocPath) ? "" : "color:#28a745;")"></i>
+                                                <label for="@($"file-{context.DocumentId}")"
+                                                       style="cursor: pointer; margin: 0;">
+
+                                                    <img src="images/paper-clip.png" alt="Attachment" style="width: 22px; height: 22px;object-fit: contain;
+                                                    @(string.IsNullOrWhiteSpace(context.DocPath)
+                                                        ? ""
+                                                        : "filter: brightness(0) saturate(100%) invert(48%) sepia(78%) saturate(500%) hue-rotate(90deg);")" />
+
                                                 </label>
                                                 <InputFile id="@("file-" + context.DocumentId)" style="display:none;" OnChange="e => OnFileSelected(e, context)" />
                                             </ChildContent>
                                         </TemplateColumn>
                                         <TemplateColumn Title="Taken" Class="text-center" Align="Align.Center">
                                             <ChildContent>
-                                                @if (context.Verified == 1)
-                                                {
-                                                    <i class="bi bi-check-circle-fill" style="color:#28a745; font-size:18px;"></i>
-                                                }
-                                                else
-                                                {
-                                                    <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
-                                                }
+                                                <div class="text-center">
+                                                    @if (context.Verified == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-check-circle-fill"></i> Verified
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge rounded-pill bg-danger">
+                                                            <i class="bi bi-x-circle-fill"></i> Not Verified
+                                                        </span>
+                                                    }
+                                                </div>
                                             </ChildContent>
                                         </TemplateColumn>
                                     </QuickGrid>
@@ -1053,7 +1067,7 @@ else
             ShowHandoverPopup = false;
             StateHasChanged();
 
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            await Alert.ShowWarning("Please select a document !");
 
             ShowHandoverPopup = true;
             StateHasChanged();
@@ -1157,13 +1171,6 @@ else
     {
         ShowDocumentPopup = false;
         var data = documentQuery.Where(x => x.IsSelected).ToList();
-        if (data[0].Verified == 1)
-        {
-            await Alert.ShowWarning("Document already verified.");
-            ShowDocumentPopup = true;
-            StateHasChanged();
-            return;
-        }
         if (data.Count == 0 || data.Count > 1)
         {
             ShowDocumentPopup = false;
@@ -1175,6 +1182,14 @@ else
             StateHasChanged();
             return;
         }
+        if (data[0].Verified == 1)
+        {
+            await Alert.ShowWarning("Document already verified.");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+  
 
         selectedDocument = data[0];
         var model = new StudentDocumentModel
@@ -1221,14 +1236,6 @@ else
     {
         ShowDocumentPopup = false;
         var data = documentQuery.Where(x => x.IsSelected).ToList();
-
-        if (data[0].Verified == 0)
-        {
-            await Alert.ShowWarning("Document already deactivated.");
-            ShowDocumentPopup = true;
-            StateHasChanged();
-            return;
-        }
         if (data.Count == 0 || data.Count > 1)
         {
             ShowDocumentPopup = false;
@@ -1241,6 +1248,14 @@ else
             return;
         }
 
+        if (data[0].Verified == 0)
+        {
+            await Alert.ShowWarning("Document already deactivated.");
+            ShowDocumentPopup = true;
+            StateHasChanged();
+            return;
+        }
+     
         selectedDocument = data[0];
         var model = new ClassStudentDocumentRequest
         {
@@ -1328,6 +1343,7 @@ else
             {
                 item.IsSelected = true;
             }
+
             await GetSearchedStudent();
             StateHasChanged();
         }
@@ -1381,10 +1397,15 @@ else
     }
     private async Task PrintPdfList(  List<GetSearchedViewStudentModel> data)
     {
+          IsLoading = true;
         var request = new ClassListRequest
         {
             Students = data,
-            BlankColumnCount = blankColumnCount
+            BlankColumnCount = blankColumnCount,
+            SessionName=CurrentSessionName,
+            ClassName=SelectedText,
+            SectionName = SelectedSectionText
+
         };
 
         string ApiUri = "Export/GenerateClassListPdf";
@@ -1393,6 +1414,7 @@ else
 
         if (response != null && response.Success && response.Data != null)
         {
+              IsLoading = false;
             var base64Pdf = response.Data.ToString();
 
             if (!string.IsNullOrEmpty(base64Pdf))
@@ -1401,13 +1423,19 @@ else
                 await JS.InvokeVoidAsync("viewPdf", response.Data);
             }
         }
+        IsLoading = false;
     }
     private async Task PrintExcel( List<GetSearchedViewStudentModel> data)
     {
+          IsLoading = true;
         var request = new ClassListRequest
         {
             Students = data,
-            BlankColumnCount = blankColumnCount
+            BlankColumnCount = blankColumnCount,
+            SessionName = CurrentSessionName,
+            ClassName = SelectedText,
+            SectionName = SelectedSectionText
+
         };
 
         string ApiUri = "Export/GenerateClassListExcel";
@@ -1416,6 +1444,7 @@ else
 
         if (response != null && response.Success && response.Data != null)
         {
+              IsLoading = false;
             var base64Excel = response.Data.ToString();
 
             if (!string.IsNullOrEmpty(base64Excel))
@@ -1424,9 +1453,11 @@ else
                 await JS.InvokeVoidAsync("downloadExcel", base64Excel, "ClassList.xlsx");
             }
         }
+          IsLoading = false;
     }
     private async Task OnPrintClick()
     {
+          
         OpenClassList = false;
         var data = SearchedstudentmoduleQuery.ToList();
         if (data.Count == 0)
@@ -1564,7 +1595,7 @@ else
         get
         {
             if (SelectAllSection)
-                return "All";
+                return "All Section Selected";
 
             var selected = sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionName).ToList();
 

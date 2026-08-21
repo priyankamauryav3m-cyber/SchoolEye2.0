@@ -24,6 +24,7 @@ namespace DomainModel.FinanceMNGT
         public string? CreatedBy { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; } = DateTime.Today;
         public byte[]? Image { get; set; }
+        public int MaxStrength { get; set; }
     }
 
     #endregion

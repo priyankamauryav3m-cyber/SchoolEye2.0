@@ -416,6 +416,20 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 Message = "Class List PDF generated successfully"
             });
         }
+        [HttpPost("GenerateStudentBoardRollNoExcelData")]
+        public async Task<IActionResult> GenerateStudentBoardRollNoExcel([FromBody] List<AdmSearchedStudentResponse> request)
+        {
+            var excelBytes = await _generateFile.GenerateStudentBoardRollNoExcel(request);
+
+            var base64Excel = Convert.ToBase64String(excelBytes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Excel,
+                Message = "Class List Excel generated successfully"
+            });
+        }
     }
 
 }
