@@ -40,5 +40,6 @@ namespace ApplicationInterface.GenerateFile
         Task<byte[]> GenerateClassListPdf(ClassListRequest reques);
         Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> reques);
         Task<byte[]> GenerateClassListExcel(ClassListRequest request);
+        Task<byte[]> GenerateStudentBoardRollNoExcel(List<AdmSearchedStudentResponse> students);
     }
 }

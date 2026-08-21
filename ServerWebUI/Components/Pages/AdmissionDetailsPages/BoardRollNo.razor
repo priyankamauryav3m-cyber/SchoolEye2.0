@@ -1,9 +1,10 @@
 @page "/BoardRollNo"
+@using System.Text.Json
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
-@using Microsoft.AspNetCore.Authorization
 @using ServerWebUI.Components.Pages.CommonPages
 @inject Shared.IHttpService httpService
 @inject IJSRuntime JS
@@ -95,11 +96,7 @@
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="welcome-text w-100">
-                                    Total Edition(s) : @studentlist.Count
-                                    @if (!string.IsNullOrWhiteSpace(statusMessage))
-                                    {
-                                        <span class="@statusMessageClass ms-3">@statusMessage</span>
-                                    }
+                                
                                 </div>
                                 <Paginator State="@pagination" />
                             </div>
@@ -113,14 +110,23 @@
             <div class="page-heading d-flex align-items-center justify-content-end">
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
+                        Total Edition(s) : @studentlist.Count
+                        @if (!string.IsNullOrWhiteSpace(statusMessage))
+                        {
+                            <span class="@statusMessageClass ms-3">@statusMessage</span>
+                        }
+                    </div>
+                    <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OnImportData">Import Data</button>
                     </div>
+
                     <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OnSubmit">Submit</button>
                     </div>
-                    <div class="form-box">
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Print="OnPrintClick" />
+                    @* <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OnPrint">Print</button>
-                    </div>
+                    </div> *@
                 </div>
             </div>
         </div>
@@ -138,18 +144,6 @@ else
 
 }
 @code {
-    // ---------------------------------------------------------------------
-    // ASSUMPTIONS (adjust if different in your project):
-    // - AdmSearchedStudentResponse.BoardRollNo is a string property being
-    //   edited inline (matches "BoardRollNo" already on that model).
-    // - "Status" dropdown maps to AdmSearchedStudentRequest.ValidStuStatus
-    //   (bool?) - "" = All (null), "1" = Active (true), "0" = Inactive (false).
-    // - Only Search was given an API (CBSE/GetStudentBoardRollNo). Import
-    //   Data, Submit, and Print have no endpoint specified, so they're wired
-    //   as button stubs (TODO) per your instruction to "add only button"
-    //   for those three. Give me the endpoints/behavior for each and I'll
-    //   complete them.
-    // ---------------------------------------------------------------------
 
     private List<SessionModel> sessionlist = new();
     private List<BranchClassModel> classlist = new();
@@ -313,6 +307,7 @@ else
 
     private async Task OnSubmit()
     {
+
         if (studentlist.Count == 0)
         {
             await Alert.ShowWarning("Please search for students first.");
@@ -326,7 +321,7 @@ else
         }
 
         // Build "StudentId,BoardRollNo~StudentId,BoardRollNo~..."
-        var studentIdString = string.Join("~", studentlist.Select(x => $"{x.StudentId},{x.BoardRollNo}"));
+        var studentIdString = string.Join("~", moduleQuery.Select(x => $"{x.StudentId},{x.BoardRollNo}"));
 
         var model = new AddUpdateStudentBoardRollNoRequest
         {
@@ -344,7 +339,7 @@ else
 
         try
         {
-            string apiUrl = "CBSC/AddUpdateStudentBoardRollNo";
+            string apiUrl = "CBSE/AddUpdateStudentBoardRollNo";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
 
             if (apiResponse != null && apiResponse.Success)
@@ -367,10 +362,76 @@ else
             StateHasChanged();
         }
     }
-
-    private Task OnPrint()
+    private async Task OnPrintClick()
     {
-        // TODO: no print endpoint specified yet - wire this once provided.
-        return Task.CompletedTask;
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("Data not fountd");
+            return;
+        }
+
+        var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
+
+        bool isPdf = result.GetProperty("isConfirmed").GetBoolean();
+
+        bool isExcel = result.GetProperty("isDenied").GetBoolean();
+
+        if (isPdf)
+        {
+            await PrintPdfList(data);
+            StateHasChanged();
+        }
+        else if (isExcel)
+        {
+            await PrintExcel(data);
+            StateHasChanged();
+        }
     }
+    private async Task PrintPdfList(List<AdmSearchedStudentResponse> data)
+    {
+
+        IsLoading = true;
+        string ApiUri = "Export/GenerateStudentBoardRollNoPdf";
+
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
+
+        if (response != null && response.Success && response.Data != null)
+        {
+            IsLoading = false;
+            var base64Pdf = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Pdf))
+            {
+                // await JS.InvokeVoidAsync("downloadFileFromBase64", "ClassList.pdf",  "application/pdf", base64Pdf);
+                await JS.InvokeVoidAsync("viewPdf", response.Data);
+            }
+        }
+        IsLoading = false;
+    }
+    private async Task PrintExcel(List<AdmSearchedStudentResponse> data)
+    {
+        IsLoading = true;
+        string ApiUri = "Export/GenerateStudentBoardRollNoExcelData";
+
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
+
+        if (response != null && response.Success && response.Data != null)
+        {
+            IsLoading = false;
+            var base64Excel = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Excel))
+            {
+
+                await JS.InvokeVoidAsync("downloadExcel", base64Excel, "StudentBoardRollNo.xlsx");
+            }
+        }
+        IsLoading = false;
+    }
+    // private Task OnPrint()
+    // {
+    //     TODO: no print endpoint specified yet - wire this once provided.
+    //     return Task.CompletedTask;
+    // }
 }

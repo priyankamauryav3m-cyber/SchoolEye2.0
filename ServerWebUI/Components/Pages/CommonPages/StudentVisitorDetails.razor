@@ -20,9 +20,9 @@
 
 @if (IsVisible)
 {
-    <div class="custom-modal row m-0">
-        <div class="col-sm-12 col-md-12 col-lg-12 col-xl-12">
-            <div class="modal-content clearfix main-popup overflow-visible">
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">Student Visitor Details</h5>
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
@@ -30,9 +30,9 @@
                 <EditForm Model="@studentVisitordetails" OnValidSubmit="OnSaveVisitorDetails">
                     <DataAnnotationsValidator/>
                     <div class="modal-body">
-                        <div class="row px-1 gap-10-0">
-                            <div class="col-12 col-sm-6 col-md-4 px-1">
-                                <div class="form-box-group static-label">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-6 col-md-4 px-1 mb-2">
+                                <div class="form-box">
                                     <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
                                         <p class="form-label">Student No : </p>
                                         <p class="form-label">@(string.IsNullOrEmpty(StudentNo) ? " " : StudentNo)</p>
@@ -40,8 +40,8 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 px-1">
-                                <div class="form-box-group static-label">
+                            <div class="col-12 col-sm-6 col-md-4 px-1 mb-2">
+                                <div class="form-box">
                                     <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
                                         <p class="form-label">Student Name : </p>
                                         <p class="form-label">@(string.IsNullOrEmpty(StudentName) ? " " : StudentName)</p>
@@ -49,19 +49,15 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-12 col-md-4 px-1">
-                                <div class="form-box-group static-label">
+                            <div class="col-12 col-sm-12 col-md-4 px-1 mb-2">
+                                <div class="form-box">
                                     <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
                                         <p class="form-label">Mobile No : </p>
                                         <p class="form-label">@(string.IsNullOrEmpty(StudentMobileNo) ? " " : StudentMobileNo)</p>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="col-12 px-1">
-                                <hr class="my-1" />
-                            </div>
-
+                         
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
                                 <div class="border-box py-2 px-1 h-100">
                                     <div class="row m-0">
@@ -97,21 +93,21 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherName" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherName" readonly disabled />
                                                 <label class="floating-label">Father Name</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
-                                                <input class="floating-input" placeholder=" " value="@(string.IsNullOrWhiteSpace(parentsDetails.FatherName) ? "" : "Father")" />
+                                                <input class="floating-input" placeholder=" " value="@(string.IsNullOrWhiteSpace(parentsDetails.FatherName) ? "" : "Father")" readonly disabled />
                                                 <label class="floating-label">Relationship</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box flex-row align-items-center gap-1">
                                                 <InputCheckbox @bind-Value="studentVisitordetails.IsFatherAllowed" class="form-input" />
                                                 <label for="first-name" class="form-label">Allow To Meet</label>
@@ -158,23 +154,23 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherName" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherName" readonly disabled />
                                                 <label class="floating-label">Mother Name</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
-                                                <input class="floating-input" placeholder=" " value="@(string.IsNullOrWhiteSpace(parentsDetails.MotherName) ? "" : "Mother")" />
+                                                <input class="floating-input" placeholder=" " value="@(string.IsNullOrWhiteSpace(parentsDetails.MotherName) ? "" : "Mother")" readonly disabled />
                                                 <label class="floating-label">Relationship</label>
                                             </div>
                                         </div>
 
                                     
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box flex-row align-items-center gap-1">
                                                 <InputCheckbox @bind-Value="studentVisitordetails.IsMotherAllowed" class="form-input" />
                                                 <label for="first-name" class="form-label">Allow To Meet</label>
@@ -230,21 +226,21 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Name</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Relationship</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Email" autocomplete="off" maxlength="30" />
                                                 <label class="floating-label">Visitor Email</label>
@@ -252,23 +248,24 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-4">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
                                                 <label class="floating-label">Visitor Contact No</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor1Remarks" autocomplete="off" maxlength="100" />
                                                 <label class="floating-label">Visitor Remarks</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box flex-row align-items-center gap-1">
-                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor1Allowed" class="form-input" />
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor1Allowed" class="form-input"
+                                                               disabled="@(string.IsNullOrWhiteSpace(studentVisitordetails.Visitor1Name) || string.IsNullOrWhiteSpace(studentVisitordetails.Visitor1Relation))" />
                                                 <label for="first-name" class="form-label">Allow To Meet</label>
                                             </div>
                                         </div>
@@ -322,21 +319,21 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Name</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Relationship</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Email" autocomplete="off" maxlength="30" />
                                                 <label class="floating-label">Visitor Email</label>
@@ -344,23 +341,24 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-4">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
                                                 <label class="floating-label">Visitor Contact No</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor2Remarks" autocomplete="off" maxlength="100" />
                                                 <label class="floating-label">Visitor Remarks</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box flex-row align-items-center gap-1">
-                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor2Allowed" class="form-input" />
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor2Allowed" class="form-input"
+                                                               disabled="@(string.IsNullOrWhiteSpace(studentVisitordetails.Visitor2Name) || string.IsNullOrWhiteSpace(studentVisitordetails.Visitor2Relation))" />
                                                 <label for="first-name" class="form-label">Allow To Meet</label>
                                             </div>
                                         </div>
@@ -414,21 +412,21 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Name</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Relationship</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Email" autocomplete="off" maxlength="30" />
                                                 <label class="floating-label">Visitor Email</label>
@@ -436,27 +434,26 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-4">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
                                                 <label class="floating-label">Visitor Contact No</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor3Remarks" autocomplete="off" maxlength="100" />
                                                 <label class="floating-label">Visitor Remarks</label>
                                             </div>
                                         </div>
-
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box flex-row align-items-center gap-1">
-                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor3Allowed" class="form-input" />
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor3Allowed" class="form-input"
+                                                               disabled="@(string.IsNullOrWhiteSpace(studentVisitordetails.Visitor3Name) || string.IsNullOrWhiteSpace(studentVisitordetails.Visitor3Relation))" />
                                                 <label for="first-name" class="form-label">Allow To Meet</label>
                                             </div>
                                         </div>
-
                                     </div>
                                 </div>
 
@@ -506,21 +503,21 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Name" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Name</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Relation" autocomplete="off" onkeypress="return /^[a-zA-Z]$/.test(event.key)" maxlength="50" />
                                                 <label class="floating-label">Visitor Relationship</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Email" autocomplete="off" maxlength="30" />
                                                 <label class="floating-label">Visitor Email</label>
@@ -528,23 +525,24 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-4">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4ContactNo" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
                                                 <label class="floating-label">Visitor Contact No</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box-group">
                                                 <InputText class="floating-input" placeholder=" " @bind-Value="studentVisitordetails.Visitor4Remarks" autocomplete="off" maxlength="100" />
                                                 <label class="floating-label">Visitor Remarks</label>
                                             </div>
                                         </div>
 
-                                        <div class="col-12 px-1 mt-3">
+                                        <div class="col-12 px-1 ">
                                             <div class="form-box flex-row align-items-center gap-1">
-                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor4Allowed" class="form-input" />
+                                                <InputCheckbox @bind-Value="studentVisitordetails.IsVisitor4Allowed" class="form-input"
+                                                               disabled="@(string.IsNullOrWhiteSpace(studentVisitordetails.Visitor4Name) || string.IsNullOrWhiteSpace(studentVisitordetails.Visitor4Relation))" />
                                                 <label for="first-name" class="form-label">Allow To Meet</label>
                                             </div>
                                         </div>

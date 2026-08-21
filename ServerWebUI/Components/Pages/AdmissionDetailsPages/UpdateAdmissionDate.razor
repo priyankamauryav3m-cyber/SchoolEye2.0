@@ -1,0 +1,463 @@
+@page "/UpdateAdmissionDate"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Student Admission Date">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ClassCode" @bind-Value:after="OnClassChanged">
+                        <option value="">--Select Class--</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.SectionCode">
+                        <option value="0">All</option>
+                        @foreach (var sec in sectionlist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                        <i class="bi bi-sliders"></i>
+                    </button>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudents">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father" Sortable="true" Align="Align.Left" />
+                                <TemplateColumn Title="Adm. Date" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <input type="date" class="form-input text-center" @bind="context.AdmissionDate" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Adm. Class" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <select class="form-input" @bind="context.AdmClass">
+                                            <option value="">--Select--</option>
+                                            @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                            {
+                                                <option value="@cs.ClassCode">@cs.ClassName</option>
+                                            }
+                                        </select>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Adm. Session" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <select class="form-input" @bind="context.AdmSession">
+                                            <option value="">--Select--</option>
+                                            @foreach (var s in sessionlist.Where(x => x.IsValid))
+                                            {
+                                                <option value="@s.SessionId">@s.SessionName</option>
+                                            }
+                                        </select>
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="OnSubmit">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SEARCH POPUP (fixed size per Rule A5) ===================== -->
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0 ">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.Gender">
+                                    <option value="0">All</option>
+                                    @foreach (var g in genderModallist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@g.GenderName">@g.GenderName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Gender</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.ControlNo" />
+                                <label class="floating-label">Student No</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.StudentName" />
+                                <label class="floating-label">First Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <label class="floating-label">Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="statusFilter">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("All")" />
+                                            <label class="form-label">All</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("Activated")" />
+                                            <label class="form-label">Activated</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("Deactivated")" />
+                                            <label class="form-label">Deactivated</label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - StuSearchedStudentResponse needs an "IsSelected" bool property for
+    //   the grid checkbox column (not on the model as pasted - add it).
+    // - The "Status" (All/Activated/Deactivated) radio in the search popup
+    //   has no matching field on StuSearchedStudentRequest, so it's kept
+    //   local (statusFilter) and NOT sent to the API. Tell me which request
+    //   field it should map to and I'll wire it in.
+    // - Section dropdown uses SectionModel (SectionCode/SectionName) per
+    //   the ClassSection/GetClassWithSection response you specified.
+    // - "Submit" has no save/update endpoint specified for this page, so
+    //   it's left as a stub (TODO) - give me the endpoint + payload and
+    //   I'll complete it exactly like the other pages.
+    // ---------------------------------------------------------------------
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<GenderModal> genderModallist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<StuSearchedStudentResponse> studentlist = new();
+
+    private StuSearchedStudentRequest searchRequest = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private bool ShowSearchPopup;
+    private bool IsAllSelected;
+    private string statusFilter = "All";
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string? roleId;
+    private string UserName = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<StuSearchedStudentResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+        roleId = roleResult.Value;
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+
+        string ApiUri1 = "gender/GetGender";
+        genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchRequest.SectionCode = string.Empty;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchRequest.ClassCode;
+
+        string ApiUri = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleAll()
+    {
+        foreach (var row in studentlist)
+            row.IsSelected = IsAllSelected;
+    }
+
+    private async Task OpenSearch()
+    {
+        ShowSearchPopup = true;
+    }
+    private async Task SearchStudents()
+    {
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class.");
+            return;
+        }
+
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        ShowSearchPopup = false;
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "AdmissionDate/GetSearchedStudent";
+            var apiResponse = await httpService.Post<ApiResponse<List<StuSearchedStudentResponse>>>(apiUrl, searchRequest);
+
+            studentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse == null && apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No students found.");
+            }
+            else if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No students found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while searching for students.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private void ClosePopup()
+    {
+        ShowSearchPopup = false;
+    }
+
+
+
+
+    private async Task OnSubmit()
+    {
+        var selected = studentlist.Where(x => x.IsSelected).ToList();
+        if (selected.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        // Each student: StudentId|AdmissionDate|ClassCode|SessionId
+        // Multiple students separated by "~"
+        var studentDetails = string.Join("~", selected.Select(x =>  $"{x.StudentId}|{(x.AdmissionDate.HasValue ? x.AdmissionDate.Value.ToString("yyyy-MM-dd") : string.Empty)}|{x.AdmClass}|{x.AdmSession}"));
+
+        var model = new UpdateStudentAdmissionDateRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            StudentDetails = studentDetails,
+            UserName = UserName
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "AdmissionDate/UpdateStudentAdmissionDate";
+            var apiResponse = await httpService.Post<ApiResponse<string>>(apiUrl, model);
+
+            if (apiResponse.Success==true && apiResponse.Code == 1)
+            {
+                await Alert.ShowSuccess("Admission date updated successfully.");
+                await SearchStudents();
+            }
+            else
+            {
+                await Alert.ShowWarning("Admission date was not updated.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+}

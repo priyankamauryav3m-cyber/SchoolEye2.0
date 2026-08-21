@@ -1511,7 +1511,6 @@ namespace Infrastructure.FileGenerate
         }
     }
     #endregion
-
     #region ---------------- Publishing List PDF ----------------
 
     public class PublishingListPdfDocument : IDocument
@@ -1520,7 +1519,7 @@ namespace Infrastructure.FileGenerate
 
         public PublishingListPdfDocument(List<PublishingListResponse> publishingList)
         {
-            _publishingList = publishingList;
+            _publishingList = publishingList ?? new List<PublishingListResponse>();
         }
 
         public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
@@ -1534,26 +1533,12 @@ namespace Infrastructure.FileGenerate
                 page.Size(PageSizes.A4);
                 page.Margin(14);
                 page.PageColor(Colors.White);
-
-                page.DefaultTextStyle(x =>
-                    x.FontSize(7)
-                     .FontColor(Colors.Black));
-
-                page.Header()
-                    .ShowOnce()
-                    .Element(ComposeHeader);
-
-                page.Content()
-                    .Element(ComposeContent);
-
-                page.Footer()
-                    .Element(ComposeFooter);
+                page.DefaultTextStyle(x => x.FontSize(7).FontColor(Colors.Black));
+                page.Header().ShowOnce().Element(ComposeHeader);
+                page.Content().Element(ComposeContent);
+                page.Footer().Element(ComposeFooter);
             });
         }
-
-        // =========================================================
-        // HEADER
-        // =========================================================
 
         private void ComposeHeader(IContainer container)
         {
@@ -1571,99 +1556,52 @@ namespace Infrastructure.FileGenerate
                 logoBytes = File.ReadAllBytes(logoPath);
             }
 
-            int listNo = _publishingList
-                .FirstOrDefault()?.ListNo ?? 0;
+            int listNo = _publishingList.FirstOrDefault()?.ListNo ?? 0;
 
             container.Column(col =>
             {
-                // School Header
                 col.Item().Row(row =>
                 {
-                    // Logo
-                    row.ConstantItem(75)
-                        .Height(58)
-                        .AlignMiddle()
-                        .AlignLeft()
-                        .Element(logo =>
+                    row.ConstantItem(75).Height(58).AlignMiddle().AlignLeft().Element(logo =>
+                    {
+                        if (logoBytes != null)
                         {
-                            if (logoBytes != null)
-                            {
-                                logo.Image(
-                                    logoBytes,
-                                    ImageScaling.FitArea);
-                            }
-                        });
+                            logo.Image(logoBytes, ImageScaling.FitArea);
+                        }
+                    });
 
-                    // School Name
-                    row.RelativeItem()
-                        .AlignCenter()
-                        .Column(c =>
-                        {
-                            c.Item()
-                                .AlignCenter()
-                                .Text("Cambridge School, Noida")
-                                .FontSize(16)
-                                .ExtraBold();
+                    row.RelativeItem().AlignCenter().Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("Cambridge School, Noida").FontSize(16).ExtraBold();
 
-                            c.Item()
-                                .AlignCenter()
-                                .Text("Sector-27, Noida, Uttar Pradesh 201301")
-                                .FontSize(9)
-                                .ExtraBold();
+                        c.Item().AlignCenter().Text("Sector-27, Noida, Uttar Pradesh 201301").FontSize(9).ExtraBold();
 
-                            c.Item()
-                                .AlignCenter()
-                                .Text("noida.cambridgeschool.edu.in")
-                                .FontSize(8)
-                                .Bold();
-                        });
+                        c.Item().AlignCenter().Text("noida.cambridgeschool.edu.in").FontSize(8).Bold();
+                    });
 
-                    // Empty right side
                     row.ConstantItem(75);
                 });
 
-                // Publish List + Date
-                col.Item()
-                    .PaddingTop(6)
-                    .Row(row =>
+                col.Item().PaddingTop(6).Row(row =>
+                {
+                    row.RelativeItem().AlignLeft().Text(text =>
                     {
-                        row.RelativeItem()
-                            .AlignLeft()
-                            .Text(text =>
-                            {
-                                text.Span("Selected Student Of ")
-                                    .Bold();
-
-                                text.Span($"Publish List {listNo}")
-                                    .Bold();
-
-                                text.Span(" for session ");
-
-                                // Session is not available in the current model.
-                                // ListNo is displayed dynamically.
-                                text.Span("");
-                            });
-
-                        row.ConstantItem(150)
-                            .AlignRight()
-                            .Text(text =>
-                            {
-                                text.Span("Date: ")
-                                    .Bold();
-
-                                text.Span(
-                                    DateTime.Now.ToString(
-                                        "dd-MM-yyyy HH:mm:ss"));
-                            });
+                        text.Span("Selected Student Of ").Bold();
+                        text.Span($"Publish List {listNo}").Bold();
+                        text.Span(" for session ");
+                        text.Span("");
                     });
+
+                    row.ConstantItem(150).AlignRight().Text(text =>
+                    {
+                        text.Span("Date: ").Bold();
+                        text.Span(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss"));
+                    });
+                });
 
                 col.Item().PaddingBottom(3);
             });
         }
-
-        // =========================================================
-        // CONTENT
-        // =========================================================
 
         private void ComposeContent(IContainer container)
         {
@@ -1671,279 +1609,124 @@ namespace Infrastructure.FileGenerate
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    // S. No.
                     columns.ConstantColumn(27);
-
-                    // Reg No.
                     columns.ConstantColumn(65);
-
-                    // Student Name
                     columns.RelativeColumn(2.2f);
-
-                    // Father Name
                     columns.RelativeColumn(2.1f);
-
-                    // Mother Name
                     columns.RelativeColumn(2.1f);
-
-                    // Gender
                     columns.ConstantColumn(43);
-
-                    // Class
                     columns.ConstantColumn(55);
-
-                    // Mobile
                     columns.ConstantColumn(65);
-
-                    // Points
                     columns.ConstantColumn(38);
                 });
 
-                // =================================================
-                // TABLE HEADER
-                // =================================================
-
                 table.Header(header =>
                 {
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("S. No.");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Reg No.");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Student Name");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Father Name");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Mother Name");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Gender");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Class Name");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Mobile No");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Points");
+                    header.Cell().Element(HeaderCell).Text("S. No.");
+                    header.Cell().Element(HeaderCell).Text("Reg No.");
+                    header.Cell().Element(HeaderCell).Text("Student Name");
+                    header.Cell().Element(HeaderCell).Text("Father Name");
+                    header.Cell().Element(HeaderCell).Text("Mother Name");
+                    header.Cell().Element(HeaderCell).Text("Gender");
+                    header.Cell().Element(HeaderCell).Text("Class Name");
+                    header.Cell().Element(HeaderCell).Text("Mobile No");
+                    header.Cell().Element(HeaderCell).Text("Points");
                 });
-
-                // =================================================
-                // DATA
-                // =================================================
 
                 int srNo = 1;
 
                 foreach (var item in _publishingList)
                 {
-                    // S.No.
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(srNo.ToString());
-
-                    // Registration No
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.RegistrationNo ?? "");
-
-                    // Student Name
-                    table.Cell()
-                        .Element(NameCell)
-                        .Text(item.StudentName ?? "");
-
-                    // Father Name
-                    table.Cell()
-                        .Element(NameCell)
-                        .Text(item.FatherName ?? "");
-
-                    // Mother Name
-                    table.Cell()
-                        .Element(NameCell)
-                        .Text(item.MotherName ?? "");
-
-                    // Gender
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.Gender ?? "");
-
-                    // Class
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.ClassName ?? "");
-
-                    // Mobile
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.SMSMobileNo ?? "");
-
-                    // Points
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.Points.ToString());
+                    table.Cell().Element(CenterCell).Text(srNo.ToString());
+                    table.Cell().Element(CenterCell).Text(item.RegistrationNo ?? "");
+                    table.Cell().Element(NameCell).Text(item.StudentName ?? "");
+                    table.Cell().Element(NameCell).Text(item.FatherName ?? "");
+                    table.Cell().Element(NameCell).Text(item.MotherName ?? "");
+                    table.Cell().Element(CenterCell).Text(item.Gender ?? "");
+                    table.Cell().Element(CenterCell).Text(item.ClassName ?? "");
+                    table.Cell().Element(CenterCell).Text(item.SMSMobileNo ?? "");
+                    table.Cell().Element(CenterCell).Text(item.Points.ToString());
 
                     srNo++;
                 }
             });
         }
 
-        // =========================================================
-        // TABLE STYLES
-        // =========================================================
-
         private static IContainer HeaderCell(IContainer container)
         {
-            return container
-                .Border(1)
-                .BorderColor(Colors.Black)
-                .PaddingVertical(4)
-                .PaddingHorizontal(2)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7)
-                     .ExtraBold());
+            return container.Border(1).BorderColor(Colors.Black).PaddingVertical(4).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7).ExtraBold());
         }
 
         private static IContainer CenterCell(IContainer container)
         {
-            return container
-                .Border(1)
-                .BorderColor(Colors.Black)
-                .PaddingVertical(3)
-                .PaddingHorizontal(2)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(6.5f));
+            return container.Border(1).BorderColor(Colors.Black).PaddingVertical(3).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(6.5f));
         }
 
         private static IContainer NameCell(IContainer container)
         {
-            return container
-                .Border(1)
-                .BorderColor(Colors.Black)
-                .PaddingVertical(3)
-                .PaddingHorizontal(3)
-                .AlignLeft()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(6.5f));
+            return container.Border(1).BorderColor(Colors.Black).PaddingVertical(3).PaddingHorizontal(3).AlignLeft().AlignMiddle().DefaultTextStyle(x => x.FontSize(6.5f));
         }
-
-        // =========================================================
-        // FOOTER
-        // =========================================================
 
         private void ComposeFooter(IContainer container)
         {
-            container
-                .PaddingTop(8)
-                .Column(col =>
+            container.PaddingTop(8).Column(col =>
+            {
+                col.Item().Row(row =>
                 {
-                    col.Item()
-                        .Row(row =>
-                        {
-                            row.RelativeItem()
-                                .AlignLeft()
-                                .Text("Generated on:")
-                                .ExtraBold()
-                                .Italic()
-                                .FontSize(7);
+                    row.RelativeItem().AlignLeft().Text("Generated on:").ExtraBold().Italic().FontSize(7);
 
-                            row.RelativeItem()
-                                .AlignRight()
-                                .Text(
-                                    $"{DateTime.Now:dd-MM-yyyy}")
-                                .ExtraBold()
-                                .Italic()
-                                .FontSize(7);
-                        });
-
-                    col.Item()
-                        .PaddingTop(3)
-                        .PaddingBottom(3)
-                        .Height(1)
-                        .Background(Colors.Grey.Darken1);
-
-                    col.Item()
-                        .AlignRight()
-                        .Text(text =>
-                        {
-                            text.Span("Page ")
-                                .Bold();
-
-                            text.CurrentPageNumber()
-                                .Bold();
-
-                            text.Span(" of ")
-                                .Bold();
-
-                            text.TotalPages()
-                                .Bold();
-                        });
+                    row.RelativeItem().AlignRight().Text($"{DateTime.Now:dd-MM-yyyy}").ExtraBold().Italic().FontSize(7);
                 });
+
+                col.Item().PaddingTop(3).PaddingBottom(3).Height(1).Background(Colors.Grey.Darken1);
+
+                col.Item().AlignRight().Text(text =>
+                {
+                    text.Span("Page ").Bold();
+                    text.CurrentPageNumber().Bold();
+                    text.Span(" of ").Bold();
+                    text.TotalPages().Bold();
+                });
+            });
         }
     }
 
     #endregion
-
-    #region-----------------  Class List Pdf ---------------
-
+    #region----------------- Class List Pdf -----------------
 
     public class ClassListPdfDocument : IDocument
     {
         private readonly List<GetSearchedViewStudentModel> _students;
         private readonly int _blankColumnCount;
-
+        private readonly string? _sessionName;
+        private readonly string? _className;
+        private readonly string? _sectionName;
         private const int StudentsPerPage = 30;
 
         public ClassListPdfDocument(ClassListRequest request)
         {
-            _students = request?.Students
-                ?? new List<GetSearchedViewStudentModel>();
-
-            _blankColumnCount = Math.Clamp(
-                request?.BlankColumnCount ?? 1,
-                1,
-                5);
+            _students = request?.Students ?? new List<GetSearchedViewStudentModel>();
+            _blankColumnCount = Math.Clamp(request?.BlankColumnCount ?? 1, 1, 5);
+            _sessionName = request?.SessionName;
+            _className = request?.ClassName;
+            _sectionName = request?.SectionName;
         }
 
-        public DocumentMetadata GetMetadata() =>
-            DocumentMetadata.Default;
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
 
-        public DocumentSettings GetSettings() =>
-            DocumentSettings.Default;
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
 
         public void Compose(IDocumentContainer container)
         {
             var studentPages = _students
-                .Select((student, index) => new
-                {
-                    Student = student,
-                    Index = index
-                })
+                .Select((student, index) => new { Student = student, Index = index })
                 .GroupBy(x => x.Index / StudentsPerPage)
                 .Select(x => x.Select(y => y.Student).ToList())
                 .ToList();
 
             if (!studentPages.Any())
             {
-                studentPages.Add(
-                    new List<GetSearchedViewStudentModel>());
+                studentPages.Add(new List<GetSearchedViewStudentModel>());
             }
 
             foreach (var pageStudents in studentPages)
@@ -1953,21 +1736,10 @@ namespace Infrastructure.FileGenerate
                     page.Size(PageSizes.A4);
                     page.Margin(20);
                     page.PageColor(Colors.White);
-
                     page.DefaultTextStyle(x => x.FontSize(9));
-
-                    page.Header()
-                        .Element(ComposeHeader);
-
-                    page.Content()
-                        .PaddingTop(5)
-                        .Element(content =>
-                            ComposeContent(
-                                content,
-                                pageStudents));
-
-                    page.Footer()
-                        .Element(ComposeFooter);
+                    page.Header().Element(ComposeHeader);
+                    page.Content().PaddingTop(5).Element(content => ComposeContent(content, pageStudents));
+                    page.Footer().Element(ComposeFooter);
                 });
             }
         }
@@ -1980,60 +1752,27 @@ namespace Infrastructure.FileGenerate
                 {
                     row.ConstantItem(100);
 
-                    row.RelativeItem()
-                        .Column(c =>
-                        {
-                            c.Item()
-                                .AlignCenter()
-                                .Text("CAMBRIDGE SCHOOL, NOIDA")
-                                .FontSize(11)
-                                .Bold();
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("CAMBRIDGE SCHOOL, NOIDA").FontSize(11).Bold();
+                        c.Item().PaddingTop(3).AlignCenter().Text("CLASS LIST").FontSize(9).Bold();
+                        c.Item().PaddingTop(2).AlignCenter().Text($"{_className ?? ""} - {_sectionName ?? ""} (SESSION {_sessionName ?? ""})").FontSize(8).Bold();
+                        c.Item().PaddingTop(2).AlignCenter().Text("CLASS TEACHER : Prakshi Jain").FontSize(8).Bold();
+                    });
 
-                            c.Item()
-                                .PaddingTop(3)
-                                .AlignCenter()
-                                .Text("CLASS LIST")
-                                .FontSize(9)
-                                .Bold();
-
-                            c.Item()
-                                .PaddingTop(2)
-                                .AlignCenter()
-                                .Text("Nursery - A (SESSION 2026-27)")
-                                .FontSize(8)
-                                .Bold();
-
-                            c.Item()
-                                .PaddingTop(2)
-                                .AlignCenter()
-                                .Text("CLASS TEACHER : Prakshi Jain")
-                                .FontSize(8)
-                                .Bold();
-                        });
-
-                    row.ConstantItem(150)
-                        .AlignRight()
-                        .AlignTop()
-                        .Text(text =>
-                        {
-                            text.DefaultTextStyle(
-                                x => x.FontSize(6));
-
-                            text.Span("Date: ").Bold();
-
-                            text.Span(
-                                DateTime.Now.ToString(
-                                    "dd-MM-yyyy HH:mm:ss"));
-                        });
+                    row.ConstantItem(150).AlignRight().AlignTop().Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(6));
+                        text.Span("Date: ").Bold();
+                        text.Span(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss"));
+                    });
                 });
 
                 col.Item().PaddingBottom(5);
             });
         }
 
-        private void ComposeContent(
-            IContainer container,
-            List<GetSearchedViewStudentModel> pageStudents)
+        private void ComposeContent(IContainer container, List<GetSearchedViewStudentModel> pageStudents)
         {
             container.Column(col =>
             {
@@ -2041,11 +1780,10 @@ namespace Infrastructure.FileGenerate
                 {
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.ConstantColumn(35); // S. NO.
-                        columns.ConstantColumn(55); // ROLL NO.
-                        columns.ConstantColumn(65); // ADM. NO.
-
-                        columns.RelativeColumn(3);  // STUDENT NAME
+                        columns.ConstantColumn(35);
+                        columns.ConstantColumn(55);
+                        columns.ConstantColumn(65);
+                        columns.RelativeColumn(3);
 
                         for (int i = 0; i < _blankColumnCount; i++)
                         {
@@ -2053,153 +1791,76 @@ namespace Infrastructure.FileGenerate
                         }
                     });
 
-                    // Table Header
                     table.Header(header =>
                     {
-                        header.Cell()
-                            .Element(HeaderCell)
-                            .Text("S. NO.");
+                        header.Cell().Element(HeaderCell).Text("S. NO.");
+                        header.Cell().Element(HeaderCell).Text("ROLL NO.");
+                        header.Cell().Element(HeaderCell).Text("ADM. NO.");
+                        header.Cell().Element(HeaderCell).Text("STUDENT NAME");
 
-                        header.Cell()
-                            .Element(HeaderCell)
-                            .Text("ROLL NO.");
-
-                        header.Cell()
-                            .Element(HeaderCell)
-                            .Text("ADM. NO.");
-
-                        header.Cell()
-                            .Element(HeaderCell)
-                            .Text("STUDENT NAME");
-
-                        // Dynamic Blank Headers
-                        for (int i = 0;
-                             i < _blankColumnCount;
-                             i++)
+                        for (int i = 0; i < _blankColumnCount; i++)
                         {
-                            header.Cell()
-                                .Element(HeaderCell)
-                                .Text("---");
+                            header.Cell().Element(HeaderCell).Text("---");
                         }
                     });
 
-                    // Student Data
                     foreach (var item in pageStudents)
                     {
-                        int srNo =
-                            _students.IndexOf(item) + 1;
+                        int srNo = _students.IndexOf(item) + 1;
 
-                        table.Cell()
-                            .Element(DataCell)
-                            .Text(srNo.ToString());
+                        table.Cell().Element(DataCell).Text(srNo.ToString());
+                        table.Cell().Element(DataCell).Text(item.RollNo ?? "");
+                        table.Cell().Element(DataCell).Text(item.ControlNo ?? "");
 
-                        table.Cell()
-                            .Element(DataCell)
-                            .Text(item.RollNo ?? "");
-
-                        table.Cell()
-                            .Element(DataCell)
-                            .Text(item.ControlNo ?? "");
-
-                        // Female name bold
-                        table.Cell()
-                            .Element(NameCell)
-                            .Text(text =>
-                            {
-                                var name = text.Span(
-                                    item.StudentName ?? "");
-
-                                if (item.Gender?.Equals(
-                                    "Female",
-                                    StringComparison.OrdinalIgnoreCase) == true)
-                                {
-                                    name.Bold();
-                                }
-                            });
-
-                        // Dynamic Blank Columns
-                        for (int i = 0;
-                             i < _blankColumnCount;
-                             i++)
+                        table.Cell().Element(NameCell).Text(text =>
                         {
-                            table.Cell()
-                                .Element(DataCell)
-                                .Text("");
+                            var name = text.Span(item.StudentName ?? "");
+
+                            if (item.Gender?.Equals("Female", StringComparison.OrdinalIgnoreCase) == true)
+                            {
+                                name.Bold();
+                            }
+                        });
+
+                        for (int i = 0; i < _blankColumnCount; i++)
+                        {
+                            table.Cell().Element(DataCell).Text("");
                         }
                     }
 
-                    // Blank Rows
-                    int blankRows =
-                        StudentsPerPage - pageStudents.Count;
+                    int blankRows = StudentsPerPage - pageStudents.Count;
+                    int totalColumns = 4 + _blankColumnCount;
 
-                    int totalColumns =
-                        4 + _blankColumnCount;
-
-                    for (int i = 0;
-                         i < blankRows;
-                         i++)
+                    for (int i = 0; i < blankRows; i++)
                     {
-                        for (int j = 0;
-                             j < totalColumns;
-                             j++)
+                        for (int j = 0; j < totalColumns; j++)
                         {
-                            table.Cell()
-                                .Element(DataCell)
-                                .Text("");
+                            table.Cell().Element(DataCell).Text("");
                         }
                     }
                 });
 
-                // Current Page Summary
-                col.Item()
-                    .PaddingTop(10)
-                    .AlignCenter()
-                    .Element(summary =>
-                        ComposeSummary(
-                            summary,
-                            pageStudents));
+                col.Item().PaddingTop(10).AlignCenter().Element(summary => ComposeSummary(summary, pageStudents));
             });
         }
 
-        private void ComposeSummary(
-            IContainer container,
-            List<GetSearchedViewStudentModel> pageStudents)
+        private void ComposeSummary(IContainer container, List<GetSearchedViewStudentModel> pageStudents)
         {
             int generalBoys = pageStudents.Count(x =>
-                x.StudentCategoryName?.Equals(
-                    "General",
-                    StringComparison.OrdinalIgnoreCase) == true
-                &&
-                x.Gender?.Equals(
-                    "Male",
-                    StringComparison.OrdinalIgnoreCase) == true);
+                x.StudentCategoryName?.Equals("General", StringComparison.OrdinalIgnoreCase) == true &&
+                x.Gender?.Equals("Male", StringComparison.OrdinalIgnoreCase) == true);
 
             int generalGirls = pageStudents.Count(x =>
-                x.StudentCategoryName?.Equals(
-                    "General",
-                    StringComparison.OrdinalIgnoreCase) == true
-                &&
-                x.Gender?.Equals(
-                    "Female",
-                    StringComparison.OrdinalIgnoreCase) == true);
+                x.StudentCategoryName?.Equals("General", StringComparison.OrdinalIgnoreCase) == true &&
+                x.Gender?.Equals("Female", StringComparison.OrdinalIgnoreCase) == true);
 
             int ewsBoys = pageStudents.Count(x =>
-                x.StudentCategoryName?.Equals(
-                    "EWS",
-                    StringComparison.OrdinalIgnoreCase) == true
-                &&
-                x.Gender?.Equals(
-                    "Male",
-                    StringComparison.OrdinalIgnoreCase) == true);
+                x.StudentCategoryName?.Equals("EWS", StringComparison.OrdinalIgnoreCase) == true &&
+                x.Gender?.Equals("Male", StringComparison.OrdinalIgnoreCase) == true);
 
             int ewsGirls = pageStudents.Count(x =>
-                x.StudentCategoryName?.Equals(
-                    "EWS",
-                    StringComparison.OrdinalIgnoreCase) == true
-                &&
-                x.Gender?.Equals(
-                    "Female",
-                    StringComparison.OrdinalIgnoreCase) == true);
+                x.StudentCategoryName?.Equals("EWS", StringComparison.OrdinalIgnoreCase) == true &&
+                x.Gender?.Equals("Female", StringComparison.OrdinalIgnoreCase) == true);
 
             int totalStudents = pageStudents.Count;
 
@@ -2214,167 +1875,72 @@ namespace Infrastructure.FileGenerate
                     columns.ConstantColumn(120);
                 });
 
-                table.Cell()
-                    .ColumnSpan(2)
-                    .Element(SummaryHeaderCell)
-                    .Text("GENERAL");
+                table.Cell().ColumnSpan(2).Element(SummaryHeaderCell).Text("GENERAL");
+                table.Cell().ColumnSpan(2).Element(SummaryHeaderCell).Text("EWS");
+                table.Cell().RowSpan(2).Element(SummaryHeaderCell).Text("TOTAL");
 
-                table.Cell()
-                    .ColumnSpan(2)
-                    .Element(SummaryHeaderCell)
-                    .Text("EWS");
+                table.Cell().Element(SummaryHeaderCell).Text("Boys");
+                table.Cell().Element(SummaryHeaderCell).Text("Girls");
+                table.Cell().Element(SummaryHeaderCell).Text("Boys");
+                table.Cell().Element(SummaryHeaderCell).Text("Girls");
 
-                table.Cell()
-                    .RowSpan(2)
-                    .Element(SummaryHeaderCell)
-                    .Text("TOTAL");
-
-                table.Cell()
-                    .Element(SummaryHeaderCell)
-                    .Text("Boys");
-
-                table.Cell()
-                    .Element(SummaryHeaderCell)
-                    .Text("Girls");
-
-                table.Cell()
-                    .Element(SummaryHeaderCell)
-                    .Text("Boys");
-
-                table.Cell()
-                    .Element(SummaryHeaderCell)
-                    .Text("Girls");
-
-                table.Cell()
-                    .Element(SummaryValueCell)
-                    .Text(generalBoys.ToString());
-
-                table.Cell()
-                    .Element(SummaryValueCell)
-                    .Text(generalGirls.ToString());
-
-                table.Cell()
-                    .Element(SummaryValueCell)
-                    .Text(ewsBoys.ToString());
-
-                table.Cell()
-                    .Element(SummaryValueCell)
-                    .Text(ewsGirls.ToString());
-
-                table.Cell()
-                    .Element(SummaryValueCell)
-                    .Text(totalStudents.ToString());
+                table.Cell().Element(SummaryValueCell).Text(generalBoys.ToString());
+                table.Cell().Element(SummaryValueCell).Text(generalGirls.ToString());
+                table.Cell().Element(SummaryValueCell).Text(ewsBoys.ToString());
+                table.Cell().Element(SummaryValueCell).Text(ewsGirls.ToString());
+                table.Cell().Element(SummaryValueCell).Text(totalStudents.ToString());
             });
         }
 
         private static IContainer HeaderCell(IContainer container)
         {
-            return container
-                .Border(0.8f)
-                .PaddingVertical(4)
-                .PaddingHorizontal(2)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7).Bold());
+            return container.Border(0.8f).PaddingVertical(4).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7).Bold());
         }
 
         private static IContainer DataCell(IContainer container)
         {
-            return container
-                .Border(0.6f)
-                .Height(16)
-                .PaddingHorizontal(2)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7));
+            return container.Border(0.6f).Height(16).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
         }
 
         private static IContainer NameCell(IContainer container)
         {
-            return container
-                .Border(0.6f)
-                .Height(16)
-                .PaddingHorizontal(4)
-                .AlignLeft()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7));
+            return container.Border(0.6f).Height(16).PaddingHorizontal(4).AlignLeft().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
         }
 
-        private static IContainer SummaryHeaderCell(
-            IContainer container)
+        private static IContainer SummaryHeaderCell(IContainer container)
         {
-            return container
-                .Border(0.8f)
-                .PaddingVertical(3)
-                .PaddingHorizontal(3)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7).Bold());
+            return container.Border(0.8f).PaddingVertical(3).PaddingHorizontal(3).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7).Bold());
         }
 
-        private static IContainer SummaryValueCell(
-            IContainer container)
+        private static IContainer SummaryValueCell(IContainer container)
         {
-            return container
-                .Border(0.8f)
-                .PaddingVertical(3)
-                .PaddingHorizontal(3)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7).Bold());
+            return container.Border(0.8f).PaddingVertical(3).PaddingHorizontal(3).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7).Bold());
         }
 
         private void ComposeFooter(IContainer container)
         {
-            container
-                .PaddingTop(8)
-                .Column(col =>
+            container.PaddingTop(8).Column(col =>
+            {
+                col.Item().Row(row =>
                 {
-                    col.Item()
-                        .Row(row =>
-                        {
-                            row.RelativeItem()
-                                .AlignLeft()
-                                .Text("Generated on:")
-                                .ExtraBold()
-                                .Italic()
-                                .FontSize(7);
-
-                            row.RelativeItem()
-                                .AlignRight()
-                                .Text(
-                                    $"{DateTime.Now:dd-MM-yyyy}")
-                                .ExtraBold()
-                                .Italic()
-                                .FontSize(7);
-                        });
-
-                    col.Item()
-                        .PaddingTop(3)
-                        .PaddingBottom(3)
-                        .Height(1)
-                        .Background(Colors.Grey.Darken1);
-
-                    col.Item()
-                        .AlignRight()
-                        .Text(text =>
-                        {
-                            text.Span("Page ").Bold();
-                            text.CurrentPageNumber().Bold();
-                            text.Span(" of ").Bold();
-                            text.TotalPages().Bold();
-                        });
+                    row.RelativeItem().AlignLeft().Text("Generated on:").ExtraBold().Italic().FontSize(7);
+                    row.RelativeItem().AlignRight().Text($"{DateTime.Now:dd-MM-yyyy}").ExtraBold().Italic().FontSize(7);
                 });
+
+                col.Item().PaddingTop(3).PaddingBottom(3).Height(1).Background(Colors.Grey.Darken1);
+
+                col.Item().AlignRight().Text(text =>
+                {
+                    text.Span("Page ").Bold();
+                    text.CurrentPageNumber().Bold();
+                    text.Span(" of ").Bold();
+                    text.TotalPages().Bold();
+                });
+            });
         }
     }
 
     #endregion
-
 
     #region---------------- Print Student With Board ROll No ------------------
 
@@ -2382,11 +1948,9 @@ namespace Infrastructure.FileGenerate
     {
         private readonly List<AdmSearchedStudentResponse> _students;
 
-        public StudentBoardRollNoPdfDocument(
-            List<AdmSearchedStudentResponse> students)
+        public StudentBoardRollNoPdfDocument(List<AdmSearchedStudentResponse> students)
         {
-            _students = students
-                ?? new List<AdmSearchedStudentResponse>();
+            _students = students ?? new List<AdmSearchedStudentResponse>();
         }
 
         public DocumentMetadata GetMetadata()
@@ -2404,33 +1968,14 @@ namespace Infrastructure.FileGenerate
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-
-                // Margin 20
                 page.Margin(20);
-
                 page.PageColor(Colors.White);
-
-                page.DefaultTextStyle(x =>
-                    x.FontSize(7)
-                     .FontColor(Colors.Black));
-
-                // Har page par header aur logo
-                page.Header()
-                    .Element(ComposeHeader);
-
-                page.Content()
-                    .PaddingTop(5)
-                    .Element(ComposeContent);
-
-                page.Footer()
-                    .Element(ComposeFooter);
+                page.DefaultTextStyle(x => x.FontSize(7).FontColor(Colors.Black));
+                page.Header().Element(ComposeHeader);
+                page.Content().PaddingTop(5).Element(ComposeContent);
+                page.Footer().Element(ComposeFooter);
             });
         }
-
-
-        // =====================================================
-        // HEADER - EVERY PAGE
-        // =====================================================
 
         private void ComposeHeader(IContainer container)
         {
@@ -2450,92 +1995,40 @@ namespace Infrastructure.FileGenerate
 
             container.Column(col =>
             {
-                // SCHOOL HEADER
-                col.Item()
-                    .Row(row =>
+                col.Item().Row(row =>
+                {
+                    row.ConstantItem(80).Height(65).AlignLeft().AlignMiddle().Element(logo =>
                     {
-                        // LOGO
-                        row.ConstantItem(80)
-                            .Height(65)
-                            .AlignLeft()
-                            .AlignMiddle()
-                            .Element(logo =>
-                            {
-                                if (logoBytes != null)
-                                {
-                                    logo.Image(
-                                        logoBytes,
-                                        ImageScaling.FitArea);
-                                }
-                            });
-
-
-                        // SCHOOL DETAILS
-                        row.RelativeItem()
-                            .AlignCenter()
-                            .Column(c =>
-                            {
-                                c.Item()
-                                    .AlignCenter()
-                                    .Text("Cambridge School, Noida")
-                                    .FontSize(16)
-                                    .ExtraBold();
-
-                                c.Item()
-                                    .AlignCenter()
-                                    .Text(
-                                        "Sector-27, Noida, Uttar Pradesh 201301")
-                                    .FontSize(8)
-                                    .ExtraBold();
-
-                                c.Item()
-                                    .PaddingTop(2)
-                                    .AlignCenter()
-                                    .Text(
-                                        "noida.cambridgeschool.edu.in")
-                                    .FontSize(8)
-                                    .Bold();
-
-                                c.Item()
-                                    .PaddingTop(6)
-                                    .AlignCenter()
-                                    .Text("Student Board Roll No")
-                                    .FontSize(11)
-                                    .Bold();
-                            });
-
-
-                        // RIGHT EMPTY SPACE
-                        row.ConstantItem(80);
+                        if (logoBytes != null)
+                        {
+                            logo.Image(logoBytes, ImageScaling.FitArea);
+                        }
                     });
 
-
-                // DATE
-                col.Item()
-                    .PaddingTop(4)
-                    .AlignRight()
-                    .Text(text =>
+                    row.RelativeItem().AlignCenter().Column(c =>
                     {
-                        text.Span("Date : ")
-                            .FontSize(7)
-                            .Bold();
+                        c.Item().AlignCenter().Text("Cambridge School, Noida").FontSize(16).ExtraBold();
 
-                        text.Span(
-                            DateTime.Now.ToString(
-                                "dd-MM-yyyy HH:mm:ss"))
-                            .FontSize(7);
+                        c.Item().AlignCenter().Text("Sector-27, Noida, Uttar Pradesh 201301").FontSize(8).ExtraBold();
+
+                        c.Item().PaddingTop(2).AlignCenter().Text("noida.cambridgeschool.edu.in").FontSize(8).Bold();
+
+                        c.Item().PaddingTop(6).AlignCenter().Text("Student Board Roll No").FontSize(11).Bold();
                     });
 
+                    row.ConstantItem(80);
+                });
 
-                col.Item()
-                    .PaddingBottom(3);
+                col.Item().PaddingTop(4).AlignRight().Text(text =>
+                {
+                    text.Span("Date : ").FontSize(7).Bold();
+
+                    text.Span(DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss")).FontSize(7);
+                });
+
+                col.Item().PaddingBottom(3);
             });
         }
-
-
-        // =====================================================
-        // CONTENT
-        // =====================================================
 
         private void ComposeContent(IContainer container)
         {
@@ -2543,224 +2036,79 @@ namespace Infrastructure.FileGenerate
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.ConstantColumn(40);       // Sl No
-                    columns.ConstantColumn(70);       // Student No
-                    columns.RelativeColumn(2.2f);     // Student Name
-                    columns.ConstantColumn(45);       // Class
-                    columns.ConstantColumn(55);       // Section
-                    columns.ConstantColumn(75);       // Date Of Birth
-                    columns.ConstantColumn(80);       // Board Roll No
+                    columns.ConstantColumn(40);
+                    columns.ConstantColumn(70);
+                    columns.RelativeColumn(2.2f);
+                    columns.ConstantColumn(45);
+                    columns.ConstantColumn(55);
+                    columns.ConstantColumn(75);
+                    columns.ConstantColumn(80);
                 });
-
-
-                // =============================================
-                // TABLE HEADER
-                // Auto repeat on every page
-                // =============================================
 
                 table.Header(header =>
                 {
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Sl No");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Student No");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Student Name");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Class");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Section");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Date of Birth");
-
-                    header.Cell()
-                        .Element(HeaderCell)
-                        .Text("Board Roll No");
+                    header.Cell().Element(HeaderCell).Text("Sl No");
+                    header.Cell().Element(HeaderCell).Text("Student No");
+                    header.Cell().Element(HeaderCell).Text("Student Name");
+                    header.Cell().Element(HeaderCell).Text("Class");
+                    header.Cell().Element(HeaderCell).Text("Section");
+                    header.Cell().Element(HeaderCell).Text("Date of Birth");
+                    header.Cell().Element(HeaderCell).Text("Board Roll No");
                 });
-
-
-                // =============================================
-                // STUDENT DATA
-                // =============================================
 
                 int srNo = 1;
 
                 foreach (var item in _students)
                 {
-                    // Sl No
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(srNo.ToString());
-
-
-                    // Student No
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.ControlNo ?? "");
-
-
-                    // Student Name
-                    table.Cell()
-                        .Element(NameCell)
-                        .Text(item.StudentName ?? "");
-
-
-                    // Class
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.ClassName ?? "");
-
-
-                    // Section
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.SectionName ?? "");
-
-
-                    // Date Of Birth
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(
-                            item.DateOfBirth.HasValue
-                                ? item.DateOfBirth.Value
-                                    .ToString("dd-MM-yyyy")
-                                : ""
-                        );
-
-
-                    // Board Roll No
-                    table.Cell()
-                        .Element(CenterCell)
-                        .Text(item.BoardRollNo ?? "");
-
+                    table.Cell().Element(CenterCell).Text(srNo.ToString());
+                    table.Cell().Element(CenterCell).Text(item.ControlNo ?? "");
+                    table.Cell().Element(NameCell).Text(item.StudentName ?? "");
+                    table.Cell().Element(CenterCell).Text(item.ClassName ?? "");
+                    table.Cell().Element(CenterCell).Text(item.SectionName ?? "");
+                    table.Cell().Element(CenterCell).Text(item.DateOfBirth.HasValue ? item.DateOfBirth.Value.ToString("dd-MM-yyyy") : "");
+                    table.Cell().Element(CenterCell).Text(item.BoardRollNo ?? "");
 
                     srNo++;
                 }
             });
         }
 
-
-        // =====================================================
-        // HEADER CELL
-        // =====================================================
-
-        private static IContainer HeaderCell(
-            IContainer container)
+        private static IContainer HeaderCell(IContainer container)
         {
-            return container
-                .Border(1)
-                .BorderColor(Colors.Black)
-                .PaddingVertical(5)
-                .PaddingHorizontal(2)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7)
-                     .ExtraBold());
+            return container.Border(1).BorderColor(Colors.Black).PaddingVertical(5).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7).ExtraBold());
         }
 
-
-        // =====================================================
-        // CENTER CELL
-        // =====================================================
-
-        private static IContainer CenterCell(
-            IContainer container)
+        private static IContainer CenterCell(IContainer container)
         {
-            return container
-                .Border(1)
-                .BorderColor(Colors.Black)
-                .PaddingVertical(4)
-                .PaddingHorizontal(2)
-                .AlignCenter()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7));
+            return container.Border(1).BorderColor(Colors.Black).PaddingVertical(4).PaddingHorizontal(2).AlignCenter().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
         }
 
-
-        // =====================================================
-        // STUDENT NAME CELL
-        // =====================================================
-
-        private static IContainer NameCell(
-            IContainer container)
+        private static IContainer NameCell(IContainer container)
         {
-            return container
-                .Border(1)
-                .BorderColor(Colors.Black)
-                .PaddingVertical(4)
-                .PaddingHorizontal(4)
-                .AlignLeft()
-                .AlignMiddle()
-                .DefaultTextStyle(x =>
-                    x.FontSize(7));
+            return container.Border(1).BorderColor(Colors.Black).PaddingVertical(4).PaddingHorizontal(4).AlignLeft().AlignMiddle().DefaultTextStyle(x => x.FontSize(7));
         }
-
-
-        // =====================================================
-        // FOOTER
-        // =====================================================
 
         private void ComposeFooter(IContainer container)
         {
-            container
-                .PaddingTop(8)
-                .Column(col =>
+            container.PaddingTop(8).Column(col =>
+            {
+                col.Item().Row(row =>
                 {
-                    col.Item()
-                        .Row(row =>
-                        {
-                            row.RelativeItem()
-                                .AlignLeft()
-                                .Text("Generated on:")
-                                .ExtraBold()
-                                .Italic()
-                                .FontSize(7);
+                    row.RelativeItem().AlignLeft().Text("Generated on:").ExtraBold().Italic().FontSize(7);
 
-                            row.RelativeItem()
-                                .AlignRight()
-                                .Text(
-                                    $"{DateTime.Now:dd-MM-yyyy}")
-                                .ExtraBold()
-                                .Italic()
-                                .FontSize(7);
-                        });
-
-                    col.Item()
-                        .PaddingTop(3)
-                        .PaddingBottom(3)
-                        .Height(1)
-                        .Background(Colors.Grey.Darken1);
-
-                    col.Item()
-                        .AlignRight()
-                        .Text(text =>
-                        {
-                            text.Span("Page ")
-                                .Bold();
-
-                            text.CurrentPageNumber()
-                                .Bold();
-
-                            text.Span(" of ")
-                                .Bold();
-
-                            text.TotalPages()
-                                .Bold();
-                        });
+                    row.RelativeItem().AlignRight().Text($"{DateTime.Now:dd-MM-yyyy}").ExtraBold().Italic().FontSize(7);
                 });
+
+                col.Item().PaddingTop(3).PaddingBottom(3).Height(1).Background(Colors.Grey.Darken1);
+
+                col.Item().AlignRight().Text(text =>
+                {
+                    text.Span("Page ").Bold();
+                    text.CurrentPageNumber().Bold();
+                    text.Span(" of ").Bold();
+                    text.TotalPages().Bold();
+                });
+            });
         }
     }
 

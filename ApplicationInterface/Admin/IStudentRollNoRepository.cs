@@ -11,6 +11,7 @@ namespace ApplicationInterface.Admin
     {
         public Task<IEnumerable<AdmSearchedStudentResponse>> GetSearchedStudentRollNo(AdmSearchedStudentRequest request);
         public Task<int> ViewStudentRollNoPreference(MapStudentRollNoRequest request);
+        public Task<string?> AllocateSection(AllocateSectionRequest request);
 
     }
 }

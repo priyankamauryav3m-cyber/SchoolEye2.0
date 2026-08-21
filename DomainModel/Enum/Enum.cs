@@ -2,6 +2,16 @@
 
 namespace DomainModel.Enum
 {
+    public enum FormatType
+    {
+        Currency,
+        Number,
+        Percentage,
+        Date_ddMMyy,          // 21/08/26
+        Date_ddMMyyyy_Dash,   // 21-08-2026
+        Date_ddMMMMyyyy,      // 21 August 2026
+        DateTime_Full          // 21/08/2026 14:30:45
+    }
     public enum Gender
     {
         Male,
@@ -14,7 +24,7 @@ namespace DomainModel.Enum
         Mrs,
         Ms,
         Dr
-       
+
     }
 
     public enum Qualification
@@ -52,6 +62,5 @@ namespace DomainModel.Enum
         WhatsApp = 2,
         Email = 3
     }
-
 
 }

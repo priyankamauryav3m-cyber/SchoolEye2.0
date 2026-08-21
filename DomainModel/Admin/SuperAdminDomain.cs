@@ -2006,8 +2006,10 @@ namespace DomainModel.Admin
         public string? DocumentName { get; set; }
         public string? Remarks { get; set; }
         public int Verified { get; set; }
-        public string? DocDate { get; set; }
-        public string? HandoverDate { get; set; }
+        [GlobalFormat(FormatType.Date_ddMMyy)]
+        public DateTime? DocDate { get; set; }
+        [GlobalFormat(FormatType.Date_ddMMyyyy_Dash)]
+        public DateTime? HandoverDate { get; set; }
         public string? DocPath { get; set; }
     }
     public class ClassStudentDocumentRequest
@@ -2235,6 +2237,12 @@ namespace DomainModel.Admin
         public List<GetSearchedViewStudentModel> Students { get; set; } = new();
 
         public int BlankColumnCount { get; set; } = 1;
+
+        public string? SessionName { get; set; }
+
+        public string? ClassName { get; set; }
+
+        public string? SectionName { get; set; }
     }
     #region  -------------------------- Admission Searched Student (V3M_ADM_UspGetSearchedStudent) -------------
     public class AdmSearchedStudentRequest
@@ -2378,8 +2386,7 @@ namespace DomainModel.Admin
 
         public string BranchCode { get; set; } = string.Empty;
 
-        // Example:
-        // 80050,BR001~80051,BR002~80052,BR003
+
         public string StudentId { get; set; } = string.Empty;
 
         public long SessionId { get; set; }
@@ -2390,5 +2397,82 @@ namespace DomainModel.Admin
 
         public string CreatedBy { get; set; } = string.Empty;
     }
+    #region  -------------------------- Student Searched Student (STU_UspGetSearchedStudent) -------------
+    public class UpdateStudentAdmissionDateRequest
+    {
+
+        public string? GroupCode { get; set; }
+
+        public string? BranchCode { get; set; } = string.Empty;
+
+        public string? StudentDetails { get; set; }
+
+        public string? UserName { get; set; }
+
+    }
+    public class StuSearchedStudentRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? Gender { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? IsEWS { get; set; }
+        public string? JoinType { get; set; }
+
+    }
+    public class StuSearchedStudentResponse : MNGTCommon
+    {
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? RollNo { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherContactNo { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherContactNo { get; set; }
+        public string? IsReservedSeat { get; set; }
+        public string? ImagePath { get; set; }
+        public string? MotherImagePath { get; set; }
+        public string? FatherImagePath { get; set; }
+        public DateTime? AdmissionDate { get; set; }
+        public string? AdmClass { get; set; }
+        public string? AdmSession { get; set; }
+        public string? BoardRollNo { get; set; }
+        public string? StudentCategoryName { get; set; }
+        public string? SocietyId { get; set; }
+        public string? AadhaarNo { get; set; }
+        public string? ReligionName { get; set; }
+        public string? Visitor1ImagePath { get; set; }
+        public string? Visitor2ImagePath { get; set; }
+        public string? Visitor3ImagePath { get; set; }
+        public string? Visitor4ImagePath { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Allocate Section (STU_UspAllocateSection) -------------
+    public class AllocateSectionRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long StudentId { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public int SectionId { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+    #endregion
+
 
 }

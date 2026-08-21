@@ -10,10 +10,11 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 using MyApp.Common;
 using ServerWebAPI.Authorization;
+using System.Text.Json;
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
-    [Authorize]
+    //[Authorize]
     [ApiExplorerSettings(GroupName = "Admission")]
     [Route("api/[controller]")]
     [ApiController]
@@ -902,9 +903,11 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         {
             try
             {
-                var data =
-                    await _service.GetClassRegistrationDocumentsAsync(request);
-
+                var data = await _service.GetClassRegistrationDocumentsAsync(request);
+                //foreach (var item in data)
+                //{
+                //    Console.WriteLine(JsonSerializer.Serialize(item));
+                //}
                 if (data == null || !data.Any())
                 {
                     return NotFound(new ApiResponse<IEnumerable<ClassRegistrationDocumentsResponse>>
