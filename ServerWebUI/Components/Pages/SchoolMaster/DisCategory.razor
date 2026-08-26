@@ -1,0 +1,412 @@
+@page "/DisCategory"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory HttpClientFactory
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <div class="page-heading d-flex align-items-center justify-content-between">
+                <p class="m-0 page-name px-1">Discipline Category Master</p>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <InputSelect class="form-input" @bind-Value="@CurrentSession" @bind-Value:after="OnSessionChanged" name="session">
+                            <option value="0" selected>--Select--</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid))
+                            {
+                                <option value="@data.SessionId">@data.SessionName</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddDisCategory" />
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.CategoryName)" Title="Category Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Category Name..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+                              
+                                <TemplateColumn Title="Action" Align="Align.Center">
+                                    <ChildContent>
+                                        <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditDisCategory(context)" OnStatusClick="() => ChangeDisCategoryStatus(context.CategoryId, context.IsValid)" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@(disCategory.CategoryId == 0 ? "Add" : "Edit") Discipline Category</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@disCategory" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="disCategory.SessionId">
+                                        <option value="0">--Select--</option>
+                                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                                        {
+                                            <option value="@data.SessionId">@data.SessionName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">
+                                        Session <span class="required">*</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="disCategory.CategoryName" maxlength="100" />
+                                    <label class="floating-label">
+                                        Category Name <span class="required">*</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => disCategory.CategoryName)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    private bool IsLoading;
+    private DisCategoryModel disCategory = new();
+    private string oldcdataModel = string.Empty;
+    private List<DisCategoryModel> disCategorylist = new();
+    private List<SessionModel> sessionlist = new();
+    private bool ShowPopup;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string username = string.Empty;
+    private string? currentUrl;
+    private long CurrentSession;
+
+    private string? branchcode;
+    private string? groupcode;
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            CurrentSession = await CommonMethod.SetCurrentSessionData();
+
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+
+            await OnSessionChanged();
+            StateHasChanged();
+        }
+    }
+
+    // Page heading Session dropdown -> bind-Value:after -> reload the grid
+    // for the selected SessionId.
+    private async Task OnSessionChanged()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string ApiUri = $"DisCategory/GetDisCategory?sessionId={CurrentSession}";
+            disCategorylist = await httpService.Get<List<DisCategoryModel>>(ApiUri) ?? new();
+        }
+        catch
+        {
+            disCategorylist = new();
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private IQueryable<DisCategoryModel> FilteredItems
+    {
+        get
+        {
+            var query = disCategorylist.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(nameFilter))
+                query = query.Where(x => x.CategoryName != null && x.CategoryName.Contains(nameFilter, StringComparison.OrdinalIgnoreCase));
+
+            // query = statusFilter switch
+            // {
+            //     "2" => query.Where(x => x.IsValid == true),
+            //     "3" => query.Where(x => x.IsValid == false),
+            //     _ => query
+            // };
+            if (statusFilter == "1")
+            {
+                query = query.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                query = query.Where(s => !s.IsValid);
+            }
+            return query;
+        }
+    }
+
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+
+    private void AddDisCategory()
+    {
+        disCategory = new()
+        {
+            SessionId = CurrentSession
+        };
+        oldcdataModel = string.Empty;
+        ShowPopup = true;
+    }
+
+    private void EditDisCategory(DisCategoryModel item)
+    {
+        disCategory = new DisCategoryModel
+        {
+            CategoryId = item.CategoryId,
+            CategoryName = item.CategoryName,
+            SessionId = item.SessionId,
+            IsValid = item.IsValid,
+            GroupCode = item.GroupCode,
+            BranchCode = item.BranchCode,
+            CreatedDate = item.CreatedDate,
+            CreatedBy = item.CreatedBy
+        };
+        oldcdataModel = System.Text.Json.JsonSerializer.Serialize(disCategory);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+    }
+
+    private async Task OnSave()
+    {
+        if (disCategory.SessionId == 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+        if (disCategory.CategoryId > 0)
+        {
+            ShowPopup = false;
+            var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+            if (!isConfirmed)
+            {
+                ShowPopup = true;
+                return;
+            }
+            bool isSame = CommonMethod.IsEdited(disCategory, oldcdataModel);
+            if (!isSame)
+            {
+                await Alert.ShowWarning("No changes detected.");
+                ShowPopup = true;
+                return;
+            }
+        }
+      
+        disCategory.GroupCode = groupcode;
+        disCategory.BranchCode = branchcode;
+        disCategory.CreatedBy = username;
+        disCategory.IsValid = true;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "DisCategory/AddOrUpdateDisCategoryData";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, disCategory);
+
+            switch (apiResponse?.Code)
+            {
+                case 0:
+                    await Alert.ShowWarning(apiResponse.Message ?? "Category name already exists");
+                    break;
+                case 1:
+                    await Alert.ShowSuccess(apiResponse.Message ?? "Category saved successfully");
+                    ShowPopup = false;
+                    await LoadData();
+                    break;
+                case 2:
+                    await Alert.ShowSuccess(apiResponse.Message ?? "Category updated successfully");
+                    ShowPopup = false;
+                    await LoadData();
+                    break;
+                default:
+                    await Alert.ShowWarning(apiResponse?.Message ?? "Unexpected error occurred");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangeDisCategoryStatus(int categoryId, bool isValid)
+    {
+        var confirmMessage = isValid
+            ? "Are you sure, you want to deactivate this category?"
+            : "Are you sure, you want to activate this category?";
+
+        var isConfirmed = await Alert.ShowConfirm(confirmMessage);
+        if (!isConfirmed)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "DisCategory/DeleteDisCategory";
+            var apiResponse = await httpService.Post<ApiResponse<string>>(apiUrl, categoryId);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                if (isValid)
+                {
+                    await Alert.ShowSuccess("Category deactivated successfully.");
+                }
+                else
+                {
+                    await Alert.ShowSuccess("Category activated successfully.");
+                }
+                await LoadData();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Something went wrong.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

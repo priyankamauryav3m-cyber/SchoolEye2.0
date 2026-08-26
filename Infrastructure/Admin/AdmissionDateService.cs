@@ -1,6 +1,7 @@
 ﻿using ApplicationInterface.Admin;
 using Dapper;
 using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -95,6 +96,34 @@ namespace Infrastructure.Admin
                 Console.WriteLine(
                     $"GetClassRegistrationDocuments Error: {ex.Message}");
 
+                throw;
+            }
+        }
+
+        public async Task<ClassSectionDetailResponse> GetClassSectionDetail(StuSearchedStudentRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+
+                var param = new DynamicParameters();
+
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionId", request.SectionCode);
+
+                var result = await con.QueryFirstOrDefaultAsync<ClassSectionDetailResponse>(
+                    "Usp_GetClassSectionDetail",
+                    param,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result ?? new ClassSectionDetailResponse();
+            }
+            catch
+            {
                 throw;
             }
         }

@@ -403,9 +403,10 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
             });
         }
         [HttpPost("GenerateStudentBoardRollNoPdf")]
-        public async Task<IActionResult> GenerateBoardRollNoPdf([FromBody] List<AdmSearchedStudentResponse> request)
+        public async Task<IActionResult> GenerateBoardRollNoPdf([FromQuery] string reportType, [FromBody] List<AdmSearchedStudentResponse> data)
         {
-            var pdfBytes = await _generateFile.StudentBoardRollNoPdf(request);
+            bool isBoardRollNo = reportType.Equals("BoardRollNo", StringComparison.OrdinalIgnoreCase);
+            var pdfBytes = await _generateFile.StudentBoardRollNoPdf(data, isBoardRollNo);
 
             var base64Pdf = Convert.ToBase64String(pdfBytes);
 
@@ -417,9 +418,10 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
             });
         }
         [HttpPost("GenerateStudentBoardRollNoExcelData")]
-        public async Task<IActionResult> GenerateStudentBoardRollNoExcel([FromBody] List<AdmSearchedStudentResponse> request)
+        public async Task<IActionResult> GenerateStudentBoardRollNoExcel([FromQuery] string reportType, [FromBody] List<AdmSearchedStudentResponse> request)
         {
-            var excelBytes = await _generateFile.GenerateStudentBoardRollNoExcel(request);
+            bool isBoardRollNo = reportType.Equals("BoardRollNo", StringComparison.OrdinalIgnoreCase);
+            var excelBytes = await _generateFile.GenerateStudentBoardRollNoExcel(request, isBoardRollNo);
 
             var base64Excel = Convert.ToBase64String(excelBytes);
 
@@ -429,6 +431,100 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 Data = base64Excel,
                 Message = "Class List Excel generated successfully"
             });
+        }
+        [HttpPost("GenerateAbscondedStudentExcelData")]
+        public async Task<IActionResult> GenerateAbscondedStudentExcel( [FromBody] List<GetAbscondedStudentResponse> request)
+        {
+            try
+            {
+                request ??= new List<GetAbscondedStudentResponse>();
+
+                var excelBytes =
+                    await _generateFile.GenerateAbscondedStudentExcel(request);
+
+                var base64Excel =
+                    Convert.ToBase64String(excelBytes);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = base64Excel,
+                    Message = "Student Report Excel generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = ex.Message
+                    });
+            }
+        }
+        [HttpPost("GenerateStudentRTEExcelData")]
+        public async Task<IActionResult> GenerateStudentRTEExcelData([FromBody] List<StudentRTEResponse> request)
+        {
+            try
+            {
+                request ??= new List<StudentRTEResponse>();
+
+                var excelBytes =await _generateFile.GenerateStudentRTEExcel(request);
+
+                var base64Excel =
+                    Convert.ToBase64String(excelBytes);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = base64Excel,
+                    Message = "Student Report Excel generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = ex.Message
+                    });
+            }
+        }
+        [HttpPost("GenerateStudentSpacialExcelData")]
+        public async Task<IActionResult> GenerateStudentSpacialNeedxcelData([FromBody] List<DisabilityStudentResponse> request)
+        {
+            try
+            {
+                request ??= new List<DisabilityStudentResponse>();
+
+                var excelBytes = await _generateFile.GenerateDisabilityStudentExcel(request);
+
+                var base64Excel =
+                    Convert.ToBase64String(excelBytes);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = base64Excel,
+                    Message = "Student Report Excel generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = ex.Message
+                    });
+            }
         }
     }
 

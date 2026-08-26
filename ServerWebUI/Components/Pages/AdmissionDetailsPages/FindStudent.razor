@@ -1,0 +1,321 @@
+@page "/FindStudent"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+<style>
+    .verified-link {
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+
+        .verified-link:hover {
+            opacity: 0.8;
+        }
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Students">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputText class="form-input" placeholder="Enter Adm.No " @bind-Value="searchRequest.AdmissionNo" />
+                </div>
+                <div class="form-box">
+                    <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                        <i class="bi bi-sliders"></i>
+                    </button>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" type="button" tabindex="0" @onclick="SearchStudents">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Title="Roll No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MotherName) ? " " : x.MotherName)" Title="Mother" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mob. No" Class="text-center" Align="Align.Center" />
+                                <TemplateColumn Title="Active" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="action-btn-group">
+                                            @if (context.IsValid)
+                                            {
+                                               
+                                                <span class="badge rounded-pill bg-info verified-link custom-tooltip" data-tooltip="Details" @onclick="() => DetailsPopupOpen(context.StudentId)">
+                                                    <i class="bi bi-info-circle"></i>  Details
+                                                </span>
+                                            }
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SEARCH POPUP (fixed size per Rule A5) ===================== -->
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.StudentName" />
+                                <label class="floating-label">Student Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.FatherName" />
+                                <label class="floating-label">Father Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.MotherName" />
+                                <label class="floating-label">Mother Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-3 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.SMSMobileNo" />
+                                <label class="floating-label">Mobile No</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+<StudentViewDetails IsVisible="@OpenDetail" SessionId="@CurrentSession" CurrectUrl="@currentUrl" StudentId="@SelectedStudentId" OnClose="@ClosePopup" />
+@code {
+    private List<SessionModel> sessionlist = new();
+    private List<FindStudentResponse> studentlist = new();
+    private FIndStudentRequest searchRequest = new();
+
+    private bool ShowSearchPopup;
+    private bool OpenDetail = false;
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private long SelectedStudentId;
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<FindStudentResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            StateHasChanged();
+        }
+    }
+
+    private void OpenSearch()
+    {
+        ShowSearchPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        ShowSearchPopup = false;
+        OpenDetail = false;
+    }
+
+
+    private async Task SearchStudents()
+    {
+        bool hasAnyFilter =
+            !string.IsNullOrWhiteSpace(searchRequest.AdmissionNo) ||
+            !string.IsNullOrWhiteSpace(searchRequest.StudentName) ||
+            !string.IsNullOrWhiteSpace(searchRequest.FatherName) ||
+            !string.IsNullOrWhiteSpace(searchRequest.MotherName) ||
+            !string.IsNullOrWhiteSpace(searchRequest.SMSMobileNo);
+
+        if (!hasAnyFilter)
+        {
+
+
+            await Alert.ShowWarning("Please enter at least one search field.");
+            ShowSearchPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        ShowSearchPopup = false;
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "FindStudent/GetSearchedStudentByDetails";
+            var apiResponse = await httpService.Post<ApiResponse<List<FindStudentResponse>>>(apiUrl, searchRequest);
+
+            studentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while searching for students.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task DetailsPopupOpen(long StudentId)
+    {
+
+        IsLoading = true;
+        if (StudentId == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+        else
+        {
+
+            SelectedStudentId = StudentId;
+        }
+
+        OpenDetail = true;
+        IsLoading = false;
+        StateHasChanged();
+    }
+}

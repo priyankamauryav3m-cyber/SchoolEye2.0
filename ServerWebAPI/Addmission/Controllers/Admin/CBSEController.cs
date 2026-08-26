@@ -66,7 +66,8 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
         [HttpPost("AddUpdateStudentBoardRollNo")]
-        public async Task<IActionResult> AddUpdateStudentBoardRollNo( [FromBody] AddUpdateStudentBoardRollNoRequest request)
+        [HttpPost("AddUpdateStudentCBSERegNo")]
+        public async Task<IActionResult> AddUpdateStudentBoardData([FromBody] AddUpdateStudentBoardRollNoRequest request)
         {
             try
             {
@@ -90,12 +91,26 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                     });
                 }
 
-                var result = await _service.AddUpdateStudentBoardRollNo(request);
+                var path = HttpContext.Request.Path.Value ?? "";
+
+                string result;
+                string message;
+
+                if (path.EndsWith("AddUpdateStudentBoardRollNo", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = await _service.AddUpdateStudentBoardRollNo(request);
+                    message = "Board Roll Number updated successfully.";
+                }
+                else
+                {
+                    result = await _service.AddUpdateStudentCBSERegNo(request);
+                    message = "CBSE Registration Number updated successfully.";
+                }
 
                 return Ok(new ApiResponse<string>
                 {
                     Success = true,
-                    Message = "Board Roll Number updated successfully.",
+                    Message = message,
                     Data = result
                 });
             }
@@ -109,6 +124,51 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
             }
         }
+        //[HttpPost("AddUpdateStudentBoardRollNo")]
+        //public async Task<IActionResult> AddUpdateStudentBoardRollNo( [FromBody] AddUpdateStudentBoardRollNoRequest request)
+        //{
+        //    try
+        //    {
+        //        if (request == null)
+        //        {
+        //            return BadRequest(new ApiResponse<string>
+        //            {
+        //                Success = false,
+        //                Message = "Invalid request.",
+        //                Data = string.Empty
+        //            });
+        //        }
+
+        //        if (string.IsNullOrWhiteSpace(request.StudentId))
+        //        {
+        //            return BadRequest(new ApiResponse<string>
+        //            {
+        //                Success = false,
+        //                Message = "Student data is required.",
+        //                Data = string.Empty
+        //            });
+        //        }
+
+        //        var resultBoard = await _service.AddUpdateStudentBoardRollNo(request);
+        //        var resultReg = await _service.AddUpdateStudentCBSERegNo(request);
+
+        //        return Ok(new ApiResponse<string>
+        //        {
+        //            Success = true,
+        //            Message = "Board Roll Number updated successfully.",
+        //            Data = resultBoard
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new ApiResponse<string>
+        //        {
+        //            Success = false,
+        //            Message = ex.Message,
+        //            Data = string.Empty
+        //        });
+        //    }
+        //}
         //[HttpPost("AddUpdateStudentCBSERegNo")]
         //public async Task<IActionResult> AddUpdateStudentCBSERegNo([FromBody] UpdateStudentCBSERegNoRequest request)
         //{

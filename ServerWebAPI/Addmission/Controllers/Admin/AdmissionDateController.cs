@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using ApplicationInterface;
+using DomainModel.FinanceMNGT;
 
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
@@ -39,7 +40,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                         Success = true,
                         Message = "Student admission date updated successfully.",
                         Data = returnValue,
-                        Code=1
+                        Code = 1
                     });
                 }
 
@@ -157,6 +158,35 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
 
 
 
+        [HttpPost("GetClassSectionDetail")]
+        public async Task<IActionResult> GetClassSectionDetail([FromBody] StuSearchedStudentRequest request)
+        {
+            try
+            {
+                var result = await _service.GetClassSectionDetail(request);
+
+                return Ok(
+                    new ApiResponse<ClassSectionDetailResponse>
+                    {
+                        Success = true,
+                        Message = "Class section detail retrieved successfully.",
+                        Data = result
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = ex.Message,
+                        Data = null
+                    }
+                );
+            }
+        }
 
 
     }

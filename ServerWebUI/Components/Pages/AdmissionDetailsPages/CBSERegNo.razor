@@ -1,4 +1,4 @@
-@page "/BoardRollNo"
+﻿@page "/CBSERegNo"
 @using System.Text.Json
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
@@ -17,7 +17,7 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <PageHeading Tittle="View Student Board Roll No">
+            <PageHeading Tittle="View Student CBSE Reg No">
                 <div class="form-box">
                     <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
                         <option value="0" selected>Select-Session</option>
@@ -88,7 +88,7 @@
                                 <TemplateColumn Title="Board Roll No." Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         <input class="form-input text-center" style="width:130px;"
-                                               @bind="context.BoardRollNo" @bind:event="oninput" />
+                                               @bind="context.CBSERegNo" @bind:event="oninput" />
                                     </ChildContent>
                                 </TemplateColumn>
                             </QuickGrid>
@@ -98,7 +98,7 @@
                                 <div class="welcome-text w-100">
                                     <Paginator State="@pagination" />
                                 </div>
-                         
+                                
                             </div>
                         </div>
                     </div>
@@ -116,7 +116,7 @@
                     }
                 </div>
                 <div class="d-flex align-items-center gap-2">
-         
+                 
                     <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OnImportData">Import Data</button>
                     </div>
@@ -258,7 +258,7 @@ else
             return;
         }
 
-        if (searchRequest.SectionId==0)
+        if (searchRequest.SectionId == 0)
         {
             await Alert.ShowWarning("Please select a section.");
             return;
@@ -315,19 +315,20 @@ else
             return;
         }
 
-        if (studentlist.Any(x => string.IsNullOrWhiteSpace(x.BoardRollNo)))
+        if (studentlist.Any(x => string.IsNullOrWhiteSpace(x.CBSERegNo)))
         {
-            await Alert.ShowWarning("Board roll no can not be blank.");
+            await Alert.ShowWarning("CBSE Reg no can not be blank.");
             return;
         }
-        var submit = await Alert.ShowConfirm("Are you sure, you want to assign cbse board roll no to student?");
+        var submit = await Alert.ShowConfirm("Are you sure, you want to assign cbse reg no to student?");
         if (!submit)
         {
             StateHasChanged();
             return;
         }
-        // Build "StudentId,BoardRollNo~StudentId,BoardRollNo~..."
-        var studentIdString = string.Join("~", moduleQuery.Select(x => $"{x.StudentId},{x.BoardRollNo}"));
+
+        // Build "StudentId,CBSERegNo~StudentId,CBSERegNo~..."
+        var studentIdString = string.Join("~", moduleQuery.Select(x => $"{x.StudentId},{x.CBSERegNo}"));
 
         var model = new AddUpdateStudentBoardRollNoRequest
         {
@@ -345,17 +346,17 @@ else
 
         try
         {
-            string apiUrl = "CBSE/AddUpdateStudentBoardRollNo";
+            string apiUrl = "CBSE/AddUpdateStudentCBSERegNo";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
 
             if (apiResponse != null && apiResponse.Success)
             {
-                await Alert.ShowSuccess(apiResponse.Message ?? "Board roll no updated successfully.");
+                await Alert.ShowSuccess("CBSE reg no updated successfully.");
                 await SearchStudents();
             }
             else
             {
-                await Alert.ShowWarning(apiResponse?.Message ?? "Board roll no was not updated.");
+                await Alert.ShowWarning("CBSE reg no was not updated.");
             }
         }
         catch (Exception ex)
@@ -398,10 +399,10 @@ else
     {
 
         IsLoading = true;
-            string reportType = "BoardRollNo";
-            string ApiUri = $"Export/GenerateStudentBoardRollNoPdf?reportType={reportType}";
+        string reportType = "CBSERegNo";
+        string ApiUri = $"Export/GenerateStudentBoardRollNoPdf?reportType={reportType}";
 
-            var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
 
         if (response != null && response.Success && response.Data != null)
         {
@@ -419,8 +420,9 @@ else
     private async Task PrintExcel(List<AdmSearchedStudentResponse> data)
     {
         IsLoading = true;
-        string reportType = "BoardRollNo";
+        string reportType = "CBSERegNo";
         string ApiUri = $"Export/GenerateStudentBoardRollNoExcelData?reportType={reportType}";
+
         var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
 
         if (response != null && response.Success && response.Data != null)

@@ -2006,7 +2006,7 @@ namespace DomainModel.Admin
         public string? DocumentName { get; set; }
         public string? Remarks { get; set; }
         public int Verified { get; set; }
-        [GlobalFormat(FormatType.Date_ddMMyy)]
+        [GlobalFormat(FormatType.Date_ddMMyyyy_Dash)]
         public DateTime? DocDate { get; set; }
         [GlobalFormat(FormatType.Date_ddMMyyyy_Dash)]
         public DateTime? HandoverDate { get; set; }
@@ -2317,6 +2317,7 @@ namespace DomainModel.Admin
 
         public string? AdmSession { get; set; }
         public string? BoardRollNo { get; set; }
+        public string? CBSERegNo { get; set; }
         public string? StudentCategoryName { get; set; }
         public int? SocietyId { get; set; }
 
@@ -2473,6 +2474,304 @@ namespace DomainModel.Admin
         public string? CreatedBy { get; set; }
     }
     #endregion
+    public class ClassSectionDetailResponse
+    {
+        public int TotalStudent { get; set; }
+        public int NotAllocated { get; set; }
+        public int AllMale { get; set; }
+        public int AllFemale { get; set; }
 
+        public int Allocated { get; set; }
+        public int AllocatedMale { get; set; }
+        public int AllocatedFemale { get; set; }
+
+        public int SectionMaxStrength { get; set; }
+    }
+    #region  -------------------------- Get Absconded Student (STU_UspGetAbscondedStudent) -------------
+    public class GetAbscondedStudentRequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? IsEWS { get; set; }
+        public string? JoinType { get; set; }
+        public string? StudentStatus { get; set; } = "BOTH";
+    }
+
+    public class GetAbscondedStudentResponse : MNGTCommon
+    {
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public string? SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? RollNo { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherContactNo { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherContactNo { get; set; }
+        public string? IsReservedSeat { get; set; }
+        public string? ImagePath { get; set; }
+        public DateTime? AdmissionDate { get; set; }
+        public string? StudentStatus { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Add Student Discipline (STU_UspAddStudentDiscipline) -------------
+    public class AddStudentDisciplineRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+
+        [Display(Name = "Category ")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [Range(1, 100, ErrorMessage = "Category  is required")]
+        public int CategoryId { get; set; }
+
+        public long StudentId { get; set; }
+
+        [Display(Name = "Indiscipline")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(500)]
+        public string IndisciplineComment { get; set; } = string.Empty;
+        public decimal Fine { get; set; }
+
+
+        [Display(Name = "Indiscipline Date")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public DateTime? IndisciplineDate { get; set; } = DateTime.Today;
+        public string CreatedBy { get; set; } = string.Empty;
+    }
+    #endregion
+    #region  -------------------------- Student Indiscipline (table: V3M_DIS_StudentIndiscipline) -------------
+
+    public class IndisciplineCommentRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public string? CategoryId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionId { get; set; }
+        public DateTime? FromDate { get; set; } = DateTime.Today;
+        public DateTime? ToDate { get; set; } = DateTime.Today;
+        public string? StudentNo { get; set; }
+        public string? StudentName { get; set; }
+        public string Mode { get; set; } = "-1";
+    }
+
+    public class IndisciplineCommentResponse : MNGTCommon
+    {
+        public long DisId { get; set; }
+        public int CategoryId { get; set; }
+        // public long StudentId { get; set; }
+        public string? IndisciplineComment { get; set; }
+        public decimal Fine { get; set; }
+        public DateTime? IndisciplineDate { get; set; }
+        public string? CategoryName { get; set; }
+        public string? StudentName { get; set; }
+        public string? SectionName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        //public bool IsValid { get; set; }
+        public string? SectionId { get; set; }
+        public string? ControlNo { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Sibling Student (STU_UspGetSearchedSiblingStudent) -------------
+    public class SiblingStudentRequest
+    {
+        public string? IsEWS { get; set; }
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? Gender { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? JoinType { get; set; }
+    }
+
+    public class SiblingStudentResponse : MNGTCommon
+    {
+
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public string? SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? RollNo { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public int? ClassOrder { get; set; }
+    }
+    #endregion
+
+    #region  -------------------------- Student Searched Student (STU_UspGetSearchedStudent) -------------
+    public class FIndStudentRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+
+        public string? SMSMobileNo { get; set; }
+    }
+    public class FindStudentResponse : MNGTCommon
+    {
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? RollNo { get; set; }
+        public string? ClassSection { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? Gender { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public bool IsValid { get; set; }
+        public int? ClassOrder { get; set; }
+        public string? SectionName { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Searched Student RTE (STU_UspGetSearchedStudentRTE) -------------
+
+    public class StudentRTERequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+
+        public int IsRTE { get; set; } = 0;
+
+        public int RTECategory { get; set; }
+
+        public int Status { get; set; } = 2;
+    }
+
+    public class StudentRTEResponse : MNGTCommon
+    {
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? RollNo { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherContactNo { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherContactNo { get; set; }
+        public string? IsReservedSeat { get; set; }
+        public string? ImagePath { get; set; }
+        public DateTime? AdmissionDate { get; set; }
+        public string? AdmissionSession { get; set; }
+        public string? BoardRollNo { get; set; }
+        public int? ClassOrder { get; set; }
+        public string? StudentCategoryName { get; set; }
+        public string? CategoryName { get; set; }
+        public string? SubCategoryName { get; set; }
+        public string? BankName { get; set; }
+        public string? AccountHolderName { get; set; }
+        public string? IFSCCODE { get; set; }
+        public string? AccountNumber { get; set; }
+        public string? StudentRTECategory { get; set; }
+        public string? StudentRTESubCategory { get; set; }
+    }
+    #endregion
+    #region  -------------------------- RTE Student Data (table: StudentAdditionalInformation) -------------
+    public class RTEStudentDataRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        [Required(ErrorMessage = "Student Details are required.")]
+        public string? StudentDetails { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+
+    #endregion
+    #region  -------------------------- Disability Student Data (STU_UspGetDisabilityStudentData) -------------
+    public class DisabilityStudentRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public int IsDisability { get; set; } = 0;
+        public int Status { get; set; } = 1;
+    }
+    public class DisabilityStudentResponse:MNGTCommon
+    {
+        public string? AdmissionNo { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? RollNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? Gender { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
+
+        public string? IsDisability { get; set; }
+
+        public string? SocietyId { get; set; }
+        public string? NatureOfDisability { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Update Student Disability Data (Usp_UpdateStudentDisabilityData) -------------
+    public class StudentDisabilityRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+
+        [Required(ErrorMessage = "Session Id is required.")]
+        public long SessionId { get; set; }
+
+        [Required(ErrorMessage = "At least one student is required.")]
+        [MinLength(1, ErrorMessage = "At least one student is required.")]
+        public List<StudentDisabilityItem> StudentDetails { get; set; } = new();
+        public string? CreatedBy { get; set; }
+    }
+    public class StudentDisabilityItem
+    {
+        public long StudentId { get; set; }
+        public bool IsDisability { get; set; }  
+        public string? NatureOfDisability { get; set; }
+    }
+    #endregion
 
 }

@@ -897,7 +897,7 @@ namespace DomainModel.SchoolMaster
         [StringLength(20, ErrorMessage = "UDISE No cannot exceed 20 characters.")]
         public string? UDISENo { get; set; }
     }
-    public class SourceOfEnquiryModel:MNGTCommon
+    public class SourceOfEnquiryModel : MNGTCommon
     {
         public int SourceId { get; set; }
         [Display(Name = "Source name")]
@@ -989,9 +989,9 @@ namespace DomainModel.SchoolMaster
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         [Range(1, int.MaxValue, ErrorMessage = "Please select a valid Document.")]
         public int DocumentId { get; set; }
-        public string? DocumentName{ get; set; }
-        public string?  DocumentType { get; set; }
-        public string?  ClassName { get; set; }
+        public string? DocumentName { get; set; }
+        public string? DocumentType { get; set; }
+        public string? ClassName { get; set; }
 
         [Display(Name = "Class")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
@@ -1002,7 +1002,7 @@ namespace DomainModel.SchoolMaster
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
         [Display(Name = "Mandatory")]
-        public bool IsMandatory { get; set; }  
+        public bool IsMandatory { get; set; }
     }
     public class UpdateClassDocumentRequest
     {
@@ -1014,5 +1014,32 @@ namespace DomainModel.SchoolMaster
         public int TransType { get; set; }
         public string CreatedBy { get; set; } = string.Empty;
     }
+
+
+    #region--------------------- DIS Catagery -----------------
+
+
+    public class DisCategoryModel
+    {
+        public string? GroupCode { get; set; }
+
+        public string? BranchCode { get; set; }
+        public int CategoryId { get; set; }
+
+        [Display(Name = "Category Name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(100, ErrorMessage = "Category Name cannot exceed 100 characters.")]
+        public string CategoryName { get; set; } = string.Empty;
+
+        public bool IsValid { get; set; } = true;
+
+        public DateTime CreatedDate { get; set; } = DateTime.Today;
+
+        [StringLength(50)]
+        public string? CreatedBy { get; set; }
+        public long SessionId { get; set; }
+    }
+
+    #endregion
 }
 

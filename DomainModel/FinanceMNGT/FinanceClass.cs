@@ -15,6 +15,7 @@ namespace DomainModel.FinanceMNGT
         public string? GroupCode { get; set; }
         public string? BranchCode { get; set; }
         public string? SessionName { get; set; }
+        public string? RegistrationNo { get; set; }
         public long SessionId { get; set; }
         public long StudentId { get; set; }
         public bool IsDisabled { get; set; }

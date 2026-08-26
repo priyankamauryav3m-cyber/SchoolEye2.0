@@ -19,7 +19,7 @@
 @inject IJSRuntime JS
 <style>
     .quickgrid tbody tr.selectRow td {
-        background-color: #cce5ff !important;
+        background-color: #e7f1ff !important;
     }
 
     .quickgrid thead th:last-child {
@@ -898,6 +898,7 @@
         </div>
     </div>
 }
+
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
@@ -1117,6 +1118,18 @@ else
         string ApiUri = "ClassDocument/GetClassDocument";
         documentDropdownList = await httpService.Post<List<ClassDocumentModel>>(ApiUri, searchAnyRequest) ?? new();
     }
+    
+    private async Task OnFileSelected(InputFileChangeEventArgs e, ClassRegistrationDocumentsResponse doc)
+    {
+        var file = e.File;
+        if (file == null) return;
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        doc.DocPath = file.Name;
+
+        StateHasChanged();
+    }
     private async Task LoadDocumentList()
     {
         try
@@ -1147,17 +1160,6 @@ else
         }
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e, ClassRegistrationDocumentsResponse doc)
-    {
-        var file = e.File;
-        if (file == null) return;
-        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        doc.DocPath = file.Name;
-
-        StateHasChanged();
-    }
 
     private void CloseDocumentPopup()
     {

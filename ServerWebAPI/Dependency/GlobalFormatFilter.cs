@@ -38,11 +38,11 @@ namespace ServerWebAPI.Dependency
                 return newList;
             }
 
-            if (valueType.IsPrimitive || valueType.IsEnum ||
-                valueType == typeof(DateTime) || valueType == typeof(DateTime?) ||
-                valueType == typeof(decimal) || valueType == typeof(decimal?) ||
-                valueType == typeof(Guid) || valueType == typeof(Guid?) ||
-                valueType == typeof(bool) || valueType == typeof(bool?))
+                if (valueType.IsPrimitive || valueType.IsEnum ||
+                    valueType == typeof(DateTime) || valueType == typeof(DateTime?) ||
+                    valueType == typeof(decimal) || valueType == typeof(decimal?) ||
+                    valueType == typeof(Guid) || valueType == typeof(Guid?) ||
+                    valueType == typeof(bool) || valueType == typeof(bool?))
             {
                 return value;
             }

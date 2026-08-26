@@ -1,0 +1,1256 @@
+@page "/StudentIndiscipline"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+<style>
+    .quickgrid tbody tr.selectRow td {
+        background-color: #e7f1ff !important;
+    }
+    .card {
+        border-radius: 12px;
+    }
+
+    .crumb {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        color: #2455a6;
+        margin-bottom: 10px;
+    }
+
+    .redio-button-grid {
+        width: 18px;
+        height: 18px
+    }
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Student Indiscipline">
+
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="indisciplineCommentRequest.ClassCode" @bind-Value:after="OnClassChanged">
+                        <option value="">--All Class --</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="indisciplineCommentRequest.SectionId">
+                        <option value="">-All Section -</option>
+                        @foreach (var sec in sectionlist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchDisciplineList" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+                <div class="form-box">
+                    <ActionButtonGroup ButtonText="New" CurrentUrl="@currentUrl" Add="OpenNewPopup" />
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No." Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.CategoryName) ? " " : x.CategoryName)" Title="Category" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.IndisciplineComment) ? " " : x.IndisciplineComment)" Title="Comment" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.Fine)" Title="Fine" Class="text-right" Align="Align.Center" />
+                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="text-center">
+                                            @if (context.IsValid == true)
+                                            {
+                                                <span class="badge rounded-pill bg-success">
+                                                    <i class="bi bi-check-circle-fill"></i> Success
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge rounded-pill bg-danger">
+                                                    <i class="bi bi-x-circle-fill"></i> Fail
+                                                </span>
+                                            }
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="action-btn-group">
+                                            @if (context.IsValid == false)
+                                            {
+                                                <button class="btn-icon active-btn custom-tooltip" data-tooltip="Active" @onclick="() => ActiveData(context)">
+                                                    <i class='fas fa-toggle-on' style="font-size:12px;"></i>&nbsp; Active
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn-icon inactive-btn custom-tooltip" data-tooltip="Deactive" @onclick="() => DeactiveData(context)">
+                                                    <i class='fas fa-toggle-off' style="font-size:12px;"></i>&nbsp; Deactive
+                                                </button>
+                                            }
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+<!-- ===================== MAIN "NEW" POPUP (col-xl-12, two cards) ===================== -->
+@if (ShowDisciplinePopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-10 col-md-10 col-lg-9 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Student Discipline</h5>
+                    <button data-access="Close" type="button" @onclick="CloseDisciplinePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@addStudentDiscipline" OnValidSubmit="OnSaveDiscipline">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-12 px-2">
+                                <nav class="crumb" aria-label="Breadcrumb">
+                                    <strong>Discipline Record</strong><span>›</span>
+                                    <span class="text-muted">Select Student</span>
+                                </nav>
+
+                            </div>
+                            <!-- ---------- Card 1 : Student Details ---------- -->
+                            <div class="col-12 px-2 mb-3">
+
+                                <div class="card p-3">
+
+                                    <div class="row m-0 align-items-center">
+
+                                        <div class="col-12 col-md-6 px-2">
+
+                                            <div class="d-flex align-items-center gap-3">
+
+                                                <div class="d-flex align-items-center justify-content-center rounded"
+                                                     style="width:55px;height:55px;background:#e3edf9;color:#2d65ad;">
+                                                    <i class="bi bi-calendar"></i>
+
+                                                </div>
+
+                                                <div>
+
+                                                    <div class="text-muted">
+                                                        Academic Session
+                                                    </div>
+
+                                                    <div class="fw-bold ">
+                                                        @CurrentSessionName
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                            <div class="col-12 px-2 mb-3">
+                                <div class="card p-3">
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+
+                                            <p class="total-text-with-bg">
+                                                Student Details
+                                            </p>
+
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+
+                                            @if (selectedStudent != null)
+                                            {
+                                                <button class="ui fade op-1 animated button form-btn" @onclick="ShowStudentSearch" tabindex="0">
+                                                    <div class="visible content"> Change Student</div>
+                                                    <div class="hidden content">
+                                                        <i class="fa fa-refresh"></i>
+                                                    </div>
+                                                </button>
+                                                @* <button type="button"
+                                                        class="table-btn"
+                                                        @onclick="ShowStudentSearch">
+                                                    Change Student
+                                                </button> *@
+                                            }
+                                            else
+                                            {
+                                                <button class="ui fade op-1 animated button form-btn" @onclick="ShowStudentSearch" tabindex="0">
+                                                    <div class="visible content"> Select Student</div>
+                                                    <div class="hidden content">
+                                                        <i class="bi bi-check-circle-fill"></i>
+                                                    </div>
+                                                </button>
+                                                @* <button type="button"
+                                                        class="table-btn"
+                                                        @onclick="ShowStudentSearch">
+                                                    Select Student
+                                                </button> *@
+                                            }
+
+                                        </div>
+                                    </div>
+
+                                    @if (selectedStudent == null)
+                                    {
+                                        <div class="border-box"
+                                             style="border-style:dashed;height:60px;padding:10px 12px;">
+
+                                            <p class="form-label fw-bold m-1">
+                                                No student selected
+                                            </p>
+
+                                            <p class="form-label text-muted m-0">
+                                                Choose a student before recording discipline details.
+                                            </p>
+
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="row m-0 align-items-center">
+
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 mb-3 mb-lg-0">
+
+                                                <div class="d-flex align-items-center gap-3">
+
+                                                    <div class="d-flex align-items-center justify-content-center rounded-circle"
+                                                         style="width:70px;height:70px;background:#e3edf9;color:#2d65ad;font-size:28px;font-weight:700;">
+
+                                                        @if (!string.IsNullOrWhiteSpace(disciplineModel.StudentName))
+                                                        {
+                                                            @disciplineModel.StudentName.Substring(0, 1).ToUpper()
+                                                        }
+
+                                                    </div>
+
+                                                    <div>
+
+                                                        <div class="fw-bold">
+                                                            @disciplineModel.StudentName
+                                                        </div>
+
+                                                        <div class="text-success">
+                                                            ✓ Student selected
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="col-6 col-sm-4 col-md-2 col-lg px-2 mb-3 mb-lg-0">
+
+                                                <div class="text-muted mb-1">
+                                                    Student No.
+                                                </div>
+
+                                                <div class="fw-semibold ">
+                                                    @disciplineModel.ControlNo
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="col-6 col-sm-4 col-md-2 col-lg px-2 mb-3 mb-lg-0">
+
+                                                <div class="text-muted mb-1">
+                                                    Class
+                                                </div>
+
+                                                <div class="fw-semibold ">
+                                                    @disciplineModel.ClassName
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="col-6 col-sm-4 col-md-2 col-lg px-2 mb-3 mb-lg-0">
+
+                                                <div class="text-muted mb-1">
+                                                    Section
+                                                </div>
+
+                                                <div class="fw-semibold ">
+                                                    @disciplineModel.SectionName
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    }
+
+                                </div>
+                            </div>
+                            @* <div class="col-12 px-2">
+                                <div class="card p-3">
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mb-3">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                            <p class="total-text-with-bg">
+                                                Student Details
+                                            </p>
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+                                            @if (selectedStudent != null)
+                                            {
+                                                <button type="button" class="table-btn" @onclick="ShowStudentSearch">Change Student</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="table-btn" @onclick="ShowStudentSearch">Select Student</button>
+                                            }
+                                        </div>
+                                    </div>
+                                  
+                                    @if (selectedStudent == null)
+                                    {
+                                        <div class="border-box" style="border-style:dashed;height: 60px;padding: 10px 12px;">
+                                            <p class="form-label fw-bold m-1">No student selected</p>
+                                            <p class="form-label text-muted m-0">Choose a student before recording discipline details.</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="row m-0">
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " value="@CurrentSessionName" readonly disabled />
+                                                    <label class="floating-label">Session Name</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " value="@disciplineModel.ControlNo" readonly disabled />
+                                                    <label class="floating-label">Student No.</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " value="@disciplineModel.StudentName" readonly disabled />
+                                                    <label class="floating-label">Student Name</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " value="@disciplineModel.ClassName" readonly disabled />
+                                                    <label class="floating-label">Class</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " value="@disciplineModel.SectionName" readonly disabled />
+                                                    <label class="floating-label">Section</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                                                <div class="form-box-group">
+                                                    <InputDate class="floating-input" placeholder=" " @bind-Value="@addStudentDiscipline.IndisciplineDate" />
+                                                    <label class="floating-label">Indiscipline Date</label>
+                                                    <ValidationMessage For="@(() => addStudentDiscipline.IndisciplineDate)" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div> *@
+                            <div class="col-12 px-2">
+                                <div class="card p-3">
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mb-2">
+                                        <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                            <p class="total-text-with-bg">
+                                                Discipline Details
+                                            </p>
+                                            <hr class="m-0 w-webkit text-light-gray op-1">
+                                        </div>
+                                    </div>
+                                    <div class="row m-0">
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                            <div class="form-box-group static-label">
+                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="@addStudentDiscipline.CategoryId">
+                                                    <option value="0">Select</option>
+                                                    @foreach (var data in disCategorielist)
+                                                    {
+                                                        <option value="@data.CategoryId">@data.CategoryName</option>
+                                                    }
+
+                                                </InputSelect>
+                                                <label class="floating-label">
+                                                    Category <span class="required">*</span>
+                                                </label>
+                                                <ValidationMessage For="@(() => addStudentDiscipline.CategoryId)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                            <div class="form-box-group">
+                                                <InputNumber class="floating-input" placeholder=" " @bind-Value="addStudentDiscipline.Fine" />
+                                                <label class="floating-label">Fine</label>
+
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-md-6 col-lg-4 px-2">
+                                            <div class="form-box-group static-label">
+                                                <InputDate class="floating-input" @bind-Value="addStudentDiscipline.IndisciplineDate" />
+                                                <label class="floating-label">Indiscipline Date <span class="required">*</span></label>
+                                                <ValidationMessage For="@(() => addStudentDiscipline.IndisciplineDate)" />
+                                            </div>
+                                        </div>
+                                        <div class="col-12 px-2">
+                                            <div class="form-box-group">
+                                                <InputTextArea class="floating-input" placeholder=" " rows="2" @bind-Value="addStudentDiscipline.IndisciplineComment" maxlength="500" />
+                                                <label class="floating-label">
+                                                    Incident details <span class="required">*</span>
+                                                </label>
+                                                <ValidationMessage For="@(() => addStudentDiscipline.IndisciplineComment)" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-end gap-2">
+                        <SaveUpdateButton OnClickCancel="@CloseDisciplinePopup" />
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+<!-- ===================== NESTED "SELECT STUDENT" POPUP ===================== -->
+@if (ShowSelectStudentPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-10 col-md-10 col-lg-9 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Select Student</h5>
+                    <button data-access="Close" type="button" @onclick="CloseStudentSearch" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body bg-white">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-6 col-md-3 col-lg-9 px-2">
+                            <div class="form-box-group">
+                                <input class="floating-input"
+                                           placeholder="Search by name, student no,roll no. or mobile no"
+                                           @bind="studentGridSearch"
+                                           @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <button class="ui fade op-1 animated button form-btn w-100" style="height:45px;" @onclick="SearchStudents" tabindex="0">
+                                    <div class="visible content">Search Student</div>
+                                    <div class="hidden content">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3 col-lg-3 px-2 ">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.ClassCode" @bind-Value:after="OnSearchClassChanged">
+                                    <option value="">All</option>
+                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@cs.ClassCode">@cs.ClassName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Class</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.SectionCode">
+                                    <option value="">All</option>
+                                    @foreach (var sec in sectionlist)
+                                    {
+                                        <option value="@sec.SectionId">@sec.SectionName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Section</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="isSibling">
+                                    <option value="">All</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </InputSelect>
+                                <label class="floating-label">Is Sibling</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.IsEWS">
+                                    <option value="">All</option>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </InputSelect>
+                                <label class="floating-label">Is EWS</label>
+                            </div>
+                        </div>
+                        @* <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <label for="applied" class="floating-label">Is Sibling</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="isSibling" class="border-box d-flex gap-3">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="true" />
+                                            <label class="form-label">Yes</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="false" />
+                                            <label class="form-label">No</label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <label for="applied" class="floating-label">Is EWS</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="searchRequest.IsEWS" class="border-box d-flex gap-3">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">Yes</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">No</label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div> *@
+               
+                    </div>
+
+                    <div class="card mt-2">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box" style="height:320px;">
+                                    <QuickGrid Items="@studentSearchQuery" Class="table" Pagination="@studentPagination">
+                                        <TemplateColumn Title="Select" Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                <div>
+                                                    <input type="radio" name="studentSelect" class="redio-button-grid" checked="@context.IsSelected" @onchange="@(() => SelectStudent(context))" @onclick:stopPropagation="true" />
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Title="Roll No." Class="text-center" Align="Align.Center" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No." Align="Align.Left" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
+                                        <TemplateColumn Title="Class-Section" Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                @($"{context.ClassName}-{context.SectionName}")
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father / Guardian" Align="Align.Left" />
+                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="Mobile" Class="text-center" Align="Align.Center" />
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination">
+                                    <div class="d-flex align-items-center">
+                                        <div class="welcome-text w-100">
+                                            <Paginator State="@studentPagination" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-end gap-2">
+                    <button type="submit" class="ui fade op-1 animated button form-btn" @onclick="ConfirmSelectStudent">
+
+                        <div class="visible content justify-content-center">Select Student</div>
+                        <div class="hidden content">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                    </button>
+                    @* <button type="button" class="ui fade op-1 animated button form-btn" @onclick="ConfirmSelectStudent">Select Student</button> *@
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@CloseStudentSearch" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+            <div class="modal-content clearfix main-popup ">
+                <div class="head-btn">
+                    <h5 class="modal-title">View Student</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="indisciplineCommentRequest.CategoryId">
+                                    <option value="0">Select</option>
+                                    @foreach (var data in disCategorielist)
+                                    {
+                                        <option value="@data.CategoryId">@data.CategoryName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Category</label>
+                            </div>
+                        </div>
+
+                        
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="indisciplineCommentRequest.StudentName" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'')" />
+                                <label class="floating-label">First Name</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="indisciplineCommentRequest.StudentNo" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <input class="floating-input" placeholder=" " type="date" @ref="dateFromInput" @bind="indisciplineCommentRequest.FromDate" @onclick='() => OpenDateFrom("DateFrom")' />
+                                <label class="floating-label"> Date From</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <input class="floating-input" placeholder=" " type="date" @ref="dateToInput" @bind="indisciplineCommentRequest.ToDate" @onclick='() => OpenDateFrom("DateTo")' />
+                                <label class="floating-label"> Date To</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <label for="status" class="floating-label">Student Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="indisciplineCommentRequest.Mode">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("-1")" />
+                                            <label class="form-label">
+                                                All
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("1")" />
+                                            <label class="form-label">
+                                                Activeted
+                                            </label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("0")" />
+                                            <label class="form-label">
+                                                Deactiveted
+                                            </label>
+                                        </div>
+
+                                    </InputRadioGroup>
+
+                                </div>
+                            </div>
+                        </div>
+
+                       
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchDisciplineList" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // NOTE / ASSUMPTIONS:
+    // - StudentIndisciplineListResponse: StudentNo, StudentName, ClassName,
+    //   CategoryName, Comment, Fine, Status (outer list grid) - no API
+    //   given yet for this list, endpoint left as a placeholder TODO.
+    // - StudentDisciplineModel: StudentNo, StudentName, ClassCode, ClassName,
+    //   SectionCode, SectionName, IndisciplineDate (DateTime?), CategoryId,
+    //   Fine, IndisciplineComment - no save API given yet, placeholder TODO.
+    // - Category dropdown is static per your list (6-10), not loaded from
+    //   an API.
+    // ---------------------------------------------------------------------
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<IndisciplineCommentResponse> disciplineList = new();
+    private List<SiblingStudentResponse> studentSearchResults = new();
+    private List<DisCategoryModel> disCategorielist = new();
+    private SiblingStudentRequest searchRequest = new();
+    private IndisciplineCommentResponse disciplineModel = new();
+    private IndisciplineCommentRequest indisciplineCommentRequest = new();
+    private AddStudentDisciplineRequest addStudentDiscipline = new();
+    private SiblingStudentResponse? selectedStudent;
+    private string studentGridSearch = string.Empty;
+    private SearchAnyRequestModel searchAny = new();
+    private ElementReference dateFromInput;
+    private ElementReference dateToInput;
+    private bool isSibling = false;
+    private bool ShowPopup = false;
+    private int incidentCharCount = 0;
+    private string? nameFilter;
+
+    private bool ShowDisciplinePopup;
+    private bool ShowSelectStudentPopup;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private PaginationState studentPagination = new() { ItemsPerPage = 6 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+    private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
+    protected IQueryable<IndisciplineCommentResponse> moduleQuery
+    {
+        get
+        {
+            var result = disciplineList.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+               (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    //private IQueryable<SiblingStudentResponse> studentSearchQuery => studentSearchResults.AsQueryable();
+
+    private IQueryable<SiblingStudentResponse> studentSearchQuery
+    {
+        get
+        {
+            var query = studentSearchResults.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(studentGridSearch))
+            {
+                var searchText = studentGridSearch.Trim();
+
+                query = query.Where(x =>
+                    (!string.IsNullOrWhiteSpace(x.RollNo) &&
+                     x.RollNo.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+
+                    ||
+
+                    (!string.IsNullOrWhiteSpace(x.ControlNo) &&
+                     x.ControlNo.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+
+                    ||
+
+                    (!string.IsNullOrWhiteSpace(x.StudentName) &&
+                     x.StudentName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+
+                    ||
+
+                    (!string.IsNullOrWhiteSpace(x.ClassName) &&
+                     x.ClassName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+
+                    ||
+
+                    (!string.IsNullOrWhiteSpace(x.SectionName) &&
+                     x.SectionName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+
+                    ||
+
+                    (!string.IsNullOrWhiteSpace(x.FatherName) &&
+                     x.FatherName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+
+                    ||
+
+                    (!string.IsNullOrWhiteSpace(x.SMSMobileNo) &&
+                     x.SMSMobileNo.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                );
+            }
+
+            return query;
+        }
+    }
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+        disCategorielist = await httpService.Get<List<DisCategoryModel>>($"DisCategory/GetDisCategory?sessionId={CurrentSession}") ?? new();
+        StateHasChanged();
+    }
+
+    private async Task OnSearchClassChanged()
+    {
+        searchRequest.SectionCode = string.Empty;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchRequest.ClassCode;
+
+        string ApiUri1 = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private void OpenNewPopup()
+    {
+        disciplineModel = new()
+        {
+            IndisciplineDate = DateTime.Today
+        };
+        selectedStudent = null;
+        incidentCharCount = 0;
+        ShowDisciplinePopup = true;
+
+    }
+
+    private void CloseDisciplinePopup()
+    {
+        ShowDisciplinePopup = false;
+        addStudentDiscipline = new();
+        disciplineModel = new();
+        studentSearchResults.Clear();
+        studentGridSearch = "";
+    }
+
+    private void OnIncidentDetailsInput(ChangeEventArgs e)
+    {
+        incidentCharCount = e.Value?.ToString()?.Length ?? 0;
+    }
+
+    // Opens the nested Select Student popup. Pre-highlights the currently
+    // selected student's radio (so "Change Student" shows their row already
+    // checked) but does NOT touch the main card until confirmed.
+    private void ShowStudentSearch()
+    {
+        ShowDisciplinePopup = false;
+        ShowSelectStudentPopup = true;
+        StateHasChanged();
+    }
+
+    private void CloseStudentSearch()
+    {
+        ShowSelectStudentPopup = false;
+        ShowDisciplinePopup = true;
+        studentSearchResults.Clear();
+        studentGridSearch = "";
+        StateHasChanged();
+
+    }
+
+
+    private async Task SearchStudents()
+    {
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+        ShowDisciplinePopup = false;
+        ShowSelectStudentPopup = false;
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = isSibling ? "StudentDiscipline/GetSearchedSiblingStudentData" : "StudentDiscipline/GetSearchedStudent";
+
+            var apiResponse = await httpService.Post<ApiResponse<List<SiblingStudentResponse>>>(apiUrl, searchRequest);
+
+            studentSearchResults = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+            ShowSelectStudentPopup = true;
+            if (apiResponse != null && apiResponse.Success == false)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+                ShowDisciplinePopup = true;
+                ShowSelectStudentPopup = true;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            studentSearchResults = new();
+            await Alert.ShowWarning("An error occurred while searching for students.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Footer "Select Student" button inside the nested popup - only NOW
+    // does the confirmed pick get applied to the main card & popup closed.
+    private async Task ConfirmSelectStudent()
+    {
+        ShowDisciplinePopup = false;
+        ShowSelectStudentPopup = false;
+        var data = studentSearchQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0 || data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            ShowSelectStudentPopup = true;
+            StateHasChanged();
+            return;
+
+        }
+
+        selectedStudent = data[0];
+        disciplineModel.ControlNo = selectedStudent.ControlNo;
+        disciplineModel.StudentName = selectedStudent.StudentName;
+        disciplineModel.ClassName = selectedStudent.ClassName;
+        disciplineModel.SectionName = selectedStudent.SectionName;
+        ShowSelectStudentPopup = false;
+        ShowDisciplinePopup = true;
+        StateHasChanged();
+    }
+
+    private async Task OnSaveDiscipline()
+    {
+        ShowDisciplinePopup = false;
+        if (selectedStudent == null)
+        {
+            await Alert.ShowWarning("Please select a student.");
+            ShowDisciplinePopup = true;
+            StateHasChanged();
+            return;
+        }
+        addStudentDiscipline.GroupCode = groupcode;
+        addStudentDiscipline.BranchCode = branchcode;
+        addStudentDiscipline.SessionId = CurrentSession;
+        addStudentDiscipline.CreatedBy = username;
+        addStudentDiscipline.StudentId = selectedStudent.StudentId;
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: rename this endpoint to your actual save API
+            string apiUrl = "StudentDiscipline/AddStudentDisciplineData";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, addStudentDiscipline);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Record saved successfully.");
+                ShowDisciplinePopup = false;
+                addStudentDiscipline=new();
+                disciplineModel = new();
+                studentSearchResults.Clear();
+                studentGridSearch = "";
+                await SearchDisciplineList();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Record was not saved.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SearchDisciplineList()
+    {
+        try
+        {
+            IsLoading = true;
+            ShowPopup = false;
+            indisciplineCommentRequest.GroupCode = groupcode;
+            indisciplineCommentRequest.BranchCode = branchcode;
+
+            string apiUrl = "StudentDiscipline/GetIndisciplineCommentData";
+            var apiResponse = await httpService.Post<ApiResponse<List<IndisciplineCommentResponse>>>(apiUrl, indisciplineCommentRequest);
+
+            disciplineList = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+            IsLoading = false;
+        }
+        catch
+        {
+            disciplineList = new();
+        }
+        StateHasChanged();
+    }
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        StateHasChanged();
+    }
+    private void OpenSearch()
+    {
+        ShowPopup = true;
+        StateHasChanged();
+    }
+    private async Task OpenDateFrom(string value)
+    {
+        if (value == "DateFrom")
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateFromInput);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("openDatePicker", dateToInput);
+
+        }
+    }
+    private async Task OnClassChanged()
+    {
+
+        indisciplineCommentRequest.SectionId = string.Empty;
+        sectionlist = new();
+        if (string.IsNullOrEmpty(indisciplineCommentRequest.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = indisciplineCommentRequest.ClassCode;
+        string ApiUri = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+    private async Task ActiveData(IndisciplineCommentResponse row)
+    {
+        var submit = await Alert.ShowConfirm("Are you sure, you want to activate the selected record?");
+        if (!submit)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var model = new IndisciplineCommentResponse { DisId = row.DisId };
+
+            string apiUrl = "StudentDiscipline/EnableStudentDiscipline";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Selected record activated successfully.");
+                await SearchDisciplineList();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Failed to enable the discipline record.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeactiveData(IndisciplineCommentResponse row)
+    {
+        var submit = await Alert.ShowConfirm("Are you sure, you want to deactivate the selected record?");
+        if (!submit)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var model = new IndisciplineCommentResponse { DisId = row.DisId };
+
+            string apiUrl = "StudentDiscipline/DisbleStudentDisciplineData";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess("Selected record deactivated successfully.");
+                await SearchDisciplineList();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Failed to disable the discipline record.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private void SelectStudent(SiblingStudentResponse selectedStudent)
+    {
+        foreach (var item in studentSearchResults)
+        {
+            item.IsSelected = false;
+        }
+
+        selectedStudent.IsSelected = true;
+        StateHasChanged();
+    }
+}

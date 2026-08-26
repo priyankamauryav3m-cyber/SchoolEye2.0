@@ -1,0 +1,528 @@
+@page "/ViewAbscondStudents"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Abscond Students">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                        <i class="bi bi-sliders"></i>
+                    </button>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudents">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Title="Roll No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MotherName) ? " " : x.MotherName)" Title="Mother" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mob. No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.AdmissionDate.HasValue ? x.AdmissionDate.Value.ToString("dd-MM-yyyy") : " ")" Title="Adm. Date" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentStatus) ? " " : x.StudentStatus)" Title="Status" Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OnAbscond">Abscond</button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OnUnabscond">Unabscond</button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OnICardInfo">I-Card Info</button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OnPrint">Print</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SEARCH POPUP (fixed size per Rule A5) ===================== -->
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="selectedClassCode" @bind-Value:after="OnClassChanged">
+                                    <option value="">All</option>
+                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@cs.ClassCode">@cs.ClassName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Class</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="selectedSectionCode">
+                                    <option value="">All</option>
+                                    @foreach (var sec in sectionlist)
+                                    {
+                                        <option value="@sec.SectionId">@sec.SectionName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Section</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.ControlNo" />
+                                <label class="floating-label">Student No</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchRequest.StudentName" />
+                                <label class="floating-label">First Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 px-2">
+                            <div class="form-box-group static-label">
+                                <label class="floating-label">Status</label>
+                                <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                    <InputRadioGroup @bind-Value="searchRequest.StudentStatus">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("BOTH")" />
+                                            <label class="form-label">All</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("ABS")" />
+                                            <label class="form-label">Absconded</label>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <InputRadio Value="@("OLD")" />
+                                            <label class="form-label">Regular</label>
+                                        </div>
+                                    </InputRadioGroup>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - GetAbscondedStudentResponse needs "IsSelected" (bool) for the grid
+    //   checkboxes - add it if not already there.
+    // - Response fields assumed: RollNo, ControlNo, StudentName, SectionName,
+    //   DateOfBirth, Gender, FatherName, MotherName, SMSMobileNo,
+    //   AdmissionDate, StudentStatus. Rename below if your actual response
+    //   model uses different property names.
+    // - Abscond / Unabscond / I-Card Info / Print have no endpoints
+    //   specified, so they're wired as button stubs (TODO) per your
+    //   instruction to "add button only". Give me the endpoints/behavior
+    //   for each and I'll complete them.
+    // ---------------------------------------------------------------------
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<GetAbscondedStudentResponse> studentlist = new();
+
+    private GetAbscondedStudentRequest searchRequest = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private string selectedClassCode = string.Empty;
+    private string selectedSectionCode = string.Empty;
+
+    private bool ShowSearchPopup;
+    private bool IsAllSelected;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<GetAbscondedStudentResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        string ApiUri2 = "Session/GetSession";
+        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri2) ?? new();
+
+        StateHasChanged();
+    }
+
+    private async Task OnClassChanged()
+    {
+        selectedSectionCode = string.Empty;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(selectedClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = selectedClassCode;
+
+        string ApiUri1 = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleAll()
+    {
+        foreach (var row in studentlist)
+            row.IsSelected = IsAllSelected;
+    }
+
+    private void OpenSearch()
+    {
+        ShowSearchPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        ShowSearchPopup = false;
+    }
+
+    private async Task SearchStudents()
+    {
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+        searchRequest.ClassCode = string.IsNullOrEmpty(selectedClassCode) ? " " : selectedClassCode;
+        searchRequest.SectionCode = string.IsNullOrEmpty(selectedSectionCode) ? " " : selectedSectionCode;
+        searchRequest.IsEWS = string.Empty;
+        searchRequest.JoinType = string.Empty;
+
+        ShowSearchPopup = false;
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "GetAbscondedStudent/GetAbscondedStudentData";
+            var apiResponse = await httpService.Post<ApiResponse<List<GetAbscondedStudentResponse>>>(apiUrl, searchRequest);
+
+            studentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+            else if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while fetching the absconded student list.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task OnAbscond()
+    {
+        var selected = studentlist.Where(x => x.IsSelected).ToList();
+        if (selected.Count == 0 || selected.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        var submit = await Alert.ShowConfirm("Are you sure, you want to abscond the selected record?");
+        if (!submit)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var model = new GetAbscondedStudentRequest
+        {
+            StudentId = selected[0].StudentId,
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "GetAbscondedStudent/AbscondStudent";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("Selected record submitted successfully.");
+                await SearchStudents();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Abscond operation failed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnUnabscond()
+    {
+        var selected = studentlist.Where(x => x.IsSelected).ToList();
+        if (selected.Count == 0 || selected.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        var submit = await Alert.ShowConfirm("Are you sure, you want to unabscond the selected record?");
+        if (!submit)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var model = new GetAbscondedStudentRequest
+        {
+            StudentId = selected[0].StudentId,
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "GetAbscondedStudent/UnAbscondStudentData";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, model);
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("Selected record submitted successfully.");
+                await SearchStudents();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Unabscond operation failed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private Task OnICardInfo()
+    {
+        // TODO: no endpoint specified yet for I-Card Info - wire this once provided.
+        return Task.CompletedTask;
+    }
+
+    private async Task OnPrint()
+    {
+        IsLoading = true;
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("Data not fountd");
+            IsLoading = false;
+            StateHasChanged();
+            return;
+        }
+        string ApiUri = "Export/GenerateAbscondedStudentExcelData";
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
+
+        if (response != null && response.Success && response.Data != null)
+        {
+            IsLoading = false;
+            var base64Excel = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Excel))
+            {
+
+                await JS.InvokeVoidAsync("downloadExcel", base64Excel, "StudentReport.xlsx");
+            }
+        }
+        IsLoading = false;
+    }
+}
