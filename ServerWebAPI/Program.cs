@@ -382,7 +382,7 @@ app.UseRequestLocalization(new RequestLocalizationOptions
     SupportedCultures = supportedCultures,
     SupportedUICultures = supportedCultures
 });
-// -----------------------------------
+//-----------------------------------
 
 app.UseSwagger();
 app.UseCors("AllowAll");

@@ -21,9 +21,9 @@
 
 .form-box-group {
     position: relative;
-    margin-bottom: 30px;
-}
-
+    margin-bottom: 25px;
+}   
+/*
 .floating-input {
     width: 100%;
     height: 36px;
@@ -34,8 +34,25 @@
     font-size: 13px;
     outline: none;
     transition: .25s;
+}*/
+.floating-input {
+    width: 100%;
+    /* height: 36px; */
+    padding: 10px 15px 5px;
+    /* border: 1.5px solid #66696A; */
+    border-radius: 4px;
+    background: #fff;
+    font-size: 13px;
+    outline: none;
+    border: 1px solid #bfc9d7;
+    transition: .25s;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    padding: 12px 14px;
+    outline: none;
+    transition: .15s;
 }
-
     .floating-input:focus {
         border-color: #1E8FD3;
     }
@@ -112,7 +129,7 @@
     border-radius: 5px;
     z-index: 99999;
     overflow: visible;
-    background-color: #fff;
+    background-color: #f4f7fb;
     margin: auto;
     box-shadow: 0 20px 55px -10px rgba(0,0,0,0.35);
 }
@@ -121,7 +138,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(135deg, #1E8FD3 0%, #1E8FD3 100%);
+    background: #082f6b;
     position: relative;
 }
 
@@ -170,7 +187,7 @@
 
 .modal-body {
     padding: 20px 20px 8px;
-    background-color: #fbfbfb;
+    background-color: #f4f7fb;
 }
 
 
@@ -189,7 +206,7 @@
 }
 
 .total-text-with-bg {
-    background-color: #1e8fd3;
+    background-color: #082f6b;
     color: #fff;
     font-weight: 600;
     font-size: 12.5px;
@@ -200,6 +217,9 @@
     border-radius: 4px;
     margin-bottom: 0;
     white-space: nowrap;
+}
+.custom-modal .modal-footer .form-btn {
+    background: #082f6b !important;
 }
 
 .divider-box hr {
@@ -292,7 +312,7 @@
         flex: 1 1 auto;
         width: 100%;
     }
-
+        
     .page-heading .floating-input, .page-heading .icon-btn, .page-heading .ui.animated.button.form-btn {
         width: 100%;
     }
@@ -384,14 +404,6 @@ input[type="checkbox"] {
     margin: 0;
 }
 
-/*.form-label {
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #343434;
-    font-size: 13px;
-    font-family: 'Poppins';
-    line-height: 13px;
-}*/
 
 .border-box .form-label {
     margin-bottom: 0;
@@ -536,52 +548,6 @@ select.form-input {
         transform: translateY(-1px);
     }
 
-/*   .page-heading .table-btn:first-child {
-                background-color: #1e8fd3;
-                border-color: #1e8fd3;
-                color: #fff;
-            }
-
-                .page-heading .table-btn:first-child:hover {
-                    background-color: #5f28a0;
-                    border-color: #5f28a0;
-                } */
-
-/* ---------- Dropdown (class multi-select) ---------- */
-/*.dropdown-menu.cu-dropdown {
-    padding: 6px;
-    border-radius: 8px;
-    box-shadow: 0 12px 30px -8px rgba(0,0,0,0.25);
-    border: 1px solid #e4e9f0;
-    inset: 0 0 auto 0 !important;
-    transform: translate3d(0px, 42px, 0px) !important;
-}
-
-.cu-dropdown .form-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    border-radius: 5px;
-    font-size: 13px;
-    color: #464646;
-    transition: background-color .12s ease;
-}
-
-    .cu-dropdown .form-check:hover {
-        background: #f6f0fc;
-    }
-
-.map-checkbox {
-    border-radius: 3px !important;
-    border: 1px solid #607d8b;
-    margin: 0;
-    width: 16px !important;
-    height: 16px !important;
-    accent-color: #1e8fd3 !important;
-}
-*/
-/* ---------- Card / grid ---------- */
 .card {
     background-color: #FFF;
     border-radius: 4px;
@@ -599,6 +565,14 @@ select.form-input {
     overflow: auto;
     scrollbar-width: thin;
     min-height: 300px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+.grid-box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 10px;
 }
 
 .quickgrid {
@@ -637,7 +611,7 @@ select.form-input {
     }
 
     .quickgrid[theme=default] .col-title {
-        color: #607D8B;
+        color: #243956;
         background: none;
         border: none;
         margin: 0;
@@ -649,7 +623,7 @@ select.form-input {
     }
 
     .quickgrid tbody tr:hover td {
-        background: #f8fafc;
+        background: #f8fafc;    
     }
 
 .col-header-content {

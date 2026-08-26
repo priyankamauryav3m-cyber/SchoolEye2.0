@@ -1696,23 +1696,23 @@ namespace Infrastructure.StudentDocument
 
             return await Task.FromResult(stream.ToArray());
         }
-        public async Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> request)
+        public async Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> request,bool isBoardRollNo)
         {
 
             QuestPDF.Settings.License = LicenseType.Community;
 
-            var document = new StudentBoardRollNoPdfDocument(request);
+            var document = new StudentBoardRollNoPdfDocument(request, isBoardRollNo);
 
             return await Task.FromResult(document.GeneratePdf());
         }
 
-        public async Task<byte[]> GenerateStudentBoardRollNoExcel(List<AdmSearchedStudentResponse> students)
+        public async Task<byte[]> GenerateStudentBoardRollNoExcel(List<AdmSearchedStudentResponse> students, bool isBoardRollNo)
         {
             students ??= new List<AdmSearchedStudentResponse>();
 
-            using var workbook = new XLWorkbook();
 
-            var ws = workbook.AddWorksheet("Student Board Roll No");
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet(isBoardRollNo ? "Student Board Roll No" : "Student CBSE Reg No");
 
             const int totalColumns = 7;
 
@@ -1744,7 +1744,7 @@ namespace Infrastructure.StudentDocument
             currentRow++;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "Student Board Roll No";
+            ws.Cell(currentRow, 1).Value = isBoardRollNo ? "Student Board Roll No" : "Student CBSE Registration No";
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 11;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1759,7 +1759,7 @@ namespace Infrastructure.StudentDocument
             ws.Cell(currentRow, 4).Value = "Class";
             ws.Cell(currentRow, 5).Value = "Section";
             ws.Cell(currentRow, 6).Value = "Date of Birth";
-            ws.Cell(currentRow, 7).Value = "Board Roll No";
+            ws.Cell(currentRow, 7).Value = isBoardRollNo ? "Board Roll No" : "CBSE Reg No";
 
             var headerRange = ws.Range(currentRow, 1, currentRow, totalColumns);
 
@@ -1790,7 +1790,7 @@ namespace Infrastructure.StudentDocument
                     ws.Cell(currentRow, 6).Style.DateFormat.Format = "dd MMM yyyy";
                 }
 
-                ws.Cell(currentRow, 7).Value = item.BoardRollNo ?? "";
+                ws.Cell(currentRow, 7).Value = isBoardRollNo ? item.BoardRollNo ?? "" : item.CBSERegNo ?? "";
 
                 ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1846,5 +1846,475 @@ namespace Infrastructure.StudentDocument
 
             return await Task.FromResult(stream.ToArray());
         }
+
+        public async Task<byte[]> GenerateAbscondedStudentExcel(  List<GetAbscondedStudentResponse> students)
+        {
+            students ??= new List<GetAbscondedStudentResponse>();
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Student Report");
+
+            const int totalColumns = 15;
+
+            int currentRow = 1;
+
+            ws.Style.Font.FontSize = 10;
+
+            string sessionName = students.FirstOrDefault()?.SessionName ?? "";
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+
+            ws.Cell(currentRow, 1).Value = "CAMBRIDGE School - Noida";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Row(currentRow).Height = 20;
+
+            currentRow++;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+
+            ws.Cell(currentRow, 1).Value = "Sector-27, NOIDA, G.B. Nagar, Noida UP - 201301";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Row(currentRow).Height = 18;
+
+            currentRow++;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+
+            ws.Cell(currentRow, 1).Value = $"Student Report : {sessionName}";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Row(currentRow).Height = 18;
+
+            currentRow++;
+
+            int tableHeaderRow = currentRow;
+
+            ws.Cell(currentRow, 1).Value = "RollNo";
+            ws.Cell(currentRow, 2).Value = "ControlNo";
+            ws.Cell(currentRow, 3).Value = "StudentName";
+            ws.Cell(currentRow, 4).Value = "Gender";
+            ws.Cell(currentRow, 5).Value = "DateOfBirth";
+            ws.Cell(currentRow, 6).Value = "ClassName";
+            ws.Cell(currentRow, 7).Value = "SectionName";
+            ws.Cell(currentRow, 8).Value = "SMSMobileNo";
+            ws.Cell(currentRow, 9).Value = "FatherName";
+            ws.Cell(currentRow, 10).Value = "FatherContactNo";
+            ws.Cell(currentRow, 11).Value = "MotherName";
+            ws.Cell(currentRow, 12).Value = "MotherContactNo";
+            ws.Cell(currentRow, 13).Value = "IsReservedSeat";
+            ws.Cell(currentRow, 14).Value = "AdmissionDate";
+            ws.Cell(currentRow, 15).Value = "StudentStatus";
+
+            var headerRange = ws.Range(currentRow, 1, currentRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontSize = 10;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Row(currentRow).Height = 20;
+
+            currentRow++;
+
+            foreach (var item in students)
+            {
+                ws.Cell(currentRow, 1).Value = item.RollNo ?? "";
+                ws.Cell(currentRow, 2).Value = item.ControlNo ?? "";
+                ws.Cell(currentRow, 3).Value = item.StudentName ?? "";
+                ws.Cell(currentRow, 4).Value = item.Gender ?? "";
+
+                if (item.DateOfBirth.HasValue)
+                {
+                    ws.Cell(currentRow, 5).Value = item.DateOfBirth.Value;
+                    ws.Cell(currentRow, 5).Style.DateFormat.Format = "dd-MM-yyyy";
+                }
+                else
+                {
+                    ws.Cell(currentRow, 5).Value = "";
+                }
+
+                ws.Cell(currentRow, 6).Value = item.ClassName ?? "";
+                ws.Cell(currentRow, 7).Value = item.SectionName ?? "";
+                ws.Cell(currentRow, 8).Value = item.SMSMobileNo ?? "";
+                ws.Cell(currentRow, 9).Value = item.FatherName ?? "";
+                ws.Cell(currentRow, 10).Value = item.FatherContactNo ?? "";
+                ws.Cell(currentRow, 11).Value = item.MotherName ?? "";
+                ws.Cell(currentRow, 12).Value = item.MotherContactNo ?? "";
+                ws.Cell(currentRow, 13).Value = item.IsReservedSeat ?? "";
+
+                if (item.AdmissionDate.HasValue)
+                {
+                    ws.Cell(currentRow, 14).Value = item.AdmissionDate.Value;
+                    ws.Cell(currentRow, 14).Style.DateFormat.Format = "dd-MM-yyyy";
+                }
+                else
+                {
+                    ws.Cell(currentRow, 14).Value = "";
+                }
+
+                ws.Cell(currentRow, 15).Value = item.StudentStatus ?? "";
+
+                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 3).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 4).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 5).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 7).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 8).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 10).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 11).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 12).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 12).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 13).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 13).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 14).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 14).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 15).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 15).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Row(currentRow).Height = 18;
+
+                currentRow++;
+            }
+
+            int lastDataRow = currentRow - 1;
+
+            if (lastDataRow >= tableHeaderRow)
+            {
+                var completeTableRange = ws.Range(
+                    tableHeaderRow,
+                    1,
+                    lastDataRow,
+                    totalColumns);
+
+                completeTableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                completeTableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            ws.Columns(1, totalColumns).AdjustToContents();
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.PagesWide = 1;
+            ws.PageSetup.PagesTall = 0;
+
+            ws.PageSetup.Margins.Top = 0.15;
+            ws.PageSetup.Margins.Bottom = 0.15;
+            ws.PageSetup.Margins.Left = 0.1;
+            ws.PageSetup.Margins.Right = 0.1;
+            ws.PageSetup.Margins.Header = 0;
+            ws.PageSetup.Margins.Footer = 0;
+
+            ws.PageSetup.SetRowsToRepeatAtTop(
+                tableHeaderRow,
+                tableHeaderRow);
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return await Task.FromResult(stream.ToArray());
+        }
+        public async Task<byte[]> GenerateStudentRTEExcel(List<StudentRTEResponse> students)
+        {
+            students ??= new List<StudentRTEResponse>();
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Student RTE");
+
+            const int totalColumns = 19;
+
+            int currentRow = 1;
+
+            ws.Cell(currentRow, 1).Value = "Sl. No";
+            ws.Cell(currentRow, 2).Value = "Student No";
+            ws.Cell(currentRow, 3).Value = "Student Name";
+            ws.Cell(currentRow, 4).Value = "Admission Date";
+            ws.Cell(currentRow, 5).Value = "Class Admitted";
+            ws.Cell(currentRow, 6).Value = "Admission No";
+            ws.Cell(currentRow, 7).Value = "Class";
+            ws.Cell(currentRow, 8).Value = "Gender";
+            ws.Cell(currentRow, 9).Value = "Registration No.";
+            ws.Cell(currentRow, 10).Value = "Father Name";
+            ws.Cell(currentRow, 11).Value = "Mother Name";
+            ws.Cell(currentRow, 12).Value = "SMS Mobile No.";
+            ws.Cell(currentRow, 13).Value = "Admission Session";
+            ws.Cell(currentRow, 14).Value = "Bank Name";
+            ws.Cell(currentRow, 15).Value = "Account Holder Name";
+            ws.Cell(currentRow, 16).Value = "IFSC CODE";
+            ws.Cell(currentRow, 17).Value = "Account Number";
+            ws.Cell(currentRow, 18).Value = "Student RTE Category";
+            ws.Cell(currentRow, 19).Value = "Student RTE SubCategory";
+
+            var headerRange = ws.Range(currentRow, 1, currentRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontSize = 10;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Row(currentRow).Height = 22;
+
+            currentRow++;
+
+            int srNo = 1;
+
+            foreach (var item in students)
+            {
+                ws.Cell(currentRow, 1).Value = srNo;
+                ws.Cell(currentRow, 2).Value = item.ControlNo ?? "";
+                ws.Cell(currentRow, 3).Value = item.StudentName ?? "";
+
+                if (item.AdmissionDate.HasValue)
+                {
+                    ws.Cell(currentRow, 4).Value = item.AdmissionDate.Value;
+                    ws.Cell(currentRow, 4).Style.DateFormat.Format = "dd/MM/yyyy";
+                }
+
+                ws.Cell(currentRow, 5).Value = item.ClassName ?? "";
+                ws.Cell(currentRow, 6).Value = item.AdmissionNo ?? "";
+                ws.Cell(currentRow, 7).Value = item.ClassSection ?? "";
+                ws.Cell(currentRow, 8).Value = item.Gender ?? "";
+                ws.Cell(currentRow, 9).Value = item.RegistrationNo ?? "";
+                ws.Cell(currentRow, 10).Value = item.FatherName ?? "";
+                ws.Cell(currentRow, 11).Value = item.MotherName ?? "";
+                ws.Cell(currentRow, 12).Value = item.SMSMobileNo ?? "";
+                ws.Cell(currentRow, 13).Value = item.AdmissionSession ?? "";
+                ws.Cell(currentRow, 14).Value = item.BankName ?? "";
+                ws.Cell(currentRow, 15).Value = item.AccountHolderName ?? "";
+                ws.Cell(currentRow, 16).Value = item.IFSCCODE ?? "";
+                ws.Cell(currentRow, 17).Value = item.AccountNumber ?? "";
+                ws.Cell(currentRow, 18).Value = item.CategoryName ?? "";
+                ws.Cell(currentRow, 19).Value = item.SubCategoryName ?? "";
+
+                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 12).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 13).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 14).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 15).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 16).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 17).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 18).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 19).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+                ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 3).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 4).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 5).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 7).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 8).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 10).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 11).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 12).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 13).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 14).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 15).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 16).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 17).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 18).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 19).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                //ws.Row(currentRow).Height = 20;
+                ws.Row(currentRow).AdjustToContents();
+
+                currentRow++;
+                srNo++;
+            }
+
+            int lastDataRow = currentRow - 1;
+
+            if (lastDataRow >= 1)
+            {
+                var completeRange = ws.Range(1, 1, lastDataRow, totalColumns);
+
+                completeRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                completeRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            ws.Columns().AdjustToContents();
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.PagesWide = 1;
+            ws.PageSetup.PagesTall = 0;
+            ws.PageSetup.Margins.Top = 0.3;
+            ws.PageSetup.Margins.Bottom = 0.3;
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return await Task.FromResult(stream.ToArray());
+        }
+        public async Task<byte[]> GenerateDisabilityStudentExcel(List<DisabilityStudentResponse> students)
+        {
+            students ??= new List<DisabilityStudentResponse>();
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Disability Student");
+
+            const int totalColumns = 9;
+
+            int currentRow = 1;
+
+            ws.Cell(currentRow, 1).Value = "Sl. No";
+            ws.Cell(currentRow, 2).Value = "Roll No";
+            ws.Cell(currentRow, 3).Value = "Student No";
+            ws.Cell(currentRow, 4).Value = "Student Name";
+            ws.Cell(currentRow, 5).Value = "Class";
+            ws.Cell(currentRow, 6).Value = "Gender";
+            ws.Cell(currentRow, 7).Value = "Date Of Birth";
+            ws.Cell(currentRow, 8).Value = "Is Disability";
+            ws.Cell(currentRow, 9).Value = "Description of the Disability";
+
+            var headerRange = ws.Range(currentRow, 1, currentRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontSize = 10;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            currentRow++;
+
+            int srNo = 1;
+
+            foreach (var item in students)
+            {
+                ws.Cell(currentRow, 1).Value = srNo;
+                ws.Cell(currentRow, 2).Value = item.RollNo ?? "";
+                ws.Cell(currentRow, 3).Value = item.StudentNo ?? "";
+                ws.Cell(currentRow, 4).Value = item.StudentName ?? "";
+                ws.Cell(currentRow, 5).Value = item.ClassSection ?? "";
+                ws.Cell(currentRow, 6).Value = item.Gender ?? "";
+
+                if (item.DateOfBirth.HasValue)
+                {
+                    ws.Cell(currentRow, 7).Value = item.DateOfBirth.Value;
+                    ws.Cell(currentRow, 7).Style.DateFormat.Format = "dd/MM/yyyy";
+                }
+
+                ws.Cell(currentRow, 8).Value = item.IsDisability ?? "";
+                ws.Cell(currentRow, 9).Value = item.NatureOfDisability ?? "";
+
+                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+                ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 3).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 4).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 5).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 7).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 8).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Row(currentRow).Style.Alignment.WrapText = true;
+
+                currentRow++;
+                srNo++;
+            }
+
+            int lastDataRow = currentRow - 1;
+
+            if (lastDataRow >= 1)
+            {
+                var completeRange = ws.Range(1, 1, lastDataRow, totalColumns);
+
+                completeRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                completeRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            ws.Columns().AdjustToContents();
+
+            ws.Rows().AdjustToContents();
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.PagesWide = 1;
+            ws.PageSetup.PagesTall = 0;
+
+            ws.PageSetup.Margins.Top = 0.3;
+            ws.PageSetup.Margins.Bottom = 0.3;
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return await Task.FromResult(stream.ToArray());
+        }
     }
+
+
 }

@@ -57,7 +57,7 @@
                 <div class="form-box">
                     <div class="border-box d-flex justify-content-between align-items-center gap-5 px-2">
                         <label class="form-label">Max Strength</label>
-                        <span class="form-label">@maxStrength</span>
+                        <span class="form-label">@classSectionDetailright.SectionMaxStrength</span>
                     </div>
                 </div>
                 <div class="form-box">
@@ -74,25 +74,25 @@
                     <div class="col-3 px-1">
                         <div class="form-box">
                             <label class="form-label">Total Student</label>
-                            <input class="form-input" value="@leftList.Count" readonly />
+                            <input class="form-input" value="@classSectionDetailleft.TotalStudent" readonly />
                         </div>
                     </div>
                     <div class="col-3 px-1">
                         <div class="form-box">
                             <label class="form-label">Not Allocated</label>
-                            <input class="form-input" value="@leftList.Count" readonly />
+                            <input class="form-input" value="@classSectionDetailleft.NotAllocated" readonly />
                         </div>
                     </div>
                     <div class="col-2 px-1">
                         <div class="form-box">
                             <label class="form-label">Male</label>
-                            <input class="form-input" value="@LeftMaleCount" readonly />
+                            <input class="form-input" value="@classSectionDetailleft.AllMale" readonly />
                         </div>
                     </div>
                     <div class="col-2 px-1">
                         <div class="form-box">
                             <label class="form-label">Female</label>
-                            <input class="form-input" value="@LeftFemaleCount" readonly />
+                            <input class="form-input" value="@classSectionDetailleft.AllFemale" readonly />
                         </div>
                     </div>
                     <div class="col-auto ms-auto px-1 mt-3">
@@ -150,19 +150,19 @@
                     <div class="col-4  px-1 ms-auto">
                         <div class="form-box">
                             <label class="form-label">Allocated</label>
-                            <input class="form-input" value="@rightList.Count" readonly />
+                            <input class="form-input" value="@classSectionDetailright.Allocated" readonly />
                         </div>
                     </div>
                     <div class="col-2    px-1">
                         <div class="form-box">
                             <label class="form-label">Male</label>
-                            <input class="form-input" value="@RightMaleCount" readonly />
+                            <input class="form-input" value="@classSectionDetailright.AllocatedMale" readonly />
                         </div>
                     </div>
                     <div class="col-3   px-1">
                         <div class="form-box">
                             <label class="form-label">Female</label>
-                            <input class="form-input" value="@RightFemaleCount" readonly />
+                            <input class="form-input" value="@classSectionDetailright.AllocatedFemale" readonly />
                         </div>
                     </div>
                 </div>
@@ -323,6 +323,8 @@ else
 
     private StuSearchedStudentRequest searchRequest = new();
     private SearchAnyRequestModel searchAny = new();
+    private ClassSectionDetailResponse classSectionDetailright = new();
+    private ClassSectionDetailResponse classSectionDetailleft = new();
 
     private bool SelectAllLeft;
     private bool SelectAllRight;
@@ -333,7 +335,6 @@ else
 
     private long CurrentSession;
     private bool IsLoading = false;
-    private int maxStrength;
 
     private string? branchcode;
     private string? groupcode;
@@ -346,11 +347,6 @@ else
 
     private IQueryable<StuSearchedStudentResponse> leftQuery => leftList.AsQueryable();
     private IQueryable<StuSearchedStudentResponse> rightQuery => rightList.AsQueryable();
-
-    private int LeftMaleCount => leftList.Count(x => x.Gender == "Male");
-    private int LeftFemaleCount => leftList.Count(x => x.Gender == "Female");
-    private int RightMaleCount => rightList.Count(x => x.Gender == "Male");
-    private int RightFemaleCount => rightList.Count(x => x.Gender == "Female");
     private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
     protected override void OnInitialized()
     {
@@ -394,7 +390,6 @@ else
         searchRequest.SectionCode = string.Empty;
         sectionlist = new();
         rightList = new();
-        maxStrength = 0;
 
         if (string.IsNullOrEmpty(searchRequest.ClassCode))
         {
@@ -420,7 +415,6 @@ else
 
     private async Task OnSectionChanged()
     {
-        maxStrength = sectionlist.FirstOrDefault(x => x.SectionId == Convert.ToInt32(searchRequest.SectionCode))?.MaxStrength ?? 0;
 
         if (string.IsNullOrEmpty(searchRequest.SectionCode))
         {
@@ -447,13 +441,16 @@ else
                 SessionId = CurrentSession,
                 ClassCode = searchRequest.ClassCode
             };
-
+            string apiUrl1 = "AdmissionDate/GetClassSectionDetail";
+            var apiResponse1 = await httpService.Post<ApiResponse<ClassSectionDetailResponse>>(apiUrl1, requestForLeft);
+            if (apiResponse1.Success == true && apiResponse1.Data != null)
+            {
+                classSectionDetailleft = apiResponse1.Data;
+            }
             string apiUrl = "AdmissionDate/GetSearchedStudent";
             var apiResponse = await httpService.Post<ApiResponse<List<StuSearchedStudentResponse>>>(apiUrl, requestForLeft);
 
-            var result = (apiResponse != null && apiResponse.Success)
-                ? (apiResponse.Data ?? new())
-                : new();
+            var result = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()): new();
 
             leftList = result.ToList();
         }
@@ -483,13 +480,15 @@ else
                 ClassCode = searchRequest.ClassCode,
                 SectionCode = searchRequest.SectionCode
             };
-
+            string apiUrl1 = "AdmissionDate/GetClassSectionDetail";
+            var apiResponse1 = await httpService.Post<ApiResponse<ClassSectionDetailResponse>>(apiUrl1, requestForRight);
+            if(apiResponse1.Success==true && apiResponse1.Data != null)
+            {
+                classSectionDetailright = apiResponse1.Data;
+            }
             string apiUrl = "AdmissionDate/GetSearchedStudent";
             var apiResponse = await httpService.Post<ApiResponse<List<StuSearchedStudentResponse>>>(apiUrl, requestForRight);
-
-            rightList = (apiResponse != null && apiResponse.Success)
-                ? (apiResponse.Data ?? new())
-                : new();
+            rightList = (apiResponse != null && apiResponse.Success)? (apiResponse.Data ?? new()) : new();
         }
         catch
         {
@@ -517,12 +516,7 @@ else
     private async Task MoveSelectedToRight()
     {
         var selected = leftList.Where(x => x.IsSelected).ToList();
-        // if (string.IsNullOrEmpty(searchRequest.ClassCode))
-        // {
-        //     await Alert.ShowWarning("Please select a class.");
-        //     StateHasChanged();
-        //     return;
-        // }
+
         if (string.IsNullOrEmpty(searchRequest.SectionCode) || searchRequest.SectionCode=="0")
         {
             await Alert.ShowWarning("Please select a section.");
@@ -534,11 +528,31 @@ else
             return;
         }
 
+        int maxStrength = classSectionDetailright?.SectionMaxStrength ?? 0;
+        int allocatedStudents = classSectionDetailright?.Allocated ?? 0;
+        int selectedStudents = selected.Count;
+        int totalAfterAllocation = allocatedStudents + selectedStudents;
         IsLoading = true;
-        StateHasChanged();
+        if (maxStrength > 0 &&  totalAfterAllocation > maxStrength)
+        {
+            int availableSeats = maxStrength - allocatedStudents;
 
+            await Alert.ShowWarning("Selected students are more than available strength.");
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+
+        StateHasChanged();
         try
         {
+            var submit = await Alert.ShowConfirm("Are you sure, you want to assign section to selected student?");
+            if (!submit)
+            {
+                StateHasChanged();
+                IsLoading = false;
+                return;
+            }
             foreach (var item in selected)
             {
                 var model = new AllocateSectionRequest
@@ -593,6 +607,13 @@ else
 
         try
         {
+            var submit = await Alert.ShowConfirm("Are you sure, you want to assign section to selected student?");
+            if (!submit)
+            {
+                StateHasChanged();
+                IsLoading = false;
+                return;
+            }
             foreach (var item in selected)
             {
                 var model = new AllocateSectionRequest
@@ -698,6 +719,5 @@ else
         selectedSectionnName = selectedSection.SectionName;
         selectedClassName = searchRequest.ClassCode;
         Showpopup = true;
-
     }
 }

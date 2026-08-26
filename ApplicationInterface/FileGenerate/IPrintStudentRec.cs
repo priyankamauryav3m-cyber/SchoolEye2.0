@@ -37,9 +37,13 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GeneratePublishingListExcel(List<PublishingListResponse> publishingList);
         public Task<byte[]> GeneratePublishingListPdf(List<PublishingListResponse> publishingList);
         //  public Task<byte[]> GenerateClassList(List<GetSearchedViewStudentModel> model);
-        Task<byte[]> GenerateClassListPdf(ClassListRequest reques);
-        Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> reques);
-        Task<byte[]> GenerateClassListExcel(ClassListRequest request);
-        Task<byte[]> GenerateStudentBoardRollNoExcel(List<AdmSearchedStudentResponse> students);
+        public Task<byte[]> GenerateClassListPdf(ClassListRequest reques);
+        public Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> reques,bool isBoardRollNo);
+        public Task<byte[]> GenerateClassListExcel(ClassListRequest request);
+        public Task<byte[]> GenerateStudentBoardRollNoExcel(List<AdmSearchedStudentResponse> students,bool isBoardRollNo);
+        public Task<byte[]> GenerateAbscondedStudentExcel(List<GetAbscondedStudentResponse> students);
+        public Task<byte[]> GenerateStudentRTEExcel(List<StudentRTEResponse> students);
+        public Task<byte[]> GenerateDisabilityStudentExcel(List<DisabilityStudentResponse> students);
+
     }
 }

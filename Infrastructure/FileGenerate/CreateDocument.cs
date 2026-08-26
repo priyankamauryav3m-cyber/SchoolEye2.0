@@ -1947,10 +1947,11 @@ namespace Infrastructure.FileGenerate
     public class StudentBoardRollNoPdfDocument : IDocument
     {
         private readonly List<AdmSearchedStudentResponse> _students;
-
-        public StudentBoardRollNoPdfDocument(List<AdmSearchedStudentResponse> students)
+        private readonly bool _isBoardRollNo;
+        public StudentBoardRollNoPdfDocument(List<AdmSearchedStudentResponse> students,bool isBoardRollNo)
         {
             _students = students ?? new List<AdmSearchedStudentResponse>();
+            _isBoardRollNo = isBoardRollNo;
         }
 
         public DocumentMetadata GetMetadata()
@@ -2013,7 +2014,7 @@ namespace Infrastructure.FileGenerate
 
                         c.Item().PaddingTop(2).AlignCenter().Text("noida.cambridgeschool.edu.in").FontSize(8).Bold();
 
-                        c.Item().PaddingTop(6).AlignCenter().Text("Student Board Roll No").FontSize(11).Bold();
+                        c.Item().PaddingTop(6).AlignCenter().Text(_isBoardRollNo ? "Student Board Roll No" : "Student CBSE Registration No").FontSize(11).Bold();
                     });
 
                     row.ConstantItem(80);
@@ -2053,7 +2054,7 @@ namespace Infrastructure.FileGenerate
                     header.Cell().Element(HeaderCell).Text("Class");
                     header.Cell().Element(HeaderCell).Text("Section");
                     header.Cell().Element(HeaderCell).Text("Date of Birth");
-                    header.Cell().Element(HeaderCell).Text("Board Roll No");
+                    header.Cell().Element(HeaderCell).Text(_isBoardRollNo ? "Board Roll No" : "CBSE Reg No");
                 });
 
                 int srNo = 1;
@@ -2066,7 +2067,7 @@ namespace Infrastructure.FileGenerate
                     table.Cell().Element(CenterCell).Text(item.ClassName ?? "");
                     table.Cell().Element(CenterCell).Text(item.SectionName ?? "");
                     table.Cell().Element(CenterCell).Text(item.DateOfBirth.HasValue ? item.DateOfBirth.Value.ToString("dd-MM-yyyy") : "");
-                    table.Cell().Element(CenterCell).Text(item.BoardRollNo ?? "");
+                    table.Cell().Element(CenterCell).Text(_isBoardRollNo ? item.BoardRollNo ?? "" : item.CBSERegNo ?? "");
 
                     srNo++;
                 }

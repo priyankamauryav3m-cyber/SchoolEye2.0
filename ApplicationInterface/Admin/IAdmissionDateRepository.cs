@@ -1,4 +1,5 @@
 ﻿using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using System.Threading.Tasks;
 
 namespace ApplicationInterface.Admin
@@ -10,5 +11,6 @@ namespace ApplicationInterface.Admin
         public Task<IEnumerable<StuSearchedStudentResponse>> GetSearchedStudent(StuSearchedStudentRequest request);
 
         public Task<IEnumerable<ClassRegistrationDocumentsResponse>> GetClassRegistrationDocumentsAsync(ClassRegistrationDocumentsRequest request);
+        Task<ClassSectionDetailResponse> GetClassSectionDetail(StuSearchedStudentRequest request);
     }
 }

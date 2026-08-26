@@ -611,12 +611,14 @@ else
             {
                 await PrintPdfList();
                 StateHasChanged();
+                IsLoading = false;
             }
             else if (isExcel)
             {
 
                 await PrintExcel();
                 StateHasChanged();
+                IsLoading = false;
             }
             StateHasChanged();
         }
@@ -655,6 +657,7 @@ else
         finally
         {
             StateHasChanged();
+            IsLoading = false;
         }
 
     }
@@ -682,6 +685,7 @@ else
         }
         finally
         {
+            IsLoading = false;
             StateHasChanged();
         }
 

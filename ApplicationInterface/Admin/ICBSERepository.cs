@@ -9,5 +9,6 @@ namespace ApplicationInterface.Admin
         public Task<IEnumerable<AdmSearchedStudentResponse>> GetStudentBoardRollNo(AdmSearchedStudentRequest request);
         //public Task<List<StudentCBSERegNoResult>> AddUpdateStudentCBSERegNo(UpdateStudentCBSERegNoRequest request);
         Task<string> AddUpdateStudentBoardRollNo(AddUpdateStudentBoardRollNoRequest request);
+        Task<string> AddUpdateStudentCBSERegNo(AddUpdateStudentBoardRollNoRequest request);
     }
 }
