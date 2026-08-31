@@ -1,0 +1,481 @@
+@page "/ViewClassGenderReport"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+<style>
+    .gender-total-row {
+        border-top: 1px solid #d9d9d9;
+    }
+
+        .gender-total-row > div {
+            padding: 8px 12px;
+        }
+
+            .gender-total-row > div:nth-child(1) {
+                width: 22%;
+                text-align: left;
+            }
+
+            .gender-total-row > div:nth-child(n+2) {
+                width: 13%;
+                text-align: center;
+            }
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Class Gender Report">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="CurrentSession">
+                        <option value="0">Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-center align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="checkbox"class="form-check-input m-0"checked="@(searchRequest.IsNewAdmission == 1)" @onchange="OnNewAdmissionChanged" />
+
+                            <label class="form-label mb-0">
+                                Is New Admission
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-box">
+                    <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                        <i class="bi bi-sliders"></i>
+                    </button>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchReport">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <!-- ===================== SEARCH POPUP ===================== -->
+        @if (ShowSearchPopup)
+        {
+            <div class="custom-modal row m-0">
+                <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Search</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row m-0 form-row">
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <input type="date" class="floating-input" placeholder=" " @bind="searchRequest.TillDate" />
+                                        <label class="floating-label">Till Date</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <button class="floating-input w-webkit text-start" type="button" data-bs-toggle="dropdown">
+                                            @SelectedText
+                                        </button>
+                                        <label class="floating-label">Class</label>
+                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                                            <div class="form-check">
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
+                                                <span>All</span>
+                                            </div>
+                                            @foreach (var item in classlist)
+                                            {
+                                                <div class="form-check">
+                                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" @bind:after="GetSectionData" />
+                                                    <span>@item.ClassName</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <button class="floating-input w-webkit text-start" type="button" data-bs-toggle="dropdown">
+                                            @SelectedSectionText
+                                        </button>
+                                        <label class="floating-label">Section</label>
+                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                                            <div class="form-check">
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllSection" @bind:after="ToggleSelectAllSection" />
+                                                <span>All</span>
+                                            </div>
+                                            @foreach (var item in sectionModellist)
+                                            {
+                                                <div class="form-check">
+                                                    <input class="form-check-input map-checkbox"
+                                                           type="checkbox"
+                                                           @bind="item.IsSelected" />
+                                                    <span>@item.SectionName</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 px-2">
+                                    <div class="form-box-group static-label">
+                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="ReportViewType">
+                                            <option value="0">Class Wise</option>
+                                            <option value="1">Section Wise</option>
+                                        </InputSelect>
+                                        <label class="floating-label">View Type</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchReport" tabindex="0">
+                                <div class="visible content">Search</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Title="ClassName" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.TotalStudent)" Title="TotalStudent" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.TotalMale)" Title="TotalMaleStudent" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.TotalFemale)" Title="TotalFeMaleStudent" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.TotalTPTUsingStudent)" Title="TotalTransportStudent" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.TotalTPTMale)" Title="TotalTPTMaleStudent" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.TotalTPTFemale)" Title="TotalTPTFeMaleStudent" Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                            @if (totalRow != null)
+                            {
+                                <div class="gender-total-row d-flex fw-bold">
+                                    <div>@totalRow.ClassName</div>
+                                    <div class="text-center">@totalRow.TotalStudent</div>
+                                    <div class="text-center">@totalRow.TotalMale</div>
+                                    <div class="text-center">@totalRow.TotalFemale</div>
+                                    <div class="text-center">@totalRow.TotalTPTUsingStudent</div>
+                                    <div class="text-center">@totalRow.TotalTPTMale</div>
+                                    <div class="text-center">@totalRow.TotalTPTFemale</div>
+                                </div>
+                            }
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end gap-2">
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="PrintClassTeacher">Print Class Teacher</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="ExportReport">Export</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="PrintClassWise">Print Class Wise</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="PrintSectionWise">Print Section Wise</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="StudentStrength">Student Strength</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+}
+
+@code {
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionModellist = new();
+    private List<GenderResponse> reportlist = new();
+    private GenderResponse? totalRow;
+
+    private GenderRequest searchRequest = new()
+    {
+        TillDate = DateTime.Today
+    };
+    private SearchAnyRequestModel searchAny = new();
+
+    private bool SelectAll = true;
+    private bool SelectAllSection = true;
+    private int ReportViewType = 1;
+    private bool ShowSearchPopup;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private long CurrentSession;
+    private bool IsLoading = false;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<GenderResponse> moduleQuery => reportlist.AsQueryable();
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+    private void OnNewAdmissionChanged(ChangeEventArgs e)
+    {
+        searchRequest.IsNewAdmission = (bool)e.Value! ? 1 : 0;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        foreach (var item in classlist)
+        {
+            item.IsSelected = true;
+        }
+        SelectAll = true;
+        SelectAllSection = true;
+
+        StateHasChanged();
+    }
+
+    private async Task OnClassAllChanged()
+    {
+        foreach (var item in classlist)
+        {
+            item.IsSelected = SelectAll;
+        }
+
+        await GetSectionData();
+    }
+
+    private async Task GetSectionData()
+    {
+        try
+        {
+            var selectedClasses = classlist.Where(x => x.IsSelected).ToList();
+
+            SelectAll = selectedClasses.Count == classlist.Count;
+
+            if (!selectedClasses.Any())
+            {
+                sectionModellist.Clear();
+                SelectAllSection = false;
+
+                StateHasChanged();
+                return;
+            }
+
+            if (selectedClasses.Count > 1)
+            {
+                sectionModellist.Clear();
+
+                SelectAllSection = true;
+
+                StateHasChanged();
+                return;
+            }
+
+            SelectAllSection = false;
+
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.RequestName = selectedClasses.First().ClassCode;
+
+            string ApiUri = "ClassSection/GetClassWithSection";
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                sectionModellist = apiResponse.Data ?? new();
+            }
+
+            StateHasChanged();
+        }
+        catch
+        {
+            return;
+        }
+    }
+
+    private void ToggleSelectAllSection()
+    {
+        foreach (var item in sectionModellist)
+        {
+            item.IsSelected = SelectAllSection;
+        }
+
+        StateHasChanged();
+    }
+
+    private string SelectedText => SelectAll ? "All Class Selected" :
+        string.Join(", ", classlist.Where(x => x.IsSelected).Select(x => x.ClassName));
+
+    private string SelectedSectionText
+    {
+        get
+        {
+            if (SelectAllSection)
+                return "All Section Selected";
+
+            var selected = sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionName).ToList();
+
+            if (!selected.Any())
+                return "Select Section";
+
+            return string.Join(", ", selected);
+        }
+    }
+
+    private void OpenSearch() => ShowSearchPopup = true;
+    private void ClosePopup() => ShowSearchPopup = false;
+
+    private async Task SearchReport()
+    {
+        ShowSearchPopup = false;
+
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        searchRequest.ClassCode = SelectAll
+            ? string.Empty
+            : string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+
+        var selectedSectionIds = sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionId).ToList();
+        searchRequest.SectionId = (SelectAllSection || !selectedSectionIds.Any()) ? 0 : selectedSectionIds.First();
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "ClassGender/GetClassGenderWiseReport";
+            var apiResponse = await httpService.Post<ApiResponse<List<GenderResponse>>>(apiUrl, searchRequest);
+
+            var data = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+            reportlist = data;
+            if (data.Count > 0)
+            {
+                //totalRow = data.Last();
+               // reportlist = data.Take(data.Count - 1).ToList();
+            }
+            else
+            {
+                totalRow = null;
+                reportlist = new();
+            }
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            reportlist = new();
+            totalRow = null;
+            await Alert.ShowWarning("An error occurred while fetching the class gender wise report.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private Task PrintClassTeacher()
+    {
+        // TODO: no endpoint specified yet - wire this once provided.
+        return Task.CompletedTask;
+    }
+
+    private Task ExportReport()
+    {
+        // TODO: no endpoint specified yet - wire this once provided.
+        return Task.CompletedTask;
+    }
+
+    private Task PrintClassWise()
+    {
+        // TODO: no endpoint specified yet - wire this once provided.
+        return Task.CompletedTask;
+    }
+
+    private Task PrintSectionWise()
+    {
+        // TODO: no endpoint specified yet - wire this once provided.
+        return Task.CompletedTask;
+    }
+
+    private Task StudentStrength()
+    {
+        // TODO: no endpoint specified yet - wire this once provided.
+        return Task.CompletedTask;
+    }
+}

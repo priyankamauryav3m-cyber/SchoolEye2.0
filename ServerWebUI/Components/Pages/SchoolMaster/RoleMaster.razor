@@ -167,8 +167,8 @@
 
  
     /* =========================================================
-           Branch — base row style (module + feature rows)
-           ========================================================= */
+               Branch — base row style (module + feature rows)
+               ========================================================= */
 
     .branch {
         display: flex;
@@ -262,8 +262,8 @@
 
  
     /* =========================================================
-           Checkboxes — shared everywhere via .map-checkbox
-           ========================================================= */
+               Checkboxes — shared everywhere via .map-checkbox
+               ========================================================= */
 
     .map-checkbox {
         border-radius: 4px !important;
@@ -289,9 +289,9 @@
 
  
     /* =========================================================
-           Activity row — identified purely by its existing class combo
-           ".branch.d-flex.justify-content-between" (unique to activity rows)
-           ========================================================= */
+               Activity row — identified purely by its existing class combo
+               ".branch.d-flex.justify-content-between" (unique to activity rows)
+               ========================================================= */
 
     .branch.d-flex.justify-content-between {
         flex-direction: column;
@@ -538,7 +538,7 @@
                             <div class="col-12">
                                 <div class="form-box">
                                     <label class="form-label">Role Name <span class="required">*</span></label>
-                                    <InputText type="text" class="form-input" @bind-Value="superAdmin.RoleName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" autocomplete="off" />
+                                    <InputText type="text" class="form-input" @bind-Value="superAdmin.RoleName" maxlength="20" autocomplete="off" />
                                     <ValidationMessage For="@(() => superAdmin.RoleName)" />
                                 </div>
                             </div>
@@ -599,231 +599,230 @@
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 @* <EditForm Model="@controlAccess" OnSubmit="OnSuperAdminSave"> *@
-                    <div class="modal-body">
-                        <input type="hidden" name="__RequestVerificationToken" />
-                        <div class="form-row row gap-10-0 pl-3 fix-row-div">
-                            <div class="col-12 col-sm-6 col-md-6 d-flex align-items-center mt-3">
-                                <div class="border-box-sec w-webkit">
-                                    <p class="fw-bold m-0 fts-14 cl-gray">
-                                        Role Name :
-                                        <span>@SelectedRoleName</span>
-                                    </p>
-                                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="__RequestVerificationToken" />
+                    <div class="form-row row gap-10-0 pl-3 fix-row-div">
+                        <div class="col-12 col-sm-6 col-md-6 d-flex align-items-center mt-3">
+                            <div class="border-box-sec w-webkit">
+                                <p class="fw-bold m-0 fts-14 cl-gray">
+                                    Role Name :
+                                    <span>@SelectedRoleName</span>
+                                </p>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-6 mt-3">
-                                <div class="expanding-search-form">
-                                    <input id="global-search" type="search" placeholder="Search by module name..." class="form-input w-webkit" @bind="SearchText" @bind:event="oninput" />
-                                </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-6 mt-3">
+                            <div class="expanding-search-form">
+                                <input id="global-search" type="search" placeholder="Search by module name..." class="form-input w-webkit" @bind="SearchText" @bind:event="oninput" />
                             </div>
-                            <div class="col-12">
-                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
-                                    <p class="total-text-with-bg">
-                                        Role Mapping
-                                    </p>
-                                    <hr class="m-0 w-webkit text-light-gray op-1">
-                                </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                <p class="total-text-with-bg">
+                                    Role Mapping
+                                </p>
+                                <hr class="m-0 w-webkit text-light-gray op-1">
                             </div>
-                            <div class="col-12">
-                                <div class="map-box">
-                                    <div class="row m-0 map-top-header">
-                                        <div class="col-6 d-flex align-items-center justify-content-center">
-                                            <p class="m-0">
-                                                Modules
-                                                @if (!string.IsNullOrEmpty(SelectedFeatureName))
-                                                {
-                                                    <span> / @SelectedFeatureName</span>
-                                                }
-
-                                                @if (!string.IsNullOrEmpty(SelectedActivityName))
-                                                {
-                                                    <span> / Activity</span>
-                                                }
-                                            </p>
-                                        </div>
-                                        <div class="col-6 d-flex align-items-center justify-content-center">
-                                            <p class="m-0">
-                                                Action
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="map-menu">
-                                        <ul class="tree main-menu">
-
-                                            @foreach (var module in FilteredModules)
+                        </div>
+                        <div class="col-12">
+                            <div class="map-box">
+                                <div class="row m-0 map-top-header">
+                                    <div class="col-6 d-flex align-items-center justify-content-center">
+                                        <p class="m-0">
+                                            Modules
+                                            @if (!string.IsNullOrEmpty(SelectedFeatureName))
                                             {
-                                                <li>
-                                                    <div class="branch @(module.IsSaved ? "saved-highlight" : "")">
-                                                        <span class="menu-name open-menu" @onclick="UpdateFeaturesName">
+                                                <span> / @SelectedFeatureName</span>
+                                            }
 
-                                                            <i class="fa fa-plus-square toggle-icon"></i>
-                                                            <i class="fa fa-folder folder-icon"></i>
+                                            @if (!string.IsNullOrEmpty(SelectedActivityName))
+                                            {
+                                                <span> / Activity</span>
+                                            }
+                                        </p>
+                                    </div>
+                                    <div class="col-6 d-flex align-items-center justify-content-center">
+                                        <p class="m-0">
+                                            Action
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="map-menu">
+                                    <ul class="tree main-menu">
 
-                                                            <span class="module-name">@module.MName</span>
-                                                            @if (module.Features?.Any() == true)
-                                                            {
-                                                                <p class="feature-chip">
-                                                                    @module.Features.Count Features
-                                                                </p>
-                                                            }
+                                        @foreach (var module in FilteredModules)
+                                        {
+                                            <li>
+                                                <div class="branch @(module.IsSaved ? "saved-highlight" : "")">
+                                                    <span class="menu-name open-menu" @onclick="UpdateFeaturesName">
 
-                                                        </span>
+                                                        <i class="fa fa-plus-square toggle-icon"></i>
+                                                        <i class="fa fa-folder folder-icon"></i>
 
-                                                        @if (module.Features != null && module.Features.Any())
+                                                        <span class="module-name">@module.MName</span>
+                                                        @if (module.Features?.Any() == true)
                                                         {
-                                                            <i class="bi bi-plus-lg open-menu" @onclick="UpdateFeaturesName"></i>
+                                                            <p class="feature-chip">
+                                                                @module.Features.Count Features
+                                                            </p>
                                                         }
 
-                                                    </div>
+                                                    </span>
 
-                                                    @if (module.IsExpanded && module.Features?.Any() == true)
-
+                                                    @if (module.Features != null && module.Features.Any())
                                                     {
-                                                        <ul class="tree">
-
-                                                            @for (int f = 0; f < module.Features.Count; f++)
-
-                                                            {
-
-                                                                var feature = module.Features[f];
-                                                                <li>
-                                                                    <div class="branch @(feature.IsSaved ? "saved-highlight" : "")">
-                                                                        <div class="d-flex align-items-center gap-2">
-
-                                                                            <input type="checkbox" class="form-check-input map-checkbox" @bind="feature.IsSelected" @bind:after="() => OnFeatureChecked(feature)" />
-
-                                                                            <span class="menu-name open-menu" @onclick="UpdateActivityName">
-
-                                                                                <i class="fa fa-plus-square toggle-icon"></i>
-                                                                                <i class="fa fa-folder folder-icon"></i>
-
-                                                                                @* (@ToRoman(f + 1)) *@
-                                                                                @feature.FeaturesName
-
-                                                                                @if (feature.Activites?.Any() == true)
-                                                                                {
-                                                                                    
-                                                                                    <p class="feature-chip">
-                                                                                        @feature.Activites.Count Activity
-                                                                                    </p>
-                                                                                }
-
-
-
-
-                                                                            </span>
-
-                                                                        </div>
-                                                                        @if (feature.Activites != null && feature.Activites.Any())
-                                                                        {
-                                                                            <i class="bi bi-plus-lg open-menu" @onclick="UpdateActivityName"></i>
-                                                                        }
-                                                                    </div>
-
-                                                                    @if (feature.IsExpanded && feature.Activites?.Any() == true)
-
-                                                                    {
-                                                                        <ul class="tree">
-
-                                                                            @foreach (var act in feature.Activites)
-
-                                                                            {
-                                                                                <li>
-                                                                                    <div class="branch d-flex align-items-center justify-content-between">
-
-                                                                                        <div class="d-flex align-items-center gap-2">
-                                                                                            <input type="checkbox" class="form-check-input map-checkbox" @bind="act.IsSelected" />
-
-                                                                                            <span class="menu-name open-menu">@act.ActivityName</span>
-                                                                                        </div>
-
-                                                                                        <div class="d-flex gap-3 flex-wrap">
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsAdd" />
-                                                                                                <label class="form-label m-0">Add</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsModifiy" />
-                                                                                                <label class="form-label m-0">Modify</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsPrint" />
-                                                                                                <label class="form-label m-0">Print</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsExportToExcel" />
-                                                                                                <label class="form-label m-0 text-nowrap">Export</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsPII" />
-                                                                                                <label class="form-label m-0">PII</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action1" />
-                                                                                                <label class="form-label m-0">Action-1</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action2" />
-                                                                                                <label class="form-label m-0">Action-2</label>
-                                                                                            </div>
-
-                                                                                            <div class="d-flex align-items-center gap-1">
-                                                                                                <input type="checkbox" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action3" />
-                                                                                                <label class="form-label m-0">Action-3</label>
-                                                                                            </div>
-
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </li>
-
-                                                                            }
-                                                                        </ul>
-
-                                                                    }
-                                                                </li>
-
-                                                            }
-                                                        </ul>
-
+                                                        <i class="bi bi-plus-lg open-menu" @onclick="UpdateFeaturesName"></i>
                                                     }
-                                                </li>
 
-                                            }
-                                        </ul>
+                                                </div>
+
+                                                @if (module.IsExpanded && module.Features?.Any() == true)
+
+                                                {
+                                                    <ul class="tree">
+
+                                                        @for (int f = 0; f < module.Features.Count; f++)
+
+                                                        {
+
+                                                            var feature = module.Features[f];
+                                                            <li>
+                                                                <div class="branch @(feature.IsSaved ? "saved-highlight" : "")">
+                                                                    <div class="d-flex align-items-center gap-2">
+
+                                                                        <input type="checkbox" class="form-check-input map-checkbox" @bind="feature.IsSelected" @bind:after="() => OnFeatureChecked(feature)" />
+
+                                                                        <span class="menu-name open-menu" @onclick="UpdateActivityName">
+
+                                                                            <i class="fa fa-plus-square toggle-icon"></i>
+                                                                            <i class="fa fa-folder folder-icon"></i>
+
+                                                                            @* (@ToRoman(f + 1)) *@
+                                                                            @feature.FeaturesName
+
+                                                                            @if (feature.Activites?.Any() == true)
+                                                                            {
+
+                                                                                <p class="feature-chip">
+                                                                                    @feature.Activites.Count Activity
+                                                                                </p>
+                                                                            }
 
 
-                                    </div>
+
+
+                                                                        </span>
+
+                                                                    </div>
+                                                                    @if (feature.Activites != null && feature.Activites.Any())
+                                                                    {
+                                                                        <i class="bi bi-plus-lg open-menu" @onclick="UpdateActivityName"></i>
+                                                                    }
+                                                                </div>
+
+                                                                @if (feature.IsExpanded && feature.Activites?.Any() == true)
+
+                                                                {
+                                                                    <ul class="tree">
+
+                                                                        @foreach (var act in feature.Activites)
+                                                                        {
+                                                                            <li>
+                                                                                <div class="branch d-flex align-items-center justify-content-between">
+
+                                                                                    <div class="d-flex align-items-center gap-2">
+                                                                                        <input type="checkbox" class="form-check-input map-checkbox" @bind="act.IsSelected" />
+
+                                                                                        <span class="menu-name open-menu">@act.ActivityName</span>
+                                                                                    </div>
+
+                                                                                    <div class="d-flex gap-3 flex-wrap">
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="add-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsAdd" />
+                                                                                            <label for="add-@act.GetHashCode()" class="form-label m-0">Add</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="modify-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsModifiy" />
+                                                                                            <label for="modify-@act.GetHashCode()" class="form-label m-0">Modify</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="print-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsPrint" />
+                                                                                            <label for="print-@act.GetHashCode()" class="form-label m-0">Print</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="export-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsExportToExcel" />
+                                                                                            <label for="export-@act.GetHashCode()" class="form-label m-0 text-nowrap">Export</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="pii-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.IsPII" />
+                                                                                            <label for="pii-@act.GetHashCode()" class="form-label m-0">PII</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="action1-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action1" />
+                                                                                            <label for="action1-@act.GetHashCode()" class="form-label m-0">Action-1</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="action2-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action2" />
+                                                                                            <label for="action2-@act.GetHashCode()" class="form-label m-0">Action-2</label>
+                                                                                        </div>
+
+                                                                                        <div class="d-flex align-items-center gap-1">
+                                                                                            <input type="checkbox" id="action3-@act.GetHashCode()" class="form-check-input map-checkbox" disabled="@(!act.IsSelected)" @bind="act.Action3" />
+                                                                                            <label for="action3-@act.GetHashCode()" class="form-label m-0">Action-3</label>
+                                                                                        </div>
+
+                                                                                    </div>
+                                                                                </div>
+                                                                            </li>
+
+                                                                        }
+                                                                    </ul>
+
+                                                                }
+                                                            </li>
+
+                                                        }
+                                                    </ul>
+
+                                                }
+                                            </li>
+
+                                        }
+                                    </ul>
+
+
                                 </div>
                             </div>
-
                         </div>
-                    </div>
-                    <div class="modal-footer justify-content-between">
-                        <span class="total_text">
-                            Total Modules : @TotalModuleCount
-                        </span>
-                        <div class="form-group btn-gr">
-                            <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSuperAdminSave">
-                                <div class="visible content">Save</div>
-                                <div class="hidden content">    
-                                    <i class="fa fa-save"></i>
-                                </div>
-                            </button>
 
-                            <button type="button" @onclick="ClosePopup" class="ui fade op-1 animated button btn-cancle">
-                                <div class="visible content">Cancel</div>
-                                <div class="hidden content">
-                                    <i class="fa fa-close"></i>
-                                </div>
-                            </button>
-                        </div>
                     </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <span class="total_text">
+                        Total Modules : @TotalModuleCount
+                    </span>
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSuperAdminSave">
+                            <div class="visible content">Save</div>
+                            <div class="hidden content">
+                                <i class="fa fa-save"></i>
+                            </div>
+                        </button>
+
+                        <button type="button" @onclick="ClosePopup" class="ui fade op-1 animated button btn-cancle">
+                            <div class="visible content">Cancel</div>
+                            <div class="hidden content">
+                                <i class="fa fa-close"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
                 @* </EditForm> *@
             </div>
         </div>

@@ -121,7 +121,7 @@
                                 </TemplateColumn>
                                 <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
                                     <ChildContent>
-                                        <div class="action-btn-group">
+                                        @* <div class="action-btn-group">
                                             @if (context.IsValid == false)
                                             {
                                                 <button class="btn-icon active-btn custom-tooltip" data-tooltip="Active" @onclick="() => ActiveData(context)">
@@ -134,7 +134,8 @@
                                                     <i class='fas fa-toggle-off' style="font-size:12px;"></i>&nbsp; Deactive
                                                 </button>
                                             }
-                                        </div>
+                                        </div> *@
+                                        <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnStatusClick="() => context.IsValid ? DeactiveData(context) : ActiveData(context)" />
                                     </ChildContent>
                                 </TemplateColumn>
                             </QuickGrid>
@@ -764,7 +765,7 @@ else
 {
 
 }
-
+<CustomAlert @ref="customAlert" Title="Alert" />
 @code {
     // ---------------------------------------------------------------------
     // NOTE / ASSUMPTIONS:
@@ -777,7 +778,7 @@ else
     // - Category dropdown is static per your list (6-10), not loaded from
     //   an API.
     // ---------------------------------------------------------------------
-
+    private CustomAlert customAlert;
     private List<SessionModel> sessionlist = new();
     private List<BranchClassModel> classlist = new();
     private List<SectionModel> sectionlist = new();
@@ -1026,11 +1027,12 @@ else
     private async Task ConfirmSelectStudent()
     {
         ShowDisciplinePopup = false;
-        ShowSelectStudentPopup = false;
+        ShowSelectStudentPopup = true;
         var data = studentSearchQuery.Where(x => x.IsSelected).ToList();
         if (data.Count == 0 || data.Count > 1)
         {
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            // await JS.InvokeVoidAsync("showSelectRecordAlert");
+            await customAlert.ShowCustomAlert("Please select a student",false);
             ShowSelectStudentPopup = true;
             StateHasChanged();
             return;

@@ -44,6 +44,9 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateAbscondedStudentExcel(List<GetAbscondedStudentResponse> students);
         public Task<byte[]> GenerateStudentRTEExcel(List<StudentRTEResponse> students);
         public Task<byte[]> GenerateDisabilityStudentExcel(List<DisabilityStudentResponse> students);
+        public Task<byte[]> GenerateSiblingListExcel(List<SiblingListResponse> students);
+        public Task<byte[]> GenerateStudentBirthdayExcel(List<BirthdayStudentResponse> students);
+        public Task<byte[]> GenerateStudentSiblingExcel(List<SiblingListResponse> students);
 
     }
 }

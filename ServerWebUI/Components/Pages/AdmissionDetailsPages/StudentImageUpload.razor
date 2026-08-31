@@ -1,0 +1,372 @@
+@page "/StudentImage"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+<style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid tbody tr.selectRow td {
+        background-color: #e7f1ff !important;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+    .grid-thumb-img {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border: 1px solid #d9d9d9;
+        cursor: pointer;
+    }
+</style>
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Student Image">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ClassCode" @bind-Value:after="OnClassChanged">
+                        <option value="">All Class</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.SectionCode">
+                        <option value="">All Section</option>
+                        @foreach (var sec in sectionlist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="uploadFor">
+                        <option value="Student">Student</option>
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Visitor1">Visitor 1</option>
+                        <option value="Visitor2">Visitor 2</option>
+                        <option value="Visitor3">Visitor 3</option>
+                        <option value="Visitor4">Visitor 4</option>
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudents">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Class="text-center" Align="Align.Center" />
+                                
+                                <TemplateColumn Title="Student Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.ImagePath)" alt="Student" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Father Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.FatherImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.FatherImagePath)" alt="Father" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Mother Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.MotherImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.MotherImagePath)" alt="Mother" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Visitor 1 Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.Visitor1ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.Visitor1ImagePath)" alt="Visitor 1" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Visitor 2 Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.Visitor2ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.Visitor2ImagePath)" alt="Visitor 2" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Visitor 3 Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.Visitor3ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.Visitor3ImagePath)" alt="Visitor 3" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Visitor 4 Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.Visitor4ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.Visitor4ImagePath)" alt="Visitor 4" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                             
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="OnUploadImage">Upload Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== IMAGE PREVIEW POPUP ===================== -->
+@if (ShowImagePopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Image Preview</h5>
+                    <button data-access="Close" type="button" @onclick="CloseImagePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@currentImageUrl" class="w-100" alt="Preview" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS:
+    // - "Upload For" is kept as a local UI value (uploadFor) since the
+    //   given StudentImageRequest has no matching field to send it on -
+    //   it's only meant to control what the (stubbed) Upload Image action
+    //   uploads to. Tell me the real upload endpoint + payload and I'll
+    //   wire this in properly.
+    // - Image paths (e.g. "/StudentImagePath/xxxx.jpg") are already
+    //   relative to this app's origin, so they're used directly as <img
+    //   src> without prefixing a domain - same as how paths were stored
+    //   elsewhere in your project (OnFileSelected in the Visitor popup).
+    // - "Upload Image" has no endpoint specified, so it's a button stub
+    //   (TODO) - give me the endpoint + payload and I'll complete it.
+    // ---------------------------------------------------------------------
+
+    private const string NoPhotoUrl = "https://demo.schooleye.in/Images/NoPhoto.gif";
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<StudentImageResponse> studentlist = new();
+
+    private StudentImageRequest searchRequest = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private string uploadFor = "Student";
+    private bool ShowImagePopup;
+    private string currentImageUrl = NoPhotoUrl;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<StudentImageResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        StateHasChanged();
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchRequest.SectionCode = string.Empty;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchRequest.ClassCode;
+
+        string ApiUri1 = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private async Task SearchStudents()
+    {
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "StudentImage/GetStudentImage";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentImageResponse>>>(apiUrl, searchRequest);
+
+            studentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while searching for students.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ViewImage(string? imagePath)
+    {
+        currentImageUrl = string.IsNullOrWhiteSpace(imagePath) ? NoPhotoUrl : imagePath;
+        ShowImagePopup = true;
+    }
+
+    private void CloseImagePopup()
+    {
+        ShowImagePopup = false;
+    }
+
+    private Task OnUploadImage()
+    {
+        // TODO: no upload endpoint specified yet - wire this once provided.
+        return Task.CompletedTask;
+    }
+    private string GetImageUrl(string? imagePath)
+    {
+        return string.IsNullOrWhiteSpace(imagePath) ? NoPhotoUrl : imagePath;
+    }
+}

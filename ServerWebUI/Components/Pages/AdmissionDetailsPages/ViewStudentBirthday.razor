@@ -1,0 +1,307 @@
+@page "/ViewStudentBirthday"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<style>
+    .grid-thumb-img {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border: 1px solid #d9d9d9;
+        cursor: pointer;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Student Birthday Report">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="CurrentSession">
+                        <option value="0">Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <input type="date" class="form-input" @bind="searchRequest.FromDate" />
+                </div>
+                <div class="form-box">
+                    <input type="date" class="form-input" @bind="searchRequest.ToDate" />
+                </div>
+                <div class="form-box">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="FatherName" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="Mobile No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherEMail) ? " " : x.FatherEMail)" Title="Email Id" Align="Align.Left" />
+                                <TemplateColumn Title="Image" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetImageUrl(context.ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.ImagePath)" alt="Student" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                @* <div class="form-box">
+                    <button type="button" class="table-btn" @onclick="ExportBirthdayReport">Export Birthday Report</button>
+                </div> *@
+                <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Export Birthday Report" Export="@ExportBirthdayReport" />
+            </div>
+        </div>
+    </div>
+</div>
+@if (ShowImagePopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Image Preview</h5>
+                    <button data-access="Close" type="button" @onclick="CloseImagePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@currentImageUrl" class="w-100" alt="Preview" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - Route assumed "/ViewStudentBirthday" - rename if different.
+    // - Grid "Email Id" column mapped to FatherEMail (screenshot shows a
+    //   single Email Id column; MotherEMail is also on the model but not
+    //   shown - swap/add a column if MotherEMail should be used/shown too).
+    // - FromDate/ToDate default to today's date on load, matching the
+    //   screenshot (both showing 27/08/2026).
+    // - "Export Birthday Report" has no endpoint specified, so it's a
+    //   button stub (TODO) - give me the endpoint and I'll wire it in.
+    // - Session dropdown follows the same InputSelect pattern used on the
+    //   StudentImage page (default option value="0" / "Select-Session").
+    // ---------------------------------------------------------------------
+
+    private const string NoPhotoUrl = "https://demo.schooleye.in/Images/NoPhoto.gif";
+
+    private List<SessionModel> sessionlist = new();
+    private List<BirthdayStudentResponse> studentlist = new();
+    private BirthdayStudentRequest searchRequest = new()
+    {
+        FromDate = DateTime.Today,
+        ToDate = DateTime.Today
+    };
+
+    private bool ShowImagePopup;
+    private string currentImageUrl = NoPhotoUrl;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<BirthdayStudentResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        StateHasChanged();
+    }
+
+    private async Task SearchStudents()
+    {
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "BirthdayStudent/GetBirthdayStudentData";
+            var apiResponse = await httpService.Post<ApiResponse<List<BirthdayStudentResponse>>>(apiUrl, searchRequest);
+
+            studentlist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while searching for birthday students.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ViewImage(string? imagePath)
+    {
+        currentImageUrl = string.IsNullOrWhiteSpace(imagePath) ? NoPhotoUrl : imagePath;
+        ShowImagePopup = true;
+    }
+
+    private void CloseImagePopup()
+    {
+        ShowImagePopup = false;
+    }
+
+    private async Task ExportBirthdayReport()
+    {
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("No data found.");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "Export/GenerateStudentBirthdayExcelData";
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, data);
+
+            if (apiResponse != null && apiResponse.Success)
+            {
+                var base64 = apiResponse.Data?.ToString();
+                await JS.InvokeVoidAsync("downloadExcel", base64, "StudentBirthdayReport.xlsx");
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Failed to generate the report.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private string GetImageUrl(string? imagePath)
+    {
+        return string.IsNullOrWhiteSpace(imagePath) ? NoPhotoUrl : imagePath;
+    }
+}
