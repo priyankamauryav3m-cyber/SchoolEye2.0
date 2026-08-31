@@ -20,24 +20,12 @@
 @rendermode InteractiveServer
 <div class="main-container">
     <div class="row m-0 main-row">
-        <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Student </p>
-                <div class="d-flex gap-2">
-                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddStudent" />
-                    <button class="ui fade op-1 animated button form-btn" @onclick="AddStudent">
-                        <div class="visible content justify-content-center">Add</div>
-                        <div class="hidden content"><i class="bi bi-plus-lg"></i></div>
-                    </button>
-                </div>
-            </div>
-        </div>
         <div class="col-12 p-1">
             <div class="card">
                 <div class="card-body table-card p-0 scrollbar-thin">
                     <div class="quick-main">
                         <div class="grid-box">
-                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                            @* <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
 
                                 <PropertyColumn Property="@(x => x.StudentName)" Title="Student Name" Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
@@ -84,36 +72,12 @@
 
                                 <TemplateColumn Align="Align.Center" Title="Action">
                                     <ActionButtonGroup IsValid="context.IsActive" CurrentUrl="@currentUrl" OnEditClick="() => EditStudent(context)" OnStatusClick="() => ChangeStudentStatus(context.StudentId, context.IsActive)" />
-                                    <div class="action-btn-group">
-
-                                        @if (context.IsActive)
-                                        {
-                                            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditStudent(context)">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-
-                                            <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeStudentStatus(context.StudentId, context.IsActive)">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                           
-                                        }
-                                        else
-                                        {
-                                            <button disabled class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditStudent(context)">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button class="btn-icon active-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeStudentStatus(context.StudentId, context.IsActive)">
-                                                <i class="bi bi-check-lg"></i>
-                                            </button>
                                     
-                                        }
-                                    </div>
-
                                 </TemplateColumn>
 
                             </QuickGrid>
-
-
+ *@
+ <h1 style="font-size:100px">Not Found</h1>
                         </div>
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center">
@@ -511,7 +475,7 @@
     //     public DateTime CreatedDate { get; set; } = DateTime.Now;
     // }
 
-    private bool IsLoading = true;
+    private bool IsLoading = false;
     private StudentModel student = new();
     private string oldcdataModel = "";
     private List<StudentModel> studentlist = new();
@@ -636,7 +600,7 @@
             var userResult = await sessionStorage.GetAsync<string>("UserName");
             username = userResult.Value;
             await LoadLookups();
-            await LoadData();
+            // await LoadData();
             StateHasChanged();
         }
     }
@@ -713,14 +677,14 @@
 
     private async Task LoadData()
     {
-        IsLoading = true;
-        string apiUri = $"Student/GetStudent?studentId={0}";
-        var response = await httpService.Get<ApiResponse<List<StudentModel>>>(apiUri) ?? new();
-        if (response.Success == true)
-        {
-            studentlist = response.Data ?? new();
-        }
-        IsLoading = false;
+        // IsLoading = true;
+        // string apiUri = $"Student/GetStudent?studentId={0}";
+        // var response = await httpService.Get<ApiResponse<List<StudentModel>>>(apiUri) ?? new();
+        // if (response.Success == true)
+        // {
+        //     studentlist = response.Data ?? new();
+        // }
+        // IsLoading = false;
 
 
     }

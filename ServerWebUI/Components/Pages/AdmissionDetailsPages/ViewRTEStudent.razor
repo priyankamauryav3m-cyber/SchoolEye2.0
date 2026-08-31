@@ -26,16 +26,16 @@
                         }
                     </InputSelect>
                 </div>
-                    <div class="form-box">
-                        <div class="border-box d-flex justify-content-center align-items-center">
-                            <div class="d-flex align-items-center gap-2">
-                                <input type="checkbox"class="form-check-input m-0" checked="@(searchRequest.IsRTE == 1)"   @onchange="OnRteChanged" />
-                                <label class="form-label mb-0">
-                                    Is RTE
-                                </label>
-                            </div>
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-center align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="checkbox" class="form-check-input m-0" checked="@(searchRequest.IsRTE == 1)" @onchange="OnRteChanged" />
+                            <label class="form-label mb-0">
+                                Is RTE
+                            </label>
                         </div>
                     </div>
+                </div>
                 <div class="form-box">
                     <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
                         <i class="bi bi-sliders"></i>
@@ -133,7 +133,7 @@
                                 <div class="welcome-text w-100">
                                     <Paginator State="@pagination" />
                                 </div>
-                                
+
                             </div>
                         </div>
                     </div>
@@ -147,7 +147,7 @@
                     <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OnSubmit">Submit</button>
                     </div>
-                
+
                     <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Print="@OnPrint" />
                 </div>
             </div>
@@ -402,7 +402,7 @@ else
             string apiUrl = "StudentRTE/GetSearchedStudentRTEData";
             var apiResponse = await httpService.Post<ApiResponse<List<StudentRTEResponse>>>(apiUrl, searchRequest);
 
-            studentlist = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()): new();
+            studentlist = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
 
             if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
             {
@@ -480,12 +480,12 @@ else
     private async Task OnPrint()
     {
         IsLoading = true;
-        var data=moduleQuery.ToList();
+        var data = moduleQuery.ToList();
         if (data.Count == 0)
         {
             await Alert.ShowWarning("No records found.");
             StateHasChanged();
-            IsLoading=false;
+            IsLoading = false;
             return;
         }
         string ApiUri = "Export/GenerateStudentRTEExcelData";

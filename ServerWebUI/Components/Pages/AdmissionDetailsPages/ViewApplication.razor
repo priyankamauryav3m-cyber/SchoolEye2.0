@@ -89,15 +89,15 @@
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
                         <div class="grid-box-with-btn">
-                            <QuickGrid Items="@moduleQuery" Pagination="@pagination"  Class="table">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
 
-                                <TemplateColumn Title="" Align="Align.Left" >
+                                <TemplateColumn Title="" Align="Align.Left">
                                     <HeaderTemplate>
                                         <div>
                                             <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
                                         </div>
                                     </HeaderTemplate>
-                                    <ChildContent >
+                                    <ChildContent>
                                         <div class="@(context.ApplicationStatus == "5" ? "disabled-row" : "")">
                                             <input type="checkbox"
                                                    @bind="context.IsSelected"
@@ -218,7 +218,8 @@
 
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.AppStatus">
-                                    <option value="2" selected>Details Entered</option>
+                                    <option value="0" selected>All</option>
+                                    <option value="2">Details Entered</option>
                                     <option value="3">Intraction Done</option>
                                     <option value="4">Selected For Admission</option>
                                     <option value="5"> Admission Done</option>
@@ -347,146 +348,131 @@
                 </div>
                 <EditForm Model="@interactionModel" OnValidSubmit="OnSubmitInteraction">
                     <DataAnnotationsValidator />
-                    <div class="modal-body">
-                        <div class="row m-0 form-row">
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
-                                    <p class="total-text-with-bg ">
-                                        Student Details
-                                    </p>
-                                    <hr class="m-0 w-webkit text-light-gray op-1">
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
-                                <div class="form-box-group">
-                                    <input class="floating-input" placeholder=" " value="@selectedStudentRow?.RegistrationNo" readonly />
-                                    <label class="floating-label">Reg. No.</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
-                                <div class="form-box-group">
-                                    <input class="floating-input" placeholder=" " value="@selectedStudentRow?.StudentName" readonly />
-                                    <label class="floating-label">Student Name</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
-                                <div class="form-box-group">
-                                    <input class="floating-input" placeholder=" " value="@selectedStudentRow?.ClassName" readonly />
-                                    <label class="floating-label">Class</label>
-                                </div>
-                            </div>
-
-                            <!-- ---------- Teacher Details (read-only) ---------- -->
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
-                                    <p class="total-text-with-bg ">
-                                        Teacher Details
-                                    </p>
-                                    <hr class="m-0 w-webkit text-light-gray op-1">
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
-                                <div class="form-box-group static-label">
-                                    @* <InputSelect class="floating-input" placeholder=" " @bind-Value="selectedEmployeeId" @bind-Value:after="OnTeacherChanged">
-                                        <option value="">--Select--</option>
-                                        @foreach (var emp in teacherlist)
-                                        {
-                                            <option value="@emp.EmployeeId">@emp.FirstName</option>
-                                        }
-                                    </InputSelect> *@
-                                    <input class="floating-input" placeholder=" " value="@selectedTeacher?.FirstName" readonly />
-                                    <label class="floating-label">Teacher Name</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
-                                <div class="form-box-group">
-                                    <input class="floating-input" placeholder=" " value="@selectedTeacher?.Gender" readonly />
-                                    <label class="floating-label">Gender</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
-                                <div class="form-box-group">
-                                    <input class="floating-input" placeholder=" " value="@selectedTeacher?.EmpMobileNo" readonly />
-                                    <label class="floating-label">Mobile No.</label>
-                                </div>
-                            </div>
-
-                            <!-- ---------- Interaction (editable / submitted) ---------- -->
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                <div class="divider-box d-flex justify-content-between align-items-center gap-2">
-                                    <p class="total-text-with-bg ">
-                                        Interaction
-                                    </p>
-                                    <hr class="m-0 w-webkit text-light-gray op-1">
-                                </div>
-                            </div>
-
-                            <!-- Clickable yellow star rating -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
-                                <div class="form-box-group static-label">
-                                    <label class="floating-label">Star Rating</label>
-                                    <div class="border-box d-flex justify-content-center align-items-center gap-1">
-                                        @for (int i = 1; i <= 5; i++)
-                                        {
-                                            var starValue = i;
-                                            <i class="bi @(interactionModel.StarRating >= starValue ? "bi-star-fill" : "bi-star")"
-                                               style="color:#ffc107; font-size:20px; cursor:pointer;"
-                                               @onclick="() => SetStarRating(starValue)"></i>
-                                        }
+                    <fieldset disabled="@(!IsEditMode)" class="border-0 p-0 m-0">
+                        <div class="modal-body">
+                            <div class="row m-0 form-row">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg ">
+                                            Student Details
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Readonly label derived from the star rating -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
-                                <div class="form-box-group static-label">
-                                    <input class="floating-input" placeholder=" " value="@GetStarRatingLabel()" readonly />
-                                    <label class="floating-label">Rating</label>
-                                </div>
-                            </div>
-                            <!-- Recommendation Yes/No -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
-                                <div class="form-box-group static-label">
-                                    <label class="floating-label">Recommendation</label>
-                                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
-                                        <InputRadioGroup @bind-Value="interactionModel.Recommendation">
-                                            <div class="d-flex align-items-center gap-1">
-                                                <InputRadio Value="true" />
-                                                <label class="form-label">Yes</label>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1">
-                                                <InputRadio Value="false" />
-                                                <label class="form-label">No</label>
-                                            </div>
-                                        </InputRadioGroup>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " value="@selectedStudentRow?.RegistrationNo" readonly />
+                                        <label class="floating-label">Reg. No.</label>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- File upload -->
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
-                                <div class="form-box-group static-label">
-                                    <InputFile class="floating-input" OnChange="OnFileSelected" />
-                                    <label class="floating-label">Attachment</label>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " value="@selectedStudentRow?.StudentName" readonly />
+                                        <label class="floating-label">Student Name</label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
-                                <div class="form-box-group">
-                                    <InputTextArea class="floating-input" placeholder=" " rows="3" @bind-Value="interactionModel.Remarks" maxlength="1000" />
-                                    <label class="floating-label">
-                                        Remarks <span class="required">*</span>
-                                    </label>
-                                    <ValidationMessage For="@(() => interactionModel.InteractionComments)" />
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " value="@selectedStudentRow?.ClassName" readonly />
+                                        <label class="floating-label">Class</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg ">
+                                            Teacher Details
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                    <div class="form-box-group static-label">
+                                    
+                                        <input class="floating-input" placeholder=" " value="@selectedTeacher?.FirstName" readonly />
+                                        <label class="floating-label">Teacher Name</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " value="@selectedTeacher?.Gender" readonly />
+                                        <label class="floating-label">Gender</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
+                                    <div class="form-box-group">
+                                        <input class="floating-input" placeholder=" " value="@selectedTeacher?.EmpMobileNo" readonly />
+                                        <label class="floating-label">Mobile No.</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                        <p class="total-text-with-bg ">
+                                            Interaction
+                                        </p>
+                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                    <div class="form-box-group static-label">
+                                        <label class="floating-label">Star Rating</label>
+                                        <div class="border-box d-flex justify-content-center align-items-center gap-1">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                var starValue = i;
+                                                <i class="bi @(interactionModel.StarRating >= starValue ? "bi-star-fill" : "bi-star")"
+                                                   style="color:#ffc107; font-size:20px; cursor:@(IsEditMode ? "pointer" : "default"); opacity:@(IsEditMode ? "1" : "0.6");" 
+                                                   @onclick="@(IsEditMode ? () => SetStarRating(starValue) : null)"> </i>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                    <div class="form-box-group static-label">
+                                        <input class="floating-input" placeholder=" " value="@GetStarRatingLabel()" readonly />
+                                        <label class="floating-label">Rating</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                    <div class="form-box-group static-label">
+                                        <label class="floating-label">Recommendation</label>
+                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                            <InputRadioGroup class="floating-input" @bind-Value="interactionModel.Recommendation">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="true" />
+                                                    <label class="form-label">Yes</label>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <InputRadio Value="false" />
+                                                    <label class="form-label">No</label>
+                                                </div>
+                                            </InputRadioGroup>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                    <div class="form-box-group static-label">
+                                        <InputFile class="floating-input" OnChange="OnFileSelected" />
+                                        <label class="floating-label">Attachment</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
+                                    <div class="form-box-group">
+                                        <InputTextArea class="floating-input" placeholder=" " rows="3" @bind-Value="interactionModel.Remarks" maxlength="1000" />
+                                        <label class="floating-label">
+                                            Remarks <span class="required">*</span>
+                                        </label>
+                                        <ValidationMessage For="@(() => interactionModel.Remarks)" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </fieldset>
                     <div class="modal-footer">
-                        <button type="submit" class="ui animated button form-btn backBtn" tabindex="0">
-                            <div class="visible content">Submit</div>
-                            <div class="hidden content">
-                                <i class="fa fa fa-save"></i>
-                            </div>
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+
+                            <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Edit" Modifiy="UpdateIntratction" />
+                            <SaveUpdateButton OnClickCancel="@CancelInteractionEdit" />
+                        </div>
                     </div>
                 </EditForm>
             </div>
@@ -600,6 +586,8 @@ else
     private bool showModal { get; set; }
     private bool IsAllSelected;
     public bool IsSelected { get; set; }
+    private bool IsEditMode = false;
+    private bool IsExistingInteraction = false;
     private List<BranchClassModel> classlist = new();
     private bool IsLoading = false;
     private List<GenderModal> genderModallist = new();
@@ -625,7 +613,7 @@ else
     private long session;
     private string username = "";
     private string DashboardValue = "";
-
+    private InteractionCommentsModel? originalInteractionModel;
     // ---------------- Interaction popup state ----------------
     private bool ShowInteractionPopup = false;
     private InteractionCommentsModel interactionModel = new();
@@ -674,20 +662,45 @@ else
             _ => string.Empty
         };
     }
-
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file == null) return;
-
         interactionModel.FileName = file.Name;
+        var uploadFolder = Path.Combine(
+            Environment.CurrentDirectory,
+            "wwwroot",
+            "uploads",
+            "interaction"
+        );
 
-        // TODO: replace with your actual upload/storage call and set the real path
-        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        // interactionModel.FilePath = await SaveFileToServerOrStorage(ms, file.Name);
+        if (!Directory.Exists(uploadFolder))
+            Directory.CreateDirectory(uploadFolder);
+        var uniqueFileName = $"{Guid.NewGuid()}_{file.Name}";
+        var filePath = Path.Combine(uploadFolder, uniqueFileName);
+        using var stream = file.OpenReadStream(
+            maxAllowedSize: 5 * 1024 * 1024
+        );
+        using var fs = new FileStream(
+            filePath,
+            FileMode.Create
+        );
+
+        await stream.CopyToAsync(fs);
+        interactionModel.FileName = file.Name;
+        interactionModel.FilePath = filePath;
     }
+    // private async Task OnFileSelected(InputFileChangeEventArgs e)
+    // {
+    //     var file = e.File;
+    //     if (file == null) return;
+
+    //     interactionModel.FileName = file.Name;
+    //     interactionModel.FilePath = file.Name;
+    //     using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+    //     using var ms = new MemoryStream();
+    //     await stream.CopyToAsync(ms);
+    // }
     private async Task OpenDateFrom(string value)
     {
         if (value == "DateFrom")
@@ -942,7 +955,7 @@ else
     }
     private async Task SearchRegEnterDetails()
     {
-       
+
         searchModel.GroupCode = groupcode;
         searchModel.BranchCode = branchcode;
         searchModel.SessionId = CurrentSession;
@@ -957,7 +970,7 @@ else
         {
             if (DashboardValue == "Conversion")
             {
-                 searchModel.AppStatus = 5;
+                searchModel.AppStatus = 5;
                 // searchModel.DateFrom = null;
                 // searchModel.DateTo = null;
             }
@@ -1023,35 +1036,81 @@ else
         StateHasChanged();
     }
 
+    // private async Task AddIntraction()
+    // {
+    //     var data = moduleQuery.Where(x => x.IsSelected).ToList();
+
+    //     if (data.Count == 0)
+    //     {
+    //         await JS.InvokeVoidAsync("showSelectRecordAlert");
+    //         return;
+    //     }
+    //     else if (data.Count > 1)
+    //     {
+    //         await JS.InvokeVoidAsync("showSelectRecordAlert");
+    //         return;
+    //     }
+
+    //     selectedStudentRow = data[0];
+    //     await LoadTeacherList();
+    //     ShowInteractionPopup = true;
+    //     StateHasChanged();
+
+    // }
     private async Task AddIntraction()
     {
         var data = moduleQuery.Where(x => x.IsSelected).ToList();
-        if (data[0].ApplicationStatus != "3")
-        {
-            
-            if (data.Count == 0)
-            {
-                await JS.InvokeVoidAsync("showSelectRecordAlert");
-                return;
-            }
-            else if (data.Count > 1)
-            {
-                await JS.InvokeVoidAsync("showSelectRecordAlert");
-                return;
-            }
 
-            selectedStudentRow = data[0];
-            await LoadTeacherList();
-            ShowInteractionPopup = true;
-            StateHasChanged();
-        }
-        else
+        if (data.Count == 0)
         {
-            await Alert.ShowWarning("Already intraction done");
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
         }
 
+        if (data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        selectedStudentRow = data[0];
+
+        await LoadTeacherList();
+
+        // Existing interaction data yahan load karein
+        // Example:
+        // interactionModel = await GetInteraction(selectedStudentRow.RegistrationId);
+
+        // Agar existing record hai
+        // if (interactionModel != null && interactionModel.IID != 0)
+        // {
+        //     IsExistingInteraction = true;
+        //     IsEditMode = false;
+
+        //     Original values ka snapshot
+        //     originalInteractionModel = new InteractionCommentsModel
+        //     {
+        //         IID = interactionModel.IID,
+        //         StarRating = interactionModel.StarRating,
+        //         Recommendation = interactionModel.Recommendation,
+        //         Remarks = interactionModel.Remarks,
+        //         FileName = interactionModel.FileName,
+        //         FilePath = interactionModel.FilePath
+        //     };
+        // }
+        // else
+        // {
+        //     New interaction
+        //     IsExistingInteraction = false;
+        //     IsEditMode = true;
+
+        //     interactionModel = new InteractionCommentsModel();
+        //     originalInteractionModel = null;
+        // }
+        IsEditMode = false;
+        ShowInteractionPopup = true;
+        StateHasChanged();
     }
-
     private async Task LoadTeacherList()
     {
         selectedTeacher.GroupCode = groupcode;
@@ -1070,42 +1129,84 @@ else
     {
         ShowInteractionPopup = false;
     }
-
     private async Task OnSubmitInteraction()
     {
-        ShowInteractionPopup = false;
+        if (selectedStudentRow == null)
+        {
+            await Alert.ShowWarning("Please select a student.");
+            return;
+        }
+
         if (selectedTeacher == null)
         {
             await Alert.ShowWarning("Please select a teacher.");
             return;
         }
-        interactionModel.InteractionBy = selectedTeacher.EmployeeId;
-        interactionModel.GroupCode = groupcode;
-        interactionModel.BranchCode = branchcode;
-        interactionModel.SessionId = CurrentSession;
-        interactionModel.RegistrationId = selectedStudentRow.RegistrationId;
-        interactionModel.CreatedBy = username;
-        interactionModel.CreatedDate = DateTime.Now;
-        interactionModel.IsValid = true;
+
+        // Existing record ke liye change check
+        if (IsExistingInteraction)
+        {
+            if (!HasInteractionChanges())
+            {
+                await Alert.ShowWarning("No change detected.");
+                return;
+            }
+        }
+
         try
         {
             IsLoading = true;
             StateHasChanged();
 
+            // Common values
+            interactionModel.InteractionBy = selectedTeacher.EmployeeId;
+            interactionModel.GroupCode = groupcode;
+            interactionModel.BranchCode = branchcode;
+            interactionModel.SessionId = CurrentSession;
+            interactionModel.RegistrationId = selectedStudentRow.RegistrationId;
+            interactionModel.CreatedBy = username;
+            interactionModel.CreatedDate = DateTime.Now;
+            interactionModel.IsValid = true;
+
             string apiUrl = "InteractionPanel/AddOrUpdateInteraction";
-            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, interactionModel);
-            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
+
+            var apiResponse =
+                await httpService.Post<ApiResponse<object>>(
+                    apiUrl,
+                    interactionModel);
+
+            if (apiResponse != null &&
+                apiResponse.Success &&
+                apiResponse.Code == 1)
             {
-                await Alert.ShowSuccess("Interaction" + Localizer["Inserted"]);
+                await Alert.ShowSuccess(
+                    "Interaction " + Localizer["Inserted"]);
+
+                // Current values ko new original values bana do
+                originalInteractionModel = new InteractionCommentsModel
+                {
+                    IID = interactionModel.IID,
+                    StarRating = interactionModel.StarRating,
+                    Recommendation = interactionModel.Recommendation,
+                    Remarks = interactionModel.Remarks,
+                    FileName = interactionModel.FileName,
+                    FilePath = interactionModel.FilePath
+                };
+
+                IsEditMode = false;
+                IsExistingInteraction = true;
+
                 ShowInteractionPopup = false;
+
                 interactionModel = new();
+                originalInteractionModel = null;
             }
             else
             {
                 await Alert.ShowWarning("Failed to save interaction.");
             }
         }
-        catch
+        catch (Exception ex)
         {
             await Alert.ShowWarning("Failed to save interaction.");
         }
@@ -1115,6 +1216,50 @@ else
             StateHasChanged();
         }
     }
+    // private async Task OnSubmitInteraction()
+    // {
+    //     ShowInteractionPopup = false;
+    //     if (selectedTeacher == null)
+    //     {
+    //         await Alert.ShowWarning("Please select a teacher.");
+    //         return;
+    //     }
+    //     interactionModel.InteractionBy = selectedTeacher.EmployeeId;
+    //     interactionModel.GroupCode = groupcode;
+    //     interactionModel.BranchCode = branchcode;
+    //     interactionModel.SessionId = CurrentSession;
+    //     interactionModel.RegistrationId = selectedStudentRow.RegistrationId;
+    //     interactionModel.CreatedBy = username;
+    //     interactionModel.CreatedDate = DateTime.Now;
+    //     interactionModel.IsValid = true;
+    //     try
+    //     {
+    //         IsLoading = true;
+    //         StateHasChanged();
+
+    //         string apiUrl = "InteractionPanel/AddOrUpdateInteraction";
+    //         var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, interactionModel);
+    //         if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
+    //         {
+    //             await Alert.ShowSuccess("Interaction" + Localizer["Inserted"]);
+    //             ShowInteractionPopup = false;
+    //             interactionModel = new();
+    //         }
+    //         else
+    //         {
+    //             await Alert.ShowWarning("Failed to save interaction.");
+    //         }
+    //     }
+    //     catch
+    //     {
+    //         await Alert.ShowWarning("Failed to save interaction.");
+    //     }
+    //     finally
+    //     {
+    //         IsLoading = false;
+    //         StateHasChanged();
+    //     }
+    // }
 
     private async Task AddOrVerifyDoument()
     {
@@ -1130,7 +1275,7 @@ else
             await JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
-       
+
         selectedStudentRow = data[0];
         await LoadDocumentList();
         selectedDocument = null;
@@ -1272,5 +1417,46 @@ else
         {
             await Alert.ShowWarning("Document not deactivated.");
         }
+    }
+    private void UpdateIntratction()
+    {
+        IsEditMode = true;
+        StateHasChanged();
+    }
+    private bool HasInteractionChanges()
+    {
+        if (originalInteractionModel == null)
+            return true;
+
+        return
+            interactionModel.StarRating != originalInteractionModel.StarRating
+            || interactionModel.Recommendation != originalInteractionModel.Recommendation
+            || interactionModel.Remarks != originalInteractionModel.Remarks
+            || interactionModel.FileName != originalInteractionModel.FileName
+            || interactionModel.FilePath != originalInteractionModel.FilePath;
+    }
+    private void CancelInteractionEdit()
+    {
+        if (originalInteractionModel != null)
+        {
+            interactionModel.StarRating =
+                originalInteractionModel.StarRating;
+
+            interactionModel.Recommendation =
+                originalInteractionModel.Recommendation;
+
+            interactionModel.Remarks =
+                originalInteractionModel.Remarks;
+
+            interactionModel.FileName =
+                originalInteractionModel.FileName;
+
+            interactionModel.FilePath =
+                originalInteractionModel.FilePath;
+        }
+
+        IsEditMode = false;
+
+        StateHasChanged();
     }
 }

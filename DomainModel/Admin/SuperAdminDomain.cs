@@ -388,7 +388,7 @@ namespace DomainModel.Admin
         public string? PointsFrom { get; set; }
         public string? PointsTo { get; set; }
         public string? StatusSrc { get; set; } = "0,1,2";
-        public int AppStatus { get; set; } = 2;
+        public int AppStatus { get; set; } = 0;
         public string? StudentName { get; set; }
         public string? FatherName { get; set; }
         public string? MotherName { get; set; }
@@ -1921,7 +1921,7 @@ namespace DomainModel.Admin
         [StringLength(50, ErrorMessage = "Interaction By cannot exceed 50 characters.")]
         public string InteractionBy { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Interaction Comments are required.")]
+        //[Required(ErrorMessage = "Interaction Comments are required.")]
         [StringLength(1000, ErrorMessage = "Interaction Comments cannot exceed 1000 characters.")]
         public string InteractionComments { get; set; } = string.Empty;
 
@@ -2734,7 +2734,7 @@ namespace DomainModel.Admin
         public int IsDisability { get; set; } = 0;
         public int Status { get; set; } = 1;
     }
-    public class DisabilityStudentResponse:MNGTCommon
+    public class DisabilityStudentResponse : MNGTCommon
     {
         public string? AdmissionNo { get; set; }
         public string? StudentNo { get; set; }
@@ -2769,8 +2769,133 @@ namespace DomainModel.Admin
     public class StudentDisabilityItem
     {
         public long StudentId { get; set; }
-        public bool IsDisability { get; set; }  
+        public bool IsDisability { get; set; }
         public string? NatureOfDisability { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Searched Student (STU_UspGetSearchedStudent) -------------
+    public class StudentImageRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? Gender { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? IsEWS { get; set; }
+        public string? JoinType { get; set; }
+    }
+    public class StudentImageResponse
+    {
+        public string? StudentNo { get; set; }
+        public long StudentId { get; set; }
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? RollNo { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherContactNo { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherContactNo { get; set; }
+        public string? IsReservedSeat { get; set; }
+        public string? ImagePath { get; set; }
+        public string? MotherImagePath { get; set; }
+        public string? FatherImagePath { get; set; }
+        public DateTime? AdmissionDate { get; set; }
+        public string? AdmClass { get; set; }
+        public string? AdmSession { get; set; }
+        public string? BoardRollNo { get; set; }
+        public string? StudentCategoryName { get; set; }
+        public string? SocietyId { get; set; }
+        public string? AadhaarNo { get; set; }
+        public string? ReligionName { get; set; }
+        public string? Visitor1ImagePath { get; set; }
+        public string? Visitor2ImagePath { get; set; }
+        public string? Visitor3ImagePath { get; set; }
+        public string? Visitor4ImagePath { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Sibling List (STU_UspGetSiblingList) -------------
+    public class SiblingListRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+
+        public long SessionId { get; set; } = 0;
+
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? ControlNo { get; set; }
+    }
+    public class SiblingListResponse : MNGTCommon
+    {
+        public string? BranchName { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? SiblingId { get; set; }
+        public string? SiblingDetails { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Birthday Student (STU_UspBirthdayStudent) -------------
+    public class BirthdayStudentRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+    }
+    public class BirthdayStudentResponse : MNGTCommon
+    {
+        public DateTime? DateOfBirth { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? Type { get; set; }
+        public string? FatherName { get; set; }
+        public string? ImagePath { get; set; }
+        public string? ClassSection { get; set; }
+        public string? SMSMobileNo { get; set; }
+        public string? FatherEMail { get; set; }
+        public string? MotherEMail { get; set; }
+        public string? BirthdayDate { get; set; }
+    }
+    #endregion
+    #region  -------------------------- Class Gender Wise Report (V3M_Usp_GetClassGenderWiseReport) -------------
+    public class GenderRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public int IsNewAdmission { get; set; }
+        public DateTime TillDate { get; set; } = DateTime.Today;
+        public string? ClassCode { get; set; }
+        public int SectionId { get; set; } = 0;
+    }
+    public class GenderResponse
+    {
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public int TotalStudent { get; set; }
+        public int TotalMale { get; set; }
+        public int TotalFemale { get; set; }
+        public int TotalTPTUsingStudent { get; set; }
+        public int TotalTPTMale { get; set; }
+        public int TotalTPTFemale { get; set; }
     }
     #endregion
 

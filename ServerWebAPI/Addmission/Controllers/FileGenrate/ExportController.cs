@@ -526,6 +526,65 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                     });
             }
         }
+        [HttpPost("GenerateStudentSiblingExcelData")]
+        public async Task<IActionResult> GenerateStudentSiblingExcelData([FromBody] List<SiblingListResponse> request)
+        {
+            try
+            {
+                request ??= new List<SiblingListResponse>();
+
+                var excelBytes = await _generateFile.GenerateSiblingListExcel(request);
+
+                var base64Excel =
+                    Convert.ToBase64String(excelBytes);
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = base64Excel,
+                    Message = "Student Report Excel generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = ex.Message
+                    });
+            }
+        }
+        [HttpPost("GenerateStudentBirthdayExcelData")]
+        public async Task<IActionResult> GenerateStudentBirthdayExcel([FromBody] List<BirthdayStudentResponse> request)
+        {
+            var excelBytes = await _generateFile.GenerateStudentBirthdayExcel(request);
+
+            var base64Excel = Convert.ToBase64String(excelBytes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Excel,
+                Message = "Student Birthday Report Excel generated successfully"
+            });
+        }
+        [HttpPost("GenerateStudentSiblingWithGroupingExcelData")]
+        public async Task<IActionResult> GenerateStudentSiblingExcel([FromBody] List<SiblingListResponse> request)
+        {
+            var excelBytes = await _generateFile.GenerateStudentSiblingExcel(request);
+
+            var base64Excel = Convert.ToBase64String(excelBytes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = base64Excel,
+                Message = "Student Sibling Report Excel generated successfully"
+            });
+        }
     }
 
 }

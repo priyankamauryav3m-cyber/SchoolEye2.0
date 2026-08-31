@@ -1484,7 +1484,7 @@ namespace Infrastructure.StudentDocument
             }
             int blankColumnCount = Math.Clamp(request.BlankColumnCount, 1, 5);
 
-   
+
             using var workbook = new XLWorkbook();
 
             var ws = workbook.AddWorksheet("Class List");
@@ -1535,7 +1535,7 @@ namespace Infrastructure.StudentDocument
 
                 ws.Cell(currentRow, 1).Value = classSessionText;
                 ws.Cell(currentRow, 1).Style.Font.Bold = true;
-                ws.Cell(currentRow, 1).Style.Alignment.Horizontal =XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
                 currentRow++;
 
@@ -1696,7 +1696,7 @@ namespace Infrastructure.StudentDocument
 
             return await Task.FromResult(stream.ToArray());
         }
-        public async Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> request,bool isBoardRollNo)
+        public async Task<byte[]> StudentBoardRollNoPdf(List<AdmSearchedStudentResponse> request, bool isBoardRollNo)
         {
 
             QuestPDF.Settings.License = LicenseType.Community;
@@ -1847,7 +1847,7 @@ namespace Infrastructure.StudentDocument
             return await Task.FromResult(stream.ToArray());
         }
 
-        public async Task<byte[]> GenerateAbscondedStudentExcel(  List<GetAbscondedStudentResponse> students)
+        public async Task<byte[]> GenerateAbscondedStudentExcel(List<GetAbscondedStudentResponse> students)
         {
             students ??= new List<GetAbscondedStudentResponse>();
 
@@ -2303,6 +2303,462 @@ namespace Infrastructure.StudentDocument
             ws.PageSetup.PagesWide = 1;
             ws.PageSetup.PagesTall = 0;
 
+            ws.PageSetup.Margins.Top = 0.3;
+            ws.PageSetup.Margins.Bottom = 0.3;
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return await Task.FromResult(stream.ToArray());
+        }
+
+        public async Task<byte[]> GenerateSiblingListExcel(List<SiblingListResponse> students)
+        {
+            students ??= new List<SiblingListResponse>();
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Student Sibling");
+
+            const int totalColumns = 8;
+
+            int currentRow = 1;
+
+            string sessionName = students.FirstOrDefault()?.SessionName ?? "";
+
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+
+            ws.Cell(currentRow, 1).Value =
+                $"Student Sibling report for session {sessionName}";
+
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 16;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Row(currentRow).Height = 28;
+
+            currentRow++;
+
+            ws.Cell(currentRow, 1).Value = "BranchName";
+            ws.Cell(currentRow, 2).Value = "Student No";
+            ws.Cell(currentRow, 3).Value = "Student Name";
+            ws.Cell(currentRow, 4).Value = "Class";
+            ws.Cell(currentRow, 5).Value = "Father Name";
+            ws.Cell(currentRow, 6).Value = "Mother Name";
+            ws.Cell(currentRow, 7).Value = "Mobile No";
+            ws.Cell(currentRow, 8).Value = "SiblingID";
+
+            var headerRange = ws.Range(
+                currentRow,
+                1,
+                currentRow,
+                totalColumns
+            );
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontSize = 10;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Alignment.WrapText = true;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Row(currentRow).Height = 25;
+
+            currentRow++;
+
+            foreach (var item in students)
+            {
+                ws.Cell(currentRow, 1).Value = item.BranchName ?? "";
+                ws.Cell(currentRow, 2).Value = item.StudentNo ?? "";
+                ws.Cell(currentRow, 3).Value = item.StudentName ?? "";
+                ws.Cell(currentRow, 4).Value = item.ClassSection ?? "";
+                ws.Cell(currentRow, 5).Value = item.FatherName ?? "";
+                ws.Cell(currentRow, 6).Value = item.MotherName ?? "";
+                ws.Cell(currentRow, 7).Value = item.SMSMobileNo ?? "";
+                ws.Cell(currentRow, 8).Value = item.SiblingId ?? "";
+
+
+                ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Cell(currentRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 2).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 3).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 4).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 5).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                ws.Cell(currentRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 7).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Cell(currentRow, 8).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                ws.Row(currentRow).Style.Alignment.WrapText = true;
+
+                currentRow++;
+            }
+
+
+            int lastDataRow = currentRow - 1;
+
+            if (lastDataRow >= 2)
+            {
+                var completeRange = ws.Range(
+                    2,
+                    1,
+                    lastDataRow,
+                    totalColumns
+                );
+
+                completeRange.Style.Border.OutsideBorder =
+                    XLBorderStyleValues.Thin;
+
+                completeRange.Style.Border.InsideBorder =
+                    XLBorderStyleValues.Thin;
+            }
+
+
+            ws.Columns().AdjustToContents();
+
+
+            if (ws.Column(1).Width < 25)
+                ws.Column(1).Width = 25;
+
+            if (ws.Column(1).Width > 30)
+                ws.Column(1).Width = 30;
+
+            if (ws.Column(2).Width < 14)
+                ws.Column(2).Width = 14;
+
+            if (ws.Column(3).Width < 22)
+                ws.Column(3).Width = 22;
+
+            if (ws.Column(3).Width > 30)
+                ws.Column(3).Width = 30;
+
+            if (ws.Column(4).Width < 14)
+                ws.Column(4).Width = 14;
+
+            if (ws.Column(4).Width > 20)
+                ws.Column(4).Width = 20;
+
+            if (ws.Column(5).Width < 22)
+                ws.Column(5).Width = 22;
+
+            if (ws.Column(5).Width > 30)
+                ws.Column(5).Width = 30;
+
+            if (ws.Column(6).Width < 22)
+                ws.Column(6).Width = 22;
+
+            if (ws.Column(6).Width > 30)
+                ws.Column(6).Width = 30;
+
+            if (ws.Column(7).Width < 15)
+                ws.Column(7).Width = 15;
+
+            if (ws.Column(7).Width > 18) ws.Column(7).Width = 18;
+
+            if (ws.Column(8).Width < 30) ws.Column(8).Width = 30;
+
+            if (ws.Column(8).Width > 38) ws.Column(8).Width = 38;
+
+
+            if (lastDataRow >= 2)
+            {
+                ws.Rows(2, lastDataRow).AdjustToContents();
+
+                for (int row = 3; row <= lastDataRow; row++)
+                {
+                    if (ws.Row(row).Height < 20)
+                        ws.Row(row).Height = 20;
+                }
+            }
+
+
+            ws.SheetView.FreezeRows(2);
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+
+            ws.PageSetup.PagesWide = 1;
+            ws.PageSetup.PagesTall = 0;
+
+            ws.PageSetup.Margins.Top = 0.3;
+            ws.PageSetup.Margins.Bottom = 0.3;
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+
+            ws.PageSetup.SetRowsToRepeatAtTop(1, 2);
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return await Task.FromResult(stream.ToArray());
+        }
+
+        public async Task<byte[]> GenerateStudentBirthdayExcel(List<BirthdayStudentResponse> students)
+        {
+            students ??= new List<BirthdayStudentResponse>();
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Student Birthday Report");
+
+            const int totalColumns = 9;
+
+            int currentRow = 1;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+            ws.Cell(currentRow, 1).Value = "CAMBRIDGE School - Noida";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 14;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            currentRow++;
+
+            var birthdayLabel = students.Count > 0 && !string.IsNullOrWhiteSpace(students[0].BirthdayDate)
+                ? $"Birthday on : {students[0].BirthdayDate}"
+                : "Birthday on : ";
+
+            ws.Range(currentRow, 1, currentRow, 6).Merge();
+            ws.Cell(currentRow, 1).Value = birthdayLabel;
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            ws.Range(currentRow, 7, currentRow, 9).Merge();
+            ws.Cell(currentRow, 7).Value = $"Dated: {DateTime.Now:dd-MM-yyyy hh:mm tt}";
+            ws.Cell(currentRow, 7).Style.Font.Bold = true;
+            ws.Cell(currentRow, 7).Style.Font.FontSize = 10;
+            ws.Cell(currentRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 7).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            ws.Cell(currentRow, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+            currentRow++;
+
+            int tableHeaderRow = currentRow;
+
+            ws.Cell(currentRow, 1).Value = "Sr No";
+            ws.Cell(currentRow, 2).Value = "Student No";
+            ws.Cell(currentRow, 3).Value = "Student Name";
+            ws.Cell(currentRow, 4).Value = "Date of Birth";
+            ws.Cell(currentRow, 5).Value = "Class";
+            ws.Cell(currentRow, 6).Value = "Father Name";
+            ws.Cell(currentRow, 7).Value = "Mobile No";
+            ws.Cell(currentRow, 8).Value = "Email Id";
+            ws.Cell(currentRow, 9).Value = "Birthday Date";
+
+            var headerRange = ws.Range(currentRow, 1, currentRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontSize = 10;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Row(currentRow).Height = 22;
+
+            currentRow++;
+
+            int srNo = 1;
+
+            foreach (var item in students)
+            {
+                ws.Cell(currentRow, 1).Value = srNo;
+                ws.Cell(currentRow, 2).Value = item.ControlNo ?? "";
+                ws.Cell(currentRow, 3).Value = item.StudentName ?? "";
+
+                if (item.DateOfBirth.HasValue)
+                {
+                    ws.Cell(currentRow, 4).Value = item.DateOfBirth.Value;
+                    ws.Cell(currentRow, 4).Style.DateFormat.Format = "dd-MM-yyyy";
+                }
+
+                ws.Cell(currentRow, 5).Value = item.ClassSection ?? "";
+                ws.Cell(currentRow, 6).Value = item.FatherName ?? "";
+                ws.Cell(currentRow, 7).Value = item.SMSMobileNo ?? "";
+                ws.Cell(currentRow, 8).Value = item.FatherEMail ?? item.MotherEMail ?? "";
+                ws.Cell(currentRow, 9).Value = item.BirthdayDate ?? "";
+
+                for (int col = 1; col <= totalColumns; col++)
+                {
+                    ws.Cell(currentRow, col).Style.Alignment.Horizontal =
+                        col == 3 || col == 6 ? XLAlignmentHorizontalValues.Left : XLAlignmentHorizontalValues.Center;
+                    ws.Cell(currentRow, col).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                }
+
+                ws.Row(currentRow).Height = 20;
+
+                srNo++;
+                currentRow++;
+            }
+
+            int lastDataRow = currentRow - 1;
+
+            if (lastDataRow >= tableHeaderRow)
+            {
+                var completeTableRange = ws.Range(tableHeaderRow, 1, lastDataRow, totalColumns);
+
+                completeTableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                completeTableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            ws.Column(1).Width = 7;
+            ws.Column(2).Width = 12;
+            ws.Column(3).Width = 22;
+            ws.Column(4).Width = 14;
+            ws.Column(5).Width = 12;
+            ws.Column(6).Width = 20;
+            ws.Column(7).Width = 14;
+            ws.Column(8).Width = 24;
+            ws.Column(9).Width = 14;
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.PagesWide = 1;
+            ws.PageSetup.Margins.Top = 0.3;
+            ws.PageSetup.Margins.Bottom = 0.3;
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+
+            using var stream = new MemoryStream();
+
+            workbook.SaveAs(stream);
+
+            return await Task.FromResult(stream.ToArray());
+        }
+
+        public async Task<byte[]> GenerateStudentSiblingExcel(List<SiblingListResponse> students)
+        {
+            students ??= new List<SiblingListResponse>();
+
+            using var workbook = new XLWorkbook();
+
+            var ws = workbook.AddWorksheet("Student Sibling Report");
+
+            const int totalColumns = 8;
+
+            int currentRow = 1;
+
+            var sessionName = students.Count > 0 ? students[0].SessionName : null;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+            ws.Cell(currentRow, 1).Value = "Cambridge School, Noida";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 16;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell(currentRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            currentRow++;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+            ws.Cell(currentRow, 1).Value = "Sector-27, Noida, Uttar Pradesh 201301";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            currentRow++;
+
+            ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
+            ws.Cell(currentRow, 1).Value = string.IsNullOrWhiteSpace(sessionName)
+                ? "Student Sibling Report"
+                : $"Student Sibling report for session {sessionName}";
+            ws.Cell(currentRow, 1).Style.Font.Bold = true;
+            ws.Cell(currentRow, 1).Style.Font.FontSize = 11;
+            ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            currentRow++;
+
+            int tableHeaderRow = currentRow;
+
+            ws.Cell(currentRow, 1).Value = "Sr. No";
+            ws.Cell(currentRow, 2).Value = "ControlNo";
+            ws.Cell(currentRow, 3).Value = "StudentName";
+            ws.Cell(currentRow, 4).Value = "ClassSection";
+            ws.Cell(currentRow, 5).Value = "FatherName";
+            ws.Cell(currentRow, 6).Value = "MotherName";
+            ws.Cell(currentRow, 7).Value = "SMSMobileNo";
+            ws.Cell(currentRow, 8).Value = "SiblingDetails";
+
+            var headerRange = ws.Range(currentRow, 1, currentRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Font.FontSize = 10;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            currentRow++;
+
+            int srNo = 1;
+
+            foreach (var item in students)
+            {
+                ws.Cell(currentRow, 1).Value = srNo;
+                ws.Cell(currentRow, 2).Value = item.ControlNo ?? "";
+                ws.Cell(currentRow, 3).Value = item.StudentName ?? "";
+                ws.Cell(currentRow, 4).Value = item.ClassSection ?? "";
+                ws.Cell(currentRow, 5).Value = item.FatherName ?? "";
+                ws.Cell(currentRow, 6).Value = item.MotherName ?? "";
+                ws.Cell(currentRow, 7).Value = item.SMSMobileNo ?? "";
+                ws.Cell(currentRow, 8).Value = item.SiblingDetails ?? "";
+
+                for (int col = 1; col <= totalColumns; col++)
+                {
+                    ws.Cell(currentRow, col).Style.Alignment.Horizontal =
+                        col == 3 || col == 5 || col == 6 || col == 8
+                            ? XLAlignmentHorizontalValues.Left
+                            : XLAlignmentHorizontalValues.Center;
+                    ws.Cell(currentRow, col).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                }
+
+                ws.Cell(currentRow, 8).Style.Alignment.WrapText = true;
+
+                srNo++;
+                currentRow++;
+            }
+
+            int lastDataRow = currentRow - 1;
+
+            if (lastDataRow >= tableHeaderRow)
+            {
+                var completeTableRange = ws.Range(tableHeaderRow, 1, lastDataRow, totalColumns);
+
+                completeTableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                completeTableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            ws.Columns(1, totalColumns).AdjustToContents();
+
+            if (lastDataRow >= tableHeaderRow)
+            {
+                if (ws.Column(8).Width > 40)
+                {
+                    ws.Column(8).Width = 40;
+                }
+
+                ws.Rows(tableHeaderRow, lastDataRow).AdjustToContents();
+            }
+
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.PagesWide = 1;
             ws.PageSetup.Margins.Top = 0.3;
             ws.PageSetup.Margins.Bottom = 0.3;
             ws.PageSetup.Margins.Left = 0.2;

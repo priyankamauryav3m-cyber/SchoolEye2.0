@@ -16,7 +16,7 @@
         @if (IsValid)
         {
             <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="AdmitClick">
-                <i class="bi bi-pencil-square"></i>
+                <i class="bi bi-pencil"></i>
             </button>
         }
         else
@@ -33,6 +33,29 @@
     {
         @if (IsValid)
         {
+            <label class="toggle-switch custom-tooltip" data-tooltip="Inactive">
+                <input type="checkbox"
+                       checked="@(true)"
+                       @onclick="DeleteData" />
+
+                <span class="slider"></span>
+            </label>
+        }
+        else
+        {
+            <label class="toggle-switch custom-tooltip" data-tooltip="Active">
+                <input type="checkbox"
+                       checked="@(false)"
+                       @onclick="DeleteData" />
+
+                <span class="slider"></span>
+            </label>
+        }
+    }
+    @* @if (DeleteAction)
+    {
+        @if (IsValid)
+        {
             <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="DeleteData">
                 <i class="bi bi-x-lg"></i>
             </button>
@@ -45,7 +68,7 @@
             </button>
         }
 
-    }
+    } *@
 </div>
 @code {
     [Parameter] public bool IsValid { get; set; }

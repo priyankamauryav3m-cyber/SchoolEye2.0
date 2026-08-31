@@ -1,0 +1,327 @@
+@page "/ViewStudentsSibling"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Students Sibling">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" name="session">
+                        <option value="0" selected>Select-Session</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.ClassCode" @bind-Value:after="OnClassChanged">
+                        <option value="">All Class</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect class="form-input" placeholder=" " @bind-Value="searchRequest.SectionCode">
+                        <option value="">All Section</option>
+                        @foreach (var sec in sectionlist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputText class="form-input" placeholder="Student No." @bind-Value="searchRequest.ControlNo" />
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchSiblings">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.BranchName) ? " " : x.BranchName)" Title="Branch" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father Name" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MotherName) ? " " : x.MotherName)" Title="Mother Name" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="Mobile No" Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                               
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print List" Export="@OnPrint" />
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print with Grouping" Export="@OnPrintWithGrouping" />
+                  
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS:
+    // - "Print" / "Print with Grouping" have no endpoints specified, so
+    //   they're button stubs (TODO) - give me the endpoints/behavior and
+    //   I'll wire them in.
+    // ---------------------------------------------------------------------
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<SiblingListResponse> siblinglist = new();
+    private List<SiblingListResponse> siblinglistwithgroup = new();
+
+    private SiblingListRequest searchRequest = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private bool IsLoading = false;
+    private string? nameFilter;
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected IQueryable<SiblingListResponse> moduleQuery
+    {
+        get
+        {
+            var result = siblinglist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value ?? string.Empty;
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+
+        string ApiUri = "BranchClass/GetClassCode";
+        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
+
+        StateHasChanged();
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchRequest.SectionCode = string.Empty;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(searchRequest.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchRequest.ClassCode;
+
+        string ApiUri1 = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private async Task SearchSiblings()
+    {
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            string apiUrl = "Sibling/GetSiblingListData";
+            var apiResponse = await httpService.Post<ApiResponse<List<SiblingListResponse>>>(apiUrl, searchRequest);
+
+            siblinglist = (apiResponse != null && apiResponse.Success)
+                ? (apiResponse.Data ?? new())
+                : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            siblinglist = new();
+            await Alert.ShowWarning("An error occurred while fetching the sibling list.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnPrint()
+    {
+        IsLoading = true;
+        var data = moduleQuery.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("No records found.");
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+        string ApiUri = "Export/GenerateStudentSiblingExcelData";
+
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
+
+        if (response != null && response.Success && response.Data != null)
+        {
+            IsLoading = false;
+            var base64Excel = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Excel))
+            {
+
+                await JS.InvokeVoidAsync("downloadExcel", base64Excel, "StudentSiblingReport.xlsx");
+            }
+        }
+        IsLoading = false;
+    }
+
+    private async Task OnPrintWithGrouping()
+    {
+        IsLoading = true;
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+        string apiUrl = "Sibling/SiblingsData";
+        var apiResponse = await httpService.Post<ApiResponse<List<SiblingListResponse>>>(apiUrl, searchRequest);
+        siblinglistwithgroup = (apiResponse != null && apiResponse.Success)? (apiResponse.Data ?? new()): new();
+        if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+        {
+            await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+        }
+        var data = siblinglistwithgroup.ToList();
+        if (data.Count == 0)
+        {
+            await Alert.ShowWarning("No records found.");
+            StateHasChanged();
+            IsLoading = false;
+            return;
+        }
+        string ApiUri = "Export/GenerateStudentSiblingWithGroupingExcelData";
+        var response = await httpService.Post<ApiResponse<object>>(ApiUri, data);
+        if (response != null && response.Success && response.Data != null)
+        {
+            IsLoading = false;
+            var base64Excel = response.Data.ToString();
+
+            if (!string.IsNullOrEmpty(base64Excel))
+            {
+
+                await JS.InvokeVoidAsync("downloadExcel", base64Excel, "StudentSiblingWithGroupReport.xlsx");
+            }
+        }
+        IsLoading = false;
+    }
+}
