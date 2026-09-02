@@ -17,6 +17,7 @@
 @inject ICommonMethod _commonmethod
 @inject PermissionState PermissionState
 @inject NavigationManager Nav
+@inject CommonMethod EnquiryState
 <style>
     .quickgrid thead th:nth-last-child(2) {
         min-width: 75px;
@@ -243,14 +244,14 @@
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
-                            <div class="form-box-group">
+                            <div class="form-box-group static-label">
                                 <input type="date" class="floating-input" placeholder=" " @ref="dateFromInput" @bind="searchModel.DateFrom" @onclick='() => OpenDateFrom("DateFrom")' />
                                 <label class="floating-label">Date From</label>
                            
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
-                            <div class="form-box-group">
+                            <div class="form-box-group static-label">
                                 <input type="date" class="floating-input" placeholder=" " @ref="dateToInput" @bind="searchModel.DateTo" @onclick='() => OpenDateFrom("DateTo")' />
                                 <label class="floating-label">Date To</label>
 
@@ -424,7 +425,7 @@ else
     private string? groupcode;
     private string sessionvalue;
     private long CurrentSession;
-
+    private string DashboardValue = "";
     private void OpenSMSPopup()
     {
         var data = moduleQuery.Where(x => x.IsSelected).ToList();
@@ -488,8 +489,14 @@ else
     {
         if (firstRender)
         {
-            await LoadData();
             CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            DashboardValue = EnquiryState.DashboardValue;
+            if (!string.IsNullOrWhiteSpace(DashboardValue))
+            {
+                await SearchByRegistration();
+                EnquiryState.DashboardValue = null;
+            }
             StateHasChanged();
         }
     }
@@ -700,6 +707,12 @@ else
         {
             ShowPopup = false;
             return;
+        }
+        if (DashboardValue == "GetRegistration")
+        {
+            
+            searchModel.DateFrom = null;
+            searchModel.DateTo = null;
         }
         IsLoading = true;
         ShowPopup = false;

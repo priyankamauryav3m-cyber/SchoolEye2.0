@@ -21,6 +21,7 @@
 @using ServerWebUI.Components.Pages.CommonPages
 @inject IStringLocalizer<Resource> Localizer
 @inject IJSRuntime JS
+@inject CommonMethod EnquiryState
 <style>
     /* ---------- shared classes (same convention as Enquiry Dashboard) ---------- */
     .dashboard-card {
@@ -268,7 +269,7 @@
                 </div>
 
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -288,7 +289,7 @@
                     <div class="stat-card p-3 bg-white">
                         <div class="row">
                             <div class="col-12">
-                                <div class="state-icon--bxds">
+                                <div class="state-icon--bxds" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
                                     <div class="stat-icon orange"><i class="fas fa-file-alt"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="stat-label text-nowrap text-muted small">Total Registration</div>
@@ -302,7 +303,7 @@
                 </div>
 
                 <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
+                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
                         <div class="row">
                             <div class="col-12">
                                 <div class="state-icon--bxds">
@@ -346,7 +347,7 @@
                                     <div class="stage-bar b2"> <span style="width:@admissionDashboardpipeline.RegistrationPercentage;"></span></div>
                                 </div>
                             </div>
-                      
+
                             <div class="stage">
                                 <div class="stage-icon c4"><i class="fas fa-user"></i></div>
                                 <div>
@@ -424,7 +425,7 @@
                         </div>
                     </div>
                 </div>
-             
+
             </div>
 
             <div class="row g-3 mb-4">
@@ -526,12 +527,22 @@
                         </div>
                     </div>
                 </div>
-             
+
             </div>
 
         </div>
     </div>
 </section>
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
 
 <AdmitChild IsVisible="@addstudent" OnClose="@ClosePopup" />
 <CustomAlert @ref="customAlert" Title="Alert" />
@@ -571,7 +582,53 @@
         public string StatusName { get; set; } = "";
         public int Count { get; set; }
     }
+    private void GoToEnquiry(string value)
+    {
+        if (value == "TotalEnquiry")
+        {
+            EnquiryState.DashboardValue = "GetEnquiry";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TotalRegistration")
+        {
+            EnquiryState.DashboardValue = "GetRegistration";
+            NavigationManager.NavigateTo("/ViewRegistration");
+            StateHasChanged();
+        }
+        else if (value == "TotalAdmission")
+        {
+            EnquiryState.DashboardValue = "Admission";
+            NavigationManager.NavigateTo("/admitStudent");
+            StateHasChanged();
+        }
+        else if (value == "TodayEnquiery")
+        {
+            EnquiryState.DashboardValue = "Date";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TodayFollowup")
+        {
+            EnquiryState.DashboardValue = "Followup";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        else if (value == "TodayConversion")
+        {
+            EnquiryState.DashboardValue = "Conversion";
+            NavigationManager.NavigateTo("/ViewApplication");
+            StateHasChanged();
+        }
+        else if (value == "BasedOnSource")
+        {
+            EnquiryState.DashboardValue = "Source";
+            NavigationManager.NavigateTo("/enquiry");
+            StateHasChanged();
+        }
+        // SendDashboardvalue="GetEnquiry";
 
+    }
     private string GetStatusColor(string name) => name switch
     {
         "Active" => "#22c55e",
@@ -604,6 +661,7 @@
     };
     private async Task GetAdmissionPipelineConfirmetion()
     {
+        IsLoading = true;
         searchAnyRequest.GroupCode = groupcode;
         searchAnyRequest.BranchCode = branchcode;
         searchAnyRequest.SessionId = CurrentSession;
@@ -611,6 +669,7 @@
         if (apiResponse.Success == true)
         {
             admissionDashboardpipeline = apiResponse.Data ?? new();
+            IsLoading = false;
         }
     }
     private async Task LoadData()
@@ -634,8 +693,8 @@
             adminDashboard = apiResponse.Data ?? new();
         }
         await GetAdmissionPipelineConfirmetion();
-  
 
+  
         StateHasChanged();
     }
 
