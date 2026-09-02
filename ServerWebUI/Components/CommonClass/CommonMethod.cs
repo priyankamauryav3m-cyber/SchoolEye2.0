@@ -26,13 +26,47 @@ namespace ServerWebUI.Components.CommonClass
             JS = jS;
             _http = http;
         }
+        public string CalculateAge(DateTime dob, DateTime? asOnDate = null)
+        {
+            // As On Date given hai to usko use karega,
+            // otherwise today's date use karega
+            DateTime calculationDate = asOnDate?.Date ?? DateTime.Today;
+
+            if (dob.Date > calculationDate)
+            {
+                return null;
+            }
+
+            int years = calculationDate.Year - dob.Year;
+            int months = calculationDate.Month - dob.Month;
+            int days = calculationDate.Day - dob.Day;
+
+            if (days < 0)
+            {
+                months--;
+
+                DateTime previousMonth = calculationDate.AddMonths(-1);
+
+                days += DateTime.DaysInMonth(
+                    previousMonth.Year,
+                    previousMonth.Month);
+            }
+
+            if (months < 0)
+            {
+                years--;
+                months += 12;
+            }
+
+            return $"{years} Year {months} Month {days} Day";
+        }
         public string CalculateAge(DateTime dob)
         {
             if (dob > DateTime.Today)
             {
                 return null;
             }
-                var today = DateTime.Today;
+            var today = DateTime.Today;
 
             int years = today.Year - dob.Year;
             int months = today.Month - dob.Month;

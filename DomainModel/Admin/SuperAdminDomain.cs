@@ -675,6 +675,8 @@ namespace DomainModel.Admin
     {
         // ===== FATHER =====
         public string? FatherTitle { get; set; }
+        [Display(Name = "Father name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? FatherName { get; set; }
         public string? FatherMiddleName { get; set; }
         public string? FatherLName { get; set; }
@@ -701,6 +703,8 @@ namespace DomainModel.Admin
 
         // ===== MOTHER =====
         public string? MotherTitle { get; set; }
+        [Display(Name = "Mother name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? MotherName { get; set; }
 
 
@@ -1492,25 +1496,7 @@ namespace DomainModel.Admin
         public string? Percentage { get; set; }
     }
 
-    public class AdmissionDashboardModel
-    {
 
-        public int TotalEnquiry { get; set; }
-
-        public int Application { get; set; }
-        public int Registration { get; set; }
-
-
-        public int TotalAdmission { get; set; }
-
-        public string? EnquiryPercentage { get; set; }
-
-        public string? ApplicationPercentage { get; set; }
-        public string? RegistrationPercentage { get; set; }
-
-        public string? AdmissionPercentage { get; set; }
-
-    }
 
     #endregion
 
@@ -2898,5 +2884,59 @@ namespace DomainModel.Admin
         public int TotalTPTFemale { get; set; }
     }
     #endregion
+    public class EnquirySummaryTableRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? Course { get; set; }
+        public string? DateWorkAs { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public string? FollowStatus { get; set; }
+        public string? AppliedFrom { get; set; }
+        public string? StudentName { get; set; }
+        public string? MobileNo { get; set; }
+    }
 
+    public class EnquirySummaryTableResponse
+    {
+        public int SrNo { get; set; }
+        public string? Class { get; set; }
+        public int NoOfEnquiry { get; set; }
+        public int ConvertEnqToReg { get; set; }
+        public int ConvertRegToAdm { get; set; }
+    }
+
+    public class AdmissionDashboardModel
+    {
+        public int TotalEnquiry { get; set; }
+        public int TotalRegistration { get; set; }          // "Total Registration" card ke liye — ab poora ADM_Registration count
+        public int InteractionsDone { get; set; }      // NAYA — ApplicationStatus=3
+        public int TotalAdmission { get; set; }
+        public int ActiveStudentCount { get; set; }    // NAYA — vwStudentDetails se active students
+        public string EnquiryPercentage { get; set; } = "0%";
+        public string RegistrationPercentage { get; set; } = "0%";
+        public string AdmissionPercentage { get; set; } = "0%";
+        public string InteractionPercentage { get; set; } = "0%";
+    }
+    //public class AdmissionDashboardModel
+    //{
+
+    //    public int TotalEnquiry { get; set; }
+
+    //    public int Application { get; set; }
+    //    public int Registration { get; set; }
+
+
+    //    public int TotalAdmission { get; set; }
+
+    //    public string? EnquiryPercentage { get; set; }
+
+    //    public string? ApplicationPercentage { get; set; }
+    //    public string? RegistrationPercentage { get; set; }
+
+    //    public string? AdmissionPercentage { get; set; }
+
+    //}
 }

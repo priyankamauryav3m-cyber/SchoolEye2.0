@@ -44,7 +44,7 @@
                     <EditForm Model="@registration" OnValidSubmit="OnSave">
                         <DataAnnotationsValidator />
                         <div class="row p-1 form-row">
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.BranchCode" maxlength="10">
                                         <option Value="@("01")">V3M International School</option>
@@ -53,7 +53,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="mandatory floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.ClassCode" maxlength="10">
                                         <option value="" selected>--Select--</option>
@@ -69,7 +69,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="mandatory floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.Gender" maxlength="10">
                                         <option value="" selected>--Select--</option>
@@ -85,7 +85,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.FirstName" maxlength="100" onkeypress="return /^[a-zA-Z]$/.test(event.key)"></InputText>
                                     <label class="floating-label">
@@ -95,7 +95,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.MiddleName" maxlength="100" onkeypress="return /^[a-zA-Z]$/.test(event.key)"></InputText>
                                     <label class="floating-label">Middle Name</label>
@@ -103,16 +103,16 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="mandatory floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.LastName" maxlength="100" onkeypress="return /^[a-zA-Z]$/.test(event.key)"></InputText>
                                     <label class="floating-label">Last Name</label>
-                                    @* <ValidationMessage For="@(() => registration.LastName)" /> *@
+                              
                                 </div>
                             </div>
 
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group" @ref="dobWrapper">
                                     <InputDate class="floating-input" placeholder=" " @bind-Value="registration.DateOfBirth" @onclick="OpenDateFrom" max="@DateTime.Today.ToString("dd-MM-yyyy")" autocomplete="off" @bind-Value:after="OnDOBChanged" />
                                     <label class="floating-label">
@@ -121,24 +121,28 @@
                                     <ValidationMessage For="@(() => registration.DateOfBirth)" />
                                 </div>
                             </div>
-
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
-                                <div class="form-box @(_childFormDisabled == true ? "disabled" : "")">
-                                    <div class="border-box d-flex justify-content-start align-items-center p-2">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                <div class="form-box-group static-label @(_childFormDisabled==true ? "disabled" : "" )">
+                                    <div class="border-box d-flex justify-content-start align-items-center ">
                                         <label class="d-flex align-items-center form-label">
                                             @datecalulate
                                         </label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2 mt-3">
+                            @* <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
+                                <div class="form-box-group  ">
+                               
+                                </div>
+                            </div> *@
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.ChildName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" maxlength="100" Label="Child Name(as per Aadhar)"></InputText>
                                     <label class="floating-label">ChildName (As Par Aadhar)</label>
                                 </div>
 
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2 ">
                                 <div class="form-box-group static-label">
                                     <label class="floating-label">EWS|Sibling</label>
                                     <div class="border-box d-flex justify-content-center align-items-center gap-3">
@@ -158,7 +162,7 @@
                                 </div>
 
                             </div>
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-4">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
                                 <div class="divider-box d-flex justify-content-between align-items-center gap-2">
                                     <p class="total-text-with-bg ">
                                         Mother's Details
@@ -166,7 +170,7 @@
                                     <hr class="m-0 w-webkit text-light-gray op-1">
                                 </div>
                             </div>
-                            <div class="col-4 col-sm-2 col-md-1 col-lg-2 px-2 mt-3">
+                            <div class="col-4 col-sm-2 col-md-1 col-lg-2 px-2 ">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " autocomplete="off" maxlength="10" @bind-Value="registration.MotherTitle">
                                         <option Value="Mrs">Mrs.</option>
@@ -176,7 +180,7 @@
                             </div>
 
 
-                            <div class="col-8 col-sm-10 col-md-3 col-lg-3 px-2 mt-3">
+                            <div class="col-8 col-sm-10 col-md-3 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="100" @bind-Value="registration.MotherName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
                                     <label class="floating-label">Mother Name</label>
@@ -184,14 +188,14 @@
                             </div>
 
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.MotherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
                                     <label class="floating-label">Contact No.</label>
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" onkeypress="return event.key !== ' ';" maxlength="100" @bind-Value="registration.MotherEmailId"></InputText>
                                     <label class="floating-label">Email Id</label>
@@ -200,7 +204,7 @@
                             </div>
 
 
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-4">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
                                 <div class="divider-box d-flex justify-content-between align-items-center gap-2">
                                     <p class="total-text-with-bg ">
                                         Father's Details
@@ -209,7 +213,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-4 col-sm-2 col-md-1 col-lg-2 px-2 mt-3">
+                            <div class="col-4 col-sm-2 col-md-1 col-lg-2 px-2 ">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " @bind-Value="registration.FatherTitle" maxlength="10">
                                         <option value="Mr">Mr.</option>
@@ -218,7 +222,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-8 col-sm-10 col-md-3 col-lg-3 px-2 mt-3">
+                            <div class="col-8 col-sm-10 col-md-3 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="100" @bind-Value="registration.FatherName" onkeypress="return /^[a-zA-Z ]$/.test(event.key)"></InputText>
                                     <label class="floating-label">Father Name</label>
@@ -226,14 +230,14 @@
                             </div>
 
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.FatherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
                                     <label class="floating-label">Contact No</label>
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="100" onkeypress="return event.key !== ' ';" @bind-Value="registration.FatherEmailId" Label="E-MAil Id"></InputText>
                                     <label class="floating-label">Email Id</label>
@@ -241,7 +245,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-5 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-5 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.SMSMobileNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
                                     <label class="floating-label">
@@ -251,7 +255,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-7 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="8" @bind-Value="registration.CBSERollNo"></InputText>
                                     <label class="floating-label">CBSE Roll NO.</label>
@@ -259,7 +263,7 @@
 
                             </div>
 
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-4">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
                                 <div class="divider-box d-flex justify-content-between align-items-center gap-2">
                                     <p class="total-text-with-bg ">
                                         Residential Information
@@ -268,7 +272,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-5 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
                                     <label class="floating-label">Address To</label>
                                     <div class="border-box d-flex justify-content-center align-items-center gap-3">
@@ -298,19 +302,19 @@
                                 </div>
 
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.ContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
                                     <label class="floating-label">Contact No.</label>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="150" @bind-Value="registration.AddressLine1" Label="Line 1"></InputText>
                                     <label class="floating-label">Line 1</label>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-5 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="150" @bind-Value="registration.AddressLine2" Label="Line 2"></InputText>
                                     <label class="floating-label">Line 2</label>
@@ -319,20 +323,20 @@
 
 
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.Pincode" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="6"></InputText>
                                     <label class="floating-label">Pincode</label>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputNumber class="floating-input" placeholder=" " autocomplete="off" @bind-Value="registration.RegistrationFee" oninput="if(this.value.length > 6) this.value = this.value.slice(0,6);" />
                                     <label class="floating-label">Registration Fee</label>
                                     <ValidationMessage For="@(() => registration.RegistrationFee)" />
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 mt-3">
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2 ">
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " autocomplete="off" maxlength="30" @bind-Value="registration.PaymentMode" Label="Payment Mode">
                                         @foreach(var data in paymentlist)
@@ -344,13 +348,13 @@
                                     <label class="floating-label">Payment Mode</label>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-2 mt-3">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-3 px-2 ">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="300" @bind-Value="registration.Remarks" />
                                     <label class="floating-label">Remarks</label>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mt-3">
+                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
                                 <div class="tab-buttons d-flex justify-content-end gap-2">
 
                                     <button type="submit" class="ui animated button form-btn backBtn" tabindex="0">

@@ -195,7 +195,7 @@ namespace Infrastructure.StudentDocument
             workbook.SaveAs(stream);
             return stream.ToArray();
         }
-        public async Task<byte[]> GenerateStudentEnquerySummaryData(List<EnquiryListResponseDto> students)
+        public async Task<byte[]> GenerateStudentEnquerySummaryData(List<EnquirySummaryTableResponse> students)
         {
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Students");
@@ -226,10 +226,10 @@ namespace Infrastructure.StudentDocument
             foreach (var s in students)
             {
                 ws.Cell(row, 1).Value = srNo++;
-                ws.Cell(row, 2).Value = s.ClassName;
-                ws.Cell(row, 3).Value = s.EnquiryNo;
-                ws.Cell(row, 4).Value = s.EnquiryConverttoReg;
-                ws.Cell(row, 5).Value = s.ConvertedRegtoAdm;
+                ws.Cell(row, 2).Value = s.Class;
+                ws.Cell(row, 3).Value = s.NoOfEnquiry;
+                ws.Cell(row, 4).Value = s.ConvertEnqToReg;
+                ws.Cell(row, 5).Value = s.ConvertRegToAdm;
 
                 ws.Range(row, 1, row, totalColumns).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 

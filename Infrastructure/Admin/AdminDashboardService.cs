@@ -140,6 +140,31 @@ namespace Infrastructure.Admin
                 throw;
             }
         }
+        public async Task<AdmissionDashboardModel> GetAdmissionHeadDashboard(SearchAnyRequestModel request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("GroupCode", request.GroupCode);
+                param.Add("BranchCode", request.BranchCode);
+                param.Add("SessionId", request.SessionId);
+                param.Add("ClassCode", request.RequestName);
+
+                using var multi = await con.QueryMultipleAsync(
+                    "V3M_Get_AdmissionHeadDashboard",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                var result = await multi.ReadFirstOrDefaultAsync<AdmissionDashboardModel>();
+                return result ?? new AdmissionDashboardModel();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                throw;
+            }
+        }
 
     }
 }

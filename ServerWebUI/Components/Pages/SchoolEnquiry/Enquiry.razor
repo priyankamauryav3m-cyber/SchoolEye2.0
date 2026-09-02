@@ -22,6 +22,16 @@
         min-width: 75px;
     }
 
+    .registered-dot {
+        width: 10px;
+        height: 10px;
+        background: #15d910;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+        box-shadow: 0 0 0 3px rgba(21, 217, 16, 0.12);
+    }
+
     .quickgrid[theme="default"] > tbody > tr.registered-row > td {
         color: #15d910 !important;
     }
@@ -280,8 +290,8 @@
                 @if (enquiryList.Any(x => !string.IsNullOrWhiteSpace(x.RegistrationNo) && x.RegistrationNo != "0"))
                 {
                     <div class="welcome-text d-flex align-items-center gap-1">
-                        <span class="registered-row" style="display:inline-block; width:14px; height:14px; border:1px solid #15d910;"></span>
-                        <span class="text-success fw-bold">Green</span> — Registration already done
+                        <span class="registered-row registered-dot" ></span>
+                        <span class="text-success fw-bold">Convert to Registration</span>
                     </div>
                 }
                 else
@@ -750,7 +760,7 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                             <div class="form-box-group">
                                 <label for="sibling" class="floating-label">Followup Status</label>
-                                <select class="floating-input">
+                                <select class="floating-input" @bind="requestlist.FollowStatus">
                                     <option value="-1" selected>All</option>
                                     <option value="2">Most Interested</option>
                                     <option value="1">Interested</option>
@@ -846,10 +856,12 @@ else
     private EnquiryListResponse SeletedData = new();
     private AddFollowupRequest addFollowup = new();
     private EnquiryRequestDto requestlist = new();
+    private EnquirySummaryTableRequest summaryTableRequest = new();
     private List<FollowupDetailsResponse> followupDetaillist = new();
     private List<EnquiryListResponse> enquiryList = new();
     private List<CountryModel> countrylist = new();
     private List<SourceOfEnquiryModel> sourceOfEnquirilist = new();
+    private List<EnquirySummaryTableResponse> enquirySummarylist = new();
     private bool ShowPopup = false;
     private bool ShowPopupEnquery = false;
     private bool ShowPopupFollowup = false;
@@ -1221,25 +1233,42 @@ else
     {
         try
         {
+            IsLoading = true;
             var data = moduleQuery.ToList();
             if (data.Count == 0)
             {
                 await Alert.ShowWarning("No data found");
                 StateHasChanged();
+                 IsLoading=false;
                 return;
             }
-            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnquerySummary", data);
-            if (response != null && response.Success)
+            requestlist.GroupCode = groupcode;
+            requestlist.BranchCode = branchcode;
+            requestlist.SessionId = CurrentSession;
+            var apiResponse = await httpService.Post<ApiResponse<List<EnquirySummaryTableResponse>>>("Enquiry/GetEnquirySummaryData", requestlist);
+            if(apiResponse.Data!=null&& apiResponse.Success)
             {
-                var base64 = response.Data;
-                await JS.InvokeVoidAsync("downloadExcel", base64, "StudentSummary.xlsx");
-                //await JS.InvokeVoidAsync("openExcelDirect", base64);
-                StateHasChanged();
+                enquirySummarylist = apiResponse.Data ?? new();
+                var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnquerySummary", enquirySummarylist);
+                if (response != null && response.Success)
+                {
+                    IsLoading = false;
+                    var base64 = response.Data;
+                    await JS.InvokeVoidAsync("downloadExcel", base64, "StudentSummary.xlsx");
+                    //await JS.InvokeVoidAsync("openExcelDirect", base64);
+                    StateHasChanged();
+                }
+                else
+                {
+                    await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                }
             }
             else
             {
-                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+                return;
             }
+          
+
         }
         catch (Exception ex)
         {
@@ -1248,6 +1277,7 @@ else
         }
         finally
         {
+            IsLoading = false;
             StateHasChanged();
         }
 
@@ -1256,16 +1286,19 @@ else
     {
         try
         {
+             IsLoading=true;
             var data = moduleQuery.ToList();
             if (data.Count == 0)
             {
                 await Alert.ShowWarning("No data found");
                 StateHasChanged();
+                  IsLoading = false;
                 return;
             }
             var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnqueryListExcel", data);
             if (response != null && response.Success)
             {
+                  IsLoading = false;
                 var base64 = response.Data;
                 await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
                 //await JS.InvokeVoidAsync("openExcelDirect", base64);
@@ -1283,6 +1316,7 @@ else
         }
         finally
         {
+            IsLoading = false;
             StateHasChanged();
         }
 

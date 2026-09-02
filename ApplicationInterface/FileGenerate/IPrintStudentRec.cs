@@ -22,7 +22,7 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateRegForms(List<StudentListResponse> model);
         public Task<byte[]> BonafideCertificate(StudentListResponse model);
         public Task<byte[]> GenerateStudentEnqueryListExcelData(List<EnquiryListResponseDto> students);
-        public Task<byte[]> GenerateStudentEnquerySummaryData(List<EnquiryListResponseDto> students);
+        public Task<byte[]> GenerateStudentEnquerySummaryData(List<EnquirySummaryTableResponse> students);
         public Task<byte[]> GenerateStudentConcessionListExcelData(List<StudentWithConcessionDto> students);
         public Task<byte[]> GenerateStudentMapTransportListExcelData(List<TransportStudentDataModel> students);
         public Task<byte[]> GenerateStudentNotPromotedlistData(List<StudentNotPromotedModel> students);

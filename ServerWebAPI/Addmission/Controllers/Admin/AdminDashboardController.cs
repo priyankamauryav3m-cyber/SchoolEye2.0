@@ -106,6 +106,28 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
 
             return Ok(result);
         }
-
+        [HttpPost("GetAdmissionDashboardData")]
+        public async Task<ApiResponse<AdmissionDashboardModel>> GetAdmissionDas([FromBody] SearchAnyRequestModel request)
+        {
+            try
+            {
+                var data = await _service.GetAdmissionHeadDashboard(request);
+                return new ApiResponse<AdmissionDashboardModel>
+                {
+                    Success = true,
+                    Code = 1,
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<AdmissionDashboardModel>
+                {
+                    Success = false,
+                    Code = 0,
+                    Message = ex.Message
+                };
+            }
+        }
     }
 }
