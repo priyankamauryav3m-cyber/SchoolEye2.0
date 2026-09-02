@@ -76,7 +76,7 @@
                                             <div class="col-12 col-sm-12 col-md-6 col-lg-6 col-xl-6 px-1">
                                                 <div class="form-box flex-row gap-2 align-items-center">
                                                     <div class="border-box d-flex justify-content-between align-items-center gap-2 w-webkit px-2">
-                                                        <p class="form-label white-space-nowrap">Exsitring info : </p><p class="form-label">@transportRequest.DistanceName / @transportRequest.Amount</p>
+                                                        <p class="form-label white-space-nowrap">Exsiting info : </p><p class="form-label">@transportRequest.DistanceName / @transportRequest.Amount</p>
                                                     </div>
                                                     <button type="button" class="ui fade op-1 animated button form-btn" @onclick="MapTransportHistory">
                                                         <div class="visible content">History</div>
@@ -274,21 +274,21 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            @if (IsUsingTransport == true)
-                                            {
+                                            @* @if (IsUsingTransport == true)
+                                            { *@
                                                 <div class="col-12 p-0">
                                                     <hr class="m-0" />
                                                 </div>
                                                 <div class="col-12 p-1">
                                                     <div class="form-group btn-gr justify-content-end">
-                                                        <button type="submit" class="ui fade op-1 animated button form-btn" @onclick="SaveStudentWithTransport">
+                                                        <button type="button" disabled="@(!IsUsingTransport)" class="ui fade op-1 animated button form-btn" @onclick="SaveStudentWithTransport">
                                                             <div class="visible content">Submit</div>
                                                             <div class="hidden content"><i class="fa fa-save"></i></div>
                                                         </button>
 
                                                     </div>
                                                 </div>
-                                            }
+                                            @* } *@
                                         </div>
                                     </fieldset>
 
@@ -393,8 +393,9 @@
 
 
 }
-
+<CustomAlert @ref="customAlert" Title="Alert" />
 @code {
+    private CustomAlert customAlert;
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public string StudentNo { get; set; }
     public long SessionId { get; set; }
@@ -434,42 +435,42 @@
     private List<MonthModel> MonthList = new();
     private async Task OnSessionChanged()
     {
-       
-            var selectedSession = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSessionData);
 
-            if (selectedSession == null)
-                return;
-            int startMonth = selectedSession.StartDate.Month;
-            int endMonth = selectedSession.EndDate.Month;
-            var orderedMonths = new List<MonthModel>();
-            int current = startMonth;
-            while (true)
+        var selectedSession = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSessionData);
+
+        if (selectedSession == null)
+            return;
+        int startMonth = selectedSession.StartDate.Month;
+        int endMonth = selectedSession.EndDate.Month;
+        var orderedMonths = new List<MonthModel>();
+        int current = startMonth;
+        while (true)
+        {
+            orderedMonths.Add(MonthList.First(x => x.MonthNo == current)
+            );
+
+            if (current == endMonth)
+                break;
+            current++;
+
+            if (current > 12)
+                current = 1;
+        }
+        MonthList = orderedMonths;
+        if (!string.IsNullOrWhiteSpace(transportRequest.SelectedMonthNo))
+        {
+            var selectedMonths = transportRequest.SelectedMonthNo
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse)
+                .ToList();
+
+            foreach (var month in MonthList)
             {
-                orderedMonths.Add(MonthList.First(x => x.MonthNo == current)
-                );
-
-                if (current == endMonth)
-                    break;
-                current++;
-
-                if (current > 12)
-                    current = 1;
+                month.IsSelected = selectedMonths.Contains(month.MonthNo);
             }
-            MonthList = orderedMonths;
-            if (!string.IsNullOrWhiteSpace(transportRequest.SelectedMonthNo))
-            {
-                var selectedMonths = transportRequest.SelectedMonthNo
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(int.Parse)
-                    .ToList();
+        }
+        IsAllMonthSelected = MonthList.Any() && MonthList.All(x => x.IsSelected);
 
-                foreach (var month in MonthList)
-                {
-                    month.IsSelected = selectedMonths.Contains(month.MonthNo);
-                }
-            }
-            IsAllMonthSelected = MonthList.Any() && MonthList.All(x => x.IsSelected);
-        
         StateHasChanged();
     }
     private void SelectAllMonths(ChangeEventArgs e)
@@ -528,7 +529,7 @@
             return;
         }
         IsVisible = true;
-      
+
     }
 
     private async Task SetAllRecordStudent()
@@ -561,7 +562,7 @@
         await GetMapRouteBoardingPoint("pickup");
         await GetMapRouteBoardingPoint("drop");
         await OnSessionChanged();
-       
+
     }
 
     protected override async Task OnParametersSetAsync()
@@ -570,7 +571,7 @@
         {
             await LoadData();
             await SetAllRecordStudent();
-            
+
         }
 
     }
@@ -645,34 +646,41 @@
     {
         try
         {
-            IsVisible = false;
+            IsVisible = true;
+            transportRequest.SelectedMonthNo = string.Join(",", MonthList.Select(x => $"{x.MonthNo}~{(x.IsSelected ? 1 : 0)}"));
             if (transportRequest.DistanceId == 0)
             {
-                await Alert.ShowWarning("Please Select a distance.");
+                await customAlert.ShowCustomAlert("Please Select a distance.",false);
                 IsVisible = true;
                 return;
             }
             else if (string.IsNullOrEmpty(transportRequest.RouteId))
             {
-                await Alert.ShowWarning("Please Select a pickup route.");
+                await customAlert.ShowCustomAlert("Please Select a pickup route.",false);
                 IsVisible = true;
                 return;
             }
             else if (string.IsNullOrEmpty(transportRequest.DropRouteId))
             {
-                await Alert.ShowWarning("Please Select a  drop route.");
+                await customAlert.ShowCustomAlert("Please Select a  drop route.",false);
                 IsVisible = true;
                 return;
             }
             else if (string.IsNullOrEmpty(transportRequest.BoardingPointId))
             {
-                await Alert.ShowWarning("Please Select a pickup point.");
+                await customAlert.ShowCustomAlert("Please Select a pickup point.",false);
                 IsVisible = true;
                 return;
             }
             else if (string.IsNullOrEmpty(transportRequest.DropPointId))
             {
-                await Alert.ShowWarning("Please Select a  drop point.");
+                await customAlert.ShowCustomAlert("Please Select a  drop point.",false);
+                IsVisible = true;
+                return;
+            }
+            if (!MonthList.Any(x => x.IsSelected))
+            {
+                await customAlert.ShowCustomAlert("Please Select at least one month", false);
                 IsVisible = true;
                 return;
             }
@@ -690,7 +698,8 @@
                 transportRequest.SessionId = student.SessionId;
                 transportRequest.PassengerType = "Student";
                 transportRequest.IsTrasportReq = IsUsingTransport ? 1 : 0;
-                transportRequest.SelectedMonthNo = string.Join(",", MonthList.Select(x => $"{x.MonthNo}~{(x.IsSelected ? 1 : 0)}"));
+
+
                 var response = await httpService.Post<ApiResponse<string>>(ApiUri, transportRequest);
                 if (response == null || !response.Success || response.Code != 1)
                 {
@@ -699,10 +708,12 @@
                 }
 
             }
+            IsVisible = false;
             if (isSuccess)
             {
                 await Alert.ShowUpdate("Transport submitted successfully.");
                 transportRequest = new();
+                ResetMonths();
             }
             else
             {

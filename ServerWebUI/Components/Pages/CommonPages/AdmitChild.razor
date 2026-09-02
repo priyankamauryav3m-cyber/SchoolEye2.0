@@ -93,42 +93,11 @@
                                             <ValidationMessage For="@(() => studentDirectAdmission.stuManualAdmNo)" />
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2     ">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" @bind-Value="studentDirectAdmission.ClassCode">
-                                                 <option  value="" selected >--Select--</option>
 
-                                                @foreach (var cs in classlist.Where(x => x.IsValid))
-                                                {
-                                                    <option value="@cs.ClassCode">@cs.ClassName</option>
-                                                }
-                                            </InputSelect>
-
-                                            <label class="floating-label">
-                                                Class <span class="required">*</span>
-                                            </label>
-
-                                            <ValidationMessage For="@(() => studentDirectAdmission.ClassCode)" />
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2     ">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.SectionId" maxlength="10">
-                                               
-                                                <option  value="" selected >--Select--</option>
-                                                @foreach (var cs in classsectionslist)
-                                                {
-                                                    <option Value="@cs.SectionId">@cs.SectionName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">Section <span class="required">*</span></label>
-                                            <ValidationMessage For="@(() => studentDirectAdmission.SectionId)" />
-                                        </div>
-                                    </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.Gender" maxlength="10">
-                                                <option  value="" selected >--Select--</option>
+                                                <option value="" selected>--Select--</option>
                                                 @foreach (var cs in genderlist.Where(x => x.IsValid == true))
                                                 {
                                                     <option Value="@cs.GenderName">@cs.GenderName</option>
@@ -158,11 +127,42 @@
                                             <label class="floating-label">Last Name </label>
                                         </div>
                                     </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2     ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" @bind-Value="studentDirectAdmission.ClassCode" @bind-Value:after="GetSectionData">
+                                                <option value="" selected>--Select--</option>
 
+                                                @foreach (var cs in classlist.Where(x => x.IsValid))
+                                                {
+                                                    <option value="@cs.ClassCode">@cs.ClassName</option>
+                                                }
+                                            </InputSelect>
+
+                                            <label class="floating-label">
+                                                Class <span class="required">*</span>
+                                            </label>
+
+                                            <ValidationMessage For="@(() => studentDirectAdmission.ClassCode)" />
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2     ">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.SectionId" maxlength="10">
+
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var cs in classsectionslist)
+                                                {
+                                                    <option Value="@cs.SectionId">@cs.SectionName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">Section <span class="required">*</span></label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.SectionId)" />
+                                        </div>
+                                    </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.NationalityId" maxlength="10">
-                                                <option  value="" selected >--Select--</option>
+                                                <option value="0" selected>--Select--</option>
                                                 @foreach (var cs in countrylist.Where(x => x.IsValid == true))
                                                 {
                                                     <option Value="@cs.CountryId">@cs.CountryName</option>
@@ -174,7 +174,7 @@
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.SocialCategoryId" maxlength="10">
-                                               <option  value="" selected >--Select--</option>
+                                                <option value="0" selected>--Select--</option>
                                                 @foreach (var cs in categories)
                                                 {
                                                     <option Value="@cs.CategoryId">@cs.CategoryName</option>
@@ -186,7 +186,7 @@
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.Religion" maxlength="10">
-                                                <option  value="" selected >--Select--</option>
+                                                <option value="0" selected>--Select--</option>
                                                 @foreach (var cs in religionlist)
                                                 {
                                                     <option Value="@cs.ReligionId">@cs.ReligionName</option>
@@ -237,13 +237,13 @@
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect disabled="@(!IsUsingTransport)" class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.RouteDistance" maxlength="10">
-                                                <option  value="" selected >--Select--</option>
+                                                <option value="" selected>--Select--</option>
                                                 @foreach (var cs in distancelist)
                                                 {
                                                     <option Value="@cs.DistanceId">@cs.DistanceName</option>
                                                 }
                                             </InputSelect>
-                                            <label class="floating-label">&nbsp; </label>
+                                   
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-1   ">
@@ -275,7 +275,7 @@
                                         </div>
 
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-6  px-2   ">
                                         <div class="form-box-group">
                                             <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.PenNo" maxlength="15"></InputText>
                                             <label class="floating-label">PEN NO.</label>
@@ -315,30 +315,30 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-5  px-2   ">
                                         <div class="form-box-group">
                                             <InputText class="floating-input" autocomplete="off" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.FatherAadharNo"></InputText>
                                             <label class="floating-label">Aadhaar No.</label>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2   ">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.FatherEmailId" Label="E-MAil Id"></InputText>
-                                            <label class="floating-label">Email Id</label>
-                                            <ValidationMessage For="@(() => studentDirectAdmission.FatherEmailId)" />
-                                        </div>
-                                    </div>
 
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect class="  floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherOccupation" maxlength="10">
-                                                <option  value="" selected >--Select--</option>
+                                                <option value="0" selected>--Select--</option>
                                                 @foreach (var cs in getoccupationlist)
                                                 {
                                                     <option Value="@cs.OccupationId">@cs.OccupationName</option>
                                                 }
                                             </InputSelect>
                                             <label class="floating-label">Occupation </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-8 px-2   ">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.FatherEmailId" Label="E-MAil Id"></InputText>
+                                            <label class="floating-label">Email Id</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.FatherEmailId)" />
                                         </div>
                                     </div>
 
@@ -373,24 +373,25 @@
                                             <label class="floating-label"> Contact No.</label>
                                         </div>
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-5  px-2   ">
                                         <div class="form-box-group">
                                             <InputText class="floating-input" autocomplete="off" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.MotherAadharNo"></InputText>
                                             <label class="floating-label">Aadhaar No.</label>
                                         </div>
 
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-2   ">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-4  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.MotherEmailId"></InputText>
-                                            <label class="floating-label"> Email Id</label>
-                                            <ValidationMessage For="@(() => studentDirectAdmission.MotherEmailId)" />
+                                            <InputText class="floating-input" autocomplete="off" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.SMSContactNo"></InputText>
+                                            <label class="floating-label">SMS Mobile No. <span class="required">*</span> </label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.SMSContactNo)" />
                                         </div>
+
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
                                         <div class="form-box-group static-label">
                                             <InputSelect class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherOccupation" maxlength="10">
-                                                <option  value="" selected >--Select--</option>
+                                                <option value="" selected>--Select--</option>
                                                 @foreach (var cs in getoccupationlist)
                                                 {
                                                     <option Value="@cs.OccupationId">@cs.OccupationName</option>
@@ -400,17 +401,17 @@
                                         </div>
 
                                     </div>
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
+                                    <div class="col-12 col-sm-6 col-md-4 col-lg-5 px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.SMSContactNo"></InputText>
-                                            <label class="floating-label">SMS Mobile No. <span class="required">*</span> </label>
-                                            <ValidationMessage For="@(() => studentDirectAdmission.SMSContactNo)" />
+                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.MotherEmailId"></InputText>
+                                            <label class="floating-label"> Email Id</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.MotherEmailId)" />
                                         </div>
-
                                     </div>
 
-                          
+                             
 
+                          
                                     <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2  mb-3">
                                         <div class="divider-box d-flex justify-content-between align-items-center gap-2">
                                             <p class="total-text-with-bg">
@@ -563,7 +564,7 @@
                                         <div class="col-12 col-sm-6 col-md-4">
                                             <div class="form-box-group static-label">
                                                 <InputSelect class="floating-input" @bind-Value="ConcessionId" @bind-Value:after="GetConcessionData">
-                                                    <option  value="" selected >--Select--</option>
+                                                    <option value="" selected>--Select--</option>
                                                     @foreach (var data in concessionlist.Where(x => x.IsValid == true))
                                                     {
                                                         <option value="@data.ConcessionId" style="@(data.Type == "General" ? "color:red;" : "")">
@@ -775,7 +776,7 @@
                                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                                 <div class="form-box-group static-label">
                                                     <InputSelect @bind-Value="schoolbranchcode" class="floating-input" autocomplete="off" maxlength="10">
-                                                        <option  value="" selected >--Select--</option>
+                                                        <option value="" selected>--Select--</option>
                                                         @foreach (var cs in branchlist)
                                                         {
                                                             <option Value="@cs.BranchCode">@cs.BranchName</option>
@@ -915,7 +916,7 @@
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public long RegId { get; set; }
     [Parameter] public long SessionId { get; set; }
-    [Parameter]public EventCallback OnSearch { get; set; }
+    [Parameter] public EventCallback OnSearch { get; set; }
     private bool IsUsingTransport { get; set; } = false;
     private bool IsSibllingAttach = false;
     private string? branchcode;

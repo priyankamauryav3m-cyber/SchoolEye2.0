@@ -97,7 +97,7 @@
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="childDetails.ChildFirstName" autocomplete="off" onkeypress="return /^[a-z A-Z]$/.test(event.key)" maxlength="100" />
-                                                        <label class="floating-label">First Name<sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">First Name <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.ChildFirstName)" />
                                                         @* <InputHidden @bind-Value="childDetails.RegistrationId"></InputHidden> *@
 
@@ -130,7 +130,7 @@
                                                         }
                                                         
                                                         </InputSelect>
-                                                        <label class="floating-label">Class <sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Class  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.ClassCode)" />
                                                     </div>
                                                 </div>
@@ -158,7 +158,7 @@
                                                         }
                                                         }
                                                         </InputSelect>
-                                                        <label class="floating-label">Gender <sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Gender  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.Gender)" />
                                                     </div>
                                                 </div>
@@ -174,7 +174,7 @@
                                                         }
                                                         }
                                                         </InputSelect>
-                                                        <label class="floating-label">Nationality <sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Nationality  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.Nationality)" />
                                                     </div>
                                                 </div>
@@ -227,7 +227,7 @@
                                                         <option Value="@cs.CategoryId">@cs.CategoryName</option>
                                                         }
                                                         </InputSelect>
-                                                        <label class="floating-label">Category<sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Category <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.SocialCategory)" />
                                                     </div>
                                                 </div>
@@ -235,7 +235,7 @@
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
                                                         <InputDate class="floating-input" placeholder=" " @bind-Value="childDetails.DateOfBirth" autocomplete="off" maxlength="12" @bind-Value:after="OnDOBChanged" />
-                                                        <label class="floating-label">Date of Birth <sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Date of Birth  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.DateOfBirth)" />
                                                     </div>
                                                 </div>
@@ -243,7 +243,7 @@
                                                     <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
                                                         <div class="border-box d-flex justify-content-start align-items-center p-2">
                                                             <label class="d-flex align-items-center form-label">
-                                                                @Selectedreligion
+                                                                Age as on @AsOnDate.ToString("dd-MM-yyyy")
                                                             </label>
                                                         </div>
 
@@ -585,16 +585,11 @@
                                                     </div>
                                                 </div>
 
-                                                @*   <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                            <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="Selectedreligion" autocomplete="off" maxlength="100"   />
-                                                <label class="floating-label">Title</label>
-                                            </div>
-                                        </div> *@
+                                  
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-2 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
-                                                        <label class="floating-label">First Name</label>
+                                                        <label class="floating-label">Father Name  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherName)" />
                                                     </div>
                                                 </div>
@@ -743,7 +738,7 @@
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
-                                                        <label class="floating-label">SMS Mobile</label>
+                                                        <label class="floating-label">SMS Mobile  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => parentsDetails.SMSMobileNo)" />
                                                     </div>
                                                 </div>
@@ -791,7 +786,7 @@
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-2 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherName" onkeypress="return /^[a-z A-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
-                                                        <label class="floating-label">First Name</label>
+                                                        <label class="floating-label">Mother Name <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherName)" />
                                                     </div>
                                                 </div>
@@ -1650,7 +1645,7 @@
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.Line1" autocomplete="off" maxlength="100" />
-                                                        <label class="floating-label">Line - 1<sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Line - 1 <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => addressDetails.Line1)" />
                                                     </div>
                                                 </div>
@@ -1722,7 +1717,7 @@
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PermanentLine1" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="100" />
-                                                        <label class="floating-label">Line - 1<sup class="text-red fw-bold">*</sup></label>
+                                                        <label class="floating-label">Line - 1 <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => addressDetails.PermanentLine1)" />
                                                     </div>
                                                 </div>
@@ -1959,10 +1954,7 @@
     private string _originaladdress = "";
     private string _originaladdressp = "";
     private string _originalfaimily = "";
-    // ========== EDIT CONTEXTS ==========
-
-    // ========== DIRTY FLAGS ==========
-
+    private DateTime AsOnDate { get; set; } = new DateTime(2027, 4, 1);
     private Dictionary<string, ElementReference> fieldRefs = new();
     private CustomAlert customAlert;
     private string? SelectedClass { get; set; }
@@ -2070,7 +2062,8 @@
                     return;
                 }
                 var dateOfBirth = Convert.ToDateTime(childDetails.DateOfBirth);
-                datecalulate = _commonmethod.CalculateAge(dateOfBirth);
+                //datecalulate = _commonmethod.CalculateAge(dateOfBirth);
+                datecalulate = _commonmethod.CalculateAge(dateOfBirth, AsOnDate);
             }
             else
             {

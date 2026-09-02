@@ -200,7 +200,7 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
         }
 
         [HttpPost("GenerateStudentEnquerySummary")]
-        public async Task<IActionResult> GenerateStudentEnquerySummaryData([FromBody] List<EnquiryListResponseDto> students)
+        public async Task<IActionResult> GenerateStudentEnquerySummaryData([FromBody] List<EnquirySummaryTableResponse> students)
         {   
             var bytes = await _generateFile.GenerateStudentEnquerySummaryData(students);
             var base64Pdf = Convert.ToBase64String(bytes);

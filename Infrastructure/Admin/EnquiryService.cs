@@ -1,5 +1,6 @@
 ﻿using ApplicationInterface.Admin;
 using Dapper;
+using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -162,9 +163,7 @@ namespace Infrastructure.Admin
                 throw new Exception("Error while adding follow-up", ex);
             }
         }
-        public async Task<DashboardResponse> GetDashboardAsync(
-    int currentSessionId,
-    int previousSessionId)
+        public async Task<DashboardResponse> GetDashboardAsync(int currentSessionId, int previousSessionId)
         {
             using var con = new SqlConnection(_connectionString);
 
@@ -197,5 +196,34 @@ namespace Infrastructure.Admin
 
             return response;
         }
+        public async Task<IEnumerable<EnquirySummaryTableResponse>> GetEnquirySummaryData(EnquirySummaryTableRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@Course", request.Course);
+                param.Add("@DateWorkAs", request.DateWorkAs);
+                param.Add("@FromDate", request.FromDate);
+                param.Add("@ToDate", request.ToDate);
+                param.Add("@FollowStatus", request.FollowStatus);
+                param.Add("@AppliedFrom", request.AppliedFrom);
+                param.Add("@StudentName", request.StudentName);
+                param.Add("@MobileNo", request.MobileNo);
+                return await con.QueryAsync<EnquirySummaryTableResponse>(
+                    "ENQ_UspGetEnquirySummaryTable",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 }

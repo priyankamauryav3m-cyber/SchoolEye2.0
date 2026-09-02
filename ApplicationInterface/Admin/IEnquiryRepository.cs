@@ -1,4 +1,5 @@
-﻿using DomainModel.FinanceMNGT;
+﻿using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,9 +15,8 @@ namespace ApplicationInterface.Admin
         public Task<string> SubmitEnquiryData(EnquiryListResponse model);
         public Task<List<FollowupDetailsResponse>> GetFollowupDetails(SearchAnyRequestModel searchAnyRequest);
         public Task<string> AddFollowupDetails(AddFollowupRequest request);
-        Task<DashboardResponse> GetDashboardAsync(
-       int currentSessionId,
-       int previousSessionId);
+        Task<DashboardResponse> GetDashboardAsync(int currentSessionId,int previousSessionId);
+        public Task<IEnumerable<EnquirySummaryTableResponse>> GetEnquirySummaryData(EnquirySummaryTableRequest request);
 
 
     }

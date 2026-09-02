@@ -19,6 +19,10 @@
 @rendermode InteractiveServer
 <style>
     .quickgrid thead th:nth-last-child(2) {
+        min-width: 50px;
+    }
+
+    .quickgrid thead th:last-child{
         min-width: 75px;
     }
 </style>
@@ -136,9 +140,9 @@
                                         @(string.IsNullOrWhiteSpace(context.StartDate) ? " " : context.StartDate)
                                     </ChildContent>
                                 </TemplateColumn> *@
-                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.StartDate)" Sortable="true" Title="Start Date" />
-                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.EndDate)" Sortable="true" Title="End Date" />
-                                <TemplateColumn Title="Start Time" Align="Align.Left">
+                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.StartDate)" Sortable="true" Title="Start Date" class="text-center" Align="Align.Center"/>
+                                <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.EndDate)" Sortable="true" Title="End Date" class="text-center" Align="Align.Center" />
+                                <TemplateColumn Title="Start Time" class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         @{
                                             DateTime time;
@@ -146,7 +150,7 @@
                                         @(DateTime.TryParse(context.StartTime, out time) ? time.ToString("HH:mm") : " ")
                                     </ChildContent>
                                 </TemplateColumn>
-                                <TemplateColumn Title="End Time" Align="Align.Left">
+                                <TemplateColumn Title="End Time" class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         @{
                                             DateTime time;

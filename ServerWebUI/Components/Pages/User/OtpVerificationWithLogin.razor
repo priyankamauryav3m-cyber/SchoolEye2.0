@@ -20,18 +20,36 @@
 @using MyApp.Common
 @inject SweetAlertService Alert
 @using System.Timers;
-
 @inject IHttpClientFactory HttpClientFactory
 
 <section class="verification-section">
     <div class="otp-card-container">
+
         <div class="left-panel">
+            <div class="brand-top">
+                <span class="brand-pill"><i class="fa-solid fa-shield-halved"></i> Secure Portal</span>
+            </div>
+
             <div class="illustration-wrapper">
+                <span class="ring" aria-hidden="true"></span>
                 <img src="https://img.freepik.com/free-vector/two-factor-authentication-concept-illustration_114360-5488.jpg"
                      alt="Two Step Security 3D Illustration"
                      class="illustration-img" />
             </div>
+
+            <p class="left-eyebrow">Account protection</p>
+            <h1 class="left-heading">One more step.<br />Much stronger security.</h1>
+            <p class="left-summary">Two-step verification protects your eSchoolERP workspace by confirming that it is really you signing in.</p>
+
+            <ul class="trust-list">
+                <li>Encrypted verification</li>
+                <li>Time-limited access code</li>
+                <li>Protected account activity</li>
+            </ul>
+
+            <div class="left-foot"><b>Security by design</b> • eSchoolERP</div>
         </div>
+
         <div class="right-panel">
             <div>
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -45,7 +63,6 @@
                     {
                         <div></div> <!-- Spacer -->
                     }
-
                     <div class="header-tag">
                         <i class="fa-solid fa-shield-halved"></i> Secure Verification
                     </div>
@@ -54,9 +71,10 @@
                 <div class="icon-badge">
                     🔒
                 </div>
-                <div class="title-area">
-                    <h2>Two-Step Verification</h2>
 
+                <div class="title-area">
+                    <span class="step-badge">Step @(IsOtpSent ? "2" : "1") of 2</span>
+                    <h2>Two-Step Verification</h2>
                     @if (!IsOtpSent)
                     {
                         <p>Select where you would like to receive your 6-digit verification code:</p>
@@ -77,26 +95,22 @@
                     <EditForm Model="@sendOtpRequest" OnSubmit="SendOtpEmailWithPhone">
                         <div class="options-group">
                             <InputRadioGroup TValue="string" @bind-Value="SelectedType">
-
-                                <div class="option-card">
+                                <label class="option-card" for="radio-email">
                                     <InputRadio TValue="string" Value='"Email"' id="radio-email" class="form-check-input" />
-                                    <label class="option-label" for="radio-email">
+                                    <span class="option-label">
                                         <i class="fa-solid fa-envelope me-2 text-primary"></i>
                                         Email: @MaskEmail(Email)
-                                    </label>
-                                </div>
-
-                                <div class="option-card">
+                                    </span>
+                                </label>
+                                <label class="option-card" for="radio-mobile">
                                     <InputRadio TValue="string" Value='"Mobile"' id="radio-mobile" class="form-check-input" />
-                                    <label class="option-label" for="radio-mobile">
+                                    <span class="option-label">
                                         <i class="fa-solid fa-mobile-screen-button me-2 text-primary"></i>
                                         Mobile: @MaskMobile(Mobile)
-                                    </label>
-                                </div>
-
+                                    </span>
+                                </label>
                             </InputRadioGroup>
                         </div>
-
                         <button class="btn-main" type="submit">
                             <span>Send OTP</span> <i class="fa-solid fa-paper-plane"></i>
                         </button>
@@ -104,7 +118,6 @@
                 }
                 else
                 {
-                   
                     <div class="mb-3">
                         <input class="form-control otp-input-single"
                                value="@otpdata"
@@ -114,16 +127,15 @@
                                inputmode="numeric"
                                placeholder="••••••"
                                autofocus />
-
                         @if (!string.IsNullOrWhiteSpace(OtpError))
                         {
                             <div class="text-danger mt-2 otp-error-shake text-center">
                                 <small><strong>@OtpError</strong></small>
                             </div>
                         }
+                        <p class="hint">The code expires in 10 minutes.</p>
                     </div>
 
-                    <!-- Timer / Resend Links (1:30 Mint / 90 Seconds Timer) -->
                     <div class="timer-text mb-3">
                         @if (SecondsLeft > 0)
                         {
@@ -136,7 +148,6 @@
                         }
                     </div>
 
-                    <!-- Verify Button -->
                     @if (!string.IsNullOrWhiteSpace(otpdata) && otpdata.Length == 6)
                     {
                         <button class="btn-verify-success" type="button" @onclick="VerifyOtpData" disabled="@isVerifying">
@@ -156,7 +167,6 @@
                 }
             </div>
 
-            <!-- Bottom Information Notice Card -->
             <div class="info-box">
                 <div class="info-icon"><i class="fa-solid fa-circle-info"></i></div>
                 <div class="info-text">
@@ -165,10 +175,8 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Footer Branding -->
     <div class="footer">
         <div class="footer-security">
             <i class="fa-solid fa-lock"></i> Your security is our priority
@@ -176,6 +184,486 @@
         <div>&copy; 2025 eSchoolERP. All rights reserved.</div>
     </div>
 </section>
+
+<style>
+    :root {
+        --navy: #061a2f;
+        --navy2: #103b59;
+        --blue: #087fc3;
+        --green: #329a37;
+        --ink: #102337;
+        --muted: #66798c
+    }
+
+    .verification-section {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 32px;
+        background: linear-gradient(125deg,#087fc314,transparent 38%),radial-gradient(circle at 83% 15%,#329a371f,transparent 28%);
+        font-family: Inter,Segoe UI,Arial,sans-serif;
+        color: var(--ink)
+    }
+
+    .otp-card-container {
+        width: min(1120px,100%);
+        min-height: 640px;
+        display: grid;
+        grid-template-columns: .9fr 1.1fr;
+        overflow: hidden;
+        border-radius: 28px;
+        background: #fff;
+        box-shadow: 0 32px 90px #11354c2e
+    }
+
+    /* ---------- LEFT PANEL ---------- */
+    .left-panel {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 34px 40px 30px;
+        color: #fff;
+        overflow: hidden;
+        background: radial-gradient(circle at 82% 28%,#188fce57,transparent 32%),linear-gradient(145deg,var(--navy2),var(--navy) 68%)
+    }
+
+    .brand-top {
+        display: flex;
+        justify-content: flex-end
+    }
+
+    .brand-pill {
+        padding: 7px 10px;
+        border-radius: 99px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        border: 1px solid #ffffff2e;
+        background: #ffffff14;
+        color: #dff4ff
+    }
+
+    .illustration-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 260px;
+        margin: 24px auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center
+    }
+
+    .illustration-img {
+        width: 100%;
+        border-radius: 16px;
+        position: relative;
+        z-index: 1
+    }
+
+    .ring {
+        position: absolute;
+        inset: -14px;
+        border: 1px solid #73d0ff57;
+        border-radius: 50%;
+        transform: rotate(-8deg)
+    }
+
+    .left-eyebrow {
+        margin: 18px 0 8px;
+        color: #69d267;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .18em;
+        text-transform: uppercase
+    }
+
+    .left-heading {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.12;
+        letter-spacing: -.03em
+    }
+
+    .left-summary {
+        max-width: 420px;
+        color: #bbd0df;
+        font-size: 14px;
+        line-height: 1.7;
+        margin-top: 12px
+    }
+
+    .trust-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0;
+        list-style: none;
+        margin: 18px 0 0
+    }
+
+        .trust-list li {
+            padding: 8px 10px;
+            border: 1px solid #ffffff1a;
+            border-radius: 9px;
+            background: #ffffff0d;
+            color: #dbe9f1;
+            font-size: 11px
+        }
+
+            .trust-list li:before {
+                content: "✓";
+                color: #67cf62;
+                margin-right: 6px;
+                font-weight: bold
+            }
+
+    .left-foot {
+        margin-top: auto;
+        padding-top: 18px;
+        color: #8faabe;
+        font-size: 11px
+    }
+
+        .left-foot b {
+            color: #c8dae6
+        }
+
+    /* ---------- RIGHT PANEL ---------- */
+    .right-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 34px 48px 26px
+    }
+
+    .header-tag {
+        color: var(--green);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 6px
+    }
+
+    .icon-badge {
+        width: 56px;
+        height: 56px;
+        display: grid;
+        place-items: center;
+        margin: 14px auto 6px;
+        border-radius: 18px;
+        background: linear-gradient(135deg,#0b91d4,#35a744);
+        box-shadow: 0 14px 34px #0393c95c;
+        font-size: 26px
+    }
+
+    .title-area {
+        text-align: center;
+        margin-bottom: 18px
+    }
+
+    .step-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 99px;
+        color: #087bb7;
+        background: #e8f5fb;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin-bottom: 8px
+    }
+
+    .title-area h2 {
+        margin: 6px 0 8px;
+        font-size: 28px;
+        letter-spacing: -.03em
+    }
+
+    .title-area p {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6
+    }
+
+    .options-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 22px 0
+    }
+
+    .option-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border: 1px solid #d9e6ed;
+        border-radius: 14px;
+        cursor: pointer;
+        transition: .18s ease;
+        background: #f9fbfc
+    }
+
+        .option-card:hover {
+            border-color: var(--blue);
+            background: #eef8fd
+        }
+
+        .option-card input {
+            margin: 0
+        }
+
+    .option-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink)
+    }
+
+    .btn-main, .btn-verify-success {
+        width: 100%;
+        height: 52px;
+        margin-top: 8px;
+        border: 0;
+        border-radius: 12px;
+        color: #fff;
+        background: linear-gradient(100deg,#087fc3,#239844);
+        box-shadow: 0 12px 24px #0a807733;
+        font-weight: 750;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer
+    }
+
+        .btn-main:disabled, .btn-verify-success:disabled {
+            background: #cfdbe2;
+            box-shadow: none;
+            cursor: not-allowed
+        }
+
+    .otp-input-single {
+        width: 100%;
+        height: 62px;
+        text-align: center;
+        border: 1px solid #cbd9e3;
+        border-radius: 12px;
+        background: #f9fbfc repeating-linear-gradient(90deg,transparent 0 62px,#cbd9e3 62px 63px);
+        color: var(--ink);
+        font-size: 26px;
+        font-weight: 750;
+        font-family: monospace;
+        letter-spacing: 34px;
+        padding-left: 24px;
+        outline: 0
+    }
+
+        .otp-input-single:focus {
+            border-color: var(--blue);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px #087fc31a
+        }
+
+        .otp-input-single::placeholder {
+            letter-spacing: 34px;
+            color: #c3cdd6
+        }
+
+    .hint {
+        margin-top: 8px;
+        text-align: left;
+        color: #8998a6;
+        font-size: 11px
+    }
+
+    .timer-text {
+        text-align: center;
+        color: #778a99;
+        font-size: 12px
+    }
+
+    .resend-link {
+        border: 0;
+        background: none;
+        color: var(--blue);
+        font-weight: 750;
+        cursor: pointer;
+        text-decoration: none
+    }
+
+    .loading-text-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px
+    }
+
+    .loader-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff55;
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin .7s linear infinite
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .otp-error-shake {
+        animation: shake .35s ease
+    }
+
+    @@keyframes shake {
+        0%, 100% {
+            transform: translateX(0)
+        }
+
+        25% {
+            transform: translateX(-4px)
+        }
+
+        75% {
+            transform: translateX(4px)
+        }
+    }
+
+    .info-box {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding: 15px 16px;
+        text-align: left;
+        border: 1px solid #dce9f0;
+        border-radius: 14px;
+        background: #f5f9fb
+    }
+
+    .info-icon {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 10px;
+        color: var(--blue);
+        background: #e2f2fa
+    }
+
+    .info-text h5 {
+        margin: 0 0 4px;
+        font-size: 12px
+    }
+
+    .info-text p {
+        margin: 0;
+        color: #708392;
+        font-size: 11px;
+        line-height: 1.55
+    }
+
+    .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        width: min(1120px,100%);
+        margin-top: 14px;
+        padding: 0 8px;
+        color: #93a1ab;
+        font-size: 10px
+    }
+
+    .footer-security {
+        display: flex;
+        align-items: center;
+        gap: 6px
+    }
+
+    @@media(max-width:850px) {
+        .verification-section {
+            padding: 20px
+        }
+
+        .otp-card-container {
+            grid-template-columns: 1fr;
+            max-width: 650px;
+            min-height: auto
+        }
+
+        .left-panel {
+            padding: 24px 28px
+        }
+
+        .illustration-wrapper {
+            max-width: 180px
+        }
+
+        .left-heading {
+            font-size: 26px
+        }
+
+        .right-panel {
+            padding: 28px 32px 22px
+        }
+    }
+
+    @@media(max-width:520px) {
+        .verification-section {
+            padding: 0;
+            background: #fff
+        }
+
+        .otp-card-container {
+            min-height: 100vh;
+            border-radius: 0;
+            box-shadow: none
+        }
+
+        .left-panel {
+            padding: 18px 20px;
+            border-radius: 0 0 24px 24px
+        }
+
+        .illustration-wrapper {
+            max-width: 140px;
+            margin: 14px auto
+        }
+
+        .left-eyebrow, .trust-list, .left-foot {
+            display: none
+        }
+
+        .left-heading {
+            font-size: 22px
+        }
+
+        .right-panel {
+            padding: 22px 18px 16px
+        }
+
+        .otp-input-single {
+            letter-spacing: 20px;
+            font-size: 20px;
+            padding-left: 14px
+        }
+
+        .footer {
+            flex-direction: column;
+            gap: 6px;
+            text-align: center
+        }
+    }
+</style>
 
 @code {
     private int UserId;
@@ -187,19 +675,15 @@
     private bool IsVerifyClicked = false;
     private SendOtpRequest sendOtpRequest = new();
     private VerifyOtpRequestDto verifyOtpRequestDto = new();
-
     // 1.30 Minutes Timer = 90 Seconds
     private int SecondsLeft = 90;
     private bool IsOtpSent = false;
-
     // Time format 01:30
     private string TimeLeft => $"{SecondsLeft / 60:D2}:{SecondsLeft % 60:D2}";
     private Timer? timer;
-
     private void OnOtpInput(ChangeEventArgs e)
     {
         otpdata = e.Value?.ToString() ?? "";
-
         if (IsVerifyClicked)
         {
             if (string.IsNullOrWhiteSpace(otpdata))
@@ -221,34 +705,25 @@
     {
         if (string.IsNullOrWhiteSpace(email))
             return "";
-
         var parts = email.Split('@');
-
         if (parts.Length != 2)
             return email;
-
         var name = parts[0];
-
         if (name.Length <= 6)
             return name.Substring(0, Math.Min(2, name.Length)) + "*****@" + parts[1];
-
         return name.Substring(0, 2) +
                "*****" +
                name.Substring(name.Length - 4) +
                "@" + parts[1];
     }
-
     private string MaskMobile(string mobile)
     {
         if (string.IsNullOrWhiteSpace(mobile))
             return "";
-
         if (mobile.Length < 4)
             return "******";
-
         return "******" + mobile[^4..];
     }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -262,11 +737,9 @@
             StateHasChanged();
         }
     }
-
     private async Task SendOtpEmailWithPhone()
     {
         sendOtpRequest.UserId = UserId;
-
         if (SelectedType == "Email")
         {
             if (string.IsNullOrWhiteSpace(Email))
@@ -290,10 +763,8 @@
             await Alert.ShowWarning("Please select Email or Mobile No.");
             return;
         }
-
         await JS.InvokeVoidAsync("showProcessingAlert");
         var response = await httpService.Post<ApiResponse<string>>("users/SendOtp", sendOtpRequest);
-
         if (response.Success && response.Code == 1)
         {
             await Task.Delay(2000);
@@ -322,28 +793,22 @@
                 OtpError = "Please enter the OTP.";
                 return;
             }
-
             verifyOtpRequestDto.UserId = UserId;
             verifyOtpRequestDto.OtpCode = otpdata;
-
             if (verifyOtpRequestDto.OtpCode.Length != 6)
             {
                 await Alert.ShowWarning("Please enter a valid 6-digit OTP.");
                 return;
             }
-
             // Start Loading State
             isVerifying = true;
             StateHasChanged();
-
             var token = await JS.InvokeAsync<string>("localStorage.getItem", "DeviceToken");
             if (!string.IsNullOrWhiteSpace(token))
             {
                 verifyOtpRequestDto.DeviceToken = Guid.Parse(token);
             }
-
             var response = await httpService.Post<ApiResponse<UserModels>>("users/VerifyOtp", verifyOtpRequestDto);
-
             switch (response.Code)
             {
                 case 1:
@@ -353,13 +818,11 @@
                         await JS.InvokeAsync<string>("localStorage.setItem", "authToken", user.Token);
                         await sessionStorage.SetAsync("authToken", user.Token);
                         var dashboard = await sessionStorage.GetAsync<string>("Dashboard");
-
                         // Success hone par hi form reset hoga
                         verifyOtpRequestDto.OtpCode = "";
                         otpdata = "";
                         OtpError = "";
                         IsOtpSent = false;
-
                         if (dashboard.Success && !string.IsNullOrWhiteSpace(dashboard.Value))
                         {
                             Nav.NavigateTo("/" + dashboard.Value, true);
@@ -370,20 +833,15 @@
                         }
                     }
                     break;
-
                 case 2:
                 case 3:
                     OtpError = response.Message; // Screen par error dikhayega
-                    //await Alert.ShowWarning(response.Message);
                     otpdata = "";
                     break;
-
                 case 4:
                     OtpError = response.Message;
                     otpdata = "";
-                   // await Alert.ShowError(response.Message);
                     break;
-
                 default:
                     break;
             }
@@ -399,7 +857,6 @@
             StateHasChanged();
         }
     }
-
     private async Task ResendOtp()
     {
         var request = new ResendOtpRequestDto
@@ -407,12 +864,9 @@
             UserId = UserId,
             SendTo = SelectedType == "Email" ? Email : Mobile
         };
-
         await JS.InvokeVoidAsync("showProcessingAlert");
         var response = await httpService.Post<ApiResponse<string>>("users/ResendOtp", request);
-
         if (response.Success && response.Code == 1)
-
         {
             await Task.Delay(2000);
             await JS.InvokeVoidAsync("closeSwal");
@@ -424,14 +878,11 @@
             await Alert.ShowWarning(response.Message);
         }
     }
-
     private void StartTimer()
     {
         // Set to 90 seconds (1 minute 30 seconds)
         SecondsLeft = 90;
-
         timer?.Dispose();
-
         timer = new Timer(1000);
         timer.Elapsed += async (_, _) =>
         {
@@ -445,10 +896,8 @@
                 timer.Stop();
             }
         };
-
         timer.Start();
     }
-
     public void Dispose()
     {
         timer?.Dispose();

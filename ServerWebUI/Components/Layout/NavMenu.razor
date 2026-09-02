@@ -31,51 +31,42 @@
 <aside class="side-menu">
     <div class="sidebar-menu">
         <ul class="asidebar-nav" id="asidebar-nav">
-            <li class="menu-group d-flex align-items-center gap-2">
+            @* <li class="menu-group d-flex align-items-center gap-2">
                 <p class="m-0 fts-12">Students</p>
                 <hr class="m-0 w-webkit">
-            </li>
+            </li> *@
 
-            <li class="nav-item">
-                <a href="/@DashboardUrl" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
-                   title=" Dashboard ">
-                    <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
-                    <span>Dashboard</span><i class="bi bi-chevron-right ms-auto"></i>
-                </a>
-            </li>
+        
 
       
-            <li class="nav-item">
+            @* <li class="nav-item">
                 <a href="/invoicegeneration" class="nav-link collapsed" data-toggle="tooltip"
                    data-placement="right" title="Role Master">
                     <div class="menu-ico-box"><i class="bi bi-award"></i></div>
                     <span>Invoice Generation</span>
                     <i class="bi bi-chevron-right ms-auto"></i>
                 </a>
-            </li>
-            <li class="nav-item">
+            </li> *@
+            @* <li class="nav-item">
                 <a href="/rolemaster" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
                    title="&nbsp; Role &nbsp;">
                     <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
                     <span>Role</span><i class="bi bi-chevron-right ms-auto"></i>
                 </a>
-            </li>
-            @* <li class="nav-item">
-                <a href="/student" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
-                   title="&nbsp; Student &nbsp;">
-                    <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
-                    <span>Student</span><i class="bi bi-chevron-right ms-auto"></i>
-                </a>
             </li> *@
-
-      
-       
 
             @foreach (var item in feature)
             {
                 <li class="menu-group d-flex align-items-center gap-2">
                     <p class="m-0 fts-12">@item.MName</p>
                     <hr class="m-0 w-webkit">
+                </li>
+                <li class="nav-item">
+                    <a href="/@DashboardUrl" class="nav-link collapsed" data-toggle="tooltip" data-placement="right"
+                       title=" Dashboard ">
+                        <div class="menu-ico-box"><i class="bi bi-x-diamond"></i></div>
+                        <span>Dashboard</span><i class="bi bi-chevron-right ms-auto"></i>
+                    </a>
                 </li>
                 @foreach (var fet in item.Features)
                 {
@@ -132,67 +123,7 @@
                                     </li>
                                 }
                             }
-                            @* @{
-                                var leftMenus = fet.Activites.Take(10).ToList();
-                                var rightMenus = fet.Activites.Skip(10).ToList();
-                            }
-                            <li class="left-menu">
-                                <div class="list-group list-none p-0">
-
-
-                                    @foreach (var activity in leftMenus)
-                                    {
-
-                                        <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
-                                            <span class="flex-grow-1">@activity.DisplayName</span>
-                                            <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
-                                               data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
-                                               @onclick:stopPropagation="true" @onclick="() => ToggleAsync(activity)"></i>
-                                        </NavLink>
-
-                                    }
-                                </div>
-                            </li>
-                            @if (leftMenus.Count == 10)
-                            {
-                                <li class="right-menu">
-                                    <div class="list-group list-none p-0">
-
-                                        @foreach (var activity in rightMenus)
-                                        {
-
-                                            <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
-                                                <span class="flex-grow-1">@activity.DisplayName</span>
-                                                <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
-                                                   data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
-                                                   @onclick:stopPropagation="true" @onclick="() => ToggleAsync(activity)"></i>
-                                            </NavLink>
-
-                                        }
-                                    </div>
-                                </li>
-                            }
-                            else
-                            {
-                                <li class="left-menu">
-                                    <div class="list-group list-none p-0">
-
-
-                                        @foreach (var activity in leftMenus)
-                                        {
-
-                                            <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
-                                                <span class="flex-grow-1">@activity.DisplayName</span>
-                                                <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
-                                                   data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
-                                                   @onclick:stopPropagation="true" @onclick="() => ToggleAsync(activity)"></i>
-                                            </NavLink>
-
-                                        }
-                                    </div>
-                                </li>
-                            } *@
-
+                           
                         </ul>
                     </li>
                 }
@@ -235,7 +166,7 @@
         {
             await GetMenuMappingList();
             await BookmarkState.LoadAsync(username);
-            // await JS.InvokeVoidAsync("initMainJsFunctions");
+           
         }
 
         StateHasChanged();
@@ -295,7 +226,7 @@
             }).ToList();
         MenuState.SetDashboardUrl(DashboardUrl);
         MenuState.SetFeatures(feature);
-       // permissionState.SetMenus(roleId, admitPermission, feature);
+       
     }
 
 

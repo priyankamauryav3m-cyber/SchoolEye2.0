@@ -22,7 +22,7 @@
                 <p class="m-0 page-name px-1">Class Document Mapping </p>
                 <div class="d-flex gap-2">
                     <div class="form-box">
-                        <InputSelect @bind-Value="mapping.ClassCode" class="form-input" @bind-Value:after="SearchMapStudent">
+                        <InputSelect @bind-Value="searchAnyRequest.RequestName" class="form-input" @bind-Value:after="SearchMapStudent">
                             <option value="">-- Select Class --</option>
                             @foreach (var data in classlist.Where(x => x.IsValid == true))
                             {
@@ -57,7 +57,7 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
                                 
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Title="Class Name" class="text-center" Sortable="true" Align="Align.Left">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Title="Class Name" class="text-center" Sortable="true" Align="Align.Center">
                                     <ColumnOptions>
                                         <div class="search-box">
                                             <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Class ..." />
@@ -376,7 +376,7 @@ else
     private async Task SearchMapStudent()
     {
         IsLoading = true;
-        if (string.IsNullOrEmpty(mapping.ClassCode))
+        if (string.IsNullOrEmpty(searchAnyRequest.RequestName))
         {
             await Alert.ShowWarning("Please select a class");
             StateHasChanged();
@@ -385,7 +385,7 @@ else
         }
         searchAnyRequest.GroupCode = groupcode;
         searchAnyRequest.BranchCode = branchcode;
-        searchAnyRequest.RequestName = mapping.ClassCode;
+        // searchAnyRequest.RequestName = mapping.ClassCode;
         string ApiUri = "ClassDocument/GetClassDocument";
         mappinglist = await httpService.Post<List<ClassDocumentModel>>(ApiUri, searchAnyRequest) ?? new();
         IsLoading = false;

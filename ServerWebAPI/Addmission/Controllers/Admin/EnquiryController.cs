@@ -1,4 +1,5 @@
 ﻿using ApplicationInterface.Admin;
+using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Common;
@@ -180,16 +181,51 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
 
         }
-        [HttpGet("dashboard")]
-        public async Task<IActionResult> GetDashboard(
-    int currentSessionId,
-    int previousSessionId)
+   
+        [HttpPost("GetEnquirySummaryData")]
+        public async Task<IActionResult> GetEnquirySummaryData([FromBody] EnquirySummaryTableRequest request)
         {
-            
-               var data= await _repo.GetDashboardAsync(
-                    currentSessionId,
-                    previousSessionId);
-            return Ok(data);
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+            try
+            {
+                var data = await _repo.GetEnquirySummaryData(request);
+                if (data == null || !data.Any())
+                {
+                    return Ok(new ApiResponse<IEnumerable<EnquirySummaryTableResponse>>
+                    {
+                        Success = true,
+                        Message = "No records found.",
+                        Code = 0,
+                        Data = Enumerable.Empty<EnquirySummaryTableResponse>()
+                    });
+                }
+                return Ok(new ApiResponse<IEnumerable<EnquirySummaryTableResponse>>
+                {
+                    Success = true,
+                    Message = "Enquiry summary retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the enquiry summary.",
+                    Code = -1
+                });
+            }
         }
+
     }
 }

@@ -10,6 +10,7 @@ namespace ServerWebUI.Components.CommonClass
     public interface ICommonMethod
     {
         public string CalculateAge(DateTime dob);
+        public string CalculateAge(DateTime dob, DateTime? asOnDate = null);
         public  Task OpenDateFrom(ElementReference dobWrapper);
         public Task<string> SetCurrentSession();
         public Task<long> SetCurrentSessionData();

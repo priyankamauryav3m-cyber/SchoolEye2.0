@@ -469,9 +469,15 @@
                     </fieldset>
                     <div class="modal-footer">
                         <div class="d-flex align-items-center gap-2">
-
-                            <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Edit" Modifiy="UpdateIntratction" />
-                            <SaveUpdateButton OnClickCancel="@CancelInteractionEdit" />
+                            @if (!IsEditMode)
+                            {
+                                <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Edit" Modifiy="UpdateIntratction" />
+                            }
+                            else
+                            {
+                                <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@CancelInteractionEdit" />
+                            }
+                            <SaveUpdateButton ShowCancelButton="false" />
                         </div>
                     </div>
                 </EditForm>
@@ -582,7 +588,10 @@ else
     {
     }
 }
+
+<CustomAlert @ref="customAlert" Title="Alert" />
 @code {
+    private CustomAlert customAlert;
     private bool showModal { get; set; }
     private bool IsAllSelected;
     public bool IsSelected { get; set; }
@@ -1077,36 +1086,34 @@ else
 
         await LoadTeacherList();
 
-        // Existing interaction data yahan load karein
-        // Example:
         // interactionModel = await GetInteraction(selectedStudentRow.RegistrationId);
 
-        // Agar existing record hai
-        // if (interactionModel != null && interactionModel.IID != 0)
-        // {
-        //     IsExistingInteraction = true;
-        //     IsEditMode = false;
+       
+        if (interactionModel != null && interactionModel.IID != 0)
+        {
+            IsExistingInteraction = true;
+            IsEditMode = false;
 
-        //     Original values ka snapshot
-        //     originalInteractionModel = new InteractionCommentsModel
-        //     {
-        //         IID = interactionModel.IID,
-        //         StarRating = interactionModel.StarRating,
-        //         Recommendation = interactionModel.Recommendation,
-        //         Remarks = interactionModel.Remarks,
-        //         FileName = interactionModel.FileName,
-        //         FilePath = interactionModel.FilePath
-        //     };
-        // }
-        // else
-        // {
-        //     New interaction
-        //     IsExistingInteraction = false;
-        //     IsEditMode = true;
+         
+            originalInteractionModel = new InteractionCommentsModel
+            {
+                IID = interactionModel.IID,
+                StarRating = interactionModel.StarRating,
+                Recommendation = interactionModel.Recommendation,
+                Remarks = interactionModel.Remarks,
+                FileName = interactionModel.FileName,
+                FilePath = interactionModel.FilePath
+            };
+        }
+        else
+        {
+        
+            IsExistingInteraction = false;
+            IsEditMode = true;
 
-        //     interactionModel = new InteractionCommentsModel();
-        //     originalInteractionModel = null;
-        // }
+            interactionModel = new InteractionCommentsModel();
+            originalInteractionModel = null;
+        }
         IsEditMode = false;
         ShowInteractionPopup = true;
         StateHasChanged();
@@ -1131,24 +1138,29 @@ else
     }
     private async Task OnSubmitInteraction()
     {
+        ShowInteractionPopup = true;
         if (selectedStudentRow == null)
         {
-            await Alert.ShowWarning("Please select a student.");
+            await customAlert.ShowCustomAlert("Please select a student.",false);
+            ShowInteractionPopup = true;
+            StateHasChanged();
             return;
         }
 
         if (selectedTeacher == null)
         {
-            await Alert.ShowWarning("Please select a teacher.");
+            await customAlert.ShowCustomAlert("Please select a teacher.", false);
+            ShowInteractionPopup = true;
+            StateHasChanged();
             return;
         }
-
-        // Existing record ke liye change check
         if (IsExistingInteraction)
         {
             if (!HasInteractionChanges())
             {
-                await Alert.ShowWarning("No change detected.");
+                await customAlert.ShowCustomAlert("No change detected.", false);
+                ShowInteractionPopup = true;
+                StateHasChanged();
                 return;
             }
         }
@@ -1157,8 +1169,7 @@ else
         {
             IsLoading = true;
             StateHasChanged();
-
-            // Common values
+            ShowInteractionPopup = false;
             interactionModel.InteractionBy = selectedTeacher.EmployeeId;
             interactionModel.GroupCode = groupcode;
             interactionModel.BranchCode = branchcode;
@@ -1170,19 +1181,11 @@ else
 
             string apiUrl = "InteractionPanel/AddOrUpdateInteraction";
 
-            var apiResponse =
-                await httpService.Post<ApiResponse<object>>(
-                    apiUrl,
-                    interactionModel);
+            var apiResponse =  await httpService.Post<ApiResponse<object>>( apiUrl,interactionModel);
 
-            if (apiResponse != null &&
-                apiResponse.Success &&
-                apiResponse.Code == 1)
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
             {
-                await Alert.ShowSuccess(
-                    "Interaction " + Localizer["Inserted"]);
-
-                // Current values ko new original values bana do
+                await Alert.ShowSuccess( "Interaction " + Localizer["Inserted"]);
                 originalInteractionModel = new InteractionCommentsModel
                 {
                     IID = interactionModel.IID,
