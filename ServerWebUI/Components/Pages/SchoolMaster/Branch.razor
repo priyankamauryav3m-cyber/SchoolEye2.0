@@ -1,4 +1,4 @@
-﻿@page "/branch"
+@page "/branch"
 @using DomainModel.Admin
 @using Microsoft.AspNetCore.Authorization
 @using ServerWebUI.Components.Pages.CommonPages
@@ -14,17 +14,37 @@
 @inject Shared.IHttpService httpService
 @inject HttpClient Http
 @inject SweetAlertService Alert
+@inject IWebHostEnvironment Env
 @rendermode InteractiveServer
+<style>
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+    .grid-thumb-img {
+        width: 50px;
+        height: 100%;
+        object-fit: cover;
+        border: 1px solid #d9d9d9;
+        cursor: pointer;
+    }
+</style>
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Branch </p>
-                <div class="d-flex gap-2">
-                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddBranch" />
 
+            <PageHeading Tittle="Branch">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@searchAnyRequest.GroupCode" class="form-input" @bind-Value:after="GetBranchName">
+                        <option value="0">-- Select Group --</option>
+                        @foreach (var data in grouplist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.GroupCode">@data.GroupName</option>
+                        }
+                    </InputSelect>
                 </div>
-            </div>
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddBranch" />
+            </PageHeading>
         </div>
         <div class="col-12 p-1">
             <div class="card">
@@ -44,6 +64,12 @@
 
                                 <PropertyColumn Property="@(x => x.BranchCode)" Title="Branch Code" class="text-center" Sortable="true" Align="Align.Left">
                                 </PropertyColumn>
+
+                                <TemplateColumn Title="Logo" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetLogoUrl(context.LogoPath)" class="grid-thumb-img" @onclick="() => ViewImage(context.LogoPath)" alt="Logo" />
+                                    </ChildContent>
+                                </TemplateColumn>
 
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactPerson) ? " " : x.ContactPerson)" Title="Contact Person" Sortable="true" Align="Align.Left">
                                 </PropertyColumn>
@@ -120,8 +146,14 @@
                                 <div class="row m-0 form-row">
 
                                     <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.GroupCode" />
+                                        <div class="form-box-group static-label">
+                                            <InputSelect @bind-Value="@branch.GroupCode" class="floating-input">
+                                                <option value="">-- Select Group --</option>
+                                                @foreach (var data in grouplist.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@data.GroupCode">@data.GroupName</option>
+                                                }
+                                            </InputSelect>
                                             <label class="floating-label">
                                                 Group Code <span class="required">*</span>
                                             </label>
@@ -146,6 +178,25 @@
                                             <ValidationMessage For="@(() => branch.BranchName)" />
                                         </div>
                                     </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <label class="floating-label">Logo</label>
+                                        
+                                                <InputFile OnChange="OnLogoSelected" class="floating-input" accept="image/*" />
+                                        </div>
+                                    </div>
+                                    @* <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <label class="floating-label">Logo</label>
+                                            <div class="border-box h-auto">
+                                                @if (!string.IsNullOrWhiteSpace(logoPreviewUrl))
+                                                {
+                                                    <img src="@logoPreviewUrl" class="floating-input" alt="logo" />
+                                                }
+                                            </div>
+                                        </div>
+                                    </div> *@
 
                                     <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                         <div class="form-box-group">
@@ -370,19 +421,59 @@
     </div>
 
 </div>
+@if (ShowImagePopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Image Preview</h5>
+                    <button data-access="Close" type="button" @onclick="CloseImagePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@logoPreviewUrl" class="w-100" alt="Preview" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 
 @code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS (adjust if different in your project):
+    // - Same pattern as GroupMaster: the Logo file is saved directly into
+    //   the Blazor Server (UI) project's own wwwroot via IWebHostEnvironment
+    //   (folder "uploads/BranchLogo/MM/dd") - NOT the API's root. Only the
+    //   resulting web path (branch.LogoPath) is sent to the API in the
+    //   normal JSON body, same as every other field.
+    // - Your pasted AddOrUpdateBranchMaster controller action is already
+    //   correct for this - it takes [FromBody] BranchModel and does no
+    //   file handling at all, so no controller changes were needed there.
+    // - BranchModel.LogoPath already exists (used by AddUpdateBranchMaster
+    //   in your repository code) - reused as-is, no new model property
+    //   needed on the Branch side.
+    // - Adjust the saved subfolder ("uploads/BranchLogo/MM/dd") to wherever
+    //   your project actually serves branch logos from under wwwroot.
+    // ---------------------------------------------------------------------
+    private bool ShowImagePopup = false;
     private bool IsLoading = true;
     private BranchModel branch = new();
     private string oldcdataModel = "";
     private List<BranchModel> branchlist = new();
     private List<CountryModel> countrylist = new();
     private List<StateModel> statelist = new();
+    private List<GroupMaster> grouplist = new();
     private List<DistrictModel> districtlist = new();
     private List<StateModel> filteredStateList = new();
     private List<DistrictModel> filteredDistrictList = new();
     private bool ShowPopup = false;
+    private SearchAnyRequestModel searchAnyRequest = new();
+
+    private string? logoPreviewUrl;
+    private bool isLogoChanged = false;
+    private const string NoLogoUrl = "https://demo.schooleye.in/Images/NoPhoto.gif";
+
     PaginationState pagination = new()
     {
         ItemsPerPage = 15
@@ -448,17 +539,69 @@
             branch.EndTime = null;
     }
 
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null)
+            return;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            await Alert.ShowWarning("Logo size must be less than 5 MB.");
+            return;
+        }
+
+        var month = DateTime.Now.Month.ToString("D2");
+        var day = DateTime.Now.Day.ToString("D2");
+
+        var folderRelative = Path.Combine("uploads", "BranchLogo", month, day);
+        var folderAbsolute = Path.Combine(Env.WebRootPath, folderRelative);
+
+        if (!Directory.Exists(folderAbsolute))
+            Directory.CreateDirectory(folderAbsolute);
+
+        var extension = Path.GetExtension(file.Name);
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePathAbsolute = Path.Combine(folderAbsolute, fileName);
+
+        await using (var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024))
+        await using (var fs = new FileStream(filePathAbsolute, FileMode.Create))
+        {
+            await stream.CopyToAsync(fs);
+        }
+
+        branch.LogoPath = "/" + Path.Combine(folderRelative, fileName).Replace("\\", "/");
+        logoPreviewUrl = branch.LogoPath;
+        isLogoChanged = true;
+
+        StateHasChanged();
+    }
+
+    private string GetLogoUrl(string? logoPath) => string.IsNullOrWhiteSpace(logoPath) ? NoLogoUrl : logoPath;
+
     private async Task LoadData()
     {
         IsLoading = true;
-        string ApiUri = "Branch/GetBranch";
-        branchlist = await httpService.Get<List<BranchModel>>(ApiUri) ?? new();
+        grouplist = await httpService.Get<List<GroupMaster>>("GroupMaster/GroupMaster") ?? new();
         countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
         statelist = await httpService.Get<List<StateModel>>("State/GetState") ?? new();
         districtlist = await httpService.Get<List<DistrictModel>>("District/GetDistrict") ?? new();
         IsLoading = false;
 
-
+    }
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
     }
     protected IQueryable<BranchModel> FilteredItems
     {
@@ -495,6 +638,8 @@
     private void AddBranch()
     {
         branch = new();
+        logoPreviewUrl = null;
+        isLogoChanged = false;
         filteredStateList = new();
         filteredDistrictList = new();
         ShowPopup = true;
@@ -516,7 +661,7 @@
                     return;
                 }
                 bool isSame = CommonMethod.IsEdited(branch, oldcdataModel);
-                if (!isSame)
+                if (!isSame && !isLogoChanged)
                 {
                     await Alert.ShowWarning("No changes detected.");
                     ShowPopup = true;
@@ -551,6 +696,9 @@
                 await Alert.ShowCustomAlert(@Localizer["Admin"]);
             }
 
+            logoPreviewUrl = null;
+            isLogoChanged = false;
+
             await LoadData();
            
         }
@@ -560,7 +708,7 @@
         }
         finally
         {
-
+           await GetBranchName();
             StateHasChanged();
         }
     }
@@ -574,6 +722,7 @@
             BranchCode = item.BranchCode,
             BranchName = item.BranchName,
             Remarks = item.Remarks,
+            LogoPath = item.LogoPath,
             ContactPerson = item.ContactPerson,
             ContactNo = item.ContactNo,
             ContactEmailId = item.ContactEmailId,
@@ -596,6 +745,9 @@
             UDISENo = item.UDISENo
         };
 
+        logoPreviewUrl = string.IsNullOrWhiteSpace(item.LogoPath) ? null : item.LogoPath;
+        isLogoChanged = false;
+
         filteredStateList = statelist.Where(x => x.CountryId == branch.CountryId).ToList();
         filteredDistrictList = districtlist.Where(x => x.StateId == branch.StateId).ToList();
 
@@ -606,6 +758,8 @@
     private void ClosePopup()
     {
         branch = new();
+        logoPreviewUrl = null;
+        isLogoChanged = false;
         ShowPopup = false;
     }
 
@@ -647,4 +801,19 @@
             await LoadData();
         }
     }
+
+    private void CloseImagePopup()
+    {
+        ShowImagePopup = false;
+        logoPreviewUrl = null;
+    }
+    private void ViewImage(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return;
+
+        logoPreviewUrl = GetLogoUrl(imagePath);
+        ShowImagePopup = true;
+    }
+
 }

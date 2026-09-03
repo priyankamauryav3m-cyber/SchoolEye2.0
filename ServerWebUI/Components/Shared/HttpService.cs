@@ -73,7 +73,19 @@ namespace ServerWebUI.Shared
         {
             var request = new HttpRequestMessage(method, uri);
             if (value != null)
-                request.Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json");
+                if (value is HttpContent httpContent)
+                {
+                    request.Content = httpContent;
+                }
+                else
+                {
+                    // Normal JSON request
+                    request.Content = new StringContent(
+                        JsonSerializer.Serialize(value),
+                        Encoding.UTF8,
+                        "application/json");
+                }
+            //request.Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json");
             return request;
         }
         private async Task sendRequest(HttpRequestMessage request)

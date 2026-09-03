@@ -37,8 +37,7 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">View Application Status</p>
+            <PageHeading Tittle="View Application Status">
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
                         <select name="branch" id="gender" class="form-input" placeholder=" ">
@@ -81,7 +80,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">
@@ -612,7 +611,7 @@ else
     private long CurrentSession;
     private string currentUrl = "";
     private List<SessionModel> sessionlist = new();
-    private List<BranchNameMst> branchlist = new();
+    private List<BranchModel> branchlist = new();
     private List<MstDistance> distanceslist = new();
     private RegistrationDto registrationDto = new();
     private RegistrationStatus registrationStatus = new();
@@ -635,7 +634,7 @@ else
     private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
 
     private IQueryable<ClassRegistrationDocumentsResponse> documentQuery => documentlist.AsQueryable();
-
+    private SearchAnyRequestModel searchAnyRequest = new();
     private void ToggleAll()
     {
         foreach (var item in registrationlist)
@@ -856,10 +855,25 @@ else
         genderModallist = await httpService.Get<List<GenderModal>>(ApiUri1) ?? new();
         string ApiUri = "BranchClass/GetClassCode";
         classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        searchAnyRequest.GroupCode = groupcode;
+        await GetBranchName();
         sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
         distanceslist = await httpService.Get<List<MstDistance>>("ClassSection/GetDistance") ?? new();
         StateHasChanged();
+    }
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

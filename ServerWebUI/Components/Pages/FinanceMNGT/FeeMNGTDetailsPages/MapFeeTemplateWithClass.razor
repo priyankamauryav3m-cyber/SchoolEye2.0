@@ -37,57 +37,54 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1"> Map Fee Template With Class</p>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <InputSelect @bind-Value="@sessionvalue" name="session" class="form-input">
-                            <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option>@data.SessionName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
-                        <InputSelect @bind-Value=searchAnyRequest.RequestId" class="form-input">
-                            <option value="0" selected>AllTemplateSelected</option>
-                            @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
-                            {
-                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
-                            }
-                        </InputSelect>
-                    </div>
-
-                    <div class="form-box">
-                        <InputSelect @bind-Value=searchAnyRequest.RequestName" class="form-input">
-                            <option value="" selected>AllClassSelected</option>
-                            @foreach (var cs in classlist.Where(x => x.IsValid == true))
-                            {
-                                <option Value="@cs.ClassCode">@cs.ClassName</option>
-                            }
-                        </InputSelect>
-                    </div>
-
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByClassName" tabindex="0">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
-                        </button>
-                    </div>
-                    <div class="form-box">
-                        <button type="submit" @onclick="MapWithClass" class="ui fade op-1 animated button form-btn">
-                            <div class="visible content justify-content-center">Map</div>
-                            <div class="hidden content">
-                                <i class="bi bi-map"></i>
-                            </div>
-                        </button>
-
-                    </div>
+            <PageHeading Tittle="Map Fee Template With Class">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@sessionvalue" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option>@data.SessionName </option>
+                        }
+                    </InputSelect>
                 </div>
-            </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value=searchAnyRequest.RequestId" class="form-input">
+                        <option value="0" selected>AllTemplateSelected</option>
+                        @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                        {
+                            <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="form-box">
+                    <InputSelect @bind-Value=searchAnyRequest.RequestName" class="form-input">
+                        <option value="" selected>AllClassSelected</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option Value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchByClassName" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+                <div class="form-box">
+                    <button type="submit" @onclick="MapWithClass" class="ui fade op-1 animated button form-btn">
+                        <div class="visible content justify-content-center">Map</div>
+                        <div class="hidden content">
+                            <i class="bi bi-map"></i>
+                        </div>
+                    </button>
+
+                </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">

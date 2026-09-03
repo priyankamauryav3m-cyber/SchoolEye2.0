@@ -23,8 +23,7 @@
     <div class="main-container">
         <div class="row m-0 main-row">
             <div class="col-12 p-1" id="main-header">
-                <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
-                    <p class="m-0 page-name px-1">Prepare/Publish List</p>
+                <PageHeading Tittle="Prepare/Publish List">
                     <div class="d-flex align-items-center gap-2">
                         <div class="form-box">
                             <InputSelect @bind-Value="@CurrentSession" class="form-input">
@@ -54,7 +53,7 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                </PageHeading>
             </div>
 
             <!-- ===================== LEFT PANEL (Source list) ===================== -->
@@ -490,7 +489,7 @@
     private List<PublishListModel> publishList = new();
     private List<RegistrationInfoListResponse> leftList = new();
     private List<RegistrationInfoListResponse> rightList = new();
-    private List<BranchNameMst> branchlist = new();
+    private List<BranchModel> branchlist = new();
     private long CurrentSession;
     private bool ShowSearchPopup;
     private bool SelectAll;
@@ -551,10 +550,24 @@
 
         string ApiUri3 = "Distance/GetDistance";
         distancelist = await httpService.Get<List<DistanceModel>>(ApiUri3) ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        searchAnyRequest.GroupCode = groupcode;
+        await GetBranchName();
         StateHasChanged();
     }
-
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
+    }
     private IQueryable<RegistrationInfoListResponse> FilteredLeftItems
     {
         get

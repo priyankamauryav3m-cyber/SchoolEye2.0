@@ -35,47 +35,42 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">
-                    Map Student With Fee Period Type
-                </p>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <InputSelect @bind-Value="@CurrecntSession" name="session" class="form-input">
-                            <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.SessionId">@data.SessionName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
-                        <InputSelect @bind-Value="iMSWFTPeriod.TemplateId" class="form-input">
-                            <option value="0" selected>AllTemplateSelected</option>
-                            @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
-                            {
-                                <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
-                            }
-                        </InputSelect>
-                    </div>
+            <PageHeading Tittle="Map Student With Fee Period Type">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@CurrecntSession" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="iMSWFTPeriod.TemplateId" class="form-input">
+                        <option value="0" selected>AllTemplateSelected</option>
+                        @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
+                        {
+                            <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                        }
+                    </InputSelect>
+                </div>
 
-                    <div class="form-box">
-                        <div class="d-flex gap-2">
-                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
-                                <i class="bi bi-sliders"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentFeeHead" tabindex="0">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
                         </button>
                     </div>
                 </div>
-            </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentFeeHead" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">

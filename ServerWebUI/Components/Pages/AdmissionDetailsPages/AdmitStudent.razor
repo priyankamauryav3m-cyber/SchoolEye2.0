@@ -20,14 +20,14 @@
 @inject IJSRuntime JS
 @inject PermissionState PermissionState
 @inject NavigationManager Nav
+@inject CommonMethod EnquiryState
 <style>
 
 </style>
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Admit Student</p>
+            <PageHeading Tittle="Admit Student">
                 <div class="d-flex align-items-center gap-2">
 
                     <div class="form-box">
@@ -78,7 +78,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">
@@ -411,7 +411,7 @@ else
     private string? branchcode;
     private string? groupcode;
     private string? currentUrl;
-
+    private string DashboardValue = "";
     private void ToggleAll()
     {
         foreach (var row in listResponses)   // Items = your table data
@@ -475,7 +475,13 @@ else
             {
                 item.IsSelected = true;
             }
-            await SearchByStudent();
+            DashboardValue = EnquiryState.DashboardValue;
+            if (!string.IsNullOrWhiteSpace(DashboardValue))
+            {
+                await SearchByStudent();
+                EnquiryState.DashboardValue = null;
+            }
+         //  await SearchByStudent();
             StateHasChanged();
         }
     }

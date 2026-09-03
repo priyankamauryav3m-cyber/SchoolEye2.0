@@ -316,12 +316,18 @@ namespace DomainModel.SchoolMaster
         [StringLength(100, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
 
         public string? AddressLine2 { get; set; }
-
+        [Display(Name ="District name")]
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public int DistrictId { get; set; }
+        [Display(Name ="State name")]
 
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public int StateId { get; set; }
+        [Display(Name ="Country name")]
 
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public int CountryId { get; set; }
+
 
 
         [Display(Name = "Pincode")]
@@ -331,8 +337,8 @@ namespace DomainModel.SchoolMaster
 
 
         public int ResellerId { get; set; }
-
-        [RegularExpression(@"^[A-Za-z ]+$", ErrorMessage = "LoginName must contain only letters and spaces.")]
+        [Display(Name ="Login name")]
+        [Required( ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
 
         public string LoginName { get; set; } = string.Empty;
 
@@ -425,12 +431,10 @@ namespace DomainModel.SchoolMaster
         [StringLength(200)]
         public string? Remarks { get; set; }
 
-        [RegularExpression(@"^[A-Z0-9]+$",
-            ErrorMessage = "Group Code can contain only uppercase letters and numbers")]
+        [RegularExpression(@"^[A-Z0-9]+$",ErrorMessage = "Group Code can contain only uppercase letters and numbers")]
         public string? GroupCode { get; set; }
 
-        [RegularExpression(@"^[A-Z0-9]+$",
-            ErrorMessage = "Branch Code can contain only uppercase letters and numbers")]
+        [RegularExpression(@"^[A-Z0-9]+$",  ErrorMessage = "Branch Code can contain only uppercase letters and numbers")]
         public string? BranchCode { get; set; }
 
         public string? SessionName { get; set; }

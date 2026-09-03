@@ -17,21 +17,18 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Discipline Category Master</p>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <InputSelect class="form-input" @bind-Value="@CurrentSession" @bind-Value:after="OnSessionChanged" name="session">
-                            <option value="0" selected>--Select--</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid))
-                            {
-                                <option value="@data.SessionId">@data.SessionName</option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddDisCategory" />
+            <PageHeading Tittle="Discipline Category Master">
+                <div class="form-box">
+                    <InputSelect class="form-input" @bind-Value="@CurrentSession" @bind-Value:after="OnSessionChanged" name="session">
+                        <option value="0" selected>--Select--</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
                 </div>
-            </div>
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddDisCategory" />
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">

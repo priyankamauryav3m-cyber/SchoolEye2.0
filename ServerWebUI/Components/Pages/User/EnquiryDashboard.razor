@@ -160,37 +160,34 @@
      
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
-                    <div class="page-heading d-flex align-items-center justify-content-between">
-                        <p class="m-0 page-name px-1">Enquiry Dashboard</p>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="form-box">
-                                  
-                                <p class="m-0 page-name px-1">@SearchFilterText</p>
-                            </div>
-                            <div class="form-box">
-                                <InputSelect @bind-Value="@CurrentSession" class="form-input">
-                                    <option value="0">-- Select Session --</option>
-                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                                    {
-                                        <option value="@data.SessionId">@data.SessionName</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                            <div class="form-box">
-                                <div class="d-flex gap-2">
-                                    <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
-                                        <i class="bi bi-sliders"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="form-box">
-                                <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
-                                    <div class="visible content">Search</div>
-                                    <div class="hidden content"><i class="bi bi-search"></i></div>
+                    <PageHeading Tittle="Enquiry Dashboard">
+                        <div class="form-box">
+
+                            <p class="m-0 page-name px-1">@SearchFilterText</p>
+                        </div>
+                        <div class="form-box">
+                            <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.SessionId">@data.SessionName</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="form-box">
+                            <div class="d-flex gap-2">
+                                <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                                    <i class="bi bi-sliders"></i>
                                 </button>
                             </div>
                         </div>
-                    </div>
+                        <div class="form-box">
+                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
+                                <div class="visible content">Search</div>
+                                <div class="hidden content"><i class="bi bi-search"></i></div>
+                            </button>
+                        </div>
+                    </PageHeading>
                 </div>
             </div>
 

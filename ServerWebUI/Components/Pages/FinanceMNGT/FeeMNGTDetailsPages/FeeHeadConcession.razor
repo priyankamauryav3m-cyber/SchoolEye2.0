@@ -34,39 +34,36 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Concession </p>
-                <div class="d-flex gap-2">
-                    <div class="form-box">
-                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
-                            <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.SessionId">@data.SessionName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
-
-                        <InputSelect @bind-Value="searchAnyRequest.RequestId" @bind-Value:after="OnChangeData" class="form-input">
-                            <option value="0">Select Concession</option>
-                            @foreach (var data in concessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.ConcessionId">@data.Concession </option>
-                            }
-
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
-                        </button>
-                    </div>
+            <PageHeading Tittle="Concession">
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName </option>
+                        }
+                    </InputSelect>
                 </div>
-            </div>
+                <div class="form-box">
+
+                    <InputSelect @bind-Value="searchAnyRequest.RequestId" @bind-Value:after="OnChangeData" class="form-input">
+                        <option value="0">Select Concession</option>
+                        @foreach (var data in concessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.ConcessionId">@data.Concession </option>
+                        }
+
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
         </div>
         <div class="col-12 p-1">
             <div class="card">

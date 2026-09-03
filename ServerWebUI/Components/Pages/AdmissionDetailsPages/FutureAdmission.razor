@@ -463,7 +463,8 @@
     private List<ReligionMaster> religionlist = new();
     private List<OccupationModal> getoccupationlist = new();
     private List<MstDistance> distancelist = new();
-    private List<BranchNameMst> branchlist = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private List<BranchModel> branchlist = new();
     private List<Qualification> qulifationlist = new();
     private List<ConcessionModel> concessionlist = new();
     private SearchAnyRequestModel searchAny = new();
@@ -517,13 +518,28 @@
         classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
         categories = await httpService.Get<List<CategoryModal>>("ClassSection/GetCategory") ?? new();
         distancelist = await httpService.Get<List<MstDistance>>("ClassSection/GetDistance") ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        //branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        searchAnyRequest.GroupCode = groupcode;
+        await GetBranchName();
         qulifationlist = await httpService.Get<List<Qualification>>("Qualification/GetQualification") ?? new();
         genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
         countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
         religionlist = await httpService.Get<List<ReligionMaster>>("Religion/AllReligion") ?? new();
     }
-
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
+    }
     private async Task OnSave()
     {
         registration.GroupCode = groupcode ?? string.Empty;

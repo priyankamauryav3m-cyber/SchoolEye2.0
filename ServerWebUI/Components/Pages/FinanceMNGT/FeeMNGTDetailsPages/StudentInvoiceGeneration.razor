@@ -65,44 +65,40 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <h1 class="m-0 page-name px-1"><strong>View Invoice Dues</strong> </h1>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <select class="form-input">
-                            @foreach (var data in societyModellist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.SocietyId">@data.SocietyName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="form-box">
-                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
-                            <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.SessionId">@data.SessionName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
-                        <div class="d-flex gap-2">
-                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
-                                <i class="bi bi-sliders"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" type="button" tabindex="0" @onclick="SearchStudentAdvamceData">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
+            <PageHeading Tittle="View Invoice Dues">
+                <div class="form-box">
+                    <select class="form-input">
+                        @foreach (var data in societyModellist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SocietyId">@data.SocietyName</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
                         </button>
                     </div>
                 </div>
-
-            </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" type="button" tabindex="0" @onclick="SearchStudentAdvamceData">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">

@@ -72,9 +72,12 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2  ">
                                         <div class="form-box-group">
-                                            <select class="floating-input" autocomplete="off" maxlength="10">
-                                                <option Value="1">V3M International School </option>
-                                            </select>
+                                            <InputSelect class="floating-input" autocomplete="off" maxlength="10" @bind-Value="studentDirectAdmission.BranchCode">
+                                                @foreach (var br in branchlist.Where(x => x.IsValid == true))
+                                                {
+                                                    <option Value="@br.BranchCode">@br.BranchName</option>
+                                                }
+                                            </InputSelect>
                                             <label class="floating-label">Branch</label>
                                             @* <ValidationMessage For="@(() => studentDirectAdmission.Gender)" /> *@
                                         </div>
@@ -243,7 +246,7 @@
                                                     <option Value="@cs.DistanceId">@cs.DistanceName</option>
                                                 }
                                             </InputSelect>
-                                   
+
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-1   ">
@@ -908,7 +911,7 @@
     private List<ClassSectionModal> classsectionslist = new();
     private List<CountryModel> countrylist = new();
     private List<MstDistance> distancelist = new();
-    private List<BranchNameMst> branchlist = new();
+    private List<BranchModel> branchlist = new();
     private List<ReligionMaster> religionlist = new();
     private List<Qualification> qulifationlist = new();
     SearchAnyRequestModel searchAny = new();
@@ -946,6 +949,7 @@
             CurrentSession = await _commonmethod.SetCurrentSessionData();
             StateHasChanged();
         }
+        studentDirectAdmission.BranchCode = branchcode;
     }
     protected override void OnInitialized()
     {
@@ -1185,13 +1189,30 @@
         classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
         categories = await httpService.Get<List<CategoryModal>>("ClassSection/GetCategory") ?? new();
         distancelist = await httpService.Get<List<MstDistance>>("ClassSection/GetDistance") ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+
+        //  branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
         //var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>("", searchAny) ?? new();
+        searchAny.GroupCode = groupcode;
+        await GetBranchName();
         qulifationlist = await httpService.Get<List<Qualification>>("Qualification/GetQualification") ?? new();
         genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
         countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
         religionlist = await httpService.Get<List<ReligionMaster>>("Religion/AllReligion") ?? new();
 
+    }
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAny.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAny) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
     }
     private async Task GetSectionData()
     {
@@ -1450,6 +1471,7 @@
 
 
         }
+
     }
     private void CloseSibling()
     {

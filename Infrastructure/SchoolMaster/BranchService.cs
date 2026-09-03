@@ -1,5 +1,6 @@
 using ApplicationInterface.SchoolMaster;
 using Dapper;
+using DomainModel.FinanceMNGT;
 using DomainModel.SchoolMaster;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +22,7 @@ namespace Infrastructure.SchoolMaster
             _connectionString = configuration.GetValue<string>("DatabaseSettings1:ConnectionString")
                 ?? throw new ArgumentNullException("DatabaseSettings1:ConnectionString");
         }
-        public async Task<IEnumerable<BranchModel>> GetAllAsync()
+        public async Task<IEnumerable<BranchModel>> GetAllAsync(SearchAnyRequestModel searchAnyRequest)
         {
             try
             {
@@ -31,14 +32,10 @@ namespace Infrastructure.SchoolMaster
                        AddressLine1,AddressLine2,DistrictId,StateId,CountryId,PinCode,StartTime,EndTime,IsHO,
                        IsValid,CreatedBy,CreatedDate,LogoPathForPrint,BranchCategory,AffiliationUpto,
                        StatusOfSchool,UDISENo
-                       FROM MstBranchMaster ORDER BY BranchId ASC";
-                return await con.QueryAsync<BranchModel>(sql);
+                     FROM MstBranchMaster WHERE GroupCode = @GroupCode ORDER BY BranchId ASC";
+                return await con.QueryAsync<BranchModel>(sql, new { GroupCode = searchAnyRequest.GroupCode });
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception: {ex.Message}");
-                throw;
-            }
+            catch (Exception ex) { Console.WriteLine($"Exception: {ex.Message}"); throw; }
         }
         public async Task<int> DeleteBranchMasterData(int branchId)
         {

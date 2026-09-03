@@ -125,7 +125,8 @@ else
     private long CurrentSession;
     private string schoolbranchcode = string.Empty;
     private List<SessionModel> sessionlist = new();
-    private List<BranchNameMst> branchlist = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
+    private List<BranchModel> branchlist = new();
     private List<RegistrationStatusResponse> statuslist = new();
     private bool IsLoading = false;
     private RegistrationRequest searchRequest = new();
@@ -170,8 +171,24 @@ else
     private async Task LoadData()
     {
         sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        //branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        searchAnyRequest.GroupCode = groupcode;
+        await GetBranchName();
         StateHasChanged();
+    }
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
     }
     private async Task SearchApplicationStatus()
     {

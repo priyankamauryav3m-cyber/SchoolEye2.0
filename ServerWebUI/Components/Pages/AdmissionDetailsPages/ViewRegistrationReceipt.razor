@@ -37,8 +37,7 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">View Registration Receipt</p>
+            <PageHeading Tittle="View Registration Receipt">
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
                         <InputSelect @bind-Value="branchcode" class="form-input">
@@ -73,7 +72,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">
@@ -213,7 +212,8 @@ else
     private List<RegistrationReceiptResponse> registrationReceiptlist = new();
     private RegistrationReceiptRequest registrationReceiptRequest = new();
     private List<SessionModel> sessionlist = new();
-    private List<BranchNameMst> branchlist = new();
+    private List<BranchModel> branchlist = new();
+    private SearchAnyRequestModel searchAnyRequest = new();
     protected override void OnInitialized()
     {
 
@@ -262,13 +262,28 @@ else
         groupcode = groupResult.Value;
         string ApiUri = "Session/GetSession";
         sessionlist = await httpService.Get<List<SessionModel>>(ApiUri) ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        searchAnyRequest.GroupCode = groupcode;
+        await GetBranchName();
         if (branchlist.Any())
         {
             branchcode = branchlist.First().BranchCode;
         }
         IsLoading = false;
         StateHasChanged();
+    }
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
     }
     private async Task SearchStudent()
     {
