@@ -711,12 +711,25 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                         Data = null
                     });
                 }
-                return Ok(new ApiResponse<object>
+                if (result == 2)
                 {
-                    Success = true,
-                    Message = "registration detail fetched successfully.",
-                    Code = 2
-                });
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "registration detail fetched successfully.",
+                        Code = 2
+                    });
+                }
+                else
+                {
+                    return StatusCode(500, new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "An error occurred while processing your request.",
+                        Data = null
+                    });
+                }
+          
             }
             catch (Exception)
             {
