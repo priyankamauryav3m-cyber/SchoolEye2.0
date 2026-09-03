@@ -35,50 +35,46 @@
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading no-btn-top d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Map Transport</p>
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
-                            <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.SessionId">@data.SessionName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    <div class="form-box">
+            <PageHeading Tittle="Map Transport">
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
 
-                        <InputSelect @bind-Value="transportSearch.IsTransportSelected"  class="form-input">
-                            <option value="0">AllTransportSelected</option>
-                            <option value="1">School Transport</option>
-                            <option value="2">Private Van</option>
-                            <option value="3">Parents</option>
-                            <option value="4">Self</option>
-                            <option value="5">Rickshaw</option>
-                            <option value="6">Auto</option>
-                            <option value="7">Cycle</option>
-                        </InputSelect>
-                    </div>
+                    <InputSelect @bind-Value="transportSearch.IsTransportSelected"  class="form-input">
+                        <option value="0">AllTransportSelected</option>
+                        <option value="1">School Transport</option>
+                        <option value="2">Private Van</option>
+                        <option value="3">Parents</option>
+                        <option value="4">Self</option>
+                        <option value="5">Rickshaw</option>
+                        <option value="6">Auto</option>
+                        <option value="7">Cycle</option>
+                    </InputSelect>
+                </div>
 
-                    <div class="form-box">
-                        <div class="d-flex gap-2">
-                            <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
-                                <i class="bi bi-sliders"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup " @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
                         </button>
                     </div>
                 </div>
-
-            </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentData" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
         </div>
 
         <div class="col-12 p-1">

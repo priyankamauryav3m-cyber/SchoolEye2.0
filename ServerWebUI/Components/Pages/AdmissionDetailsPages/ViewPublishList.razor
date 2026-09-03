@@ -178,7 +178,7 @@ else
     private bool showSMS;
 
     private List<SessionModel> sessionlist = new();
-    private List<BranchNameMst> branchlist = new();
+    private List<BranchModel> branchlist = new();
     private List<BranchClassModel> classlist = new();
     private List<PublishingListResponse> publishList = new();
 
@@ -195,7 +195,7 @@ else
     private string username = "";
 
     private List<PublishListModel> publishListNoList = new();
-
+    private SearchAnyRequestModel searchAnyRequest = new();
     protected override void OnInitialized()
     {
         PermissionState.OnChange += StateHasChanged;
@@ -260,13 +260,28 @@ else
     private async Task LoadData()
     {
         sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+        searchAnyRequest.GroupCode = groupcode;
+
+        await GetBranchName();
         string ApiUri = "BranchClass/GetClassCode";
         classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
         await LoadPublishListNo();
         StateHasChanged();
     }
-
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
+    }
     private async Task SearchPublishList()
     {
         searchRequest.GroupCode = groupcode;

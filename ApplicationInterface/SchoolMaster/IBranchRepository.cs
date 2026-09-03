@@ -1,3 +1,4 @@
+using DomainModel.FinanceMNGT;
 using DomainModel.SchoolMaster;
 
 namespace ApplicationInterface.SchoolMaster
@@ -5,7 +6,7 @@ namespace ApplicationInterface.SchoolMaster
     public interface IBranchRepository
     {
 
-        public Task<IEnumerable<BranchModel>> GetAllAsync();
+        public Task<IEnumerable<BranchModel>> GetAllAsync( SearchAnyRequestModel searchAnyRequest);
 
         // public Task<int> AddUpdateBranchMaster(BranchModel objBranch);
         public Task<string> AddUpdateBranchMaster(BranchModel objBranch);

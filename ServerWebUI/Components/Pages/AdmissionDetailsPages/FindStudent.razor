@@ -247,12 +247,10 @@ else
 
     private async Task SearchStudents()
     {
-        bool hasAnyFilter =
-            !string.IsNullOrWhiteSpace(searchRequest.AdmissionNo) ||
-            !string.IsNullOrWhiteSpace(searchRequest.StudentName) ||
-            !string.IsNullOrWhiteSpace(searchRequest.FatherName) ||
-            !string.IsNullOrWhiteSpace(searchRequest.MotherName) ||
-            !string.IsNullOrWhiteSpace(searchRequest.SMSMobileNo);
+        ShowSearchPopup = false;
+        bool hasAnyFilter = !string.IsNullOrWhiteSpace(searchRequest.AdmissionNo) || !string.IsNullOrWhiteSpace(searchRequest.StudentName) ||
+        !string.IsNullOrWhiteSpace(searchRequest.FatherName) || !string.IsNullOrWhiteSpace(searchRequest.MotherName) || 
+        !string.IsNullOrWhiteSpace(searchRequest.SMSMobileNo);
 
         if (!hasAnyFilter)
         {

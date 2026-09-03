@@ -1,4 +1,5 @@
 using ApplicationInterface.SchoolMaster;
+using DomainModel.FinanceMNGT;
 using DomainModel.SchoolMaster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -23,12 +24,12 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
             _service = service;
         }
 
-        [HttpGet("GetBranch")]
-        public async Task<IActionResult> GetAll()
+        [HttpPost("GetBranch")]
+        public async Task<IActionResult> GetAll( SearchAnyRequestModel searchAnyRequest)
         {
             try
             {
-                var data = await _service.GetAllAsync();
+                var data = await _service.GetAllAsync(searchAnyRequest);
                 return Ok(data);
             }
             catch (Exception ex)

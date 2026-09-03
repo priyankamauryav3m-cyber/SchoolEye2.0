@@ -1,0 +1,671 @@
+@page "/groupmaster"
+@using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IHttpClientFactory ClientFactory
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Net
+@using System.Text.Json
+@inject ICommonMethod CommonMethod
+@inject IStringLocalizer<Resource> Localizer
+@using MyApp.Common
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject SweetAlertService Alert
+@inject IWebHostEnvironment Env
+@rendermode InteractiveServer
+
+<style>
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+
+    .grid-thumb-img {
+        width: 50px;
+        height: 100%;
+        object-fit: cover;
+        border: 1px solid #d9d9d9;
+        cursor: pointer;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Group Master">
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddGroup" />
+            </PageHeading>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+
+                                @* <PropertyColumn Property="@(x => x.GroupCode)" Title="Group Code" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="GroupCode ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn> *@
+
+                                <PropertyColumn Property="@(x => x.GroupName)" Title="Group Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="GroupName ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Logo" Align="Align.Center">
+                                    <ChildContent>
+                                        <img src="@GetLogoUrl(context.LogoPath)" class="grid-thumb-img" @onclick="() => ViewImage(context.LogoPath)" alt="Logo" />
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactPerson) ? " " : x.ContactPerson)" Title="Contact Person" Sortable="true" Align="Align.Left">
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactNo) ? " " : x.ContactNo)" Title="Contact No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="ContactNo ..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactEmailId) ? " " : x.ContactEmailId)" Title="Contact Email" Sortable="true" Align="Align.Left">
+                                </PropertyColumn>
+
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.WebSite) ? " " : x.WebSite)" Title="Website" Sortable="true" Align="Align.Left">
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "2")" @onchange="() => FilterChangedAsync(2)" /> Both
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "1")" @onchange="() => FilterChangedAsync(1)" /> Active
+                                            </label>
+                                            <label>
+                                                <input type="radio" name="status" checked="@(statusFilter == "0")" @onchange="() => FilterChangedAsync(0)" /> Inactive
+                                            </label>
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        <span class="@GetStatusClass(context.IsValid == true)">
+                                            @(context.IsValid == true ? "Active" : "Inactive")
+                                        </span>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditGroup(context)" OnStatusClick="() => ChangeGroupStatus(context.GroupId, context.IsValid)" />
+                                </TemplateColumn>
+
+                            </QuickGrid>
+
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (ShowPopup)
+        {
+            <div class="custom-modal row m-0">
+                <div class="col-12 col-sm-9 col-md-7 col-lg-6 col-xl-10">
+                    <div class="modal-content clearfix main-popup">
+                        <div class="head-btn">
+                            <h5 class="modal-title">Group</h5>
+                            <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                        </div>
+                        <EditForm Model="@group" OnValidSubmit="@OnSave">
+                            <DataAnnotationsValidator />
+                            <div class="modal-body">
+                                <div class="row m-0 form-row">
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.GroupCode" />
+                                            <label class="floating-label">
+                                                Group Code <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => group.GroupCode)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.GroupName" />
+                                            <label class="floating-label">
+                                                Group Name <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => group.GroupName)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <label class="floating-label">Logo</label>
+
+                                            <InputFile OnChange="OnLogoSelected" class="w-100 floating-input" accept="image/*" />
+                                        </div>
+                                    </div>
+                                    @* <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <label class="floating-label">Logo</label>
+                                            <div class="border-box h-auto">
+                                                @if (!string.IsNullOrWhiteSpace(logoPreviewUrl))
+                                                {
+                                                    <img src="@logoPreviewUrl" class="w-100" alt="logo" />
+                                                }
+                                            </div>
+                                        </div>
+                                    </div> *@
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactPerson" />
+                                            <label class="floating-label">Contact Person</label>
+                                            <ValidationMessage For="@(() => group.ContactPerson)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="group.ContactNo" />
+                                            <label class="floating-label">Contact Number</label>
+                                            <ValidationMessage For="@(() => group.ContactNo)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactEmailId" />
+                                            <label class="floating-label">Contact Email</label>
+                                            <ValidationMessage For="@(() => group.ContactEmailId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.EmailId" />
+                                            <label class="floating-label">Group Email</label>
+                                            <ValidationMessage For="@(() => group.EmailId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.WebSite" />
+                                            <label class="floating-label">Website</label>
+                                            <ValidationMessage For="@(() => group.WebSite)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.AddressLine1" />
+                                            <label class="floating-label">Address Line 1</label>
+                                            <ValidationMessage For="@(() => group.AddressLine1)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.AddressLine2" />
+                                            <label class="floating-label">Address Line 2</label>
+                                            <ValidationMessage For="@(() => group.AddressLine2)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="group.CountryId" @bind-Value:after="OnCountryChanged">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var c in countrylist.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@c.CountryId">@c.CountryName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                Country <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => group.CountryId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="group.StateId" @bind-Value:after="OnStateChanged">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var s in filteredStateList.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@s.StateId">@s.StateName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                State <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => group.StateId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="group.DistrictId">
+                                                <option value="0" selected>--Select--</option>
+                                                @foreach (var d in filteredDistrictList.Where(x => x.IsValid == true))
+                                                {
+                                                    <option value="@d.DistrictId">@d.DistrictName</option>
+                                                }
+                                            </InputSelect>
+                                            <label class="floating-label">
+                                                District <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => group.DistrictId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.PinCode" />
+                                            <label class="floating-label">Pin Code</label>
+                                            <ValidationMessage For="@(() => group.PinCode)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputNumber class="floating-input" placeholder=" " @bind-Value="group.ResellerId" />
+                                            <label class="floating-label">Reseller Id</label>
+                                            <ValidationMessage For="@(() => group.ResellerId)" />
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                        <div class="form-box-group">
+                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.LoginName" />
+                                            <label class="floating-label">
+                                                Login Name <span class="required">*</span>
+                                            </label>
+                                            <ValidationMessage For="@(() => group.LoginName)" />
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <div class="form-group btn-gr">
+                                    <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                </div>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+@if (ShowImagePopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Image Preview</h5>
+                    <button data-access="Close" type="button" @onclick="CloseImagePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@logoPreviewUrl" class="w-100" alt="Preview" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+}
+
+@code {
+ 
+    private bool IsLoading = true;
+    private GroupMaster group = new();
+    private string oldcdataModel = "";
+    private List<GroupMaster> grouplist = new();
+    private List<CountryModel> countrylist = new();
+    private List<StateModel> statelist = new();
+    private List<DistrictModel> districtlist = new();
+    private List<StateModel> filteredStateList = new();
+    private List<DistrictModel> filteredDistrictList = new();
+    private bool ShowPopup = false;
+    private bool ShowImagePopup;
+    private string? logoPreviewUrl;
+    private bool isLogoChanged = false;
+
+    PaginationState pagination = new()
+    {
+        ItemsPerPage = 15
+    };
+    private string nameFilter = string.Empty;
+    private string statusFilter = "1";
+    private string username = "";
+
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            username = userResult.Value;
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private void OnCountryChanged()
+    {
+        group.StateId = 0;
+        group.DistrictId = 0;
+        filteredStateList = statelist.Where(x => x.CountryId == group.CountryId).ToList();
+        filteredDistrictList = new();
+        StateHasChanged();
+    }
+
+    private void OnStateChanged()
+    {
+        group.DistrictId = 0;
+        filteredDistrictList = districtlist.Where(x => x.StateId == group.StateId).ToList();
+        StateHasChanged();
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null)
+            return;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            await Alert.ShowWarning("Logo size must be less than 5 MB.");
+            return;
+        }
+
+        var month = DateTime.Now.Month.ToString("D2");
+        var day = DateTime.Now.Day.ToString("D2");
+
+        var folderRelative = Path.Combine("uploads", "GroupLogo", month, day);
+        var folderAbsolute = Path.Combine(Env.WebRootPath, folderRelative);
+
+        if (!Directory.Exists(folderAbsolute))
+            Directory.CreateDirectory(folderAbsolute);
+
+        var extension = Path.GetExtension(file.Name);
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePathAbsolute = Path.Combine(folderAbsolute, fileName);
+
+        await using (var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024))
+        await using (var fs = new FileStream(filePathAbsolute, FileMode.Create))
+        {
+            await stream.CopyToAsync(fs);
+        }
+
+        group.LogoPath = "/" + Path.Combine(folderRelative, fileName).Replace("\\", "/");
+        logoPreviewUrl = group.LogoPath;
+        isLogoChanged = true;
+
+        StateHasChanged();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        grouplist = await httpService.Get<List<GroupMaster>>("GroupMaster/GroupMaster") ?? new();
+        countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
+        statelist = await httpService.Get<List<StateModel>>("State/GetState") ?? new();
+        districtlist = await httpService.Get<List<DistrictModel>>("District/GetDistrict") ?? new();
+        IsLoading = false;
+    }
+
+    protected IQueryable<GroupMaster> FilteredItems
+    {
+        get
+        {
+            var result = grouplist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.GroupName != null && x.GroupName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.GroupCode != null && x.GroupCode.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.ContactNo != null && x.ContactNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            if (statusFilter == "1")
+            {
+                result = result.Where(s => s.IsValid);
+            }
+            else if (statusFilter == "0")
+            {
+                result = result.Where(s => !s.IsValid);
+            }
+            return result;
+        }
+    }
+
+    private string GetStatusClass(bool isActive)
+    {
+        return isActive ? "activeClr" : "inactiveClr";
+    }
+
+    private void FilterChangedAsync(int filterValue)
+    {
+        statusFilter = filterValue.ToString();
+        StateHasChanged();
+    }
+
+    private const string NoLogoUrl = "https://demo.schooleye.in/Images/NoPhoto.gif";
+    private string GetLogoUrl(string? logoPath) => string.IsNullOrWhiteSpace(logoPath) ? NoLogoUrl : logoPath;
+
+    private void AddGroup()
+    {
+        group = new();
+        logoPreviewUrl = null;
+        isLogoChanged = false;
+        filteredStateList = new();
+        filteredDistrictList = new();
+        ShowPopup = true;
+    }
+
+    private async Task OnSave()
+    {
+        try
+        {
+            if (group.GroupId > 0)
+            {
+                ShowPopup = false;
+                StateHasChanged();
+
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    StateHasChanged();
+                    return;
+                }
+
+                bool isSame = CommonMethod.IsEdited(group, oldcdataModel);
+                if (!isSame && !isLogoChanged)
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    StateHasChanged();
+                    return;
+                }
+            }
+
+            group.IsValid = true;
+            group.CreatedBy = username;
+            group.CreatedDate = DateTime.Now;
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>("GroupMaster/AddOrUpdateGroup", group);
+            var responsecode = apiResponse?.Code;
+
+            if (responsecode == 0)
+            {
+                ShowPopup = true;
+                await Alert.ShowWarning("Group " + Localizer["Already"]);
+            }
+            else if (responsecode == 1)
+            {
+                ShowPopup = false;
+                await Alert.ShowSuccess("Group " + Localizer["Inserted"]);
+                group = new GroupMaster();
+            }
+            else if (responsecode == 2)
+            {
+                ShowPopup = false;
+                await Alert.ShowUpdate("Group " + Localizer["Updated"]);
+                group = new GroupMaster();
+            }
+            else
+            {
+                ShowPopup = true;
+                await Alert.ShowCustomAlert(Localizer["Admin"]);
+            }
+
+            logoPreviewUrl = null;
+            isLogoChanged = false;
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            ShowPopup = true;
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void EditGroup(GroupMaster item)
+    {
+        group = new GroupMaster
+        {
+            GroupId = item.GroupId,
+            GroupCode = item.GroupCode,
+            GroupName = item.GroupName,
+            LogoPath = item.LogoPath,
+            ContactPerson = item.ContactPerson,
+            ContactNo = item.ContactNo,
+            ContactEmailId = item.ContactEmailId,
+            ContactPersonImagePath = item.ContactPersonImagePath,
+            WebSite = item.WebSite,
+            EmailId = item.EmailId,
+            AddressLine1 = item.AddressLine1,
+            AddressLine2 = item.AddressLine2,
+            DistrictId = item.DistrictId,
+            StateId = item.StateId,
+            CountryId = item.CountryId,
+            PinCode = item.PinCode,
+            ResellerId = item.ResellerId,
+            LoginName = item.LoginName
+        };
+
+        logoPreviewUrl = string.IsNullOrWhiteSpace(item.LogoPath) ? null : item.LogoPath;
+        isLogoChanged = false;
+
+        filteredStateList = statelist.Where(x => x.CountryId == group.CountryId).ToList();
+        filteredDistrictList = districtlist.Where(x => x.StateId == group.StateId).ToList();
+
+        oldcdataModel = CommonMethod.CreateSnapshot(group);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        group = new();
+        logoPreviewUrl = null;
+        isLogoChanged = false;
+        ShowPopup = false;
+    }
+
+    private async Task ChangeGroupStatus(int id, bool isValid)
+    {
+        try
+        {
+            bool isActivate = !isValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            string apiUrl = "GroupMaster/DeleteGroup";
+
+            var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, id);
+
+            if (apiResponse.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(Localizer["Deleted"]);
+
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+            await LoadData();
+        }
+    }
+    private void CloseImagePopup()
+    {
+        ShowImagePopup = false;
+    }
+    private void ViewImage(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return;
+
+        logoPreviewUrl = GetLogoUrl(imagePath);
+        ShowImagePopup = true;
+    }
+}

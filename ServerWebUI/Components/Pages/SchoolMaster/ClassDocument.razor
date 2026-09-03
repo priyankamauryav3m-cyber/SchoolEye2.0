@@ -18,29 +18,26 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <div class="page-heading d-flex align-items-center justify-content-between">
-                <p class="m-0 page-name px-1">Class Document Mapping </p>
-                <div class="d-flex gap-2">
-                    <div class="form-box">
-                        <InputSelect @bind-Value="searchAnyRequest.RequestName" class="form-input" @bind-Value:after="SearchMapStudent">
-                            <option value="">-- Select Class --</option>
-                            @foreach (var data in classlist.Where(x => x.IsValid == true))
-                            {
-                                <option value="@data.ClassCode">@data.ClassName </option>
-                            }
-                        </InputSelect>
-                    </div>
-                    @* <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchMapStudent">
-                            <div class="visible content">Search</div>
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
-                        </button>
-                    </div> *@
-                    <ActionButtonGroup ButtonText="Map"  CurrentUrl="@currentUrl" Add="OpenMapPopup" />
-                </div> 
-            </div>
+            <PageHeading Tittle="Class Document Mapping">
+                <div class="form-box">
+                    <InputSelect @bind-Value="searchAnyRequest.RequestName" class="form-input" @bind-Value:after="SearchMapStudent">
+                        <option value="">-- Select Class --</option>
+                        @foreach (var data in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.ClassCode">@data.ClassName </option>
+                        }
+                    </InputSelect>
+                </div>
+                @* <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchMapStudent">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div> *@
+                <ActionButtonGroup ButtonText="Map"  CurrentUrl="@currentUrl" Add="OpenMapPopup" />
+            </PageHeading>
         </div>
         <div class="col-12 p-1">
             <div class="card">

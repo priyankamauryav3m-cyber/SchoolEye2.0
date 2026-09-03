@@ -231,20 +231,17 @@
 
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
-                    <div class="page-heading d-flex align-items-center justify-content-between">
-                        <p class="m-0 page-name px-1">@DashboardName Dashboard</p>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="form-box">
-                                <InputSelect @bind-Value="@CurrentSession" class="form-input">
-                                    <option value="0">-- Select Session --</option>
-                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                                    {
-                                        <option value="@data.SessionId">@data.SessionName</option>
-                                    }
-                                </InputSelect>
-                            </div>
+                    <PageHeading Tittle="@($"{DashboardName} Dashboard")">
+                        <div class="form-box">
+                            <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                {
+                                    <option value="@data.SessionId">@data.SessionName</option>
+                                }
+                            </InputSelect>
                         </div>
-                    </div>
+                    </PageHeading>
                 </div>
             </div>
 
@@ -602,30 +599,8 @@ else
             NavigationManager.NavigateTo("/admitStudent");
             StateHasChanged();
         }
-        else if (value == "TodayEnquiery")
-        {
-            EnquiryState.DashboardValue = "Date";
-            NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
-        }
-        else if (value == "TodayFollowup")
-        {
-            EnquiryState.DashboardValue = "Followup";
-            NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
-        }
-        else if (value == "TodayConversion")
-        {
-            EnquiryState.DashboardValue = "Conversion";
-            NavigationManager.NavigateTo("/ViewApplication");
-            StateHasChanged();
-        }
-        else if (value == "BasedOnSource")
-        {
-            EnquiryState.DashboardValue = "Source";
-            NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
-        }
+
+
         // SendDashboardvalue="GetEnquiry";
 
     }

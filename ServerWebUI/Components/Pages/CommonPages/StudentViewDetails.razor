@@ -1873,7 +1873,7 @@
     private List<CountryModel> countrylist = new();
     private List<ReligionMaster> religionlist = new();
     private List<Qualification> qulifationlist = new();
-    private List<BranchNameMst> branchlist = new();
+    private List<BranchModel> branchlist = new();
     private string? branchcode;
     private string? groupcode;
     private string? UrlData;
@@ -2178,8 +2178,24 @@
         genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
         countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
         religionlist = await httpService.Get<List<ReligionMaster>>("Religion/AllReligion") ?? new();
-        branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
+       searchAnyRequest.GroupCode = groupcode;
+        await GetBranchName();
+        StateHasChanged();
     }
+  private async Task GetBranchName()
+  {
+      if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+      {
+          string ApiUri = "Branch/GetBranch";
+          branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+          StateHasChanged();
+      }
+      else
+      {
+          branchlist.Clear();
+          StateHasChanged();
+      }
+  }
     private async Task Childsdetails()
     {
         try
