@@ -1595,17 +1595,25 @@ namespace DomainModel.FinanceMNGT
     }
     public class StudentPassportVisaModel : MNGTCommon
     {
+        [Display(Name = "PassportNo")]
+      //  [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? PassportNo { get; set; }
-        public int PassportType { get; set; }
+        [Display(Name = "Passport Type")]
+      //  [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public int PassportType { get; set; }   
         public bool PassportRegistrationRquired { get; set; }
         public DateTime PassportIssueDate { get; set; } = DateTime.Today;
         public DateTime PassportExpiryDate { get; set; } = DateTime.Today;
+        [Display(Name = "VisaNo")]
+     //   [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? VisaNo { get; set; }
         public string? RecommendationBy { get; set; }
         public string? EmployeeApproched { get; set; }
         public string? RecommendationDocFile { get; set; }
         public string? RecommendationDocPath { get; set; }
         public string? SpecialComments { get; set; }
+        [Display(Name = "Visa Type")]
+     //   [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public int VisaType { get; set; }
         public bool VisaRegistrationRequired { get; set; }
         public DateTime? VisaIssueDate { get; set; } = DateTime.Today;

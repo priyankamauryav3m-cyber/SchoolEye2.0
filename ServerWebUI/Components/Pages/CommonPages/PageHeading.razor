@@ -1,4 +1,120 @@
-﻿@implements IDisposable
+﻿
+@implements IDisposable
+@inject MenuState MenuState
+@inject NavigationManager NavigationManager
+@inject CommonMethod EnquiryState
+
+<div class="page-heading d-flex align-items-center justify-content-between">
+
+    <p class="m-0 page-name px-1">
+
+        @if (ShowBackButton)
+        {
+            <button type="button"
+                    class="icon-btn icon-btn-white"
+                    @onclick="GoBackToDashboard">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+
+            <span class="mx-1">Dashboard</span>
+            <span class="mx-1">/</span>
+            <span class="mx-1">@FeatureName</span>
+            <span class="mx-1">/</span>
+        }
+
+        @PageName
+
+    </p>
+
+    <div class="d-flex align-items-center gap-2">
+        @ChildContent
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Tittle { get; set; }
+
+    private string PageName { get; set; } = "";
+    private string FeatureName { get; set; } = "";
+    private bool ShowBackButton { get; set; }
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        MenuState.OnChange += OnMenuStateChanged;
+
+        SetPageName();
+    }
+
+    private void GoBackToDashboard()
+    {
+        NavigationManager.NavigateTo(MenuState.DashboardUrl);
+    }
+
+    private void OnMenuStateChanged()
+    {
+        SetPageName();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnLocationChanged(
+        object? sender,
+        LocationChangedEventArgs e)
+    {
+        SetPageName();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SetPageName()
+    {
+        var currentUrl = NavigationManager.ToBaseRelativePath(
+            NavigationManager.Uri);
+
+        currentUrl = "/" + currentUrl
+            .Split('?')[0]
+            .Split('#')[0]
+            .Trim('/');
+
+        // Dashboard se page open hua hai ya nahi
+        ShowBackButton = !string.IsNullOrEmpty(EnquiryState.DashboardValue);
+
+        foreach (var module in MenuState.Features)
+        {
+            foreach (var feature in module.Features)
+            {
+                var activity = feature.Activites.FirstOrDefault(x =>
+                    string.Equals(
+                        x.URL?.TrimEnd('/'),
+                        currentUrl.TrimEnd('/'),
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (activity != null)
+                {
+                    FeatureName = feature.FeaturesName;
+                    PageName = $"{Tittle}";
+                    return;
+                }
+            }
+        }
+
+        PageName = "";
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        MenuState.OnChange -= OnMenuStateChanged;
+    }
+}
+
+
+@* @implements IDisposable
 @inject MenuState MenuState
 @inject NavigationManager NavigationManager
 
@@ -10,6 +126,7 @@
                 @onclick="GoBackToDashboard">
             <i class="bi bi-arrow-left"></i>
         </button>
+
         @PageName
     </p>
 
@@ -89,4 +206,4 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
         MenuState.OnChange -= OnMenuStateChanged;
     }
-}
+} *@

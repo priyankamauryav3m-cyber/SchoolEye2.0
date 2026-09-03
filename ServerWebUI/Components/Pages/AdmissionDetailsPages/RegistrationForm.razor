@@ -390,6 +390,7 @@
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnOpen { get; set; }
+    [Parameter] public EventCallback SubmitSearch { get; set; }
     [Parameter] public int EnqId { get; set; }
     private List<GenderModal> genderModallist = new();
     private InputDate<DateTime?> dateOfBirthRef;
@@ -595,7 +596,7 @@
                 }
                 else if (responseCode == 1)
                 {
-                    bool isYes = await Alert.ShowRegistrationSuccess($"{@Localizer["RegSave"]}<br/>" + $"<b>Registration No:</b> {regNo}");
+                    bool isYes = await Alert.ShowRegistrationSuccess($"{@Localizer["RegSave"]}<br/>" + $"<b>Registration No:</b> {regNo} <br/>" + $"Do you want to print receipt?");
                     //bool isYes = await Alert.ShowRegistrationSuccess(
                     //   $"Registration completed successfully!<br/>" +
                     //   $"<b>Registration No:</b> {regNo}<br/><br/>" +
@@ -624,6 +625,7 @@
                 registration = new RegistrationModal();
                 if (OnClose.HasDelegate)
                     await OnClose.InvokeAsync();
+
             }
             else
             {
@@ -639,6 +641,8 @@
         }
         finally
         {
+           if (SubmitSearch.HasDelegate)
+                await SubmitSearch.InvokeAsync();
             StateHasChanged();
         }
 

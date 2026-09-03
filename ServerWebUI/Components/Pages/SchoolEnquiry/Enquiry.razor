@@ -103,97 +103,97 @@
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <PageHeading Tittle="View Enquiery">
-                <div class="form-box">
-                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
-                        <InputRadioGroup @bind-Value="@DateFilter" @bind-Value:after='() => SearchStudent("Date")'>
-                            <div class="d-flex align-items-center gap-1">
-                                <InputRadio id="all" Value="@("Yesterday")" />
-                                <label for="all" class="form-label">Yesterday</label>
-                            </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <InputRadio id="published" Value="@("Today")" />
-                                <label for="published" class="form-label">Today</label>
-                            </div>
-                        </InputRadioGroup>
-                    </div>
-                </div>
-                <div class="form-box">
-                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
-                        @SelectedSourceText
-                    </button>
-
-                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
-
-                        <div class="form-check">
-                            <input class="form-check-input map-checkbox"
-                                   type="checkbox"
-                                   @bind="SelectAllSource"
-                                   @bind:after="OnSourceAllChanged" />
-
-                            <span>All</span>
+                <PageHeading Tittle="View Enquiery">
+                    <div class="form-box">
+                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                            <InputRadioGroup @bind-Value="@DateFilter" @bind-Value:after='() => SearchStudent("Date")'>
+                                <div class="d-flex align-items-center gap-1">
+                                    <InputRadio id="all" Value="@("Yesterday")" />
+                                    <label for="all" class="form-label">Yesterday</label>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <InputRadio id="published" Value="@("Today")" />
+                                    <label for="published" class="form-label">Today</label>
+                                </div>
+                            </InputRadioGroup>
                         </div>
+                    </div>
+                    <div class="form-box">
+                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                            @SelectedSourceText
+                        </button>
 
-                        @foreach (var item in sourceOfEnquirilist)
-                        {
+                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+
                             <div class="form-check">
-
                                 <input class="form-check-input map-checkbox"
                                        type="checkbox"
-                                       @bind="item.IsSelected"
-                                       @bind:after="OnSourceChanged" />
+                                       @bind="SelectAllSource"
+                                       @bind:after="OnSourceAllChanged" />
 
-                                <span>@item.SourceName</span>
-
+                                <span>All</span>
                             </div>
-                        }
+
+                            @foreach (var item in sourceOfEnquirilist)
+                            {
+                                <div class="form-check">
+
+                                    <input class="form-check-input map-checkbox"
+                                           type="checkbox"
+                                           @bind="item.IsSelected"
+                                           @bind:after="OnSourceChanged" />
+
+                                    <span>@item.SourceName</span>
+
+                                </div>
+                            }
+                        </div>
                     </div>
-                </div>
-                <div class="form-box">
-                    <InputSelect @bind-Value="@CurrentSession" class="form-input">
-                        <option value="0">-- Select Session --</option>
+                    <div class="form-box">
+                        <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                            <option value="0">-- Select Session --</option>
 
-                        @foreach (var data in sessionlist.Where(x => x.IsValid))
-                        {
-                            <option value="@data.SessionId">
-                                @data.SessionName
-                            </option>
-                        }
-                    </InputSelect>
-                </div>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid))
+                            {
+                                <option value="@data.SessionId">
+                                    @data.SessionName
+                                </option>
+                            }
+                        </InputSelect>
+                    </div>
 
-                <div class="form-box">
-                    <div class="d-flex gap-2">
-                        <button class="icon-btn icon-btn-white open-popup"
-                                @onclick="OpenSearch"
-                                data-id="popup"
-                                tabindex="0">
-                            <i class="bi bi-sliders"></i>
+                    <div class="form-box">
+                        <div class="d-flex gap-2">
+                            <button class="icon-btn icon-btn-white open-popup"
+                                    @onclick="OpenSearch"
+                                    data-id="popup"
+                                    tabindex="0">
+                                <i class="bi bi-sliders"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn"
+                                tabindex="0"
+                                @onclick='() => SearchStudent("Enquiry")'>
+
+                            <div class="visible content">
+                                Search
+                            </div>
+
+                            <div class="hidden content">
+                                <i class="bi bi-search"></i>
+                            </div>
+
                         </button>
                     </div>
-                </div>
 
-                <div class="form-box">
-                    <button class="ui fade op-1 animated button form-btn"
-                            tabindex="0"
-                            @onclick='() => SearchStudent("Enquiry")'>
+                    <div class="form-box">
+                        <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddEnquiry" />
+                    </div>
 
-                        <div class="visible content">
-                            Search
-                        </div>
-
-                        <div class="hidden content">
-                            <i class="bi bi-search"></i>
-                        </div>
-
-                    </button>
-                </div>
-
-                <div class="form-box">
-                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddEnquiry" />
-                </div>
-
-            </PageHeading>
+                </PageHeading>
 
         </div>
         <div class="col-12 p-1">
@@ -820,7 +820,7 @@
                 </div>
 
                 <div class="modal-body">
-                    <RegistrationForm classs="" IncomingData="@SeletedData" OnOpen="OpenPopup" OnClose="@ClosePopup"></RegistrationForm>
+                    <RegistrationForm classs="" IncomingData="@SeletedData" SubmitSearch="@(async () => await SearchStudent("Enquiry"))" OnOpen="@OpenPopup" OnClose="@ClosePopup"></RegistrationForm>
                 </div>
             </div>
         </div>
@@ -1048,7 +1048,7 @@ else
         }
         finally
         {
-
+           await SearchStudent("Enquiry");
             StateHasChanged();
         }
     }
@@ -1373,8 +1373,7 @@ else
         }
         finally
         {
-            StateHasChanged();
-            // addFollowup = new();
+            await SearchStudent("Enquiry");
             StateHasChanged();
         }
     }
