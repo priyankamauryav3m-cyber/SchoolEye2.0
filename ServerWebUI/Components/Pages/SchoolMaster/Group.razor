@@ -29,6 +29,40 @@
         border: 1px solid #d9d9d9;
         cursor: pointer;
     }
+
+    .border-box {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .photo-card-fixed {
+        display: flex;
+        flex-direction: column;
+        min-height: 269px;
+    }
+
+    .photo-box-fixed {
+        flex: 1;
+        width: 100%;
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f5f6f8;
+    }
+
+        .photo-box-fixed img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    .photo-card-fixed .action-btn-group {
+        flex-shrink: 0;
+        margin-top: 8px;
+    }
 </style>
 
 <div class="main-container">
@@ -45,14 +79,6 @@
                         <div class="grid-box">
                             <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
 
-                                @* <PropertyColumn Property="@(x => x.GroupCode)" Title="Group Code" Sortable="true" Align="Align.Left">
-                                    <ColumnOptions>
-                                        <div class="search-box">
-                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="GroupCode ..." />
-                                        </div>
-                                    </ColumnOptions>
-                                </PropertyColumn> *@
-
                                 <PropertyColumn Property="@(x => x.GroupName)" Title="Group Name" Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
                                         <div class="search-box">
@@ -61,7 +87,7 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
 
-                                <TemplateColumn Title="Logo" Align="Align.Center">
+                                <TemplateColumn Title="Logo" Align="Align.Left">
                                     <ChildContent>
                                         <img src="@GetLogoUrl(context.LogoPath)" class="grid-thumb-img" @onclick="() => ViewImage(context.LogoPath)" alt="Logo" />
                                     </ChildContent>
@@ -70,7 +96,7 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactPerson) ? " " : x.ContactPerson)" Title="Contact Person" Sortable="true" Align="Align.Left">
                                 </PropertyColumn>
 
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactNo) ? " " : x.ContactNo)" Title="Contact No" Sortable="true" Align="Align.Left">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactNo) ? " " : x.ContactNo)" Title="Contact No" Sortable="true" class="text-center" Align="Align.Center">
                                     <ColumnOptions>
                                         <div class="search-box">
                                             <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="ContactNo ..." />
@@ -126,192 +152,239 @@
 
         @if (ShowPopup)
         {
-            <div class="custom-modal row m-0">
-                <div class="col-12 col-sm-9 col-md-7 col-lg-6 col-xl-10">
+            <div class="custom-modal row m-0 align-items-center">
+                <div class="col-12 col-sm-9 col-md-7 col-lg-6 col-xl-12">
                     <div class="modal-content clearfix main-popup">
                         <div class="head-btn">
-                            <h5 class="modal-title">Group</h5>
+                            <h5 class="modal-title">@((group.GroupId == 0) ? "Add New Group" : "Edit Group")</h5>
                             <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                         </div>
                         <EditForm Model="@group" OnValidSubmit="@OnSave">
                             <DataAnnotationsValidator />
                             <div class="modal-body">
-                                <div class="row m-0 form-row">
+                                <div class="tab-content form-tab-count overflow-auto min-h-400" style="height: calc(105vh - 210px);">
+                                    <div class="row m-0">
+                                        <div class="col-12 col-md-10 px-0">
+                                            <div class="row m-0 mt-3">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mb-1">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg">Group Details : -</p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.GroupCode" />
-                                            <label class="floating-label">
-                                                Group Code <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => group.GroupCode)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.GroupCode" autocomplete="off" maxlength="10" />
+                                                        <label class="floating-label">
+                                                            Group Code <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => group.GroupCode)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.GroupName" />
-                                            <label class="floating-label">
-                                                Group Name <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => group.GroupName)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-8 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.GroupName" autocomplete="off" maxlength="10" />
+                                                        <label class="floating-label">
+                                                            Group Name <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => group.GroupName)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <label class="floating-label">Logo</label>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg">Address Details : -</p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
 
-                                            <InputFile OnChange="OnLogoSelected" class="w-100 floating-input" accept="image/*" />
-                                        </div>
-                                    </div>
-                                    @* <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <label class="floating-label">Logo</label>
-                                            <div class="border-box h-auto">
-                                                @if (!string.IsNullOrWhiteSpace(logoPreviewUrl))
-                                                {
-                                                    <img src="@logoPreviewUrl" class="w-100" alt="logo" />
-                                                }
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.AddressLine1" maxlength="100" autocomplete="off" />
+                                                        <label class="floating-label">Address Line 1</label>
+                                                        <ValidationMessage For="@(() => group.AddressLine1)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.AddressLine2" maxlength="150" autocomplete="off" />
+                                                        <label class="floating-label">Address Line 2</label>
+                                                        <ValidationMessage For="@(() => group.AddressLine2)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="group.CountryId" @bind-Value:after="OnCountryChanged">
+                                                            <option value="0" selected>--Select--</option>
+                                                            @foreach (var c in countrylist.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@c.CountryId">@c.CountryName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            Country <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => group.CountryId)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="group.StateId" @bind-Value:after="OnStateChanged">
+                                                            <option value="0" selected>--Select--</option>
+                                                            @foreach (var s in filteredStateList.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@s.StateId">@s.StateName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            State <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => group.StateId)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="group.DistrictId">
+                                                            <option value="0" selected>--Select--</option>
+                                                            @foreach (var d in filteredDistrictList.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@d.DistrictId">@d.DistrictName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            District <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => group.DistrictId)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" maxlength="6" autocomplete="off" />
+                                                        <label class="floating-label">Pin Code</label>
+                                                        <ValidationMessage For="@(() => group.PinCode)" />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div> *@
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactPerson" />
-                                            <label class="floating-label">Contact Person</label>
-                                            <ValidationMessage For="@(() => group.ContactPerson)" />
+                                        <div class="col-12 col-md-2 px-0 ">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 px-1">
+                                                    <div class="form-box-group static-label">
+                                                        <label for="groupLogo" class="floating-label">Logo</label>
+                                                        <div class="border-box h-auto p-1">
+                                                            <div class="photo-card-fixed">
+                                                                <div class="photo-box-fixed">
+                                                                    <img src="@GetLogoUrl(logoPreviewUrl)" alt="Logo" />
+                                                                </div>
+                                                                <InputFile id="groupLogo" OnChange="OnLogoSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                <div class="action-btn-group d-flex gap-2 mt-2 justify-content-around p-1">
+                                                                    <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("groupLogo")'>
+                                                                        <i class="bi bi-upload"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("Logo")'>
+                                                                        <i class="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="group.ContactNo" />
-                                            <label class="floating-label">Contact Number</label>
-                                            <ValidationMessage For="@(() => group.ContactNo)" />
+                                        <!-- ===================== Contact Details + Contact Person Photo ===================== -->
+                                        <div class="col-12 col-md-10 px-0">
+                                            <div class="row m-0">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mb-1">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg">Contact Details : -</p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactPerson" onkeypress="return /^[a-zA-Z ]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                        <label class="floating-label">Contact Person</label>
+                                                        <ValidationMessage For="@(() => group.ContactPerson)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="group.ContactNo" />
+                                                        <label class="floating-label">Contact Number</label>
+                                                        <ValidationMessage For="@(() => group.ContactNo)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactEmailId" maxlength="50" autocomplete="off" />
+                                                        <label class="floating-label">Contact Email</label>
+                                                        <ValidationMessage For="@(() => group.ContactEmailId)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.EmailId" maxlength="50" autocomplete="off" />
+                                                        <label class="floating-label">Group Email</label>
+                                                        <ValidationMessage For="@(() => group.EmailId)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-8 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.WebSite" maxlength="50" autocomplete="off" />
+                                                        <label class="floating-label">Website</label>
+                                                        <ValidationMessage For="@(() => group.WebSite)" />
+                                                    </div>
+                                                </div>
+
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactEmailId" />
-                                            <label class="floating-label">Contact Email</label>
-                                            <ValidationMessage For="@(() => group.ContactEmailId)" />
+                                        <div class="col-12 col-md-2 px-0 mt-4">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 px-1">
+                                                    <div class="form-box-group static-label">
+                                                        <label for="contactPersonImage" class="floating-label">Contact Person Photo</label>
+                                                        <div class="border-box h-auto p-1">
+                                                            <div class="photo-card-fixed">
+                                                                <div class="photo-box-fixed">
+                                                                    <img src="@GetLogoUrl(contactPersonPreviewUrl)" alt="Contact Person" />
+                                                                </div>
+                                                                <InputFile id="contactPersonImage" OnChange="OnContactPersonImageSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                <div class="action-btn-group d-flex gap-2 mt-2 justify-content-around p-1">
+                                                                    <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("contactPersonImage")'>
+                                                                        <i class="bi bi-upload"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("ContactPerson")'>
+                                                                        <i class="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.EmailId" />
-                                            <label class="floating-label">Group Email</label>
-                                            <ValidationMessage For="@(() => group.EmailId)" />
-                                        </div>
                                     </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.WebSite" />
-                                            <label class="floating-label">Website</label>
-                                            <ValidationMessage For="@(() => group.WebSite)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.AddressLine1" />
-                                            <label class="floating-label">Address Line 1</label>
-                                            <ValidationMessage For="@(() => group.AddressLine1)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.AddressLine2" />
-                                            <label class="floating-label">Address Line 2</label>
-                                            <ValidationMessage For="@(() => group.AddressLine2)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="group.CountryId" @bind-Value:after="OnCountryChanged">
-                                                <option value="0" selected>--Select--</option>
-                                                @foreach (var c in countrylist.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@c.CountryId">@c.CountryName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                Country <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => group.CountryId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="group.StateId" @bind-Value:after="OnStateChanged">
-                                                <option value="0" selected>--Select--</option>
-                                                @foreach (var s in filteredStateList.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@s.StateId">@s.StateName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                State <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => group.StateId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="group.DistrictId">
-                                                <option value="0" selected>--Select--</option>
-                                                @foreach (var d in filteredDistrictList.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@d.DistrictId">@d.DistrictName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                District <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => group.DistrictId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.PinCode" />
-                                            <label class="floating-label">Pin Code</label>
-                                            <ValidationMessage For="@(() => group.PinCode)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputNumber class="floating-input" placeholder=" " @bind-Value="group.ResellerId" />
-                                            <label class="floating-label">Reseller Id</label>
-                                            <ValidationMessage For="@(() => group.ResellerId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="group.LoginName" />
-                                            <label class="floating-label">
-                                                Login Name <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => group.LoginName)" />
-                                        </div>
-                                    </div>
-
                                 </div>
                             </div>
                             <div class="modal-footer">
                                 <div class="form-group btn-gr">
-                                    <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                    <SaveUpdateButton Id="group.GroupId" TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
                                 </div>
                             </div>
                         </EditForm>
@@ -319,7 +392,6 @@
                 </div>
             </div>
         }
-
     </div>
 </div>
 @if (ShowImagePopup)
@@ -344,12 +416,9 @@
         <img src="images/loading.gif" alt="Loading..." />
     </div>
 }
-else
-{
-}
 
 @code {
- 
+
     private bool IsLoading = true;
     private GroupMaster group = new();
     private string oldcdataModel = "";
@@ -361,8 +430,12 @@ else
     private List<DistrictModel> filteredDistrictList = new();
     private bool ShowPopup = false;
     private bool ShowImagePopup;
+
     private string? logoPreviewUrl;
     private bool isLogoChanged = false;
+
+    private string? contactPersonPreviewUrl;
+    private bool isContactPersonImageChanged = false;
 
     PaginationState pagination = new()
     {
@@ -408,6 +481,11 @@ else
         StateHasChanged();
     }
 
+    private async Task OpenFilePicker(string elementId)
+    {
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('{elementId}')?.click()");
+    }
+
     private async Task OnLogoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -442,6 +520,62 @@ else
         group.LogoPath = "/" + Path.Combine(folderRelative, fileName).Replace("\\", "/");
         logoPreviewUrl = group.LogoPath;
         isLogoChanged = true;
+
+        StateHasChanged();
+    }
+
+    private async Task OnContactPersonImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null)
+            return;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            await Alert.ShowWarning("Photo size must be less than 5 MB.");
+            return;
+        }
+
+        var month = DateTime.Now.Month.ToString("D2");
+        var day = DateTime.Now.Day.ToString("D2");
+
+        var folderRelative = Path.Combine("uploads", "GroupContactPersonImage", month, day);
+        var folderAbsolute = Path.Combine(Env.WebRootPath, folderRelative);
+
+        if (!Directory.Exists(folderAbsolute))
+            Directory.CreateDirectory(folderAbsolute);
+
+        var extension = Path.GetExtension(file.Name);
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePathAbsolute = Path.Combine(folderAbsolute, fileName);
+
+        await using (var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024))
+        await using (var fs = new FileStream(filePathAbsolute, FileMode.Create))
+        {
+            await stream.CopyToAsync(fs);
+        }
+
+        group.ContactPersonImagePath = "/" + Path.Combine(folderRelative, fileName).Replace("\\", "/");
+        contactPersonPreviewUrl = group.ContactPersonImagePath;
+        isContactPersonImageChanged = true;
+
+        StateHasChanged();
+    }
+
+    private void DeleteImage(string type)
+    {
+        if (type == "Logo")
+        {
+            group.LogoPath = null;
+            logoPreviewUrl = null;
+            isLogoChanged = true;
+        }
+        else if (type == "ContactPerson")
+        {
+            group.ContactPersonImagePath = null;
+            contactPersonPreviewUrl = null;
+            isContactPersonImageChanged = true;
+        }
 
         StateHasChanged();
     }
@@ -498,6 +632,8 @@ else
         group = new();
         logoPreviewUrl = null;
         isLogoChanged = false;
+        contactPersonPreviewUrl = null;
+        isContactPersonImageChanged = false;
         filteredStateList = new();
         filteredDistrictList = new();
         ShowPopup = true;
@@ -521,7 +657,7 @@ else
                 }
 
                 bool isSame = CommonMethod.IsEdited(group, oldcdataModel);
-                if (!isSame && !isLogoChanged)
+                if (!isSame && !isLogoChanged && !isContactPersonImageChanged)
                 {
                     await Alert.ShowWarning("No changes detected.");
                     ShowPopup = true;
@@ -532,7 +668,6 @@ else
 
             group.IsValid = true;
             group.CreatedBy = username;
-            group.CreatedDate = DateTime.Now;
 
             var apiResponse = await httpService.Post<ApiResponse<object>>("GroupMaster/AddOrUpdateGroup", group);
             var responsecode = apiResponse?.Code;
@@ -562,6 +697,8 @@ else
 
             logoPreviewUrl = null;
             isLogoChanged = false;
+            contactPersonPreviewUrl = null;
+            isContactPersonImageChanged = false;
 
             await LoadData();
         }
@@ -603,6 +740,9 @@ else
         logoPreviewUrl = string.IsNullOrWhiteSpace(item.LogoPath) ? null : item.LogoPath;
         isLogoChanged = false;
 
+        contactPersonPreviewUrl = string.IsNullOrWhiteSpace(item.ContactPersonImagePath) ? null : item.ContactPersonImagePath;
+        isContactPersonImageChanged = false;
+
         filteredStateList = statelist.Where(x => x.CountryId == group.CountryId).ToList();
         filteredDistrictList = districtlist.Where(x => x.StateId == group.StateId).ToList();
 
@@ -615,6 +755,8 @@ else
         group = new();
         logoPreviewUrl = null;
         isLogoChanged = false;
+        contactPersonPreviewUrl = null;
+        isContactPersonImageChanged = false;
         ShowPopup = false;
     }
 

@@ -2178,7 +2178,8 @@
         genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
         countrylist = await httpService.Get<List<CountryModel>>("Country/GetCountry") ?? new();
         religionlist = await httpService.Get<List<ReligionMaster>>("Religion/AllReligion") ?? new();
-       searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.GroupCode = groupcode;
+        schoolbranchcode = branchcode;
         await GetBranchName();
         StateHasChanged();
     }

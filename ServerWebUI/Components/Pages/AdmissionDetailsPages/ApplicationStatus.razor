@@ -29,7 +29,7 @@
                     </InputSelect>
                 </div>
                 <div class="form-box">
-                    <InputSelect @bind-Value="schoolbranchcode" class="form-input" autocomplete="off">
+                    <InputSelect @bind-Value="schoolbranchcode" class="form-input" autocomplete="off" disabled>
                         <option value="" selected>--Select--</option>
                         @foreach (var cs in branchlist)
                         {
@@ -201,6 +201,13 @@ else
 
         try
         {
+            if (string.IsNullOrEmpty(searchRequest.RegistrationNo))
+            {
+                statuslist.Clear();
+                await Alert.ShowWarning("Registration no. can not be blank.");
+                StateHasChanged();
+                return;
+            }
             var apiResponse = await httpService.Post<ApiResponse<List<RegistrationStatusResponse>>>(
                 "Registration/GetRegistrationStatus", searchRequest);
 

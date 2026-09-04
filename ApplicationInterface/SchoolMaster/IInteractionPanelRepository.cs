@@ -1,4 +1,5 @@
 using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using DomainModel.SchoolMaster;
 
 namespace ApplicationInterface.SchoolMaster
@@ -14,5 +15,7 @@ namespace ApplicationInterface.SchoolMaster
         public Task<string> AddUpdateInteractionComments(InteractionCommentsModel model);
 
         public Task<EmployeeModel> GetEmployeeList(EmployeeModel emp);
+        Task<InteractionCommentsModel?> GetInteractionComments(SearchAnyRequestModel request);
+
     }
 }

@@ -107,7 +107,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             return Ok(result);
         }
         [HttpPost("GetAdmissionDashboardData")]
-        public async Task<ApiResponse<AdmissionDashboardModel>> GetAdmissionDas([FromBody] SearchAnyRequestModel request)
+        public async Task<ApiResponse<AdmissionDashboardModel>> GetAdmissionDas([FromBody] AdmissionDashboardRequest request)
         {
             try
             {

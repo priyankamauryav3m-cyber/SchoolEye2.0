@@ -96,9 +96,11 @@
             margin: 0;
             cursor: pointer;
         }
-    /* .quickgrid tbody tr.selectRow td {
-                            background-color: #e7f1ff !important;
-                        } */
+
+    .redio-button-grid {
+        width: 18px;
+        height: 18px
+    }
 </style>
 <section class="main-container">
     <div class="row m-0 main-row">
@@ -204,8 +206,11 @@
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table" RowClass="GetRowClass">
                                 <TemplateColumn Title="" Align="Align.Center">
                                     <ChildContent>
-                                        <div class="d-flex align-items-center justify-content-center">
+                                        @* <div class="d-flex align-items-center justify-content-center">
                                             <input @bind="context.IsSelected" @onclick:stopPropagation="true" type="checkbox" />
+                                        </div> *@
+                                        <div>
+                                            <input type="radio" name="studentSelect" class="redio-button-grid" checked="@context.IsSelected" @onchange="@(() => SelectStudent(context))" @onclick:stopPropagation="true" />
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
@@ -812,7 +817,7 @@
 @if (OpenRegPopup)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-sm-12 col-md-10">
+        <div class="col-sm-12 col-md-12">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">New Registration</h5>
@@ -1415,6 +1420,16 @@ else
             return "";
 
         return "registered-row";
+    }
+    private void SelectStudent(EnquiryListResponse selectedStudent)
+    {
+        foreach (var item in enquiryList)
+        {
+            item.IsSelected = false;
+        }
+
+        selectedStudent.IsSelected = true;
+        StateHasChanged();
     }
 }
 
