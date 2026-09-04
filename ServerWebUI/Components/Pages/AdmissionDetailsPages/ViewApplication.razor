@@ -33,6 +33,24 @@
         pointer-events: none;
         background-color: #f5f5f5;
     }
+
+    .interaction-image-preview {
+        width: 100%;
+        height: 100px;
+        border-radius: 8px;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .interaction-preview-img {
+        width: 100%;
+        height: 90px;
+        object-fit: contain;
+        border-radius: 6px;
+    }
 </style>
 <div class="main-container">
     <div class="row m-0 main-row">
@@ -286,7 +304,6 @@
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2">
                             <div class="form-box-group static-label">
-                                <label class="floating-label">&nbsp;</label>
                                 <div class="border-box d-flex justify-content-center align-items-center gap-3">
                                     <div class="d-flex align-items-center gap-1">
                                         <input type="checkbox" class="form-input" checked="@(searchModel.IsTransport == 1)"
@@ -339,7 +356,7 @@
 @if (ShowInteractionPopup)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">Interaction</h5>
@@ -454,13 +471,28 @@
                                         <label class="floating-label">Attachment</label>
                                     </div>
                                 </div>
-                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
+                                <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-2 ">
                                     <div class="form-box-group">
-                                        <InputTextArea class="floating-input" placeholder=" " rows="3" @bind-Value="interactionModel.Remarks" maxlength="1000" />
+                                        <InputTextArea class="floating-input" placeholder=" " rows="4" @bind-Value="interactionModel.Remarks" maxlength="1000" />
                                         <label class="floating-label">
                                             Remarks <span class="required">*</span>
                                         </label>
                                         <ValidationMessage For="@(() => interactionModel.Remarks)" />
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-12 col-md-3 col-lg-3 px-2">
+                                    <div class="form-box-group static-label">
+                                        @if (!string.IsNullOrEmpty(SelectedImagePreview))
+                                        {
+                                            <div class="interaction-image-preview w-100">
+                                                <img src="@SelectedImagePreview"
+                                                     alt="Attachment Preview"
+                                                     class="interaction-preview-img" />
+                                            </div>
+                                        }
+                                        <label class="floating-label">
+                                            Img 
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -620,7 +652,7 @@ else
     private string username = "";
     private string DashboardValue = "";
     private InteractionCommentsModel? originalInteractionModel;
-    // ---------------- Interaction popup state ----------------
+    private string? SelectedImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
     private bool ShowInteractionPopup = false;
     private InteractionCommentsModel interactionModel = new();
     private List<EmployeeModel> teacherlist = new();
@@ -671,42 +703,48 @@ else
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
-        if (file == null) return;
-        interactionModel.FileName = file.Name;
-        var uploadFolder = Path.Combine(
+
+        if (file == null)
+            return;
+
+        if (!file.ContentType.StartsWith("image/"))
+            return;
+
+        var uploadFolderAbsolute = Path.Combine(
             Environment.CurrentDirectory,
             "wwwroot",
             "uploads",
             "interaction"
         );
 
-        if (!Directory.Exists(uploadFolder))
-            Directory.CreateDirectory(uploadFolder);
+        if (!Directory.Exists(uploadFolderAbsolute))
+            Directory.CreateDirectory(uploadFolderAbsolute);
+
         var uniqueFileName = $"{Guid.NewGuid()}_{file.Name}";
-        var filePath = Path.Combine(uploadFolder, uniqueFileName);
-        using var stream = file.OpenReadStream(
-            maxAllowedSize: 5 * 1024 * 1024
-        );
-        using var fs = new FileStream(
-            filePath,
-            FileMode.Create
-        );
 
-        await stream.CopyToAsync(fs);
+        var filePathAbsolute = Path.Combine(uploadFolderAbsolute, uniqueFileName);
+
+        using (var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024))
+        using (var fs = new FileStream(filePathAbsolute, FileMode.Create))
+        {
+            await stream.CopyToAsync(fs);
+        }
+
         interactionModel.FileName = file.Name;
-        interactionModel.FilePath = filePath;
-    }
-    // private async Task OnFileSelected(InputFileChangeEventArgs e)
-    // {
-    //     var file = e.File;
-    //     if (file == null) return;
 
-    //     interactionModel.FileName = file.Name;
-    //     interactionModel.FilePath = file.Name;
-    //     using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
-    //     using var ms = new MemoryStream();
-    //     await stream.CopyToAsync(ms);
-    // }
+        // Web-relative path — ye hi browser mein <img src> ke kaam aayega
+        interactionModel.FilePath = "/" + Path.Combine("uploads", "interaction", uniqueFileName).Replace("\\", "/");
+
+        // Live preview turant naye upload se
+        using var previewStream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var memoryStream = new MemoryStream();
+        await previewStream.CopyToAsync(memoryStream);
+        var imageBytes = memoryStream.ToArray();
+
+        SelectedImagePreview = $"data:{file.ContentType};base64,{Convert.ToBase64String(imageBytes)}";
+
+        StateHasChanged();
+    }
     private async Task OpenDateFrom(string value)
     {
         if (value == "DateFrom")
@@ -1097,16 +1135,14 @@ else
         selectedStudentRow = data[0];
 
         await LoadTeacherList();
+        searchAnyRequest.RequestId = Convert.ToInt32(selectedStudentRow.RegistrationId);
+        await GetInteraction();
 
-        // interactionModel = await GetInteraction(selectedStudentRow.RegistrationId);
 
-       
         if (interactionModel != null && interactionModel.IID != 0)
         {
             IsExistingInteraction = true;
             IsEditMode = false;
-
-         
             originalInteractionModel = new InteractionCommentsModel
             {
                 IID = interactionModel.IID,
@@ -1116,10 +1152,12 @@ else
                 FileName = interactionModel.FileName,
                 FilePath = interactionModel.FilePath
             };
+            SelectedImagePreview = string.IsNullOrWhiteSpace(originalInteractionModel.FilePath) ? null : originalInteractionModel.FilePath;
+
         }
         else
         {
-        
+
             IsExistingInteraction = false;
             IsEditMode = true;
 
@@ -1130,6 +1168,15 @@ else
         ShowInteractionPopup = true;
         StateHasChanged();
     }
+    private async Task GetInteraction()
+    {
+        searchAnyRequest.GroupCode = groupcode;
+        searchAnyRequest.BranchCode = branchcode;
+        searchAnyRequest.SessionId = CurrentSession;
+        var result = await httpService.Post<ApiResponse<InteractionCommentsModel>>("InteractionPanel/GetInteractionComments", searchAnyRequest) ?? new();
+        interactionModel = result.Data;
+    }
+
     private async Task LoadTeacherList()
     {
         selectedTeacher.GroupCode = groupcode;
@@ -1214,7 +1261,28 @@ else
                 ShowInteractionPopup = false;
 
                 interactionModel = new();
-                originalInteractionModel = null;
+                originalInteractionModel = new(); ;
+            }
+            else if (apiResponse != null && apiResponse.Success && apiResponse.Code == 2)
+            {
+                await Alert.ShowSuccess("Interaction " + Localizer["Updated"]);
+                originalInteractionModel = new InteractionCommentsModel
+                {
+                    IID = interactionModel.IID,
+                    StarRating = interactionModel.StarRating,
+                    Recommendation = interactionModel.Recommendation,
+                    Remarks = interactionModel.Remarks,
+                    FileName = interactionModel.FileName,
+                    FilePath = interactionModel.FilePath
+                };
+
+                IsEditMode = false;
+                IsExistingInteraction = true;
+
+                ShowInteractionPopup = false;
+
+                interactionModel = new();
+                originalInteractionModel = new(); ;
             }
             else
             {
@@ -1231,50 +1299,7 @@ else
             StateHasChanged();
         }
     }
-    // private async Task OnSubmitInteraction()
-    // {
-    //     ShowInteractionPopup = false;
-    //     if (selectedTeacher == null)
-    //     {
-    //         await Alert.ShowWarning("Please select a teacher.");
-    //         return;
-    //     }
-    //     interactionModel.InteractionBy = selectedTeacher.EmployeeId;
-    //     interactionModel.GroupCode = groupcode;
-    //     interactionModel.BranchCode = branchcode;
-    //     interactionModel.SessionId = CurrentSession;
-    //     interactionModel.RegistrationId = selectedStudentRow.RegistrationId;
-    //     interactionModel.CreatedBy = username;
-    //     interactionModel.CreatedDate = DateTime.Now;
-    //     interactionModel.IsValid = true;
-    //     try
-    //     {
-    //         IsLoading = true;
-    //         StateHasChanged();
-
-    //         string apiUrl = "InteractionPanel/AddOrUpdateInteraction";
-    //         var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, interactionModel);
-    //         if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
-    //         {
-    //             await Alert.ShowSuccess("Interaction" + Localizer["Inserted"]);
-    //             ShowInteractionPopup = false;
-    //             interactionModel = new();
-    //         }
-    //         else
-    //         {
-    //             await Alert.ShowWarning("Failed to save interaction.");
-    //         }
-    //     }
-    //     catch
-    //     {
-    //         await Alert.ShowWarning("Failed to save interaction.");
-    //     }
-    //     finally
-    //     {
-    //         IsLoading = false;
-    //         StateHasChanged();
-    //     }
-    // }
+   
 
     private async Task AddOrVerifyDoument()
     {

@@ -1,5 +1,6 @@
 using ApplicationInterface.SchoolMaster;
 using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using DomainModel.SchoolMaster;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -172,6 +173,29 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
                 {
                     message = "An error occurred while fetching interaction panel data.",
                     error = ex.Message
+                });
+            }
+        }
+        [HttpPost("GetInteractionComments")]
+        public async Task<IActionResult> GetInteractionComments([FromBody] SearchAnyRequestModel request)
+        {
+            try
+            {
+                var data = await _service.GetInteractionComments(request);
+                return Ok(new ApiResponse<InteractionCommentsModel>
+                {
+                    Success = true,
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ApiResponse<InteractionCommentsModel>
+                {
+                    Success = false,
+                    Code = 0,
+                    Message = ex.Message
                 });
             }
         }

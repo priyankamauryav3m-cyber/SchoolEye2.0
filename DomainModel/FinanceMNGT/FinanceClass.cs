@@ -1951,7 +1951,15 @@ namespace DomainModel.FinanceMNGT
         [StringLength(200)]
         public string? Narration1 { get; set; }
     }
-
+    public class AdmissionDashboardRequest  
+    {
+        public string GroupCode { get; set; } = "";
+        public string BranchCode { get; set; } = "";
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public DateTime? FromDate { get; set; }   // NAYA
+        public DateTime? ToDate { get; set; }     // NAYA
+    }
 
 }
 

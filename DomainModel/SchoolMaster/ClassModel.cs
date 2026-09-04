@@ -267,9 +267,12 @@ namespace DomainModel.SchoolMaster
     #endregion
 
     #region  -------------------------- Group Master -------------
-    public class GroupMaster : CommonBaseModel
+    public class GroupMaster 
     {
         public int GroupId { get; set; } = 0;
+        [Display(Name = "Group Code")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string GroupCode { get; set; } = string.Empty;
         [Display(Name = "Group Name")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
@@ -341,7 +344,10 @@ namespace DomainModel.SchoolMaster
         [Required( ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
 
         public string LoginName { get; set; } = string.Empty;
+        public bool IsValid { get; set; } = true;
 
+        public string CreatedBy { get; set; } = string.Empty;
+        public DateTime CreatedDate { get; set; } = DateTime.Today;
     }
     #endregion
 

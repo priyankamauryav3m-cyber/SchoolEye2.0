@@ -61,7 +61,7 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
                                         <div class="form-box-group">
-                                            <select class="floating-input" autocomplete="off" disabled="@IsBranchDisabled" maxlength="10">
+                                            <select class="floating-input" autocomplete="off" disabled="@IsBranchDisabled" maxlength="10" >
                                                 @foreach (var cs in branchlist)
                                                 {
                                                     <option Value="@cs.BranchId">@cs.BranchName</option>
@@ -72,7 +72,7 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2  ">
                                         <div class="form-box-group">
-                                            <InputSelect class="floating-input" autocomplete="off" maxlength="10" @bind-Value="studentDirectAdmission.BranchCode">
+                                            <InputSelect class="floating-input" autocomplete="off" maxlength="10" @bind-Value="studentDirectAdmission.BranchCode" disabled>
                                                 @foreach (var br in branchlist.Where(x => x.IsValid == true))
                                                 {
                                                     <option Value="@br.BranchCode">@br.BranchName</option>
@@ -778,7 +778,7 @@
 
                                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                                 <div class="form-box-group static-label">
-                                                    <InputSelect @bind-Value="schoolbranchcode" class="floating-input" autocomplete="off" maxlength="10">
+                                                    <InputSelect @bind-Value="schoolbranchcode" class="floating-input" autocomplete="off" maxlength="10" disabled>
                                                         <option value="" selected>--Select--</option>
                                                         @foreach (var cs in branchlist)
                                                         {
@@ -1193,6 +1193,7 @@
         //  branchlist = await httpService.Get<List<BranchNameMst>>("ClassSection/GetBranchName") ?? new();
         //var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>("", searchAny) ?? new();
         searchAny.GroupCode = groupcode;
+        schoolbranchcode = branchcode;
         await GetBranchName();
         qulifationlist = await httpService.Get<List<Qualification>>("Qualification/GetQualification") ?? new();
         genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();

@@ -28,6 +28,40 @@
         border: 1px solid #d9d9d9;
         cursor: pointer;
     }
+
+    .border-box {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .photo-card-fixed {
+        display: flex;
+        flex-direction: column;
+        min-height: 269px;
+    }
+
+    .photo-box-fixed {
+        flex: 1;
+        width: 100%;
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f5f6f8;
+    }
+
+        .photo-box-fixed img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+    .photo-card-fixed .action-btn-group {
+        flex-shrink: 0;
+        margin-top: 8px;
+    }
 </style>
 <div class="main-container">
     <div class="row m-0 main-row">
@@ -74,7 +108,7 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactPerson) ? " " : x.ContactPerson)" Title="Contact Person" Sortable="true" Align="Align.Left">
                                 </PropertyColumn>
 
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactNo)? " ":x.ContactNo)" Title="Contact No" Sortable="true" Align="Align.Left">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ContactNo) ? " " : x.ContactNo)" Title="Contact No" Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
                                         <div class="search-box">
                                             <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="ContactNo ..." />
@@ -82,7 +116,7 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
 
-                                <TemplateColumn  Title="Head Office" Align="Align.Center">
+                                <TemplateColumn Title="Head Office" Align="Align.Center">
                                     <ChildContent>
                                         <span class="@GetStatusClass(context.IsHO == true)">
                                             @(context.IsHO == true ? "Yes" : "No")
@@ -134,282 +168,342 @@
         @if (ShowPopup)
         {
             <div class="custom-modal row m-0 align-items-center">
-                <div class="col-12 col-sm-9 col-md-7 col-lg-6 col-xl-10">
+                <div class="col-12 col-sm-9 col-md-7 col-lg-6 col-xl-12">
                     <div class="modal-content clearfix main-popup">
                         <div class="head-btn">
-                            <h5 class="modal-title">Branch</h5>
+                            <h5 class="modal-title">@((branch.BranchId == 0) ? "Add New Branch" : "Edit Branch")</h5>
                             <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                         </div>
                         <EditForm Model="@branch" OnValidSubmit="@OnSave">
                             <DataAnnotationsValidator />
                             <div class="modal-body">
-                                <div class="row m-0 form-row">
+                                <div class="tab-content form-tab-count overflow-auto min-h-400" style="height: calc(105vh - 210px);">
+                                    <div class="row m-0 ">
+                                        <div class="col-12 col-md-10 px-0">
+                                            <div class="row m-0 mt-3">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mb-1 ">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg ">
+                                                            School Details : -
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect @bind-Value="@branch.GroupCode" class="floating-input">
+                                                            <option value="">-- Select Group --</option>
+                                                            @foreach (var data in grouplist.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@data.GroupCode">@data.GroupName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            Group Code <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.BranchCode)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchCode" />
+                                                        <label class="floating-label">
+                                                            Branch Code <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.BranchCode)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchName" />
+                                                        <label class="floating-label">
+                                                            Branch Name <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.BranchName)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchCategory" />
+                                                        <label class="floating-label">Branch Category</label>
+                                                        <ValidationMessage For="@(() => branch.BranchCategory)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <label class="floating-label">Head Office</label>
+                                                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                                            <div class="d-flex align-items-center gap-1">
+                                                                <InputCheckbox class="form-check-input" @bind-Value="branch.IsHO" id="isHOCheck" />
+                                                                <label class="form-check-label" for="isHOCheck">
+                                                                    Head Office
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.AffiliationDetails" />
+                                                        <label class="floating-label">Affiliation Details</label>
+                                                        <ValidationMessage For="@(() => branch.AffiliationDetails)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect @bind-Value="@branch.GroupCode" class="floating-input">
-                                                <option value="">-- Select Group --</option>
-                                                @foreach (var data in grouplist.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@data.GroupCode">@data.GroupName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                Group Code <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.BranchCode)" />
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchCode" />
-                                            <label class="floating-label">
-                                                Branch Code <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.BranchCode)" />
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchName" />
-                                            <label class="floating-label">
-                                                Branch Name <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.BranchName)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputDate class="floating-input" @bind-Value="branch.AffiliationUpto" />
+                                                        <label class="floating-label">Affiliation Upto</label>
+                                                        <ValidationMessage For="@(() => branch.AffiliationUpto)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <label class="floating-label">Logo</label>
-                                        
-                                                <InputFile OnChange="OnLogoSelected" class="floating-input" accept="image/*" />
-                                        </div>
-                                    </div>
-                                    @* <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <label class="floating-label">Logo</label>
-                                            <div class="border-box h-auto">
-                                                @if (!string.IsNullOrWhiteSpace(logoPreviewUrl))
-                                                {
-                                                    <img src="@logoPreviewUrl" class="floating-input" alt="logo" />
-                                                }
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.UDISENo" />
+                                                        <label class="floating-label">UDISE No</label>
+                                                        <ValidationMessage For="@(() => branch.UDISENo)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.StatusOfSchool" />
+                                                        <label class="floating-label">Status of School</label>
+                                                        <ValidationMessage For="@(() => branch.StatusOfSchool)" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <input type="time" class="floating-input"
+                                                               value="@(branch.StartTime?.ToString(@"hh\:mm"))"
+                                                               @onchange="OnStartTimeChanged" />
+                                                        <label class="floating-label">Start Time</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <input type="time" class="floating-input"
+                                                               value="@(branch.EndTime?.ToString(@"hh\:mm"))"
+                                                               @onchange="OnEndTimeChanged" />
+                                                        <label class="floating-label">End Time</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.Remarks" />
+                                                        <label class="floating-label">Remarks</label>
+                                                        <ValidationMessage For="@(() => branch.Remarks)" />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div> *@
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.ContactPerson" />
-                                            <label class="floating-label">
-                                                Contact Person <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.ContactPerson)" />
+                                        <div class="col-12 col-md-2 px-0 mt-4">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 px-1">
+                                                    <div class="form-box-group static-label">
+                                                        <label for="branchLogo" class="floating-label">Branch Logo</label>
+                                                        <div class="border-box h-auto p-1">
+                                                            <div class="photo-card-fixed">
+                                                                <div class="photo-box-fixed">
+                                                                    <img src="@GetLogoUrl(logoPreviewUrl)" alt="Logo" />
+                                                                </div>
+                                                                <InputFile id="branchLogo" OnChange="OnLogoSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                <div class="action-btn-group d-flex gap-2 mt-2 justify-content-around p-1">
+                                                                    <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("branchLogo")'>
+                                                                        <i class="bi bi-upload"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("Logo")'>
+                                                                        <i class="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="branch.ContactNo" />
-                                            <label class="floating-label">
-                                                Contact Number <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.ContactNo)" />
-                                        </div>
-                                    </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.ContactEmailId" />
-                                            <label class="floating-label">Contact Email</label>
-                                            <ValidationMessage For="@(() => branch.ContactEmailId)" />
-                                        </div>
-                                    </div>
+                                        <div class="col-12 col-md-10 px-0">
+                                            <div class="row m-0">
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 mb-1 ">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg ">
+                                                            Contact Details : -
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.ContactPerson" />
+                                                        <label class="floating-label">
+                                                            Contact Person <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.ContactPerson)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="branch.ContactNo" />
+                                                        <label class="floating-label">
+                                                            Contact Number <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.ContactNo)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.ContactEmailId" />
+                                                        <label class="floating-label">Contact Email</label>
+                                                        <ValidationMessage For="@(() => branch.ContactEmailId)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchEmailId" />
+                                                        <label class="floating-label">Branch Email</label>
+                                                        <ValidationMessage For="@(() => branch.BranchEmailId)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.WebSite" />
+                                                        <label class="floating-label">Website</label>
+                                                        <ValidationMessage For="@(() => branch.WebSite)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.SchoolNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <label class="floating-label">School Number</label>
+                                                        <ValidationMessage For="@(() => branch.SchoolNo)" />
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2 ">
+                                                    <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                                        <p class="total-text-with-bg ">
+                                                            Address Details : -
+                                                        </p>
+                                                        <hr class="m-0 w-webkit text-light-gray op-1">
+                                                    </div>
+                                                </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.AddressLine1" />
+                                                        <label class="floating-label">
+                                                            Address Line 1 <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.AddressLine1)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchEmailId" />
-                                            <label class="floating-label">Branch Email</label>
-                                            <ValidationMessage For="@(() => branch.BranchEmailId)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.AddressLine2" />
+                                                        <label class="floating-label">Address Line 2</label>
+                                                        <ValidationMessage For="@(() => branch.AddressLine2)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.WebSite" />
-                                            <label class="floating-label">Website</label>
-                                            <ValidationMessage For="@(() => branch.WebSite)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="branch.CountryId" @bind-Value:after="OnCountryChanged">
+                                                            <option value="0" selected>--Select--</option>
+                                                            @foreach (var c in countrylist.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@c.CountryId">@c.CountryName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            Country <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.CountryId)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.AffiliationDetails" />
-                                            <label class="floating-label">Affiliation Details</label>
-                                            <ValidationMessage For="@(() => branch.AffiliationDetails)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="branch.StateId" @bind-Value:after="OnStateChanged">
+                                                            <option value="0" selected>--Select--</option>
+                                                            @foreach (var s in filteredStateList.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@s.StateId">@s.StateName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            State <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.StateId)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.SchoolNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
-                                            <label class="floating-label">School Number</label>
-                                            <ValidationMessage For="@(() => branch.SchoolNo)" />
-                                        </div>
-                                    </div>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group static-label">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="branch.DistrictId">
+                                                            <option value="0" selected>--Select--</option>
+                                                            @foreach (var d in filteredDistrictList.Where(x => x.IsValid == true))
+                                                            {
+                                                                <option value="@d.DistrictId">@d.DistrictName</option>
+                                                            }
+                                                        </InputSelect>
+                                                        <label class="floating-label">
+                                                            District <span class="required">*</span>
+                                                        </label>
+                                                        <ValidationMessage For="@(() => branch.DistrictId)" />
+                                                    </div>
+                                                </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.AddressLine1" />
-                                            <label class="floating-label">
-                                                Address Line 1 <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.AddressLine1)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.AddressLine2" />
-                                            <label class="floating-label">Address Line 2</label>
-                                            <ValidationMessage For="@(() => branch.AddressLine2)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="branch.CountryId" @bind-Value:after="OnCountryChanged">
-                                                <option value="0" selected>--Select--</option>
-                                                @foreach (var c in countrylist.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@c.CountryId">@c.CountryName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                Country <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.CountryId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="branch.StateId" @bind-Value:after="OnStateChanged">
-                                                <option value="0" selected>--Select--</option>
-                                                @foreach (var s in filteredStateList.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@s.StateId">@s.StateName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                State <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.StateId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputSelect class="floating-input" placeholder=" " @bind-Value="branch.DistrictId">
-                                                <option value="0" selected>--Select--</option>
-                                                @foreach (var d in filteredDistrictList.Where(x => x.IsValid == true))
-                                                {
-                                                    <option value="@d.DistrictId">@d.DistrictName</option>
-                                                }
-                                            </InputSelect>
-                                            <label class="floating-label">
-                                                District <span class="required">*</span>
-                                            </label>
-                                            <ValidationMessage For="@(() => branch.DistrictId)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.PinCode" />
-                                            <label class="floating-label">Pin Code</label>
-                                            <ValidationMessage For="@(() => branch.PinCode)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <input type="time" class="floating-input"
-                                                   value="@(branch.StartTime?.ToString(@"hh\:mm"))"
-                                                   @onchange="OnStartTimeChanged" />
-                                            <label class="floating-label">Start Time</label>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <input type="time" class="floating-input"
-                                                   value="@(branch.EndTime?.ToString(@"hh\:mm"))"
-                                                   @onchange="OnEndTimeChanged" />
-                                            <label class="floating-label">End Time</label>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchCategory" />
-                                            <label class="floating-label">Branch Category</label>
-                                            <ValidationMessage For="@(() => branch.BranchCategory)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <InputDate class="floating-input" @bind-Value="branch.AffiliationUpto" />
-                                            <label class="floating-label">Affiliation Upto</label>
-                                            <ValidationMessage For="@(() => branch.AffiliationUpto)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.StatusOfSchool" />
-                                            <label class="floating-label">Status of School</label>
-                                            <ValidationMessage For="@(() => branch.StatusOfSchool)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.UDISENo" />
-                                            <label class="floating-label">UDISE No</label>
-                                            <ValidationMessage For="@(() => branch.UDISENo)" />
-                                        </div>
-                                    </div>
-
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group static-label">
-                                            <label class="floating-label">Head Office</label>
-                                            <div class="border-box d-flex justify-content-center align-items-center gap-3">
-                                                <div class="d-flex align-items-center gap-1">
-                                                    <InputCheckbox class="form-check-input" @bind-Value="branch.IsHO" id="isHOCheck" />
-                                                    <label class="form-check-label" for="isHOCheck">
-                                                        Head Office
-                                                    </label>
+                                                <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
+                                                    <div class="form-box-group">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.PinCode" />
+                                                        <label class="floating-label">Pin Code</label>
+                                                        <ValidationMessage For="@(() => branch.PinCode)" />
+                                                    </div>
                                                 </div>
 
                                             </div>
                                         </div>
 
-                                    </div>
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="branch.Remarks" />
-                                            <label class="floating-label">Remarks</label>
-                                            <ValidationMessage For="@(() => branch.Remarks)" />
+                                        <div class="col-12 col-md-2 px-0 mt-4">
+                                            <div class="row m-0 form-row">
+                                                <div class="col-12 px-1">
+                                                    <div class="form-box-group static-label">
+                                                        <label for="contactPersonImage" class="floating-label">Contact Person Photo</label>
+                                                        <div class="border-box h-auto p-1">
+                                                            <div class="photo-card-fixed">
+                                                                <div class="photo-box-fixed">
+                                                                    <img src="@GetLogoUrl(contactPersonPreviewUrl)" alt="Contact Person" />
+                                                                </div>
+                                                                <InputFile id="contactPersonImage" OnChange="OnContactPersonImageSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                <div class="action-btn-group d-flex gap-2 mt-2 justify-content-around p-1">
+                                                                    <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("contactPersonImage")'>
+                                                                        <i class="bi bi-upload"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteImage("ContactPerson")'>
+                                                                        <i class="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
+
+                                 
+                                       
                                     </div>
 
                                 </div>
                             </div>
                             <div class="modal-footer">
                                 <div class="form-group btn-gr">
-                                    <SaveUpdateButton TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
+                                    <SaveUpdateButton Id="branch.BranchId" TextSave="Submit" OnClickCancel="ClosePopup"></SaveUpdateButton>
                                 </div>
                             </div>
                         </EditForm>
@@ -442,19 +536,16 @@
 @code {
     // ---------------------------------------------------------------------
     // ASSUMPTIONS (adjust if different in your project):
-    // - Same pattern as GroupMaster: the Logo file is saved directly into
-    //   the Blazor Server (UI) project's own wwwroot via IWebHostEnvironment
-    //   (folder "uploads/BranchLogo/MM/dd") - NOT the API's root. Only the
-    //   resulting web path (branch.LogoPath) is sent to the API in the
-    //   normal JSON body, same as every other field.
-    // - Your pasted AddOrUpdateBranchMaster controller action is already
-    //   correct for this - it takes [FromBody] BranchModel and does no
-    //   file handling at all, so no controller changes were needed there.
-    // - BranchModel.LogoPath already exists (used by AddUpdateBranchMaster
-    //   in your repository code) - reused as-is, no new model property
-    //   needed on the Branch side.
-    // - Adjust the saved subfolder ("uploads/BranchLogo/MM/dd") to wherever
-    //   your project actually serves branch logos from under wwwroot.
+    // - Same pattern as GroupMaster: images are saved directly into the
+    //   Blazor Server (UI) project's own wwwroot via IWebHostEnvironment.
+    //   Only the resulting web path (branch.LogoPath / branch.ContactPersonImagePath)
+    //   is sent to the API in the normal JSON body, same as every other field.
+    // - BranchModel.ContactPersonImagePath is a NEW string? property you need
+    //   to add alongside the existing LogoPath.
+    // - OpenFilePicker(id) here uses a plain JS eval click — if your project
+    //   already has a global "OpenFilePicker" JS function (as the Student page
+    //   snippet implies), swap the body to call that instead:
+    //   await JS.InvokeVoidAsync("OpenFilePicker", elementId);
     // ---------------------------------------------------------------------
     private bool ShowImagePopup = false;
     private bool IsLoading = true;
@@ -472,6 +563,10 @@
 
     private string? logoPreviewUrl;
     private bool isLogoChanged = false;
+
+    private string? contactPersonPreviewUrl;
+    private bool isContactPersonImageChanged = false;
+
     private const string NoLogoUrl = "https://demo.schooleye.in/Images/NoPhoto.gif";
 
     PaginationState pagination = new()
@@ -539,6 +634,11 @@
             branch.EndTime = null;
     }
 
+    private async Task OpenFilePicker(string elementId)
+    {
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('{elementId}')?.click()");
+    }
+
     private async Task OnLogoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -577,6 +677,62 @@
         StateHasChanged();
     }
 
+    private async Task OnContactPersonImageSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null)
+            return;
+
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            await Alert.ShowWarning("Photo size must be less than 5 MB.");
+            return;
+        }
+
+        var month = DateTime.Now.Month.ToString("D2");
+        var day = DateTime.Now.Day.ToString("D2");
+
+        var folderRelative = Path.Combine("uploads", "ContactPersonImage", month, day);
+        var folderAbsolute = Path.Combine(Env.WebRootPath, folderRelative);
+
+        if (!Directory.Exists(folderAbsolute))
+            Directory.CreateDirectory(folderAbsolute);
+
+        var extension = Path.GetExtension(file.Name);
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePathAbsolute = Path.Combine(folderAbsolute, fileName);
+
+        await using (var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024))
+        await using (var fs = new FileStream(filePathAbsolute, FileMode.Create))
+        {
+            await stream.CopyToAsync(fs);
+        }
+
+        branch.ContactPersonImagePath = "/" + Path.Combine(folderRelative, fileName).Replace("\\", "/");
+        contactPersonPreviewUrl = branch.ContactPersonImagePath;
+        isContactPersonImageChanged = true;
+
+        StateHasChanged();
+    }
+
+    private void DeleteImage(string type)
+    {
+        if (type == "Logo")
+        {
+            branch.LogoPath = null;
+            logoPreviewUrl = null;
+            isLogoChanged = true;
+        }
+        else if (type == "ContactPerson")
+        {
+            branch.ContactPersonImagePath = null;
+            contactPersonPreviewUrl = null;
+            isContactPersonImageChanged = true;
+        }
+
+        StateHasChanged();
+    }
+
     private string GetLogoUrl(string? logoPath) => string.IsNullOrWhiteSpace(logoPath) ? NoLogoUrl : logoPath;
 
     private async Task LoadData()
@@ -591,16 +747,19 @@
     }
     private async Task GetBranchName()
     {
+        IsLoading = true;
         if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
         {
             string ApiUri = "Branch/GetBranch";
             branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
             StateHasChanged();
+            IsLoading = true;
         }
         else
         {
             branchlist.Clear();
             StateHasChanged();
+            IsLoading = true;
         }
     }
     protected IQueryable<BranchModel> FilteredItems
@@ -640,6 +799,8 @@
         branch = new();
         logoPreviewUrl = null;
         isLogoChanged = false;
+        contactPersonPreviewUrl = null;
+        isContactPersonImageChanged = false;
         filteredStateList = new();
         filteredDistrictList = new();
         ShowPopup = true;
@@ -661,7 +822,7 @@
                     return;
                 }
                 bool isSame = CommonMethod.IsEdited(branch, oldcdataModel);
-                if (!isSame && !isLogoChanged)
+                if (!isSame && !isLogoChanged && !isContactPersonImageChanged)
                 {
                     await Alert.ShowWarning("No changes detected.");
                     ShowPopup = true;
@@ -678,7 +839,7 @@
             if (responsecode == 0)
             {
                 await Alert.ShowWarning("Branch" + @Localizer["Already"]);
-                ShowPopup=true;
+                ShowPopup = true;
                 StateHasChanged();
             }
             else if (responsecode == 1)
@@ -698,9 +859,11 @@
 
             logoPreviewUrl = null;
             isLogoChanged = false;
+            contactPersonPreviewUrl = null;
+            isContactPersonImageChanged = false;
 
             await LoadData();
-           
+
         }
         catch (Exception ex)
         {
@@ -708,7 +871,7 @@
         }
         finally
         {
-           await GetBranchName();
+            await GetBranchName();
             StateHasChanged();
         }
     }
@@ -723,6 +886,7 @@
             BranchName = item.BranchName,
             Remarks = item.Remarks,
             LogoPath = item.LogoPath,
+            ContactPersonImagePath = item.ContactPersonImagePath,
             ContactPerson = item.ContactPerson,
             ContactNo = item.ContactNo,
             ContactEmailId = item.ContactEmailId,
@@ -748,6 +912,9 @@
         logoPreviewUrl = string.IsNullOrWhiteSpace(item.LogoPath) ? null : item.LogoPath;
         isLogoChanged = false;
 
+        contactPersonPreviewUrl = string.IsNullOrWhiteSpace(item.ContactPersonImagePath) ? null : item.ContactPersonImagePath;
+        isContactPersonImageChanged = false;
+
         filteredStateList = statelist.Where(x => x.CountryId == branch.CountryId).ToList();
         filteredDistrictList = districtlist.Where(x => x.StateId == branch.StateId).ToList();
 
@@ -760,6 +927,8 @@
         branch = new();
         logoPreviewUrl = null;
         isLogoChanged = false;
+        contactPersonPreviewUrl = null;
+        isContactPersonImageChanged = false;
         ShowPopup = false;
     }
 

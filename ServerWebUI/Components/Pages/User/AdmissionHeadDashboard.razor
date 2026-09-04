@@ -33,6 +33,13 @@
         height: 100%;
     }
 
+    .table-btn.active {
+        background-color: #1e8fd3;
+        color: #ffffff;
+        border: 1.5px solid #1e8fd3;
+        transform: translateY(-1px);
+    }
+
     .card-header-custom {
         display: flex;
         justify-content: space-between;
@@ -231,7 +238,27 @@
 
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
-                    <PageHeading Tittle="@($"{DashboardName} Dashboard")">
+                    <PageHeading Tittle="@DashboardName">
+                        <div class="form-box">
+                            <button type="button" class="table-btn @(SelectedPeriod == "Today" ? "active" : "")" @onclick='() => ApplyPeriodFilter("Today")'>
+                                Today
+                            </button>
+                        </div>
+                        <div class="form-box">
+                            <button type="button" class="table-btn @(SelectedPeriod == "ThisWeek" ? "active" : "")" @onclick='() => ApplyPeriodFilter("ThisWeek")'>
+                                This Week
+                            </button>
+                        </div>
+                        <div class="form-box">
+                            <button type="button" class="table-btn @(SelectedPeriod == "ThisMonth" ? "active" : "")" @onclick='() => ApplyPeriodFilter("ThisMonth")'>
+                                This Month
+                            </button>
+                        </div>
+                        <div class="form-box">
+                            <button type="button" class="table-btn @(SelectedPeriod == "ThisYear" ? "active" : "")" @onclick='() => ApplyPeriodFilter("ThisYear")'>
+                                This Year
+                            </button>
+                        </div>
                         <div class="form-box">
                             <InputSelect @bind-Value="@CurrentSession" class="form-input">
                                 <option value="0">-- Select Session --</option>
@@ -555,10 +582,9 @@ else
     private string branchcode = "";
     private string groupcode = "";
     private string UserName = "";
-    private string SelectedData = "This Year";
     private long CurrentSession;
     private string DashboardName = "";
-    private SearchAnyRequestModel searchAnyRequest = new();
+    private AdmissionDashboardRequest searchAnyRequest = new();
     private AdmissionDashboardModel admissionDashboardpipeline = new();
     private AdminDashboardModal adminDashboard = new();
     private List<SessionModel> sessionlist = new();
@@ -566,7 +592,42 @@ else
     {
         Navigation.NavigateTo("/adminDashboard", forceLoad: true);
     }
+    private string SelectedPeriod = "Today"; // default selected
 
+    private async Task ApplyPeriodFilter(string period)
+    {
+        SelectedPeriod = period;
+
+        var today = DateTime.Today;
+
+        switch (period)
+        {
+            case "Today":
+                searchAnyRequest.FromDate = today;
+                searchAnyRequest.ToDate = today;
+                break;
+
+            case "ThisWeek":
+                // Monday ko week ka start maan rahe hain
+                int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+                searchAnyRequest.FromDate = today.AddDays(-diff);
+                searchAnyRequest.ToDate = today;
+                break;
+
+            case "ThisMonth":
+                searchAnyRequest.FromDate = new DateTime(today.Year, today.Month, 1);
+                searchAnyRequest.ToDate = today;
+                break;
+
+            case "ThisYear":
+                searchAnyRequest.FromDate = new DateTime(today.Year, 1, 1);
+                searchAnyRequest.ToDate = today;
+                break;
+        }
+
+        await GetAdmissionPipelineConfirmetion();
+        StateHasChanged();
+    }
     private List<StudentStatusModel> studentStatusList => new()
     {
         new StudentStatusModel { StatusName = "Active", Count = admissionDashboardpipeline.ActiveStudentCount },

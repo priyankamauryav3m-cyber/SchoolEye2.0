@@ -140,7 +140,7 @@ namespace Infrastructure.Admin
                 throw;
             }
         }
-        public async Task<AdmissionDashboardModel> GetAdmissionHeadDashboard(SearchAnyRequestModel request)
+        public async Task<AdmissionDashboardModel> GetAdmissionHeadDashboard(AdmissionDashboardRequest request)
         {
             try
             {
@@ -149,7 +149,9 @@ namespace Infrastructure.Admin
                 param.Add("GroupCode", request.GroupCode);
                 param.Add("BranchCode", request.BranchCode);
                 param.Add("SessionId", request.SessionId);
-                param.Add("ClassCode", request.RequestName);
+                param.Add("ClassCode", request.ClassCode);
+                param.Add("FromDate", request.FromDate);
+                param.Add("ToDate", request.ToDate);
 
                 using var multi = await con.QueryMultipleAsync(
                     "V3M_Get_AdmissionHeadDashboard",

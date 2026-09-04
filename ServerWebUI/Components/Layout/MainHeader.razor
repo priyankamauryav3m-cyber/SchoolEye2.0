@@ -14,6 +14,14 @@
 @inject IJSRuntime JS
 @inject BookmarkState BookmarkState
 @inject SweetAlertService Alert
+<script>
+    (function() {
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    })();
+</script>
 <style>
     .profile-link {
         transition: all 0.2s ease;
@@ -85,6 +93,23 @@
             transform: translateX(0);
         }
     }
+
+    .theme-toggle-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        transition: background .2s ease;
+    }
+
+        .theme-toggle-btn:hover {
+            background: var(--border-color);
+        }
 </style>
 <header class="main-header d-flex">
     <div class="menu-control bg-white">
@@ -111,6 +136,18 @@
         <div class="header-action d-flex gap-2 h-100 align-items-center">
             
             <div class="top-right-section d-flex gap-2 h-100">
+                <div class="d-flex align-items-center justify-content-center">
+                    <button type="button" class="theme-toggle-btn" @onclick="ToggleTheme" title="Toggle theme">
+                        @if (IsDarkMode)
+                        {
+                            <i class="bi bi-sun-fill"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-moon-stars-fill"></i>
+                        }
+                    </button>
+                </div>
                 <div class="d-flex align-items-center justify-content-center">
                     <p class="total_text mb-0 bg-white cl-blue">
                         @DashboardName
@@ -357,11 +394,31 @@
     private string Username = "";
     private string RoleName = "";
     private string DashboardName = "";
+    private bool IsDarkMode = false;
+
+
+    private async Task ToggleTheme()
+    {
+        IsDarkMode = !IsDarkMode;
+        await ApplyTheme();
+        await JS.InvokeVoidAsync("localStorage.setItem", "theme", IsDarkMode ? "dark" : "light");
+    }
+
+    private async Task ApplyTheme()
+    {
+        await JS.InvokeVoidAsync("eval",
+            IsDarkMode
+                ? "document.documentElement.classList.add('dark-mode')"
+                : "document.documentElement.classList.remove('dark-mode')");
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            var saved = await JS.InvokeAsync<string>("localStorage.getItem", "theme");
+            IsDarkMode = saved == "dark";
+            await ApplyTheme();
             await JS.InvokeVoidAsync("initBodyLoad");
             // var vc_hospitalName = await sessionStorage.GetAsync<string>("Vc_HospitalName");
             // hospitalName = vc_hospitalName.Value;

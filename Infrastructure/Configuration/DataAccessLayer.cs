@@ -57,7 +57,7 @@ namespace Infrastructure.Configuration
 
             using (var connection = GetV3MConnection())
             {
-                connection.Open();
+                    connection.Open();
 
                 if (mCommand == null)
                 {

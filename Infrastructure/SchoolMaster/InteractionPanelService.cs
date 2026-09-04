@@ -2,6 +2,7 @@ using ApplicationInterface.SchoolMaster;
 using Dapper;
 using DocumentFormat.OpenXml.EMMA;
 using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using DomainModel.SchoolMaster;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -152,6 +153,30 @@ namespace Infrastructure.SchoolMaster
                 throw;
             }
         }
+        public async Task<InteractionCommentsModel?> GetInteractionComments(SearchAnyRequestModel request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@RegistrationId", request.RequestId);
+                param.Add("@SessionId", request.SessionId);
 
+                var result = await con.QueryFirstOrDefaultAsync<InteractionCommentsModel>(
+                    "V3M_Get_InteractionComments",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
     }
+    
 }

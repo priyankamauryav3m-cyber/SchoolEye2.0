@@ -30,7 +30,7 @@
                     </InputSelect>
                 </div>
                 <div class="form-box">
-                    <InputSelect @bind-Value="schoolbranchcode" class="form-input" autocomplete="off">
+                    <InputSelect @bind-Value="schoolbranchcode" class="form-input" autocomplete="off" disabled>
                         <option value="" selected>--Select--</option>
                         @foreach (var cs in branchlist)
                         {
@@ -394,6 +394,12 @@ else
     }
     private async Task OnActivityListClick()
     {
+        if (searchRequest.ListNo == 0)
+        {
+            await Alert.ShowWarning("Please select a list");
+            StateHasChanged();
+            return;
+        }
         var model = new PublishingListRequest
         {
             GroupCode = groupcode,
