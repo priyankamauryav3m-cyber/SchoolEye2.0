@@ -40,6 +40,7 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
                 });
             }
         }
+
         [HttpPost("AddOrUpdateDiscipline")]
         public async Task<IActionResult> AddUpdateDiscipline([FromBody] DisciplineModel objDiscipline)
         {
