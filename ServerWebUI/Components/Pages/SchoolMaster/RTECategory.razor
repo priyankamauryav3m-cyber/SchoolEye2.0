@@ -257,7 +257,6 @@
             category.CreatedBy = username;
             category.GroupCode = groupcode;
             category.BranchCode = branchcode;
-            category.CreatedDate = DateTime.Now;
             string apiUrl = "Category/AddOrUpdateCategory";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, category);
             var responsecode = apiResponse.Code;

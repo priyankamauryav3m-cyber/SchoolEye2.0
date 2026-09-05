@@ -131,16 +131,12 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                 classSubject.IsValid = true;
                 classSubject.IsCalculatedSubject = true;
                 classSubject.IsOptionalSubject = true;
-                classSubject.IsPracticalSubject = true;
                 classSubject.IsReportCardSubject = true;
                 classSubject.IsScholasticSubject = true;
-                classSubject.IsCalculatedSubject = true;
                 classSubject.GroupCode = groupcode;
                 classSubject.BranchCode = branchcode;
                 classSubject.IsLanguage = true;
                 classSubject.SemesterId = 5;
-                classSubject.CreatedBy = username;
-                classSubject.CreatedDate = DateTime.Now;
                 string apiUrl = "classSubject/AddOrUpdateClassSubject";
                 var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, classSubject);
                 var responsecode = apiResponse.Code;
@@ -180,7 +176,7 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
             classSubject = new ClassSubjectModel
             {
                 MapId = item.MapId,
-                ClassCode = item.SubjectCode,
+                ClassCode = item.ClassCode,
                 SubjectCode = item.SubjectCode,
                 DisplayOrder = item.DisplayOrder,
             };

@@ -106,13 +106,6 @@
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                                <div class="form-box-group">
-                                                    <InputText class="floating-input" placeholder=" " @bind-Value="country.Remarks" />
-                                                    <label class="floating-label">Remarks</label>
-                                                </div>
-                                            </div>
-
                                         </div>
                                 </div>
                                 <div class="modal-footer">
@@ -246,7 +239,6 @@
             ShowPopup = false;
             country.IsValid = true;
             country.CreatedBy = username;
-            country.CreatedDate = DateTime.Now;
             string apiUrl = "Country/AddOrUpdateCountry";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, country);
             var responsecode = apiResponse.Code;

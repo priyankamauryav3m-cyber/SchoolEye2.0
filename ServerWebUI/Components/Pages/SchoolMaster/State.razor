@@ -100,13 +100,6 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                        <div class="form-box-group">
-                                            <InputText class="floating-input" placeholder=" " @bind-Value="state.Remarks" />
-                                            <label class="floating-label">Remarks</label>
-                                        </div>
-                                    </div>
-
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -229,7 +222,7 @@ else
         {
 
 
-            if (state.CountryId > 0)
+            if (state.StateId > 0)
             {
                 ShowPopup = false;
                 var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
@@ -249,8 +242,6 @@ else
             ShowPopup = false;
             state.IsValid = true;
             state.CreatedBy = UserName;
-            state.CreatedDate = DateTime.Now;
-            state.Remarks = "";
             string apiUrl = "State/AddOrUpdateState";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, state);
             if (state.StateId >= 0 && state.CountryId > 0)
@@ -305,7 +296,6 @@ else
             StateId = item.StateId,
             CountryId = item.CountryId,
             StateName = item.StateName
-
 
         };
         oldcdataModel = CommonMethod.CreateSnapshot(state);

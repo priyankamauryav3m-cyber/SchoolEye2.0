@@ -131,12 +131,6 @@
                             </div>
                             <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
                                 <div class="form-box-group">
-                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="session.DisplayOrder" autocomplete="off" />
-                                    <label class="floating-label">Display Order</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-2">
-                                <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " @bind-Value="session.Remarks" autocomplete="off" />
                                     <label class="floating-label">Remarks</label>
                                 </div>
@@ -322,9 +316,9 @@ else
     {
         session = new SessionModel
         {
+            SessionId = item.SessionId,
             Session = item.SessionName,
             AdmissionSession = item.AdmissionSession,
-            DisplayOrder = item.DisplayOrder,
             StartDate = item.StartDate,
             EndDate = item.EndDate,
             CurrentSession = item.CurrentSession,

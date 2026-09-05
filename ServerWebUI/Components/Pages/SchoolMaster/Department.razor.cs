@@ -123,7 +123,6 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                 ShowPopup = false;
                 department.IsValid = true;
                 department.GroupCode = groupcode;
-                department.DepartmentCode = "001";
                 department.CreatedBy = username;
                 department.CreatedDate = DateTime.Now;
 

@@ -252,7 +252,6 @@
             ShowPopup = false;
             category.IsValid = true;
             category.CreatedBy = username;
-            category.CreatedDate = DateTime.Now;
             string apiUrl = "SocialCategory/AddOrUpdateSocialCategory";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, category);
             var responsecode = apiResponse.Code;
