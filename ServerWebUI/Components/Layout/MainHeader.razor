@@ -14,14 +14,6 @@
 @inject IJSRuntime JS
 @inject BookmarkState BookmarkState
 @inject SweetAlertService Alert
-<script>
-    (function() {
-        var theme = localStorage.getItem('theme');
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark-mode');
-        }
-    })();
-</script>
 <style>
     .profile-link {
         transition: all 0.2s ease;
@@ -384,7 +376,41 @@
 </header>
 
 <div class="main-overlay"></div>
+<script>
+    window.schoolEyeTheme = {
+        apply: function (isDark) {
+            document.documentElement.classList.toggle(
+                "dark-mode",
+                !!isDark
+            );
+        },
 
+        set: function (isDark) {
+            this.apply(isDark);
+
+            try {
+                localStorage.setItem(
+                    "theme",
+                    isDark ? "dark" : "light"
+                );
+            } catch (e) {
+            }
+        },
+
+        isDark: function () {
+            try {
+                return localStorage.getItem("theme") === "dark";
+            } catch (e) {
+                return false;
+            }
+        }
+    };
+
+    // Apply saved theme
+    window.schoolEyeTheme.apply(
+        window.schoolEyeTheme.isDark()
+    );
+</script>
 
 <CustomAlert @ref="customAlert" Title="Alert" />
 
@@ -396,41 +422,69 @@
     private string DashboardName = "";
     private bool IsDarkMode = false;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await JS.InvokeVoidAsync("initBodyLoad");
+
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        Username = username.Value;
+
+        var rolename = await sessionStorage.GetAsync<string>("RoleName");
+        RoleName = rolename.Value;
+
+        var dashboard = await sessionStorage.GetAsync<string>("RoleName");
+        DashboardName = dashboard.Value;
+
+        // Load saved theme
+        IsDarkMode = await JS.InvokeAsync<bool>(
+            "schoolEyeTheme.isDark"
+        );
+
+        await JS.InvokeVoidAsync(
+            "schoolEyeTheme.apply",
+            IsDarkMode
+        );
+
+        StateHasChanged();
+    }
 
     private async Task ToggleTheme()
     {
         IsDarkMode = !IsDarkMode;
-        await ApplyTheme();
-        await JS.InvokeVoidAsync("localStorage.setItem", "theme", IsDarkMode ? "dark" : "light");
-    }
 
-    private async Task ApplyTheme()
-    {
-        await JS.InvokeVoidAsync("eval",
+        await JS.InvokeVoidAsync(
+            "schoolEyeTheme.set",
             IsDarkMode
-                ? "document.documentElement.classList.add('dark-mode')"
-                : "document.documentElement.classList.remove('dark-mode')");
+        );
     }
+    // private async Task ToggleTheme()
+    // {
+    //     IsDarkMode = !IsDarkMode;
+    //     await JS.InvokeVoidAsync("schoolEyeTheme.set", IsDarkMode);
+    // }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            var saved = await JS.InvokeAsync<string>("localStorage.getItem", "theme");
-            IsDarkMode = saved == "dark";
-            await ApplyTheme();
-            await JS.InvokeVoidAsync("initBodyLoad");
-            // var vc_hospitalName = await sessionStorage.GetAsync<string>("Vc_HospitalName");
-            // hospitalName = vc_hospitalName.Value;
-            var username = await sessionStorage.GetAsync<string>("UserName");
-            Username = username.Value;
-            var rolename = await sessionStorage.GetAsync<string>("RoleName");
-            RoleName = rolename.Value;
-            var dashboard = await sessionStorage.GetAsync<string>("RoleName");
-            DashboardName = dashboard.Value;
-            StateHasChanged();
-        }
-    }
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+         
+    //         await JS.InvokeVoidAsync("initBodyLoad");
+    //         var vc_hospitalName = await sessionStorage.GetAsync<string>("Vc_HospitalName");
+    //         hospitalName = vc_hospitalName.Value;
+    //         var username = await sessionStorage.GetAsync<string>("UserName");
+    //         Username = username.Value;
+    //         var rolename = await sessionStorage.GetAsync<string>("RoleName");
+    //         RoleName = rolename.Value;
+    //         var dashboard = await sessionStorage.GetAsync<string>("RoleName");
+    //         DashboardName = dashboard.Value;
+    //         StateHasChanged();
+    //         IsDarkMode = await JS.InvokeAsync<bool>("schoolEyeTheme.isDark");
+    //         await JS.InvokeVoidAsync("schoolEyeTheme.apply", IsDarkMode);
+    //     }
+    // }
     private async Task GetBookMark()
     {
         //await BookmarkState.LoadAsync();

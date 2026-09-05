@@ -132,8 +132,6 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                 holiday.GroupCode = groupcode;
                 holiday.BranchCode = branchcode;
                 holiday.SessionId = CurrentSession;
-                holiday.HolidayDate = DateTime.Today;
-                holiday.HolidayEndDate = DateTime.Today;
                 holiday.AppliedOn = "Y";
                 holiday.CreatedDate = DateTime.Now;
                 string apiUrl = "holiday/AddOrUpdateHoliDay";
@@ -172,11 +170,11 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
             }
             catch (Exception ex)
             {
-                return;
+                await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
             }
             finally
             {
-                
+
                 StateHasChanged();
             }
 
@@ -189,7 +187,9 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                 HolidayId = item.HolidayId,
                 HolidayName = item.HolidayName,
                 HolidayType = item.HolidayType,
-               Remarks = item.Remarks
+                HolidayDate = item.HolidayDate,
+                HolidayEndDate = item.HolidayEndDate,
+                Remarks = item.Remarks
 
             };
             oldcdataModel = CommonMethod.CreateSnapshot(holiday);

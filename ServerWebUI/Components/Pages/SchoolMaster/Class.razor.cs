@@ -124,8 +124,6 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                 ShowPopup = false;
                 classModel.IsValid = true;
                 classModel.CreatedBy = username;
-                classModel.GroupCode = groupcode;
-                classModel.CreatedDate = DateTime.Now;
 
                 string apiUrl = "Class/AddOrUpdateClass";
                 var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, classModel);

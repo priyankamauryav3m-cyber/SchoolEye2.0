@@ -297,7 +297,6 @@
             document.GroupCode = groupcode ?? string.Empty;
             document.BranchCode = branchcode ?? string.Empty;
             document.CreatedBy = username;
-            document.CreatedDate = DateTime.Now;
             string apiUrl = "Document/AddOrUpdateDocument";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, document);
             var responsecode = apiResponse.Code;

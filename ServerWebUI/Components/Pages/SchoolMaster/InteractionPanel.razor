@@ -286,7 +286,6 @@
             panel.GroupCode = groupcode ?? string.Empty;
             panel.BranchCode = branchcode ?? string.Empty;
             panel.CreatedBy = username;
-            panel.CreatedDate = DateTime.Now;
             string apiUrl = "InteractionPanel/AddOrUpdateInteractionPanel";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, panel);
             var responsecode = apiResponse.Code;

@@ -1,4 +1,4 @@
-﻿using ApplicationInterface.SchoolMaster;
+﻿    using ApplicationInterface.SchoolMaster;
 using Dapper;
 using DomainModel.Admin;
 using DomainModel.SchoolMaster;
@@ -38,7 +38,7 @@ namespace Infrastructure.SchoolMaster
                         cmd.Parameters.AddWithValue("@Remarks", objreligion.Remarks);
                         cmd.Parameters.AddWithValue("@IsValid", objreligion.IsValid);
                         cmd.Parameters.AddWithValue("@CreatedDate", objreligion.CreatedDate);
-                        cmd.Parameters.AddWithValue("@CreatedBy", objreligion.CreatedDate);
+                        cmd.Parameters.AddWithValue("@CreatedBy", objreligion.CreatedBy);
                         SqlParameter returnValueParam = new SqlParameter("@ReturnValue", SqlDbType.VarChar, 50)
                         {
                             Direction = ParameterDirection.Output

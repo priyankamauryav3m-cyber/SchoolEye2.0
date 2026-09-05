@@ -1,4 +1,11 @@
-﻿:root {
+﻿/* =========================================================
+   SCHOOL ERP THEME
+   LIGHT + DARK MODE
+   ========================================================= */
+/*  Satrt DarkMode Css */
+:root {
+    /* ================= BRAND ================= */
+
     --brand-blue: #3b82f6;
     --brand-blue-light: #eaf1ff;
     --accent-purple: #8b5cf6;
@@ -9,44 +16,970 @@
     --accent-orange-light: #fef5e7;
     --accent-red: #f77288;
     --accent-red-light: #fdedf0;
-    --border-soft: #eef0f4;
+    /* ================= PRIMARY ================= */
+
     --primary: #2563eb;
     --primary-hover: #1d4ed8;
-    --bg: #f1f5f9;
-    --card-bg: #ffffff;
-    --text: #0f172a;
-    --muted: #64748b;
-    --border: #cbd5e1;
+    /* ================= LIGHT THEME ================= */
+
     --bg-primary: #ffffff;
-    --bg-secondary: #f5f6f8;
-    --text-primary: #1e293b;
-    --text-muted: #66798c;
-    --border-color: #e5e5e5;
+    --bg-secondary: #f1f5f9;
     --card-bg: #ffffff;
     --sidebar-bg: #ffffff;
     --header-bg: #ffffff;
     --input-bg: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --border-soft: #eef2f7;
+    /* ================= TABLE ================= */
+
+    --table-bg: #ffffff;
+    --table-header-bg: #f8fafc;
+    --table-row-bg: #ffffff;
+    --table-row-hover: #f1f5f9;
+    --table-selected-bg: #e8f1ff;
+    --table-selected-text: #1e40af;
+    /* ================= BUTTON ================= */
+
+    --button-bg: #ffffff;
+    --button-text: #1e293b;
+    /* ================= SHADOW ================= */
+
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
+    --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.15);
 }
+
+
+/* =========================================================
+   DARK MODE VARIABLES
+   ========================================================= */
+
 html.dark-mode {
+    /* ================= BACKGROUND ================= */
+
     --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
+    --bg-secondary: #111c2e;
+    --card-bg: #182438;
+    --sidebar-bg: #0c1627;
+    --header-bg: #0b1526;
+    --input-bg: #1e2b40;
+    /* ================= TEXT ================= */
+
     --text-primary: #e2e8f0;
+    --text-secondary: #cbd5e1;
     --text-muted: #94a3b8;
+    /* ================= BORDER ================= */
+
     --border-color: #334155;
-    --card-bg: #1e293b;
-    --sidebar-bg: #0f172a;
-    --header-bg: #0f172a;
-    --input-bg: #263449;
+    --border-soft: #29384d;
+    /* ================= PRIMARY ================= */
+
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    /* ================= TABLE ================= */
+
+    --table-bg: #182438;
+    --table-header-bg: #1d2a3e;
+    --table-row-bg: #182438;
+    --table-row-hover: #24344b;
+    --table-selected-bg: #263a55;
+    --table-selected-text: #ffffff;
+    /* ================= BUTTON ================= */
+
+    --button-bg: #1e2b40;
+    --button-text: #e2e8f0;
+    /* ================= SHADOW ================= */
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.30);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.40);
 }
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+html,
 body {
     background-color: var(--bg-secondary);
     color: var(--text-primary);
     transition: background-color .25s ease, color .25s ease;
 }
-.card {
+
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg-secondary);
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+
+.main-content,
+.page-content,
+.content-wrapper {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color .25s ease, color .25s ease;
+}
+
+
+/* =========================================================
+   CARD / PANEL
+   ========================================================= */
+
+.card,
+.form-card,
+.content-card,
+.panel,
+.dashboard-card {
     background-color: var(--card-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+
+
+html.dark-mode .card,
+html.dark-mode .form-card,
+html.dark-mode .content-card,
+html.dark-mode .panel,
+html.dark-mode .dashboard-card {
+    background-color: var(--card-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+header,
+.main-header,
+.header,
+.top-header {
+    background-color: var(--header-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+
+
+html.dark-mode header,
+html.dark-mode .main-header,
+html.dark-mode .header,
+html.dark-mode .top-header {
+    background-color: var(--header-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+    /* =========================================================
+   HEADER TEXT
+   ========================================================= */
+
+    html.dark-mode header span,
+    html.dark-mode header label,
+    html.dark-mode header .header-title {
+        color: #e2e8f0;
+    }
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar,
+.side-menu,
+.left-sidebar {
+    background-color: var(--sidebar-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color .25s ease, color .25s ease;
+}
+
+
+html.dark-mode .sidebar,
+html.dark-mode .side-menu,
+html.dark-mode .left-sidebar {
+    background-color: var(--sidebar-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+/* =========================================================
+   SIDEBAR LINKS
+   ========================================================= */
+
+.sidebar a,
+.side-menu a,
+.left-sidebar a {
+    color: var(--text-primary);
+    transition: background-color .2s ease, color .2s ease;
+}
+
+
+html.dark-mode .sidebar a,
+html.dark-mode .side-menu a,
+html.dark-mode .left-sidebar a {
+    color: #cbd5e1 !important;
+}
+
+
+    html.dark-mode .sidebar a:hover,
+    html.dark-mode .side-menu a:hover,
+    html.dark-mode .left-sidebar a:hover {
+        background-color: #1e2b40 !important;
+        color: #60a5fa !important;
+    }
+
+
+/* =========================================================
+   SIDEBAR ICON
+   ========================================================= */
+
+html.dark-mode .sidebar i,
+html.dark-mode .sidebar svg,
+html.dark-mode .side-menu i,
+html.dark-mode .side-menu svg {
+    color: #cbd5e1 !important;
+}
+
+
+/* =========================================================
+   HEADINGS
+   ========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--text-primary);
+}
+
+
+html.dark-mode h1,
+html.dark-mode h2,
+html.dark-mode h3,
+html.dark-mode h4,
+html.dark-mode h5,
+html.dark-mode h6 {
+    color: #e2e8f0 !important;
+}
+
+
+/* =========================================================
+   NORMAL TEXT
+   ========================================================= */
+
+p,
+span,
+label {
+    color: inherit;
+}
+
+
+html.dark-mode .text-muted {
+    color: #94a3b8 !important;
+}
+
+
+html.dark-mode .text-secondary {
+    color: #cbd5e1 !important;
+}
+
+
+/* =========================================================
+   QUICKGRID
+   ========================================================= */
+
+.quickgrid {
+    background-color: var(--table-bg) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+    /* =========================================================
+   QUICKGRID HEADER
+   ========================================================= */
+
+    .quickgrid thead {
+        background-color: var(--table-header-bg) !important;
+        color: var(--text-primary) !important;
+    }
+
+
+        .quickgrid thead tr {
+            background-color: var(--table-header-bg) !important;
+        }
+
+
+        .quickgrid thead th {
+            background-color: var(--table-header-bg) !important;
+            color: var(--text-secondary) !important;
+            border-color: var(--border-color) !important;
+            font-weight: 600;
+        }
+
+
+    /* =========================================================
+   QUICKGRID BODY
+   ========================================================= */
+
+    .quickgrid tbody {
+        background-color: var(--table-bg) !important;
+    }
+
+
+        .quickgrid tbody tr {
+            background-color: var(--table-row-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+
+        .quickgrid tbody td {
+            background-color: var(--table-row-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+
+        /* =========================================================
+   QUICKGRID HOVER
+   ========================================================= */
+
+        .quickgrid tbody tr:hover td {
+            background-color: var(--table-row-hover) !important;
+            color: var(--text-primary) !important;
+        }
+
+
+/* =========================================================
+   NORMAL TABLE
+   ========================================================= */
+
+table {
+    background-color: var(--table-bg);
+    color: var(--text-primary);
     border-color: var(--border-color);
 }
+
+
+    table thead {
+        background-color: var(--table-header-bg);
+        color: var(--text-primary);
+    }
+
+
+        table thead th {
+            background-color: var(--table-header-bg) !important;
+            color: var(--text-secondary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+
+    table tbody {
+        background-color: var(--table-bg);
+    }
+
+
+        table tbody tr {
+            background-color: var(--table-row-bg);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+
+        table tbody td {
+            background-color: var(--table-row-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+
+
+        table tbody tr:hover td {
+            background-color: var(--table-row-hover) !important;
+            color: var(--text-primary) !important;
+        }
+
+
+/* =========================================================
+   SELECTED TABLE ROW
+   ========================================================= */
+
+html.dark-mode .quickgrid tbody tr.selected,
+html.dark-mode .quickgrid tbody tr[aria-selected="true"] {
+    background-color: var(--table-selected-bg) !important;
+    color: var(--table-selected-text) !important;
+}
+
+
+    html.dark-mode .quickgrid tbody tr.selected td,
+    html.dark-mode .quickgrid tbody tr[aria-selected="true"] td {
+        background-color: var(--table-selected-bg) !important;
+        color: #ffffff !important;
+    }
+
+
+/* =========================================================
+   TABLE FILTER / SORT ICONS
+   ========================================================= */
+
+.quickgrid svg,
+table svg {
+    color: var(--text-muted);
+}
+
+
+html.dark-mode .quickgrid svg,
+html.dark-mode table svg {
+    color: #94a3b8 !important;
+    fill: currentColor;
+}
+
+
+html.dark-mode .quickgrid th button {
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    border: 0;
+}
+
+
+    html.dark-mode .quickgrid th button:hover {
+        color: #60a5fa !important;
+    }
+
+
+/* =========================================================
+   FILTER INPUT
+   ========================================================= */
+
+html.dark-mode .quickgrid input {
+    background-color: #1e2b40 !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+
+/* =========================================================
+   INPUT / SELECT / TEXTAREA
+   ========================================================= */
+
+input,
+select,
+textarea {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+
+
+html.dark-mode input,
+html.dark-mode select,
+html.dark-mode textarea {
+    background-color: var(--input-bg) !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+
+    html.dark-mode input:focus,
+    html.dark-mode select:focus,
+    html.dark-mode textarea:focus {
+        background-color: #223149 !important;
+        color: #ffffff !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .15) !important;
+    }
+
+
+    html.dark-mode input::placeholder,
+    html.dark-mode textarea::placeholder {
+        color: #64748b !important;
+    }
+
+
+    /* =========================================================
+   SELECT OPTION
+   ========================================================= */
+
+    html.dark-mode select option {
+        background-color: #1e2b40;
+        color: #e2e8f0;
+    }
+
+
+/* =========================================================
+   FORM LABEL
+   ========================================================= */
+
+html.dark-mode .form-label,
+html.dark-mode label {
+    color: #cbd5e1 !important;
+}
+
+
+/* =========================================================
+   FLOATING LABEL
+   ========================================================= */
+
+html.dark-mode .floating-label {
+    color: #94a3b8 !important;
+    background-color: var(--card-bg);
+}
+
+
+html.dark-mode .floating-input:focus + .floating-label {
+    color: #60a5fa !important;
+}
+
+
+/* =========================================================
+   BUTTON
+   ========================================================= */
+
+.btn {
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+
+html.dark-mode .btn {
+    color: #e2e8f0;
+    border-color: #334155;
+}
+
+
+/* =========================================================
+   SECONDARY BUTTON
+   ========================================================= */
+
+html.dark-mode .btn-secondary {
+    background-color: #1e2b40 !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+
+    html.dark-mode .btn-secondary:hover {
+        background-color: #26364d !important;
+        color: #ffffff !important;
+        border-color: #475569 !important;
+    }
+
+
+/* =========================================================
+   PRIMARY BUTTON
+   ========================================================= */
+
+html.dark-mode .btn-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+}
+
+
+    html.dark-mode .btn-primary:hover {
+        background-color: #1d4ed8 !important;
+        color: #ffffff !important;
+    }
+
+
+/* =========================================================
+   SEARCH BUTTON
+   ========================================================= */
+
+html.dark-mode .search-btn {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+}
+
+
+    html.dark-mode .search-btn:hover {
+        background-color: #1d4ed8 !important;
+    }
+
+
+/* =========================================================
+   TOOLBAR BUTTON
+   ========================================================= */
+
+html.dark-mode .toolbar-btn {
+    background-color: #1e2b40 !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+
+
+    html.dark-mode .toolbar-btn:hover {
+        background-color: #26364d !important;
+        color: #ffffff !important;
+    }
+
+
+/* =========================================================
+   CHECKBOX
+   ========================================================= */
+
+html.dark-mode input[type="checkbox"] {
+    accent-color: #3b82f6;
+}
+
+
+html.dark-mode .form-check-input {
+    background-color: #1e2b40;
+    border-color: #475569;
+}
+
+
+    html.dark-mode .form-check-input:checked {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+
+/* =========================================================
+   RADIO
+   ========================================================= */
+
+html.dark-mode input[type="radio"] {
+    accent-color: #3b82f6;
+}
+
+
+/* =========================================================
+   DROPDOWN
+   ========================================================= */
+
+html.dark-mode .dropdown-menu {
+    background-color: #182438 !important;
+    border-color: #334155 !important;
+    box-shadow: var(--shadow-lg);
+}
+
+
+html.dark-mode .dropdown-item {
+    color: #cbd5e1 !important;
+}
+
+
+    html.dark-mode .dropdown-item:hover {
+        background-color: #26364d !important;
+        color: #ffffff !important;
+    }
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+html.dark-mode .modal-content {
+    background-color: #182438 !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+
+html.dark-mode .modal-header {
+    background-color: #182438 !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+
+html.dark-mode .modal-footer {
+    background-color: #182438 !important;
+    border-color: #334155 !important;
+}
+
+
+html.dark-mode .modal-title {
+    color: #e2e8f0 !important;
+}
+
+
+/* =========================================================
+   CUSTOM MODAL
+   ========================================================= */
+
+html.dark-mode .custom-modal {
+    background-color: rgba(2, 6, 23, .75);
+}
+
+
+    html.dark-mode .custom-modal > div {
+        background-color: #182438;
+        color: #e2e8f0;
+        border-color: #334155;
+    }
+
+
+/* =========================================================
+   BADGE
+   ========================================================= */
+
+html.dark-mode .badge {
+    border-color: #334155;
+}
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+html.dark-mode a {
+    color: #60a5fa;
+}
+
+
+    html.dark-mode a:hover {
+        color: #93c5fd;
+    }
+
+
+/* =========================================================
+   ICONS
+   ========================================================= */
+
+html.dark-mode .fa,
+html.dark-mode .fas,
+html.dark-mode .far,
+html.dark-mode .fab,
+html.dark-mode i {
+    color: #cbd5e1;
+}
+
+
+/* Don't override colored icons */
+
+html.dark-mode .text-primary {
+    color: #60a5fa !important;
+}
+
+
+html.dark-mode .text-success {
+    color: #4ade80 !important;
+}
+
+
+html.dark-mode .text-warning {
+    color: #fbbf24 !important;
+}
+
+
+html.dark-mode .text-danger {
+    color: #fb7185 !important;
+}
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+html.dark-mode .pagination {
+    color: #cbd5e1;
+}
+
+
+    html.dark-mode .pagination button {
+        background-color: transparent;
+        color: #cbd5e1;
+        border-color: #334155;
+    }
+
+
+        html.dark-mode .pagination button:hover {
+            background-color: #26364d;
+            color: #ffffff;
+        }
+
+
+    html.dark-mode .pagination .active {
+        background-color: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+    }
+
+
+/* =========================================================
+   TABLE FOOTER / ITEM COUNT
+   ========================================================= */
+
+html.dark-mode .table-footer,
+html.dark-mode .grid-footer {
+    color: #cbd5e1;
+    border-color: #334155;
+}
+
+
+/* =========================================================
+   HR / DIVIDER
+   ========================================================= */
+
+html.dark-mode hr {
+    border-color: #334155;
+    opacity: 1;
+}
+
+
+/* =========================================================
+   BORDER UTILITIES
+   ========================================================= */
+
+html.dark-mode .border,
+html.dark-mode .border-top,
+html.dark-mode .border-bottom,
+html.dark-mode .border-start,
+html.dark-mode .border-end {
+    border-color: #334155 !important;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+html.dark-mode ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+
+html.dark-mode ::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+
+html.dark-mode ::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
+
+
+    html.dark-mode ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+    }
+
+
+/* =========================================================
+   BOOTSTRAP TABLE OVERRIDE
+   ========================================================= */
+
+html.dark-mode .table {
+    --bs-table-bg: #182438;
+    --bs-table-color: #e2e8f0;
+    --bs-table-border-color: #334155;
+    color: #e2e8f0;
+    background-color: #182438;
+}
+
+
+    html.dark-mode .table > :not(caption) > * > * {
+        background-color: #182438 !important;
+        color: #e2e8f0 !important;
+        border-color: #334155 !important;
+    }
+
+
+html.dark-mode .table-hover > tbody > tr:hover > * {
+    background-color: #24344b !important;
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   BOOTSTRAP CARD
+   ========================================================= */
+
+html.dark-mode .card-body {
+    background-color: #182438 !important;
+    color: #e2e8f0 !important;
+}
+
+
+html.dark-mode .card-header {
+    background-color: #1d2a3e !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
+}
+
+
+html.dark-mode .card-footer {
+    background-color: #182438 !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+
+
+/* =========================================================
+   ALERT
+   ========================================================= */
+
+html.dark-mode .alert {
+    border-color: #334155;
+}
+
+
+html.dark-mode .alert-light {
+    background-color: #1e2b40 !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+
+
+/* =========================================================
+   TOOLTIP
+   ========================================================= */
+
+html.dark-mode .tooltip-inner {
+    background-color: #020617;
+    color: #e2e8f0;
+}
+
+
+/* =========================================================
+   TRANSITION
+   ========================================================= */
+
+.card,
+table,
+.quickgrid,
+.sidebar,
+header,
+input,
+select,
+textarea,
+button {
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
+}
+
+html.dark-mode .form-btn {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
+    html.dark-mode .form-btn:hover {
+        background: #60a5fa;
+        color: #0f172a;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, .30);
+    }
+
+/*  End DarkMode Css */
 .form-box-group {
     position: relative;
     margin-bottom: 25px;
@@ -1634,3 +2567,266 @@ select.form-input {
     .toggle-switch input:checked + .slider::before {
         transform: translateX(21px);
     }
+
+/* =========================================================
+   DARK MODE
+   Activated by html.dark-mode (toggled from MainHeader.razor
+   ToggleTheme via window.schoolEyeTheme). Light mode is
+   unaffected because every rule below is scoped to
+   html.dark-mode.
+   ========================================================= */
+html.dark-mode {
+    color-scheme: dark;
+}
+
+html.dark-mode body {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ---- App header ---- */
+html.dark-mode .main-header {
+    border-bottom-color: var(--border-color);
+}
+
+html.dark-mode .top-header {
+    background: var(--header-bg) !important;
+}
+
+html.dark-mode .menu-control,
+html.dark-mode .menu-control.bg-white,
+html.dark-mode .bg-white {
+    background-color: var(--header-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+html.dark-mode .school-logo-ico {
+    background-color: var(--card-bg);
+}
+
+html.dark-mode .text-blue,
+html.dark-mode .text-bluee,
+html.dark-mode .cl-blue,
+html.dark-mode .menu-btn i {
+    color: var(--brand-blue) !important;
+}
+
+/* ---- Sidebar ---- */
+html.dark-mode .side-menu {
+    background-color: var(--sidebar-bg);
+}
+
+html.dark-mode .sidebar-menu {
+    background-image: none;
+    background-color: var(--sidebar-bg);
+    border-right-color: var(--border-color);
+}
+
+html.dark-mode .asidebar-nav .nav-item .nav-link {
+    color: var(--text-primary);
+}
+
+html.dark-mode .asidebar-nav .menu-group {
+    color: var(--accent-purple);
+}
+
+html.dark-mode .asidebar-nav .nav-item .nav-link .menu-ico-box {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+html.dark-mode .left-menu,
+html.dark-mode .right-menu {
+    background-color: var(--sidebar-bg);
+}
+
+html.dark-mode .sub-menu.active,
+html.dark-mode .sub-menu:hover {
+    background-color: var(--bg-secondary);
+}
+
+html.dark-mode hr {
+    border-color: var(--border-color);
+    color: var(--border-color);
+}
+
+/* ---- Content surfaces ---- */
+html.dark-mode .main,
+html.dark-mode .content,
+html.dark-mode .main-container {
+    background-color: var(--bg-secondary);
+}
+
+html.dark-mode .card,
+html.dark-mode .table-card,
+html.dark-mode .bg-gr-white {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary);
+}
+
+html.dark-mode .page-heading {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+html.dark-mode .grid-box,
+html.dark-mode .grid-box-with-btn {
+    border-color: var(--border-color);
+}
+
+/* ---- Typography ---- */
+html.dark-mode .form-label,
+html.dark-mode .text-dark-gray,
+html.dark-mode .text-gray,
+html.dark-mode .text-light-gray,
+html.dark-mode .page-title,
+html.dark-mode .page-sub,
+html.dark-mode .summary,
+html.dark-mode .pagination-text {
+    color: var(--text-primary) !important;
+}
+
+html.dark-mode .text-muted,
+html.dark-mode .summary-line-label,
+html.dark-mode .grid-empty-state {
+    color: var(--text-muted) !important;
+}
+
+/* ---- Forms & inputs ---- */
+html.dark-mode .form-input,
+html.dark-mode .floating-input,
+html.dark-mode .form-control,
+html.dark-mode select.form-input,
+html.dark-mode textarea,
+html.dark-mode .border-box,
+html.dark-mode .input-group-text {
+    background-color: var(--input-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+html.dark-mode .form-input::placeholder,
+html.dark-mode .floating-input::placeholder {
+    color: var(--text-muted);
+}
+
+html.dark-mode .form-input:disabled {
+    background-color: var(--bg-secondary);
+}
+
+html.dark-mode .floating-label {
+    background: var(--input-bg);
+    color: var(--text-muted);
+}
+
+html.dark-mode select.form-input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+}
+
+/* ---- QuickGrid ---- */
+html.dark-mode .quickgrid th,
+html.dark-mode .quickgrid thead th {
+    background: var(--card-bg) !important;
+    color: var(--text-muted) !important;
+    border-bottom-color: var(--border-color);
+}
+
+html.dark-mode .quickgrid[theme="default"] > tbody > tr > td {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-color);
+}
+
+html.dark-mode .quickgrid tbody tr:hover td {
+    background: var(--bg-secondary);
+}
+
+html.dark-mode .quickgrid tbody tr.selectRow td,
+html.dark-mode .quickgrid tbody tr.selectRow:hover td {
+    background: #23405f;
+}
+
+html.dark-mode .footer-pagination {
+    background: var(--card-bg);
+    border-top-color: var(--border-color);
+}
+
+html.dark-mode .go-first,
+html.dark-mode .go-previous,
+html.dark-mode .go-next,
+html.dark-mode .go-last {
+    background: var(--input-bg);
+    border-color: var(--border-color);
+}
+
+html.dark-mode .go-first::before,
+html.dark-mode .go-last::before,
+html.dark-mode .go-previous::before,
+html.dark-mode .go-next::before {
+    color: var(--text-primary);
+}
+
+/* ---- Dropdowns ---- */
+html.dark-mode .dropdown-menu {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+
+html.dark-mode .dropdown-item,
+html.dark-mode .dropdown-header,
+html.dark-mode .profile-dropdown-item {
+    color: var(--text-primary);
+}
+
+html.dark-mode .dropdown-item:hover,
+html.dark-mode .dropdown-item:focus,
+html.dark-mode .notification-item:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+html.dark-mode .dropdown-divider {
+    border-top-color: var(--border-color);
+}
+
+/* ---- Modals / popups ---- */
+html.dark-mode .modal-content,
+html.dark-mode .main-popup,
+html.dark-mode .custom-modal .main-popup,
+html.dark-mode .tab-pane-form {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+html.dark-mode .modal-body,
+html.dark-mode .modal-footer,
+html.dark-mode .modal-header {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color);
+}
+
+/* ---- Misc ---- */
+html.dark-mode .divider-box hr {
+    border-top-color: var(--border-color);
+}
+
+html.dark-mode .alert-success {
+    background-color: #10331f !important;
+    color: #7ee2b0 !important;
+    border-color: #1f5c3b;
+}
+
+html.dark-mode .theme-toggle-btn {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+html.dark-mode .table-btn,
+html.dark-mode .sef-month-pill {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}

@@ -167,8 +167,8 @@
 
  
     /* =========================================================
-               Branch — base row style (module + feature rows)
-               ========================================================= */
+                   Branch — base row style (module + feature rows)
+                   ========================================================= */
 
     .branch {
         display: flex;
@@ -262,8 +262,8 @@
 
  
     /* =========================================================
-               Checkboxes — shared everywhere via .map-checkbox
-               ========================================================= */
+                   Checkboxes — shared everywhere via .map-checkbox
+                   ========================================================= */
 
     .map-checkbox {
         border-radius: 4px !important;
@@ -289,9 +289,9 @@
 
  
     /* =========================================================
-               Activity row — identified purely by its existing class combo
-               ".branch.d-flex.justify-content-between" (unique to activity rows)
-               ========================================================= */
+                   Activity row — identified purely by its existing class combo
+                   ".branch.d-flex.justify-content-between" (unique to activity rows)
+                   ========================================================= */
 
     .branch.d-flex.justify-content-between {
         flex-direction: column;
@@ -470,17 +470,29 @@
                                     </ChildContent>
                                 </TemplateColumn>
                                 <TemplateColumn Align="Align.Center" Title="Action">
+                                    @* <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditsuperAdmin(context)"  OnStatusClick="() => ChangeRoleStatus(context.RoleId, context.IsValid)">
+                                        <button class="btn-icon active-btn  custom-tooltip " data-tooltip="Menu Activity"
+                                                @onclick="() => OpenAdmin(context)">
+                                            <i class="bi bi-collection"></i>
+                                        </button>
+                                    </ActionButtonGroup> *@
                                     <div class="action-btn-group">
-
                                         @if (context.IsValid)
                                         {
                                             <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditsuperAdmin(context)">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
 
-                                            <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)">
+                                            @* <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)">
                                                 <i class="bi bi-x-lg"></i>
-                                            </button>
+                                            </button> *@
+                                            <label class="toggle-switch custom-tooltip" data-tooltip="Inactive">
+                                                <input type="checkbox"
+                                                       checked="@(true)"
+                                                       @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)" />
+
+                                                <span class="slider"></span>
+                                            </label>
                                             <button class="btn-icon active-btn  custom-tooltip " data-tooltip="Menu Activity"
                                                     @onclick="() => OpenAdmin(context)">
                                                 <i class="bi bi-collection"></i>
@@ -491,9 +503,13 @@
                                             <button disabled class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditsuperAdmin(context)">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
-                                            <button class="btn-icon active-btn custom-tooltip " data-tooltip="Delete" @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)">
-                                                <i class="bi bi-check-lg"></i>
-                                            </button>
+                                            <label class="toggle-switch custom-tooltip" data-tooltip="Inactive">
+                                                <input type="checkbox"
+                                                       checked="@(false)"
+                                                       @onclick="() => ChangeRoleStatus(context.RoleId, context.IsValid)" />
+
+                                                <span class="slider"></span>
+                                            </label>
                                             <button disabled class="btn-icon active-btn custom-tooltip " data-tooltip="Menu Activity"
                                                     @onclick="() => OpenAdmin(context)">
                                                 <i class="bi bi-collection"></i>
@@ -521,7 +537,7 @@
 @if (ShowPopup)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-5">
             <div class="modal-content clearfix main-popup ">
                 <div class="head-btn">
                     <h5 class="modal-title">@((superAdmin.RoleId == 0) ? "Add Role" : "Edit Role")</h5>
@@ -530,46 +546,46 @@
                 <EditForm Model="@superAdmin" OnValidSubmit="OnSave">
                     <DataAnnotationsValidator />
                     <div class="modal-body">
-                        <div class="row gap-10-0">
+                        <div class="row m-0 form-row">
 
                             <div class="col-12">
-                                <div class="form-box">
-                                    <label class="form-label">Role Name <span class="required">*</span></label>
-                                    <InputText type="text" class="form-input" @bind-Value="superAdmin.RoleName" maxlength="20" autocomplete="off" />
+                                <div class="form-box-group">
+                                    <InputText type="text" class="floating-input" @bind-Value="superAdmin.RoleName" maxlength="20" autocomplete="off" />
+                                    <label class="floating-label">Role Name <span class="required">*</span></label>
                                     <ValidationMessage For="@(() => superAdmin.RoleName)" />
                                 </div>
                             </div>
 
-                            <div class="col-12 mt-3">
-                                <div class="form-box">
-                                    <label class="form-label">
-                                        Description <span class="text-danger">*</span>
-                                    </label>
-
-                                    <InputTextArea class="form-input" rows="3" @bind-Value="superAdmin.RoleDescripation" />
-                                    <ValidationMessage For="@(() => superAdmin.RoleDescripation)" />
-                                </div>
-                            </div>
-                            <div class="col-12 mt-3 ">
-                                <div class="form-box">
-                                    <label class="form-label">DashBoard Name<span class="required">*</span></label>
-
-                                    <InputSelect class="form-input" @bind-Value="superAdmin.DashBoardId">
+                     
+                            <div class="col-12  ">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" @bind-Value="superAdmin.DashBoardId">
                                         <option value="0">-Select Dasboard-</option>
-                                        @foreach (var data in dashboardlist)
+                                        @foreach (var data in dashboardlist.Where(x => x.IsValid == true))
                                         {
                                             <option value="@data.DashBoardId">@data.DisplayName</option>
                                         }
                                     </InputSelect>
+                                    <label class="floating-label">DashBoard Name<span class="required">*</span></label>
                                     <ValidationMessage For="@(() => superAdmin.DashBoardId)" />
                                 </div>
                             </div>
 
-                            <div class="col-12 mt-3 mb-2">
-                                <div class="form-box">
-                                    <label class="form-label">Display Order </label>
-                                    <InputNumber class="form-input" @bind-Value="superAdmin.DisplayOrder" onkeypress="return /^[0-9]$/.test(event.key)" />
+                            <div class="col-12 ">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" @bind-Value="superAdmin.DisplayOrder" onkeypress="return /^[0-9]$/.test(event.key)" />
+                                    <label class="floating-label">Display Order </label>
+                                </div>
+                            </div>
+                            <div class="col-12 ">
+                                <div class="form-box-group">
+                                    <InputTextArea class="floating-input" rows="3" @bind-Value="superAdmin.RoleDescripation" />
+                                    <label class="floating-label">
+                                        Description <span class="text-danger">*</span>
+                                    </label>
 
+                                   
+                                    <ValidationMessage For="@(() => superAdmin.RoleDescripation)" />
                                 </div>
                             </div>
                         </div>
