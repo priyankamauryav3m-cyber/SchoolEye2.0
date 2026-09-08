@@ -728,9 +728,8 @@ else
         {
             adminDashboard = apiResponse.Data ?? new();
         }
-        await GetAdmissionPipelineConfirmetion();
 
-  
+
         StateHasChanged();
     }
 
@@ -741,7 +740,7 @@ else
 
             CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
-
+            await ApplyPeriodFilter(SelectedPeriod);
             StateHasChanged();
         }
     }

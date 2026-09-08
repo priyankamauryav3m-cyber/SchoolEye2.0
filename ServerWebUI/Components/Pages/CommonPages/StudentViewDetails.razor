@@ -551,9 +551,10 @@
                                                             <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
                                                                 <label for="image" class="floating-label">Student Image</label>
                                                                 <div class="border-box h-auto p-1">
-                                                                    <img src="@ImagePreview" class="w-100" alt="Photo" />
-                                                                    <InputFile id="studentImage" OnChange="OnFileStudentSelected" class="w-100" accept="image/*" style="display:none" />
-
+                                                                    <div class="student-img-box-set">
+                                                                        <img src="@ImagePreview" class="w-100" alt="Photo" style= "object-fit:fill;" />
+                                                                        <InputFile id="studentImage" OnChange="OnFileStudentSelected" class="w-100" accept="image/*" style="display:none; object-fit:fill;" />
+                                                                    </div>
                                                                     <div class="action-btn-group  d-flex gap-2 mt-2  justify-content-around p-1">
                                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("studentImage")'>
                                                                             <i class="bi bi-upload"></i>
@@ -780,8 +781,10 @@
                                                             <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
                                                                 <label for="image" class="floating-label">Father Image</label>
                                                                 <div class="border-box h-auto p-1">
-                                                                    <img src="@FatherImagePreview" class="w-100" alt="Photo" />
-                                                                    <InputFile id="fatherImage" OnChange="OnFileFatherSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                    <div class="student-img-box-set">
+                                                                        <img src="@FatherImagePreview" class="w-100" alt="Photo" />
+                                                                        <InputFile id="fatherImage" OnChange="OnFileFatherSelected"  class="w-100" accept="image/*" style="display:none; object-fit:fill;" />
+                                                                    </div>
                                                                     <div class="action-btn-group justify-content-around p-1">
                                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("fatherImage")'>
                                                                             <i class="bi bi-upload"></i>
@@ -948,8 +951,10 @@
                                                             <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
                                                                 <label for="image" class="floating-label">Mother Image</label>
                                                                 <div class="border-box h-auto p-1">
-                                                                    <img src="@MotherImagePreview" class="w-100" alt="Photo" />
-                                                                    <InputFile id="motherImage" OnChange="OnFileMotherSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                    <div class="student-img-box-set">
+                                                                        <img src="@MotherImagePreview" class="w-100" alt="Photo" />
+                                                                        <InputFile id="motherImage" OnChange="OnFileMotherSelected" class="w-100" accept="image/*" style="display:none" />
+                                                                    </div>
                                                                     <div class="action-btn-group  d-flex gap-2 mt-2  justify-content-around p-1">
                                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("motherImage")'>
                                                                             <i class="bi bi-upload"></i>
@@ -1330,7 +1335,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-1">
                                                     <div class="form-box-group @(_SiblingFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.SectionName" autocomplete="off" "   />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="siblingDetails.SectionName" autocomplete="off" "    />
                                                         <label class="floating-label">Section</label>
 
                                                     </div>
@@ -1468,9 +1473,11 @@
                                                     <div class="form-box-group @(_OtherFormDisabled == true ? "disabled" : "")">
                                                         <InputText class="floating-input" placeholder=" " @bind-Value="studentpassportdetails.PassportNo" autocomplete="off" maxlength="20" />
                                                         <label class="floating-label">
-                                                            Passport No. @if (IsForeign) { <span class="required">*</span> }
+                                                            Passport No. @if (IsForeign) {
+                                                            <span class="required">*</span>
+                                                        }
                                                     </label>
-                                                    <ValidationMessage For="@(()=>studentpassportdetails.PassportNo)"/>
+                                                    <ValidationMessage For="@(() => studentpassportdetails.PassportNo)" />
                                                 </div>
                                             </div>
                                             <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
@@ -1483,7 +1490,7 @@
                                                         <span class="required">*</span>
                                                     }
                                                 </label>
-                                                    <ValidationMessage For="@(()=>studentpassportdetails.PassportType)"/>
+                                                <ValidationMessage For="@(() => studentpassportdetails.PassportType)" />
                                             </div>
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
@@ -1542,7 +1549,7 @@
                                                     <span class="required">*</span>
                                                 }
                                             </label>
-                                                <ValidationMessage For="@(()=>studentpassportdetails.VisaNo)"/>
+                                            <ValidationMessage For="@(() => studentpassportdetails.VisaNo)" />
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
@@ -1558,7 +1565,7 @@
                                                 <span class="required">*</span>
                                             }
                                         </label>
-                                            <ValidationMessage For="@(()=>studentpassportdetails.VisaType)"/>
+                                        <ValidationMessage For="@(() => studentpassportdetails.VisaType)" />
                                     </div>
                                 </div>
 
@@ -2183,20 +2190,20 @@
         await GetBranchName();
         StateHasChanged();
     }
-  private async Task GetBranchName()
-  {
-      if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
-      {
-          string ApiUri = "Branch/GetBranch";
-          branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
-          StateHasChanged();
-      }
-      else
-      {
-          branchlist.Clear();
-          StateHasChanged();
-      }
-  }
+    private async Task GetBranchName()
+    {
+        if (!string.IsNullOrEmpty(searchAnyRequest.GroupCode))
+        {
+            string ApiUri = "Branch/GetBranch";
+            branchlist = await httpService.Post<List<BranchModel>>(ApiUri, searchAnyRequest) ?? new();
+            StateHasChanged();
+        }
+        else
+        {
+            branchlist.Clear();
+            StateHasChanged();
+        }
+    }
     private async Task Childsdetails()
     {
         try

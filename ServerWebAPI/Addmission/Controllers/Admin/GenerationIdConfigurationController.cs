@@ -10,8 +10,7 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
 {
     [Authorize]
     [ApiExplorerSettings(GroupName = "Admission")]
-    // [Authorize(AuthenticationSchemes = "LoginV3M")]
-    //[Authorize]
+
     [ApiController]
     [Route("api/[controller]")]
 

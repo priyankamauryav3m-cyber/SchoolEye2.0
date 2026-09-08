@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
-    //[Authorize]
+    [Authorize]
     [ApiExplorerSettings(GroupName = "Admission")]
     [Route("api/[controller]")]
     [ApiController]

@@ -5,7 +5,7 @@
 @using Microsoft.AspNetCore.Mvc
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
-@inject Shared.IHttpService httpService      
+@inject Shared.IHttpService httpService
 @inject HttpClient Http
 @inject IStringLocalizer<Resource> Localizer
 @inject SweetAlertService Alert
@@ -28,7 +28,7 @@
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 <EditForm Model="@studentVisitordetails" OnValidSubmit="OnSaveVisitorDetails">
-                    <DataAnnotationsValidator/>
+                    <DataAnnotationsValidator />
                     <div class="modal-body">
                         <div class="row m-0 form-row">
                             <div class="col-12 col-sm-6 col-md-4 px-1 mb-2">
@@ -57,26 +57,49 @@
                                     </div>
                                 </div>
                             </div>
-                         
+
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-2 px-1">
                                 <div class="border-box py-2 px-1 h-100">
                                     <div class="row m-0">
                                         <div class="col-6 px-1">
                                             <div class="form-box-group static-label">
                                                 <label class="floating-label">Photo</label>
-                                                <div class="border-box h-auto">
+                                                <div class="border-box h-auto p-1">
+                                                    <div class="small-img-box-set">
+                                                        <a href="@FatherImagePreview" target="_blank">
+                                                            <img src="@FatherImagePreview" class="w-100" alt="Photo" />
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                                @* <div class="border-box h-auto">
                                                     <a href="@FatherImagePreview" target="_blank">
                                                         <img src="@FatherImagePreview" class="w-100" alt="Photo" />
                                                     </a>
 
-                                                </div>
+                                                </div> *@
                                             </div>
                                         </div>
 
                                         <div class="col-6 px-1">
                                             <div class="form-box-group static-label">
                                                 <label for="" class="floating-label">Sign</label>
-                                                <div class="border-box h-auto">
+                                                <div class="border-box h-auto p-1">
+                                                    <div class="small-img-box-set">
+                                                        <a href="@FatherSignPreview" target="_blank">
+                                                            <img src="@FatherSignPreview" class="w-100" alt="photo" />
+                                                            <InputFile id="visitorFSign" OnChange="@(e => OnFileSelected(e, "visitorFSign"))" class="w-100" accept="image/*" style="display:none" />
+                                                        </a>
+                                                    </div>
+                                                    <div class="action-btn-group justify-content-around p-1">
+                                                        <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitorFSign")'>
+                                                            <i class="bi bi-upload"></i>
+                                                        </button>
+                                                        <button type="button" class="btn-icon inactive-btn" @onclick='() => DeleteVisitorImage("visitorfsign")'>
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                @* <div class="border-box h-auto">
                                                     <a href="@FatherSignPreview" target="_blank">
                                                         <img src="@FatherSignPreview" class="w-100" alt="photo" />
                                                         <InputFile id="visitorFSign" OnChange="@(e => OnFileSelected(e, "visitorFSign"))" class="w-100" accept="image/*" style="display:none" />
@@ -89,7 +112,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
-                                                </div>
+                                                </div> *@
                                             </div>
                                         </div>
 
@@ -126,10 +149,12 @@
                                             <div class="form-box-group static-label">
                                                 <label class="floating-label">Photo</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@MotherImagePreview" target="_blank">
-                                                        <img src="@MotherImagePreview" class="w-100" alt="Photo" />
-                                                    </a>
+                                                    <div class="small-img-box-set">
+                                                        <a href="@MotherImagePreview" target="_blank">
+                                                            <img src="@MotherImagePreview" class="w-100" alt="Photo" />
+                                                        </a>
 
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -138,10 +163,12 @@
                                             <div class="form-box-group static-label">
                                                 <label for="" class="floating-label">Sign</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@MotherSignPreview" target="_blank">
-                                                        <img src="@MotherSignPreview" class="w-100" alt="photo" />
-                                                        <InputFile id="visitorMSign" OnChange="@(e => OnFileSelected(e, "visitorMSign"))" class="w-100" accept="image/*" style="display:none" />
-                                                    </a>
+                                                    <div class="small-img-box-set">
+                                                        <a href="@MotherSignPreview" target="_blank">
+                                                            <img src="@MotherSignPreview" class="w-100" alt="photo" />
+                                                            <InputFile id="visitorMSign" OnChange="@(e => OnFileSelected(e, "visitorMSign"))" class="w-100" accept="image/*" style="display:none" />
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitorMSign")'>
                                                             <i class="bi bi-upload"></i>
@@ -150,6 +177,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -189,11 +217,13 @@
                                             <div class="form-box-group static-label">
                                                 <label class="floating-label">Photo</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorImagePreview1" target="_blank">
-                                                        <img src="@VisitorImagePreview1" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor1Image" OnChange="@(e => OnFileSelected(e, "visitor1Image"))" class="w-100" accept="image/*" style="display:none" />
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorImagePreview1" target="_blank">
+                                                            <img src="@VisitorImagePreview1" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor1Image" OnChange="@(e => OnFileSelected(e, "visitor1Image"))" class="w-100" accept="image/*" style="display:none" />
 
-                                                    </a>
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor1Image")'>
                                                             <i class="bi bi-upload"></i>
@@ -202,6 +232,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -210,10 +241,12 @@
                                             <div class="form-box-group static-label">
                                                 <label for="" class="floating-label">Sign</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorSignPreview1" target="_blank">
-                                                        <img src="@VisitorSignPreview1" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor1Sign" OnChange="@(e => OnFileSelected(e, "visitor1Sign"))" class="w-100" accept="image/*" style="display:none" />
-                                                    </a>
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorSignPreview1" target="_blank">
+                                                            <img src="@VisitorSignPreview1" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor1Sign" OnChange="@(e => OnFileSelected(e, "visitor1Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor1Sign")'>
                                                             <i class="bi bi-upload"></i>
@@ -223,6 +256,7 @@
                                                         </button>
                                                     </div>
                                                 </div>
+
                                             </div>
                                         </div>
 
@@ -282,11 +316,13 @@
                                             <div class="form-box-group static-label">
                                                 <label class="floating-label">Photo</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorImagePreview2" target="_blank">
-                                                        <img src="@VisitorImagePreview2" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor2Image" OnChange="@(e => OnFileSelected(e, "visitor2Image"))" class="w-100" accept="image/*" style="display:none" />
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorImagePreview2" target="_blank">
+                                                            <img src="@VisitorImagePreview2" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor2Image" OnChange="@(e => OnFileSelected(e, "visitor2Image"))" class="w-100" accept="image/*" style="display:none" />
 
-                                                    </a>
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor2Image")'>
                                                             <i class="bi bi-upload"></i>
@@ -295,6 +331,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -303,10 +340,13 @@
                                             <div class="form-box-group static-label">
                                                 <label for="" class="floating-label">Sign</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorSignPreview2" target="_blank">
-                                                        <img src="@VisitorSignPreview2" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor2Sign" OnChange="@(e => OnFileSelected(e, "visitor2Sign"))" class="w-100" accept="image/*" style="display:none" />
-                                                    </a>
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorSignPreview2" target="_blank">
+                                                            <img src="@VisitorSignPreview2" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor2Sign" OnChange="@(e => OnFileSelected(e, "visitor2Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                        </a>
+                                                    </div>
+
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor2Sign")'>
                                                             <i class="bi bi-upload"></i>
@@ -375,11 +415,13 @@
                                             <div class="form-box-group static-label">
                                                 <label class="floating-label">Photo</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorImagePreview3" target="_blank">
-                                                        <img src="@VisitorImagePreview3" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor3Image" OnChange="@(e => OnFileSelected(e, "visitor3Image"))" class="w-100" accept="image/*" style="display:none" />
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorImagePreview3" target="_blank">
+                                                            <img src="@VisitorImagePreview3" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor3Image" OnChange="@(e => OnFileSelected(e, "visitor3Image"))" class="w-100" accept="image/*" style="display:none" />
 
-                                                    </a>
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor3Image")'>
                                                             <i class="bi bi-upload"></i>
@@ -388,6 +430,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -396,10 +439,12 @@
                                             <div class="form-box-group static-label">
                                                 <label for="" class="floating-label">Sign</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorSignPreview3" target="_blank">
-                                                        <img src="@VisitorSignPreview3" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor3Sign" OnChange="@(e => OnFileSelected(e, "visitor3Sign"))" class="w-100" accept="image/*" style="display:none" />
-                                                    </a>
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorSignPreview3" target="_blank">
+                                                            <img src="@VisitorSignPreview3" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor3Sign" OnChange="@(e => OnFileSelected(e, "visitor3Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor3Sign")'>
                                                             <i class="bi bi-upload"></i>
@@ -408,6 +453,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -466,11 +512,13 @@
                                             <div class="form-box-group static-label">
                                                 <label class="floating-label">Photo</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorImagePreview4" target="_blank">
-                                                        <img src="@VisitorImagePreview4" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor4Image" OnChange="@(e => OnFileSelected(e, "visitor4Image"))" class="w-100" accept="image/*" style="display:none" />
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorImagePreview4" target="_blank">
+                                                            <img src="@VisitorImagePreview4" class="w-100" alt="photo" style="; object-fit:fill;" />
+                                                            <InputFile id="visitor4Image" OnChange="@(e => OnFileSelected(e, "visitor4Image"))" class="w-100" accept="image/*" style="display:none" />
 
-                                                    </a>
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor4Image")'>
                                                             <i class="bi bi-upload"></i>
@@ -479,6 +527,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>
@@ -487,10 +536,12 @@
                                             <div class="form-box-group static-label">
                                                 <label for="" class="floating-label">Sign</label>
                                                 <div class="border-box h-auto">
-                                                    <a href="@VisitorSignPreview4" target="_blank">
-                                                        <img src="@VisitorSignPreview4" class="w-100" alt="photo" />
-                                                        <InputFile id="visitor4Sign" OnChange="@(e => OnFileSelected(e, "visitor4Sign"))" class="w-100" accept="image/*" style="display:none" />
-                                                    </a>
+                                                    <div class="small-img-box-set">
+                                                        <a href="@VisitorSignPreview4" target="_blank">
+                                                            <img src="@VisitorSignPreview4" class="w-100" alt="photo" />
+                                                            <InputFile id="visitor4Sign" OnChange="@(e => OnFileSelected(e, "visitor4Sign"))" class="w-100" accept="image/*" style="display:none" />
+                                                        </a>
+                                                    </div>
                                                     <div class="action-btn-group justify-content-around p-1">
                                                         <button type="button" class="btn-icon edit-btn" @onclick='() => OpenFilePicker("visitor4Sign")'>
                                                             <i class="bi bi-upload"></i>
@@ -499,6 +550,7 @@
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </div>
+
                                                 </div>
                                             </div>
                                         </div>

@@ -30,74 +30,74 @@ namespace ServerWebAPI.Login.Controllers.Login
             _authService = authService;
         }
 
-        [AllowAnonymous]
-        [HttpPost]
-        [Route("Userlogin")]
-        public async Task<IActionResult> Login([FromBody] UserModels userModel)
-        {
-            try
-            {
-                var user = await _userService.AuthenticateUser(userModel);
-                if (user == null)
-                {
-                    return Unauthorized();
-                }
-                if (user.Username == null)
-                {
-                    return Ok(user);
-                }
-                else
-                {
-                    user.Token = _ijwtUtils.GenerateToken(user.UserId.ToString());
-                }
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-        [AllowAnonymous]
-        [HttpPost]
-        [Route("loginData")]
-        public async Task<IActionResult> Logins([FromBody] UserModels userModel)
-        {
-            try
-            {
-                var user = await _userService.AuthenticateUser(userModel);
+        //[AllowAnonymous]
+        //[HttpPost]
+        //[Route("Userlogin")]
+        //public async Task<IActionResult> Login([FromBody] UserModels userModel)
+        //{
+        //    try
+        //    {
+        //        var user = await _userService.AuthenticateUser(userModel);
+        //        if (user == null)
+        //        {
+        //            return Unauthorized();
+        //        }
+        //        if (user.Username == null)
+        //        {
+        //            return Ok(user);
+        //        }
+        //        else
+        //        {
+        //            user.Token = _ijwtUtils.GenerateToken(user.UserId.ToString());
+        //        }
+        //        return Ok(user);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //}
+        //[AllowAnonymous]
+        //[HttpPost]
+        //[Route("loginData")]
+        //public async Task<IActionResult> Logins([FromBody] UserModels userModel)
+        //{
+        //    try
+        //    {
+        //        var user = await _userService.AuthenticateUser(userModel);
 
-                if (user == null)
-                {
-                    return Ok(new ApiResponse<UserModels>
-                    {
-                        Success = false,
-                        Message = "Invalid username or password.",
-                        Data = null
-                    });
-                }
+        //        if (user == null)
+        //        {
+        //            return Ok(new ApiResponse<UserModels>
+        //            {
+        //                Success = false,
+        //                Message = "Invalid username or password.",
+        //                Data = null
+        //            });
+        //        }
 
-                if (!string.IsNullOrEmpty(user.Username))
-                {
-                    user.Token = _ijwtUtils.GenerateToken(user.UserId.ToString());
-                }
+        //        if (!string.IsNullOrEmpty(user.Username))
+        //        {
+        //            user.Token = _ijwtUtils.GenerateToken(user.UserId.ToString());
+        //        }
 
-                return Ok(new ApiResponse<UserModels>
-                {
-                    Success = true,
-                    Message = "Login successful.",
-                    Data = user
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new ApiResponse<UserModels>
-                {
-                    Success = false,
-                    Message = ex.Message,
-                    Data = null
-                });
-            }
-        }
+        //        return Ok(new ApiResponse<UserModels>
+        //        {
+        //            Success = true,
+        //            Message = "Login successful.",
+        //            Data = user
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new ApiResponse<UserModels>
+        //        {
+        //            Success = false,
+        //            Message = ex.Message,
+        //            Data = null
+        //        });
+        //    }
+        //}
 
         [AllowAnonymous]
         [Route("UserloginData")]
