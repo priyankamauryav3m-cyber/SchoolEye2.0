@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace ServerWebAPI.Addmission.Controllers.FileGenrate
 {
     [ApiExplorerSettings(GroupName = "Admission")]
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ExportController : ControllerBase

@@ -1376,6 +1376,7 @@
             editContext.NotifyValidationStateChanged();
             return;
         }
+        
         var finalList = concessionTempList.Select(x => new FeeHeadDto { FeeHeadId = Convert.ToInt32(x.FeeHeadId), ConcStudId = x.ConcStudId, ConcessionId = Convert.ToInt32(x.ConcessionId), ConcessionType = !x.IsAmount ? 1 : 0, ConcessionValue = x.Amount }).ToList();
         var conceId = concessionTempList.Select(x => x.ConcessionId).Distinct().ToList();
         // if (finalList.Count == 0)

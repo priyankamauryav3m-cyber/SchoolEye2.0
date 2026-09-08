@@ -184,21 +184,23 @@
             <div class="page-heading d-flex align-items-center justify-content-end">
 
                 <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
+
+              @*       <div class="form-box">
                         <button class="table-btn" @onclick="AdmitChildStudent">
                             AdmitChild
                         </button>
-                    </div>
+                    </div> *@
+                    @if (AdmitVerifyValue == 4)
+                    {
+                        <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="AdmitChild" AdmitClicked="AdmitChildStudent" />
+                    }
+                    
                     <div class="form-box">
                         <button type="button" class="table-btn" @onclick="SaveStudentDetails">
                             View Details
                         </button>
                     </div>
-                    <div class="form-box">
-                        <button class="table-btn" @onclick="PrintRec">
-                            Print Rec.
-                        </button>
-                    </div>
+                    <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Print Rec." Print="PrintRec" />
                     <div class="form-box">
                         <button class="table-btn" @onclick="DirectAdmission">
                             Direct Admission
@@ -650,6 +652,7 @@ else
     private long regId;
     private long session;
     private string username = "";
+    private int AdmitVerifyValue;
     private string DashboardValue = "";
     private InteractionCommentsModel? originalInteractionModel;
     private string? SelectedImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
@@ -1038,6 +1041,11 @@ else
             if (apiResponse.Success)
             {
                 registrationlist = apiResponse.Data ?? new List<RegistrationDto>();
+                if(registrationlist.Count> 0 && searchModel.AppStatus==4)
+                {
+                    AdmitVerifyValue = 4;
+                }
+               // searchModel = new();
             }
             else
             {

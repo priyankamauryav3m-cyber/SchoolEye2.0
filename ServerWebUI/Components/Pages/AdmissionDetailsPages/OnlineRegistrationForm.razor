@@ -705,9 +705,9 @@
     private List<ShareDomain> Subject2 = new();
     private List<ShareDomain> Subject3 = new();
     private List<ShareDomain> Subject4 = new(); private string? datecalulate = "";
-    private string? branchcode = "03";
-    private string? groupcode = "18";
-    private string? username = "Online";
+    private string? branchcode;
+    private string? groupcode;
+    private string? username;
     private string? SessionName;
     private bool IsSameAsCurrent;
     private string previuscode = "01";
@@ -723,15 +723,21 @@
     {
         if (registration.SpecialNeeds)
         {
-            IsBranchDisabled = false;   // Enable dropdown
+            IsBranchDisabled = false;   
         }
         else
         {
-            IsBranchDisabled = true;    // Disable dropdown
+            IsBranchDisabled = true;   
         }
     }
     private async Task LoadData()
     {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var userResult = await sessionStorage.GetAsync<string>("UserName");
+        username = userResult.Value;
         getoccupationlist = await httpService.Get<List<OccupationModal>>("occupation/AllOccupation") ?? new();
         mstMotherlist = await httpService.Get<List<MstMotherTongue>>("ClassSection/GetMstMotherTongue") ?? new();
         classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
@@ -775,7 +781,7 @@
         }
         catch (Exception)
         {
-
+            return;
         }
         finally
         {

@@ -10,7 +10,7 @@ using MyApp.Common;
 namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
 {
     [ApiExplorerSettings(GroupName = "FinanceManagement")]
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class StudentFeeInvoiceController : ControllerBase

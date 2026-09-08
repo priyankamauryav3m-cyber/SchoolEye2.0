@@ -633,6 +633,8 @@ else
         //if (request.AdmFromDate.HasValue && request.AdmToDate.HasValue && request.AdmFromDate.Value.Date > request.AdmToDate.Value.Date)
         if (request.AdmFromDate.HasValue && request.AdmToDate.HasValue && request.AdmFromDate.Value.Date > request.AdmToDate.Value.Date)
         {
+            IsLoading = false;
+            StateHasChanged();
             return;
         }
         ShowPopup = false;
