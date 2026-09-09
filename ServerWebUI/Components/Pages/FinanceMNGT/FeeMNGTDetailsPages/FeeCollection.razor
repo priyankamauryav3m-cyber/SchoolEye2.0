@@ -1,0 +1,495 @@
+@page "/feecollection"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@rendermode InteractiveServer
+
+<style>
+
+    .student-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .student-name {
+        font-weight: 700;
+        font-size: 15px;
+    }
+
+    .student-sub {
+        font-size: 12.5px;
+        color: #6c757d;
+    }
+
+    .fee-search-box {
+        position: relative;
+        min-width: 260px;
+    }
+
+        .fee-search-box input {
+            width: 100%;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            padding: 8px 12px 8px 34px;
+            font-size: 13px;
+        }
+
+        .fee-search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+    .receipt-date-label {
+        font-size: 11px;
+        color: #6c757d;
+        letter-spacing: .04em;
+    }
+
+    .receipt-date-value {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .fee-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+    }
+
+        .fee-table thead th {
+            text-align: left;
+            font-size: 11px;
+            color: #6c757d;
+            letter-spacing: .04em;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 8px 10px;
+        }
+
+        .fee-table tbody td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f3f5;
+            vertical-align: middle;
+        }
+
+    .fee-head-title {
+        font-weight: 600;
+    }
+
+    .fee-head-sub {
+        font-size: 12px;
+        color: #9ca3af;
+    }
+
+    .paying-now-input {
+        width: 90px;
+        border: 1px solid #93c5fd;
+        border-radius: 6px;
+        padding: 6px 8px;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    .amount-to-collect-card {
+        background: linear-gradient(135deg, var(--navy), #14557f);
+        color: #fff;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .amount-to-collect-label {
+        font-size: 11px;
+        letter-spacing: .05em;
+        color: #b7c6da;
+    }
+
+    .amount-to-collect-value {
+        font-size: 30px;
+        font-weight: 700;
+        margin: 4px 0 12px 0;
+    }
+
+    .balance-badge {
+        background: #f59e0b;
+        color: #1f2937;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+
+    .amount-divider {
+        border-top: 1px solid rgba(255,255,255,.15);
+        margin: 16px 0;
+    }
+
+    .amount-stat-label {
+        font-size: 11px;
+        color: #b7c6da;
+    }
+
+    .amount-stat-value {
+        font-size: 15px;
+        font-weight: 700;
+    }
+
+    .payment-mode-btn {
+        flex: 1;
+        border: 1px solid #d9d9d9;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13.5px;
+        background: #fff;
+        cursor: pointer;
+    }
+
+        .payment-mode-btn.active {
+            border-color: #0d9488;
+            color: #0d9488;
+            background: #f0fdfa;
+        }
+
+    .fee-remark {
+        width: 100%;
+        border: 1px solid #d9d9d9;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 13px;
+        resize: none;
+    }
+
+    .btn-preview {
+        border: 1px solid #d9d9d9;
+        background: #fff;
+        border-radius: 8px;
+        padding: 12px;
+        font-weight: 600;
+    }
+
+    .crumb {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        color: #2455a6;
+        margin-bottom: 10px;
+    }
+
+    .ready-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #16a34a;
+        display: inline-block;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+
+        <div class="col-12 p-1">
+            <nav class="crumb" aria-label="Breadcrumb">
+                <strong>Finance</strong><span>›</span>
+                <span class="text-muted">Collect Fee</span>
+            </nav>
+        </div>
+
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Fee Collection">
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                        <div class="visible content justify-content-center">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="student-avatar">AM</div>
+                        <div>
+                            <div class="student-name">Mahesh Kumar</div>
+                            <div class="student-sub">Admission no. 0174 &nbsp;&middot;&nbsp; Class I-A &nbsp;&middot;&nbsp; Session 2026-27 &nbsp;&middot;&nbsp; Father: Ram Kumar</div>
+                        </div>
+                    </div>
+
+                    <div class="fee-search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="search" placeholder="Search by student name or admission no." />
+                    </div>
+
+                    <div class="text-end">
+                        <div class="receipt-date-label">RECEIPT DATE</div>
+                        <div class="receipt-date-value">08-09-2026 <i class="bi bi-calendar3"></i></div>
+                    </div>
+
+                    <button type="button" class="table-btn">Student details</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1 ">
+           
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Collect fee</button>
+
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Ledger details</button>
+
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Map transport</button>
+
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Map concession</button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Waive off</button>
+
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Advance fee</button>
+
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Generate challan</button>
+
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn">Adjust advance</button>
+                    </div>
+         
+
+            </div>
+
+        </div>
+
+        <div class="col-12 col-lg-8 p-1">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+                        <div>
+                            <div class="fee-head-title" style="font-size:15px;">Fee particulars</div>
+                            <div class="fee-head-sub">Review dues and enter the amount being paid.</div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div class="form-box-group static-label mb-0" style="min-width:140px;">
+                                <select class="floating-input w-100">
+                                    <option>July</option>
+                                </select>
+                                <label class="floating-label" style="white-space:nowrap;">Collect up to</label>
+                            </div>
+                            <div class="form-box-group static-label mb-0" style="min-width:180px;">
+                                <select class="floating-input w-100">
+                                    <option>School Fee Account</option>
+                                </select>
+                                <label class="floating-label" style="white-space:nowrap;">Deposit account</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="fee-table">
+                        <thead>
+                            <tr>
+                                <th>FEE HEAD</th>
+                                <th>AMOUNT</th>
+                                <th>CONCESSION</th>
+                                <th>WAIVE OFF</th>
+                                <th>RECEIVED</th>
+                                <th>PAYABLE</th>
+                                <th>PAYING NOW</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="fee-head-title">Tuition fee</div>
+                                    <div class="fee-head-sub">April 2026</div>
+                                </td>
+                                <td>&#8377;5,940</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>&#8377;0</td>
+                                <td>&#8377;5,940</td>
+                                <td><input type="text" class="paying-now-input" value="5940" /></td>
+                                <td><i class="bi bi-trash text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fee-head-title">Late fee</div>
+                                    <div class="fee-head-sub">April 2026</div>
+                                </td>
+                                <td>&#8377;150</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>&#8377;0</td>
+                                <td>&#8377;150</td>
+                                <td><input type="text" class="paying-now-input" value="150" /></td>
+                                <td><i class="bi bi-trash text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fee-head-title">Tuition fee</div>
+                                    <div class="fee-head-sub">May 2026</div>
+                                </td>
+                                <td>&#8377;5,940</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>&#8377;0</td>
+                                <td>&#8377;5,940</td>
+                                <td><input type="text" class="paying-now-input" value="5940" /></td>
+                                <td><i class="bi bi-trash text-danger"></i></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fee-head-title">Tuition fee</div>
+                                    <div class="fee-head-sub">July 2026</div>
+                                </td>
+                                <td>&#8377;5,940</td>
+                                <td>&mdash;</td>
+                                <td>&mdash;</td>
+                                <td>&#8377;0</td>
+                                <td>&#8377;5,940</td>
+                                <td><input type="text" class="paying-now-input" value="5940" /></td>
+                                <td><i class="bi bi-trash text-danger"></i></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex align-items-center justify-content-between mt-3">
+                        <div class="fee-head-sub">
+                            <i class="bi bi-info-circle"></i>
+                            You can collect a partial amount by editing "Paying now".
+                        </div>
+                        <a href="javascript:void(0)" class="fee-head-sub">Reset amounts</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4 p-1">
+            <div class="amount-to-collect-card mb-2">
+                <div class="amount-to-collect-label">AMOUNT TO COLLECT</div>
+                <div class="amount-to-collect-value">&#8377;17,970</div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span>Remaining balance &#8377;52,850</span>
+                    <span class="balance-badge">Partial payment</span>
+                </div>
+                <div class="amount-divider"></div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="amount-stat-label">TOTAL FEE</div>
+                        <div class="amount-stat-value">&#8377;70,820</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="amount-stat-label">PREVIOUS ADVANCE</div>
+                        <div class="amount-stat-value">&#8377;0</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="amount-stat-label">CONCESSION</div>
+                        <div class="amount-stat-value">&#8377;0</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="amount-stat-label">LATE FEE INCLUDED</div>
+                        <div class="amount-stat-value">&#8377;150</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="fee-head-title mb-3" style="font-size:15px;">Payment details</div>
+
+                    <label class="fee-head-sub d-block mb-2">Payment mode</label>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="payment-mode-btn active">Cash</button>
+                        <button type="button" class="payment-mode-btn">UPI</button>
+                        <button type="button" class="payment-mode-btn">Cheque</button>
+                    </div>
+
+                    <div class="form-box-group mb-3">
+                        <input type="text" class="floating-input" placeholder="Optional for cash payment" />
+                        <label class="floating-label">Reference / transaction no.</label>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="form-box-group static-label mb-0">
+                                <input type="text" class="floating-input" value="08-09-2026" />
+                                <label class="floating-label">Payment date</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-box-group static-label mb-0">
+                                <select class="floating-input">
+                                    <option>Accounts Desk</option>
+                                </select>
+                                <label class="floating-label">Received by</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <label class="fee-head-sub d-block mb-2">Remark</label>
+                    <textarea class="fee-remark" rows="2" placeholder="Add an internal note (optional)"></textarea>
+
+                    <div class="row g-2 mt-3">
+                        <div class="col-4">
+                            @* <button type="button" class="btn-preview w-100">Preview</button> *@
+                            <div class="form-box">
+                                <button class="ui fade op-1 animated button form-btn w-100" tabindex="0">
+                                    <div class="visible content justify-content-center">Preview</div>
+                                    <div class="hidden content">
+                                        <i class="bi bi-eye"></i>
+                                    </div>
+                                </button>
+
+                            </div>
+                        </div>
+                        <div class="col-8">
+                        
+                           
+                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0">
+                                <div class="visible content justify-content-center">Collect &#8377;17,970</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-2">
+                <div class="card-body d-flex align-items-start gap-2">
+                    <span class="ready-dot mt-1"></span>
+                    <div>
+                        <div class="fee-head-title">Ready to collect</div>
+                        <div class="fee-head-sub">All required details are complete.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

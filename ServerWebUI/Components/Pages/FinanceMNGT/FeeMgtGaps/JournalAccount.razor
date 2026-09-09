@@ -1,0 +1,245 @@
+@page "/JournalAccount"
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Journal Account">
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="OpenNewPopup" />
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.AccountName) ? " " : x.AccountName)" Title="Account Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FirstGroup) ? " " : x.FirstGroup)" Title="Group" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.OpeningBalance.ToString("N2"))" Title="Opening Balance" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => x.OpeningBalanceType == "D" ? "Debit" : "Credit")" Title="Balance Type" Align="Align.Center" />
+                                <TemplateColumn Title="Action" Align="Align.Center">
+                                    <ChildContent>
+                                        <ActionButtonGroup CurrentUrl="@currentUrl" IsValid="true" OnEditClick="() => EditRow(context)" />
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-6">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@(model.AccountId == 0 ? "Add" : "Edit") Account</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@model" OnValidSubmit="@OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row m-0 form-row">
+                            <div class="col-lg-12 col-12 mb-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="model.AccountGroupId">
+                                        <option value="0">--Select Account Group--</option>
+                                        @foreach (var item in groupList)
+                                        {
+                                            <option value="@item.AccountGroupId">@item.AccountType - @item.FirstGroup</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Account Group <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.AccountGroupId)" />
+                                </div>
+                            </div>
+                            <div class="col-lg-12 col-12 mb-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="model.AccountName" />
+                                    <label class="floating-label">Account Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.AccountName)" />
+                                </div>
+                            </div>
+                            <div class="col-lg-6 col-12 mb-2">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " @bind-Value="model.OpeningBalance" />
+                                    <label class="floating-label">Opening Balance</label>
+                                </div>
+                            </div>
+                            <div class="col-lg-6 col-12 mb-2">
+                                <div class="form-box-group static-label">
+                                    <label class="floating-label">Balance Type</label>
+                                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                                        <InputRadioGroup @bind-Value="model.OpeningBalanceType">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("D")" />
+                                                <label class="form-label">Debit</label>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <InputRadio Value="@("C")" />
+                                                <label class="form-label">Credit</label>
+                                            </div>
+                                        </InputRadioGroup>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="model.AccountId" TextSave="Save" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+
+@code {
+    private List<JournalAccountModel> list = new();
+    private List<JournalAccountGroupModel> groupList = new();
+    private JournalAccountModel model = new();
+
+    private bool ShowPopup;
+    private bool IsLoading;
+    private string? nameFilter;
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    protected override void OnInitialized() => currentUrl = Nav.Uri;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            username = (await sessionStorage.GetAsync<string>("UserName")).Value ?? string.Empty;
+
+            var req = new SearchAnyRequestModel { GroupCode = groupcode, BranchCode = branchcode };
+            var groupResponse = await httpService.Post<ApiResponse<List<JournalAccountGroupModel>>>("Journal/ListAccountGroup", req);
+            groupList = (groupResponse != null && groupResponse.Success) ? (groupResponse.Data ?? new()) : new();
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<JournalAccountModel> moduleQuery
+    {
+        get
+        {
+            var result = list.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => x.AccountName != null && x.AccountName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase));
+            }
+            return result;
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var req = new SearchAnyRequestModel { GroupCode = groupcode, BranchCode = branchcode };
+            var apiResponse = await httpService.Post<ApiResponse<List<JournalAccountModel>>>("Journal/ListAccount", req);
+            list = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+        }
+        catch { list = new(); }
+        finally { IsLoading = false; StateHasChanged(); }
+    }
+
+    private void OpenNewPopup()
+    {
+        model = new JournalAccountModel { GroupCode = groupcode, BranchCode = branchcode, OpeningBalanceType = "D" };
+        ShowPopup = true;
+    }
+
+    private void EditRow(JournalAccountModel row)
+    {
+        model = new JournalAccountModel
+        {
+            AccountId = row.AccountId,
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            AccountGroupId = row.AccountGroupId,
+            AccountName = row.AccountName,
+            OpeningBalance = row.OpeningBalance,
+            OpeningBalanceType = row.OpeningBalanceType
+        };
+        ShowPopup = true;
+    }
+
+    private void ClosePopup() => ShowPopup = false;
+
+    private async Task OnSave()
+    {
+        model.CreatedBy = username;
+        IsLoading = true;
+        ShowPopup = false;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<object>>("Journal/AddUpdateAccount", model);
+            if (apiResponse != null && apiResponse.Success)
+            {
+                ShowPopup = false;
+                await Alert.ShowSuccess(apiResponse.Code == 1 ? "Account created successfully." : "Account updated successfully.");
+                await LoadData();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Operation failed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

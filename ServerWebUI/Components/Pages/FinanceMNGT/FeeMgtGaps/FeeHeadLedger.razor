@@ -1,0 +1,195 @@
+@page "/FeeHeadLedger"
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Fee Head Ledger">
+                <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                    <i class="bi bi-sliders"></i>
+                </button>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.TxnDate.ToString("dd-MM-yyyy"))" Title="Date" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search student..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.TxnType) ? " " : x.TxnType)" Title="Type" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ReferenceNo) ? " " : x.ReferenceNo)" Title="Reference No" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.DebitAmount == 0 ? " " : x.DebitAmount.ToString("N2"))" Title="Debit" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => x.CreditAmount == 0 ? " " : x.CreditAmount.ToString("N2"))" Title="Credit" Align="Align.Right" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="welcome-text">Total Debit: @totalDebit.ToString("N2") &nbsp;|&nbsp; Total Credit: @totalCredit.ToString("N2")</div>
+                                <Paginator State="@pagination" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-6">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-lg-12 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchRequest.FeeHeadId">
+                                    <option value="0">--Select Fee Head--</option>
+                                    @foreach (var item in feeHeadList)
+                                    {
+                                        <option value="@item.FeeHeadId">@item.FeeHeadName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Fee Head</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="searchRequest.FromDate" />
+                                <label class="floating-label">From Date</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="searchRequest.ToDate" />
+                                <label class="floating-label">To Date</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchLedger" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+
+@code {
+    private List<FeeHeadLedgerEntryModel> list = new();
+    private List<FeeHeadModel> feeHeadList = new();
+    private FeeHeadLedgerRequestModel searchRequest = new();
+
+    private bool ShowSearchPopup;
+    private bool IsLoading;
+    private string? nameFilter;
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+
+    private decimal totalDebit => list.Sum(x => x.DebitAmount);
+    private decimal totalCredit => list.Sum(x => x.CreditAmount);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+
+            feeHeadList = await httpService.Get<List<FeeHeadModel>>("FeeHead/GetFeeHeadList") ?? new();
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<FeeHeadLedgerEntryModel> moduleQuery
+    {
+        get
+        {
+            var result = list.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase));
+            }
+            return result;
+        }
+    }
+
+    private void OpenSearch() => ShowSearchPopup = true;
+    private void ClosePopup() => ShowSearchPopup = false;
+
+    private async Task SearchLedger()
+    {
+        ShowSearchPopup = false;
+        if (searchRequest.FeeHeadId <= 0)
+        {
+
+            await Alert.ShowWarning("Please select a Fee Head.");
+            ShowSearchPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+
+        ShowSearchPopup = false;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<List<FeeHeadLedgerEntryModel>>>("Ledger/GetFeeHeadLedger", searchRequest);
+            list = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No ledger transactions found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            list = new();
+            await Alert.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}
