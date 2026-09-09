@@ -1,0 +1,238 @@
+@page "/StudentLedger"
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Student Ledger">
+                <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                    <i class="bi bi-sliders"></i>
+                </button>
+            </PageHeading>
+        </div>
+
+        @if (selectedStudentName != null)
+        {
+            <div class="col-12 p-1">
+                <div class="card">
+                    <div class="card-body p-2">
+                        <div class="row m-0">
+                            <div class="col-lg-4 col-6">
+                                <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                    <label class="form-label">Student</label>
+                                    <input class="form-input" value="@selectedStudentName" disabled />
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-6">
+                                <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                    <label class="form-label">Total Debit</label>
+                                    <input class="form-input" value="@totalDebit.ToString("N2")" disabled />
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-6">
+                                <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
+                                    <label class="form-label">Closing Balance</label>
+                                    <input class="form-input" value="@closingBalance.ToString("N2")" disabled />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.TxnDate.ToString("dd-MM-yyyy"))" Title="Date" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.TxnType) ? " " : x.TxnType)" Title="Type" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ReferenceNo) ? " " : x.ReferenceNo)" Title="Reference No" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remarks) ? " " : x.Remarks)" Title="Remarks" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.DebitAmount == 0 ? " " : x.DebitAmount.ToString("N2"))" Title="Debit" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => x.CreditAmount == 0 ? " " : x.CreditAmount.ToString("N2"))" Title="Credit" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => x.RunningBalance.ToString("N2"))" Title="Balance" Align="Align.Right" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-6">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search Student</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-lg-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="classCode" @bind-Value:after="OnClassChanged">
+                                    <option value="">--Select Class--</option>
+                                    @foreach (var item in classlist)
+                                    {
+                                        <option value="@item.ClassCode">@item.ClassName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Class</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="selectedStudentId">
+                                    <option value="0">--Select Student--</option>
+                                    @foreach (var item in studentlist)
+                                    {
+                                        <option value="@item.StudentId">@item.StudentName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Student</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchLedger" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS:
+    // - Student list per class is fetched via "Student/GetStudentByClass" with a
+    //   SearchAnyRequestModel (ClassCode in RequestName) — matches the cascading
+    //   Class -> Section/Student pattern already used elsewhere (frontend-agent.md §13).
+    //   Swap the endpoint if the real one differs.
+    // ---------------------------------------------------------------------
+
+    private List<StudentLedgerEntryModel> list = new();
+    private List<BranchClassModel> classlist = new();
+    private List<StudentClassModal> studentlist = new();
+
+    private StudentLedgerRequestModel searchRequest = new();
+    private string? classCode;
+    private long selectedStudentId;
+    private string? selectedStudentName;
+
+    private bool ShowSearchPopup;
+    private bool IsLoading;
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+
+    private decimal totalDebit => list.Sum(x => x.DebitAmount);
+    private decimal closingBalance => list.Any() ? list.Last().RunningBalance : 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+
+            classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<StudentLedgerEntryModel> moduleQuery => list.AsQueryable();
+
+    private void OpenSearch() => ShowSearchPopup = true;
+    private void ClosePopup() => ShowSearchPopup = false;
+
+    private async Task OnClassChanged()
+    {
+        studentlist = new();
+        selectedStudentId = 0;
+        if (string.IsNullOrEmpty(classCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var searchAny = new SearchAnyRequestModel { GroupCode = groupcode, BranchCode = branchcode, RequestName = classCode, SessionId = CurrentSession };
+        studentlist = await httpService.Post<List<StudentClassModal>>("Student/GetStudentByClass", searchAny) ?? new();
+        StateHasChanged();
+    }
+
+    private async Task SearchLedger()
+    {
+        ShowSearchPopup = false;
+        if (selectedStudentId <= 0)
+        {
+            await Alert.ShowWarning("Please select a Student.");
+            ShowSearchPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        selectedStudentName = studentlist.FirstOrDefault(x => x.StudentId == selectedStudentId)?.StudentName;
+        searchRequest.GroupCode = groupcode;
+        searchRequest.BranchCode = branchcode;
+        searchRequest.SessionId = CurrentSession;
+        searchRequest.StudentId = selectedStudentId;
+
+        ShowSearchPopup = false;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentLedgerEntryModel>>>("Ledger/GetStudentLedger", searchRequest);
+            list = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No ledger transactions found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            list = new();
+            await Alert.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

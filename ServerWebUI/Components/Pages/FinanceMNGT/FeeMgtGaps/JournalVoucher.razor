@@ -1,0 +1,402 @@
+@page "/JournalVoucher"
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Journal Voucher">
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="OpenNewPopup" ButtonText="New Voucher" />
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@moduleQuery" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.VoucherNo) ? " " : x.VoucherNo)" Title="Voucher No" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => x.VoucherDate.ToString("dd-MM-yyyy"))" Title="Date" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.TransactionType) ? " " : x.TransactionType)" Title="Type" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.TotalDebit.ToString("N2"))" Title="Total Debit" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => x.TotalCredit.ToString("N2"))" Title="Total Credit" Align="Align.Right" />
+                                <TemplateColumn Title="Detail" Align="Align.Center">
+                                    <ChildContent>
+                                        <button class="btn-icon edit-btn custom-tooltip" data-tooltip="View Lines" @onclick="() => ViewDetail(context)">
+                                            <i class="bi bi-list-ul"></i>
+                                        </button>
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">New Journal Voucher</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-lg-3 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " @bind="voucher.VoucherNo" />
+                                <label class="floating-label">Voucher No <span class="required">*</span></label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" type="date" placeholder=" " @bind="voucher.VoucherDate" />
+                                <label class="floating-label">Voucher Date <span class="required">*</span></label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <select class="floating-input" @bind="voucher.TransactionType">
+                                    <option value="">--Select Type--</option>
+                                    <option value="Journal">Journal</option>
+                                    <option value="Contra">Contra</option>
+                                    <option value="Purchase">Purchase</option>
+                                    <option value="Payment">Payment</option>
+                                    <option value="Receipt">Receipt</option>
+                                    <option value="Sale">Sale</option>
+                                    <option value="DebitNote">Debit Note</option>
+                                    <option value="CreditNote">Credit Note</option>
+                                </select>
+                                <label class="floating-label">Transaction Type <span class="required">*</span></label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " @bind="voucher.Narration" />
+                                <label class="floating-label">Narration</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-12 px-2 mb-2 mt-2">
+                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                <p class="total-text-with-bg">Voucher Lines</p>
+                                <hr class="m-0 w-webkit text-light-gray op-1">
+                                <button type="button" class="table-btn" @onclick="AddLine">+ Add Line</button>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Account</th>
+                                        <th>Dr / Cr</th>
+                                        <th>Amount</th>
+                                        <th>Narration</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in voucher.Details)
+                                    {
+                                        <tr>
+                                            <td style="min-width:200px;">
+                                                <select class="form-input" @bind="line.AccountId">
+                                                    <option value="0">--Select--</option>
+                                                    @foreach (var acc in accountList)
+                                                    {
+                                                        <option value="@acc.AccountId">@acc.AccountName</option>
+                                                    }
+                                                </select>
+                                            </td>
+                                            <td style="min-width:100px;">
+                                                <select class="form-input" @bind="line.DrCr">
+                                                    <option value="D">Debit</option>
+                                                    <option value="C">Credit</option>
+                                                </select>
+                                            </td>
+                                            <td style="min-width:120px;">
+                                                <input class="form-input" type="number" step="0.01" @bind="line.Amount" />
+                                            </td>
+                                            <td style="min-width:160px;">
+                                                <input class="form-input" @bind="line.Narration" placeholder=" " />
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn-icon inactive-btn" @onclick="() => RemoveLine(line)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="col-12 d-flex justify-content-end gap-3 mt-2 pe-3">
+                            <span><strong>Total Debit:</strong> @totalDebit.ToString("N2")</span>
+                            <span><strong>Total Credit:</strong> @totalCredit.ToString("N2")</span>
+                            <span style="color:@(isBalanced ? "#28a745" : "#dc3545")"><strong>@(isBalanced ? "Balanced" : "Unbalanced")</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="OnSaveVoucher" tabindex="0">
+                        <div class="visible content">Post Voucher</div>
+                        <div class="hidden content"><i class="bi bi-check2"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ShowDetailPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-7">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Voucher Lines — @selectedVoucher?.VoucherNo</h5>
+                    <button data-access="Close" type="button" @onclick="() => ShowDetailPopup = false" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Account</th><th>Dr / Cr</th><th class="text-end">Amount</th><th>Narration</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var d in detailList)
+                            {
+                                <tr>
+                                    <td>@d.AccountName</td>
+                                    <td>@(d.DrCr == "D" ? "Debit" : "Credit")</td>
+                                    <td class="text-end">@d.Amount.ToString("N2")</td>
+                                    <td>@d.Narration</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <SaveUpdateButton ShowSaveButton="false" OnClickCancel="@(() => ShowDetailPopup = false)" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+
+@code {
+    private List<JournalVoucherModel> list = new();
+    private List<JournalAccountModel> accountList = new();
+    private List<JournalVoucherDetailModel> detailList = new();
+    private JournalVoucherModel voucher = new();
+    private JournalVoucherModel? selectedVoucher;
+
+    private bool ShowPopup;
+    private bool ShowDetailPopup;
+    private bool IsLoading;
+    private string? nameFilter;
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string username = string.Empty;
+    private string currentUrl = "";
+
+    private decimal totalDebit => voucher.Details.Where(x => x.DrCr == "D").Sum(x => x.Amount);
+    private decimal totalCredit => voucher.Details.Where(x => x.DrCr == "C").Sum(x => x.Amount);
+    private bool isBalanced => voucher.Details.Count > 0 && totalDebit == totalCredit && totalDebit > 0;
+
+    protected override void OnInitialized() => currentUrl = Nav.Uri;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            username = (await sessionStorage.GetAsync<string>("UserName")).Value ?? string.Empty;
+
+            var req = new SearchAnyRequestModel { GroupCode = groupcode, BranchCode = branchcode };
+            var accResponse = await httpService.Post<ApiResponse<List<JournalAccountModel>>>("Journal/ListAccount", req);
+            accountList = (accResponse != null && accResponse.Success) ? (accResponse.Data ?? new()) : new();
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<JournalVoucherModel> moduleQuery
+    {
+        get
+        {
+            var result = list.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => x.VoucherNo != null && x.VoucherNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase));
+            }
+            return result;
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var req = new SearchAnyRequestModel { GroupCode = groupcode, BranchCode = branchcode, SessionId = CurrentSession };
+            var apiResponse = await httpService.Post<ApiResponse<List<JournalVoucherModel>>>("Journal/ListJournalVoucher", req);
+            list = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+        }
+        catch { list = new(); }
+        finally { IsLoading = false; StateHasChanged(); }
+    }
+
+    private void OpenNewPopup()
+    {
+        voucher = new JournalVoucherModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            VoucherDate = DateTime.Today
+        };
+        AddLine();
+        AddLine();
+        ShowPopup = true;
+    }
+
+    private void ClosePopup() => ShowPopup = false;
+
+    private void AddLine() => voucher.Details.Add(new JournalVoucherDetailModel { DrCr = "D" });
+    private void RemoveLine(JournalVoucherDetailModel line) => voucher.Details.Remove(line);
+
+    private async Task OnSaveVoucher()
+    {
+        // Manual validation is mandatory here — the voucher lines are a dynamic list
+        // outside any EditForm/DataAnnotationsValidator (frontend-agent.md §19.2).
+        ShowPopup = false;
+        if (string.IsNullOrWhiteSpace(voucher.VoucherNo))
+        {
+            await Alert.ShowWarning("Voucher No is required.");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(voucher.TransactionType))
+        {
+            await Alert.ShowWarning("Please select a Transaction Type.");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (voucher.Details.Count(x => x.AccountId > 0) < 2)
+        {
+            await Alert.ShowWarning("A voucher needs at least one Debit line and one Credit line.");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (voucher.Details.Any(x => x.AccountId <= 0 || x.Amount <= 0))
+        {
+            await Alert.ShowWarning("Every line needs an Account and an Amount greater than 0.");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+        if (!isBalanced)
+        {
+            await Alert.ShowWarning("Voucher is unbalanced — Total Debit must equal Total Credit.");
+            ShowPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        voucher.CreatedBy = username;
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<object>>("Journal/AddJournalVoucher", voucher);
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 1)
+            {
+                ShowPopup = false;
+                await Alert.ShowSuccess("Journal Voucher posted successfully.");
+                await LoadData();
+            }
+            else
+            {
+                await Alert.ShowWarning(apiResponse?.Message ?? "Operation failed.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ViewDetail(JournalVoucherModel row)
+    {
+        selectedVoucher = row;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Get<ApiResponse<List<JournalVoucherDetailModel>>>($"Journal/GetJournalVoucherDetail/{row.VoucherId}");
+            detailList = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+            ShowDetailPopup = true;
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"Error: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}
