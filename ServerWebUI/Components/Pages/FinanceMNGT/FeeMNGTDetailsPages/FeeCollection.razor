@@ -1,11 +1,34 @@
-@page "/feecollection"
+@page "/feecollectionnew"
 @using DomainModel.Admin
+@using Microsoft.AspNetCore.Authorization
+@using static DomainModel.FinanceMNGT.FeeCollectionDuesNew
+@inject IHttpClientFactory ClientFactory
 @using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ServerWebUI.Components.Common
+@inject ICommonMethod _commonmethod
+@using System.Net
+@using System.Drawing;
+@using System.Text.Json
 @using MyApp.Common
+@using System.Text.RegularExpressions
 @using ServerWebUI.Components.Pages.CommonPages
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject IWebHostEnvironment env
 @rendermode InteractiveServer
 
 <style>
+    .quickgrid thead th:last-child {
+        min-width: 70px;
+    }
+
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 50px;
+    }
 
     .student-avatar {
         width: 42px;
@@ -28,68 +51,6 @@
     .student-sub {
         font-size: 12.5px;
         color: #6c757d;
-    }
-
-    .fee-search-box {
-        position: relative;
-        min-width: 260px;
-    }
-
-        .fee-search-box input {
-            width: 100%;
-            border: 1px solid #d9d9d9;
-            border-radius: 8px;
-            padding: 8px 12px 8px 34px;
-            font-size: 13px;
-        }
-
-        .fee-search-box i {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-        }
-
-    .receipt-date-label {
-        font-size: 11px;
-        color: #6c757d;
-        letter-spacing: .04em;
-    }
-
-    .receipt-date-value {
-        font-weight: 600;
-        font-size: 14px;
-    }
-
-    .fee-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13.5px;
-    }
-
-        .fee-table thead th {
-            text-align: left;
-            font-size: 11px;
-            color: #6c757d;
-            letter-spacing: .04em;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 8px 10px;
-        }
-
-        .fee-table tbody td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #f1f3f5;
-            vertical-align: middle;
-        }
-
-    .fee-head-title {
-        font-weight: 600;
-    }
-
-    .fee-head-sub {
-        font-size: 12px;
-        color: #9ca3af;
     }
 
     .paying-now-input {
@@ -171,14 +132,6 @@
         resize: none;
     }
 
-    .btn-preview {
-        border: 1px solid #d9d9d9;
-        background: #fff;
-        border-radius: 8px;
-        padding: 12px;
-        font-weight: 600;
-    }
-
     .crumb {
         display: flex;
         gap: 10px;
@@ -193,6 +146,90 @@
         border-radius: 50%;
         background: #16a34a;
         display: inline-block;
+    }
+
+    .student-search-wrap {
+        position: relative;
+        min-width: 550px;
+    }
+
+    .student-suggest-box {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 4px;
+        border: 1px solid #d9d9d9;
+        border-radius: 8px;
+        background: #fff;
+        max-height: 500px;
+        overflow-y: auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+        z-index: 1050;
+    }
+
+
+
+   
+    .student-suggest-item {
+        display: grid;
+        grid-template-columns: 2fr 1.4fr 1fr 1.6fr;
+        gap: 20px;
+        padding: 10px 14px;
+        cursor: pointer;
+        background: #fff;
+        border-bottom: 1px solid #f1f3f5;
+        cursor: pointer;
+    }
+
+        .student-suggest-item:hover {
+            background: #f7f9fc;
+        }
+
+    .student-suggest-column {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .student-suggest-label {
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 2px;
+        color: #263238;
+    }
+
+    .student-suggest-value {
+        font-size: 11px;
+        font-weight: 600;
+        color: #8a94a6;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+
+
+    .student-suggest-item:last-child {
+        border-bottom: none;
+    }
+
+    .student-suggest-item:hover {
+        background: #f8f9fa;
+    }
+
+    .student-suggest-empty {
+        padding: 14px;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    .receipt-preview-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 6px 0;
     }
 </style>
 
@@ -209,7 +246,54 @@
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="Fee Collection">
                 <div class="form-box">
-                    <button class="ui fade op-1 animated button form-btn" tabindex="0">
+                    <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box student-search-wrap">
+                    <input @key="searchInputKey" class="form-input" placeholder="Enter admission no. or student name" @bind-Value="searchTerm" @bind-Value:event="oninput" @bind-Value:after="OnSearchTermChanged" @onkeydown="HandleSearchKeyDown" />
+
+                    @if (ShowSuggestions)
+                    {
+                        <div class="student-suggest-box">
+                            @if (filteredSuggestions.Count == 0)
+                            {
+                                <div class="student-suggest-empty">No matching student found.</div>
+                            }
+                            else
+                            {
+                                @foreach (var item in filteredSuggestions)
+                                {
+
+                                    <div class="student-suggest-item" @onclick="() => SelectStudent(item)">
+                                        <div class="student-suggest-column">
+                                            <span class="student-suggest-label">Student Name</span>
+                                            <span class="student-suggest-value">@item.StudentName</span>
+                                        </div>
+                                        <div class="student-suggest-column">
+                                            <span class="student-suggest-label">Admission No.</span>
+                                            <span class="student-suggest-value">@item.ControlNo</span>
+                                        </div>
+                                        <div class="student-suggest-column">
+                                            <span class="student-suggest-label">Class</span>
+                                            <span class="student-suggest-value">@item.ClassSection</span>
+                                        </div>
+                                        <div class="student-suggest-column">
+                                            <span class="student-suggest-label">Father</span>
+                                            <span class="student-suggest-value">@item.FatherName</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
                         <div class="visible content justify-content-center">Search</div>
                         <div class="hidden content">
                             <i class="bi bi-search"></i>
@@ -218,180 +302,176 @@
                 </div>
             </PageHeading>
         </div>
-
         <div class="col-12 p-1">
             <div class="card">
                 <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="student-avatar">AM</div>
+                        <div class="student-avatar">@GetInitials(IsStudentSelected ? selectedStudent.StudentName : null)</div>
                         <div>
-                            <div class="student-name">Mahesh Kumar</div>
-                            <div class="student-sub">Admission no. 0174 &nbsp;&middot;&nbsp; Class I-A &nbsp;&middot;&nbsp; Session 2026-27 &nbsp;&middot;&nbsp; Father: Ram Kumar</div>
+                            <div class="student-name">@(IsStudentSelected ? selectedStudent.StudentName : "No student selected")</div>
+                            <div class="student-sub">
+                                @if (IsStudentSelected)
+                                {
+                                    @:Admission no. @selectedStudent.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName
+                                }
+                                else
+                                {
+                                    @:Search and select a student to view fee details.
+                                }
+                            </div>
                         </div>
                     </div>
 
-                    <div class="fee-search-box">
-                        <i class="bi bi-search"></i>
-                        <input type="search" placeholder="Search by student name or admission no." />
+
+                    <div class="form-box">
+                        <label class="form-label">RECEIPT DATE</label>
+                        <InputDate @bind-Value="studentDetailsForFeeRequest.ReceiptDate" class="form-input" />
                     </div>
 
-                    <div class="text-end">
-                        <div class="receipt-date-label">RECEIPT DATE</div>
-                        <div class="receipt-date-value">08-09-2026 <i class="bi bi-calendar3"></i></div>
-                    </div>
-
-                    <button type="button" class="table-btn">Student details</button>
+                    <button type="button" class="table-btn" @onclick="StudentDetails">Student details</button>
                 </div>
             </div>
         </div>
 
+
         <div class="col-12 p-1 ">
-           
-                <div class="d-flex align-items-center gap-2">
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Collect fee</button>
 
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Ledger details</button>
+            <div class="d-flex align-items-center gap-2">
+                <div class="form-box">
+                    <button type="button" class="table-btn">Collect fee</button>
 
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Map transport</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Ledger details</button>
 
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Map concession</button>
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Waive off</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Map transport</button>
 
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Advance fee</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Map concession</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Waive off</button>
 
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Generate challan</button>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Advance fee</button>
 
-                    </div>
-                    <div class="form-box">
-                        <button type="button" class="table-btn">Adjust advance</button>
-                    </div>
-         
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Generate challan</button>
+
+                </div>
+                <div class="form-box">
+                    <button type="button" class="table-btn">Adjust advance</button>
+                </div>
+
 
             </div>
 
         </div>
 
         <div class="col-12 col-lg-8 p-1">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
-                        <div>
-                            <div class="fee-head-title" style="font-size:15px;">Fee particulars</div>
-                            <div class="fee-head-sub">Review dues and enter the amount being paid.</div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <div class="form-box-group static-label mb-0" style="min-width:140px;">
-                                <select class="floating-input w-100">
-                                    <option>July</option>
-                                </select>
-                                <label class="floating-label" style="white-space:nowrap;">Collect up to</label>
+            <div class="card">
+                <div class="card-body table-card p-0">
+
+                    <div class="quick-main">
+                        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+                            <div>
+                                <div class="fee-head-title" style="font-size:15px;">Fee particulars</div>
+                                <div class="fee-head-sub">Review dues and enter the amount being paid.</div>
                             </div>
-                            <div class="form-box-group static-label mb-0" style="min-width:180px;">
-                                <select class="floating-input w-100">
-                                    <option>School Fee Account</option>
-                                </select>
-                                <label class="floating-label" style="white-space:nowrap;">Deposit account</label>
+                            <div class="d-flex gap-2 mt-2">
+                                <div class="form-box-group static-label mb-0" style="min-width:140px;">
+                                    <select class="floating-input w-100" @bind="SelectedTillMonth" @bind:after="OnTillMonthChanged">
+                                        @foreach (var month in distinctMonths)
+                                        {
+                                            <option value="@month.MonthNo">@month.MonthDisplay</option>
+                                        }
+                                    </select>
+                                    <label class="floating-label" style="white-space:nowrap;">Collect up to</label>
+                                </div>
+                                <div class="form-box-group static-label mb-0" style="min-width:180px;">
+                                    <select class="floating-input w-100">
+                                        <option>School Fee Account</option>
+                                    </select>
+                                    <label class="floating-label" style="white-space:nowrap;">Deposit account</label>
+                                </div>
                             </div>
                         </div>
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+
+                                <TemplateColumn Title="Feehead" Align="Align.Left">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Feehead name..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.MonthDisplay)" Title="Month">
+
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount">
+
+                                </PropertyColumn>
+
+                                <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.Concession)" Title="Concession" />
+                                <PropertyColumn Property="@(x => x.WaiveOff)" Title="Waive Off" Align="Align.Center" class="text-right">
+
+                                </PropertyColumn>
+                                <PropertyColumn Title="Payable" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
+
+                                </PropertyColumn>
+                                <PropertyColumn Title="Paying" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
+
+                                </PropertyColumn>
+
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <ChildContent>
+                                        <div class="text-center">
+                                            <button type="button"
+                                                    class="btn btn-link text-danger p-0"
+                                                    title="Delete">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+
+                            </QuickGrid>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mt-3">
+                            <div class="fee-head-sub">
+                                <i class="bi bi-info-circle"></i>
+                                You can collect a partial amount by editing "Paying now".
+                            </div>
+                            <a href="javascript:void(0)" class="fee-head-sub">Reset amounts</a>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
-                    <table class="fee-table">
-                        <thead>
-                            <tr>
-                                <th>FEE HEAD</th>
-                                <th>AMOUNT</th>
-                                <th>CONCESSION</th>
-                                <th>WAIVE OFF</th>
-                                <th>RECEIVED</th>
-                                <th>PAYABLE</th>
-                                <th>PAYING NOW</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div class="fee-head-title">Tuition fee</div>
-                                    <div class="fee-head-sub">April 2026</div>
-                                </td>
-                                <td>&#8377;5,940</td>
-                                <td>&mdash;</td>
-                                <td>&mdash;</td>
-                                <td>&#8377;0</td>
-                                <td>&#8377;5,940</td>
-                                <td><input type="text" class="paying-now-input" value="5940" /></td>
-                                <td><i class="bi bi-trash text-danger"></i></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="fee-head-title">Late fee</div>
-                                    <div class="fee-head-sub">April 2026</div>
-                                </td>
-                                <td>&#8377;150</td>
-                                <td>&mdash;</td>
-                                <td>&mdash;</td>
-                                <td>&#8377;0</td>
-                                <td>&#8377;150</td>
-                                <td><input type="text" class="paying-now-input" value="150" /></td>
-                                <td><i class="bi bi-trash text-danger"></i></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="fee-head-title">Tuition fee</div>
-                                    <div class="fee-head-sub">May 2026</div>
-                                </td>
-                                <td>&#8377;5,940</td>
-                                <td>&mdash;</td>
-                                <td>&mdash;</td>
-                                <td>&#8377;0</td>
-                                <td>&#8377;5,940</td>
-                                <td><input type="text" class="paying-now-input" value="5940" /></td>
-                                <td><i class="bi bi-trash text-danger"></i></td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class="fee-head-title">Tuition fee</div>
-                                    <div class="fee-head-sub">July 2026</div>
-                                </td>
-                                <td>&#8377;5,940</td>
-                                <td>&mdash;</td>
-                                <td>&mdash;</td>
-                                <td>&#8377;0</td>
-                                <td>&#8377;5,940</td>
-                                <td><input type="text" class="paying-now-input" value="5940" /></td>
-                                <td><i class="bi bi-trash text-danger"></i></td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="d-flex align-items-center justify-content-between mt-3">
-                        <div class="fee-head-sub">
-                            <i class="bi bi-info-circle"></i>
-                            You can collect a partial amount by editing "Paying now".
-                        </div>
-                        <a href="javascript:void(0)" class="fee-head-sub">Reset amounts</a>
-                    </div>
                 </div>
             </div>
+
         </div>
 
         <div class="col-12 col-lg-4 p-1">
             <div class="amount-to-collect-card mb-2">
                 <div class="amount-to-collect-label">AMOUNT TO COLLECT</div>
-                <div class="amount-to-collect-value">&#8377;17,970</div>
+                <div class="amount-to-collect-value">&#8377;@TotalPayable.ToString("N2")</div>
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span>Remaining balance &#8377;52,850</span>
                     <span class="balance-badge">Partial payment</span>
@@ -400,19 +480,19 @@
                 <div class="row g-2">
                     <div class="col-6">
                         <div class="amount-stat-label">TOTAL FEE</div>
-                        <div class="amount-stat-value">&#8377;70,820</div>
+                        <div class="amount-stat-value">&#8377;@TotalAmount.ToString("N2")</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">PREVIOUS ADVANCE</div>
-                        <div class="amount-stat-value">&#8377;0</div>
+                        <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.PreviousBalance?.ToString("N2") : "-")</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">CONCESSION</div>
-                        <div class="amount-stat-value">&#8377;0</div>
+                        <div class="amount-stat-value">&#8377;@TotalConcession.ToString("N2")</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">LATE FEE INCLUDED</div>
-                        <div class="amount-stat-value">&#8377;150</div>
+                        <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.LateFee?.ToString("N2") : "-")</div>
                     </div>
                 </div>
             </div>
@@ -455,9 +535,9 @@
 
                     <div class="row g-2 mt-3">
                         <div class="col-4">
-                            @* <button type="button" class="btn-preview w-100">Preview</button> *@
+
                             <div class="form-box">
-                                <button class="ui fade op-1 animated button form-btn w-100" tabindex="0">
+                                <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" @onclick="OpenReceiptPreview">
                                     <div class="visible content justify-content-center">Preview</div>
                                     <div class="hidden content">
                                         <i class="bi bi-eye"></i>
@@ -467,10 +547,10 @@
                             </div>
                         </div>
                         <div class="col-8">
-                        
-                           
+
+
                             <button class="ui fade op-1 animated button form-btn w-100" tabindex="0">
-                                <div class="visible content justify-content-center">Collect &#8377;17,970</div>
+                                <div class="visible content justify-content-center">Collect &#8377;@TotalPayable.ToString("N2")</div>
                                 <div class="hidden content">
                                     <i class="bi bi-check-lg"></i>
                                 </div>
@@ -493,3 +573,408 @@
 
     </div>
 </div>
+@if (ShowReceiptPreview)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Receipt preview</h5>
+                    <button data-access="Close" type="button" @onclick="CloseReceiptPreview" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="receipt-preview-box card p-10">
+                        <div class="receipt-preview-row justify-content-between">
+                            <span class="student-suggest-label">Student</span>
+                            <span class="student-suggest-value">@selectedStudent.StudentName &middot; @selectedStudent.ClassSection</span>
+                        </div>
+                        <div class="receipt-preview-row">
+                            <span class="student-suggest-label">Admission no.</span>
+                            <span class="student-suggest-value">@selectedStudent.ControlNo</span>
+                        </div>  
+                        <div class="receipt-preview-row">
+                            <span class="student-suggest-label">Payment mode</span>
+                            <span class="student-suggest-value">@SelectedPaymentMode</span>
+                        </div>
+                        <div class="receipt-preview-row">
+                            <span class="student-suggest-label">Receipt date</span>
+                            <span class="student-suggest-value">@studentDetailsForFeeRequest.ReceiptDate.ToString("d MMM yyyy")</span>
+                        </div>
+                        <div class="receipt-preview-divider"></div>
+                        <div class="receipt-preview-row">
+                            <span class="student-suggest-label" style="font-size:14px;">Amount</span>
+                            <span class="student-suggest-value" style="font-size:18px;">&#8377;@TotalPayable.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr d-flex">
+                        <SaveUpdateButton ShowSaveButton="false" Text="Go Back" OnClickCancel="CloseReceiptPreview" />
+                        <div class="form-box">
+
+                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" @onclick="ConfirmPayment">
+                                <div class="visible content justify-content-center">Confirm payment</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+                            </button>
+                        </div>
+
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <img src="images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{
+
+}
+<StudentViewDetails IsVisible="@OpenDetail" SessionId="@CurrentSession" CurrectUrl="@currentUrl" StudentId="@SelectedStudentId" OnClose="@ClosePopup" />
+
+
+@code {
+    // ---------------------------------------------------------------------
+    // FIXES APPLIED (adjust further if something still doesn't match your
+    // actual model):
+    // - selectedStudent is now StudentDetailsForFee (non-nullable, always
+    //   "new()" by default) instead of a nullable reference. Every place
+    //   that used to check "selectedStudent != null" or "selectedStudent?."
+    //   never actually meant anything once it's non-nullable - those now
+    //   check the IsStudentSelected flag instead (header avatar/name/sub,
+    //   PreviousBalance/LateFee, StudentDetails()).
+    // - PreviousBalance/LateFee are plain decimal (not decimal?), so
+    //   "selectedStudent.PreviousBalance?.ToString(...)" would not compile
+    //   - fixed to a plain IsStudentSelected ? ... : "-" ternary instead of
+    //   relying on null-conditional on a value type.
+    // - TotalAmount/TotalConcession/TotalPayable were referenced in the
+    //   markup (Amount to collect card, Collect button) but were missing
+    //   from @code entirely in the pasted version - re-added as computed
+    //   properties off feeCollectionDuelist so they stay in sync with the
+    //   "Collect up to" month filter automatically.
+    // - OnSearchTermChanged() now resets selectedStudent back to new() (it
+    //   can't be set to null anymore) so the header doesn't keep showing a
+    //   stale student while a new search term is being typed.
+    // - "Collect ₹17,970" button text is now bound to TotalPayable too, to
+    //   match the "Amount to collect" card instead of staying hardcoded.
+    // - Removed the redundant "IsLoading = false;" that was duplicated
+    //   inside the success branch of GetStudentFeeDetails - the "finally"
+    //   block already always sets it.
+    // ---------------------------------------------------------------------
+    private bool ShowReceiptPreview = false;
+    private string SelectedPaymentMode = "Cash";
+    private bool OpenDetail = false;
+    private long CurrentSession;
+    private string? currentUrl;
+    private string? branchcode;
+    private string? groupcode;
+    private string UserName;
+    private bool IsLoading = false;
+    private long SelectedStudentId = 0;
+    private string? searchTerm;
+    private string searchInputKey = Guid.NewGuid().ToString();
+    private string? nameFilter = "";
+    private string? studentNoFilter = "";
+    private StudentDetailsForFeeRequest studentDetailsForFeeRequest = new();
+    private GetStudentFeeHeadDuesForAdjustmentRequest getStudentFeeHeadDuesForAdjustment = new();
+    private List<FeeCollectionDuesNew> feeCollectionDuelist = new();
+    private List<FeeCollectionDuesNew> allFeeCollectionDues = new();
+    private List<FeeCollectionDuesNew> distinctMonths = new();
+    private List<StudentDetailsForFee> studentDetailsForFeeList = new();
+    private List<StudentDetailsForFee> filteredSuggestions = new();
+    private StudentDetailsForFee selectedStudent = new();
+    private bool ShowSuggestions = false;
+    private bool IsStudentSelected = false;
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionModellist = new();
+    private List<SessionModel> sessionlist = new();
+    private List<MonthModel> MonthList = new();
+    PaginationState pagination = new() { ItemsPerPage = 30 };
+
+    private int SelectedTillMonth = 4; // Default: April
+    private readonly int academicStartYear = 2026; // ASSUMPTION - see notes above
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchStudent();
+        }
+    }
+    protected async Task LoadData()
+    {
+        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+        branchcode = branchResult.Value;
+        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+        groupcode = groupResult.Value;
+        var username = await sessionStorage.GetAsync<string>("UserName");
+        UserName = username.Value;
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        string ApiUri1 = "Month/GetMonth";
+        MonthList = await httpService.Get<List<MonthModel>>(ApiUri1) ?? new();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+        StateHasChanged();
+
+
+    }
+    protected IQueryable<FeeCollectionDuesNew> moduleQuery
+    {
+        get
+        {
+            var result = feeCollectionDuelist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+
+    private decimal TotalAmount => feeCollectionDuelist.Sum(x => x.Amount);
+    private decimal TotalConcession => feeCollectionDuelist.Sum(x => x.Concession);
+    private decimal TotalPayable => feeCollectionDuelist.Sum(x => x.Payable);
+
+    private DateTime ComputeTillDate(int monthNo)
+    {
+        int year = monthNo >= 4 ? academicStartYear : academicStartYear + 1;
+        var lastDay = DateTime.DaysInMonth(year, monthNo);
+        return new DateTime(year, monthNo, lastDay);
+    }
+
+    private void OnSearchTermChanged()
+    {
+        ShowSuggestions = false;
+        filteredSuggestions = new();
+        selectedStudent = new();
+        SelectedStudentId = 0;
+        IsStudentSelected = false;
+        StateHasChanged();
+    }
+
+    private async Task SelectStudent(StudentDetailsForFee item)
+    {
+        selectedStudent = item;
+        SelectedStudentId = item.StudentId;
+        searchTerm = item.StudentName;
+        searchInputKey = Guid.NewGuid().ToString();
+        IsStudentSelected = true;
+        ShowSuggestions = false;
+        getStudentFeeHeadDuesForAdjustment.StudentId = item.StudentId;
+
+        SelectedTillMonth = 4;
+        getStudentFeeHeadDuesForAdjustment.TillDate = "";
+
+        await GetStudentFeeDetails();
+        StateHasChanged();
+    }
+
+    private void OnTillMonthChanged()
+    {
+        ApplyTillMonthFilter();
+        StateHasChanged();
+    }
+
+    private void ApplyTillMonthFilter()
+    {
+        feeCollectionDuelist = allFeeCollectionDues
+            .Where(x => x.MonthNo <= SelectedTillMonth)
+            .ToList();
+    }
+
+
+    private async Task GetStudentFeeDetails()
+    {
+        try
+        {
+            IsLoading = true;
+            getStudentFeeHeadDuesForAdjustment.GroupCode = groupcode;
+            getStudentFeeHeadDuesForAdjustment.BranchCode = branchcode;
+            getStudentFeeHeadDuesForAdjustment.SessionId = CurrentSession;
+            getStudentFeeHeadDuesForAdjustment.BankAccountId = "0";
+
+            var response = await httpService.Post<ApiResponse<List<FeeCollectionDuesNew>>>("StudentFee/GetStudentFeeCollectionDues", getStudentFeeHeadDuesForAdjustment);
+
+            if (response != null && response.Success && response.Data != null && response.Data.Any())
+            {
+                allFeeCollectionDues = response.Data;
+
+                distinctMonths = allFeeCollectionDues
+                    .GroupBy(x => x.MonthNo)
+                    .Select(g => g.First())
+                    .OrderBy(x => x.MonthNo)
+                    .ToList();
+
+                SelectedTillMonth = distinctMonths.FirstOrDefault()?.MonthNo ?? SelectedTillMonth;
+
+                ApplyTillMonthFilter();
+            }
+            else
+            {
+                allFeeCollectionDues = new();
+                feeCollectionDuelist = new();
+                distinctMonths = new();
+                await Alert.ShowWarning(response?.Message ?? "No student fee details found.");
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching student details: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+    }
+
+    private async Task SearchStudent()
+    {
+        try
+        {
+            IsLoading = true;
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                await Alert.ShowWarning("Please enter student name or student no to search.");
+                IsLoading = false;
+                StateHasChanged();
+                return;
+            }
+
+            studentDetailsForFeeRequest.GroupCode = groupcode;
+            studentDetailsForFeeRequest.BranchCode = branchcode;
+            studentDetailsForFeeRequest.SessionId = CurrentSession;
+            if (searchTerm.Any(char.IsLetterOrDigit) && searchTerm.Any(char.IsDigit))
+            {
+                studentDetailsForFeeRequest.ControlNo = searchTerm;
+                studentDetailsForFeeRequest.StudentName = string.Empty;
+            }
+            else
+            {
+                studentDetailsForFeeRequest.ControlNo = string.Empty;
+                studentDetailsForFeeRequest.StudentName = searchTerm;
+            }
+
+            var response = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", studentDetailsForFeeRequest);
+
+            if (response != null && response.Success && response.Data != null && response.Data.Any())
+            {
+                studentDetailsForFeeList = response.Data;
+
+                if (studentDetailsForFeeList.Count == 1)
+                {
+                    await SelectStudent(studentDetailsForFeeList[0]);
+                }
+                else
+                {
+                    filteredSuggestions = studentDetailsForFeeList;
+                    selectedStudent = new();
+                    IsStudentSelected = false;
+                    ShowSuggestions = true;
+                }
+            }
+            else
+            {
+                studentDetailsForFeeList = new();
+                filteredSuggestions = new();
+                selectedStudent = new();
+                IsStudentSelected = false;
+                ShowSuggestions = true;
+                await Alert.ShowWarning(response?.Message ?? "No student found.");
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching student details: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StudentDetails()
+    {
+        if (!IsStudentSelected)
+        {
+            await Alert.ShowWarning("Please fetch student data first.");
+            return;
+        }
+
+        OpenDetail = true;
+        StateHasChanged();
+    }
+
+    private void ClosePopup()
+    {
+
+        OpenDetail = false;
+
+        StateHasChanged();
+    }
+    private async Task OpenReceiptPreview()
+    {
+        if (!IsStudentSelected)
+        {
+            await Alert.ShowWarning("Please select a student first.");
+            return;
+        }
+
+        ShowReceiptPreview = true;
+        StateHasChanged();
+    }
+
+    private void CloseReceiptPreview()
+    {
+        ShowReceiptPreview = false;
+        StateHasChanged();
+    }
+
+    private Task ConfirmPayment()
+    {
+        // TODO: no collect-payment endpoint specified yet - wire this once provided.
+        ShowReceiptPreview = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}

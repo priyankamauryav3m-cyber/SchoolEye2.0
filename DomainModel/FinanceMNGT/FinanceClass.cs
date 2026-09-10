@@ -863,7 +863,7 @@ namespace DomainModel.FinanceMNGT
         public string? RegistrationNo { get; set; }
         public string? Source { get; set; }
     }
- 
+
     public class AddFollowupRequest : CommonClass
     {
         public string? EnquiryId { get; set; }
@@ -997,7 +997,7 @@ namespace DomainModel.FinanceMNGT
     public class FeeHeadDto
     {
         public int ConcessionId { get; set; }
-        public int ConcStudId { get; set; } 
+        public int ConcStudId { get; set; }
         public int FeeHeadId { get; set; }
         public int ConcessionType { get; set; }
         public decimal ConcessionValue { get; set; }
@@ -1596,16 +1596,16 @@ namespace DomainModel.FinanceMNGT
     public class StudentPassportVisaModel : MNGTCommon
     {
         [Display(Name = "PassportNo")]
-      //  [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        //  [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? PassportNo { get; set; }
         [Display(Name = "Passport Type")]
-      //  [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        public int PassportType { get; set; }   
+        //  [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public int PassportType { get; set; }
         public bool PassportRegistrationRquired { get; set; }
         public DateTime PassportIssueDate { get; set; } = DateTime.Today;
         public DateTime PassportExpiryDate { get; set; } = DateTime.Today;
         [Display(Name = "VisaNo")]
-     //   [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        //   [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? VisaNo { get; set; }
         public string? RecommendationBy { get; set; }
         public string? EmployeeApproched { get; set; }
@@ -1613,7 +1613,7 @@ namespace DomainModel.FinanceMNGT
         public string? RecommendationDocPath { get; set; }
         public string? SpecialComments { get; set; }
         [Display(Name = "Visa Type")]
-     //   [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        //   [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public int VisaType { get; set; }
         public bool VisaRegistrationRequired { get; set; }
         public DateTime? VisaIssueDate { get; set; } = DateTime.Today;
@@ -1818,9 +1818,9 @@ namespace DomainModel.FinanceMNGT
         public decimal PreviousAdvance { get; set; }
         public decimal AdjustmentApproved { get; set; }
         public string PeriodList { get; set; } = string.Empty;
-        public int RouteDistance { get; set; } 
+        public int RouteDistance { get; set; }
     }
-    public class InvoiceFeeHeadModel:MNGTCommon
+    public class InvoiceFeeHeadModel : MNGTCommon
     {
         public int InvoiceId { get; set; }
         public int FeeHeadId { get; set; }
@@ -1834,7 +1834,7 @@ namespace DomainModel.FinanceMNGT
         public decimal ReceivedAmt { get; set; }
         public string MonthDisplay { get; set; } = string.Empty;
         public string MonthName { get; set; } = string.Empty;
-        public int MonthNo { get; set; } 
+        public int MonthNo { get; set; }
     }
     public class InvoiceDetailsResponse
     {
@@ -1921,7 +1921,7 @@ namespace DomainModel.FinanceMNGT
         public decimal Amount { get; set; }
     }
     public class TransportSelectMonthModel
-    {   
+    {
         public long StudentId { get; set; }
         public long SessionId { get; set; }
         public int MonthNo { get; set; }
@@ -1944,14 +1944,14 @@ namespace DomainModel.FinanceMNGT
         [Required]
         public decimal HeadAmount { get; set; }
 
-        [Required]  
+        [Required]
         [StringLength(50)]
         public string CreatedBy { get; set; } = string.Empty;
 
         [StringLength(200)]
         public string? Narration1 { get; set; }
     }
-    public class AdmissionDashboardRequest  
+    public class AdmissionDashboardRequest
     {
         public string GroupCode { get; set; } = "";
         public string BranchCode { get; set; } = "";
@@ -1960,6 +1960,84 @@ namespace DomainModel.FinanceMNGT
         public DateTime? FromDate { get; set; }   // NAYA
         public DateTime? ToDate { get; set; }     // NAYA
     }
+
+    #region-------------------------- Fee Collection Model --------------------------
+    public class StudentDetailsForFeeRequest
+    {
+        public string ControlNo { get; set; } = "";
+        public string StudentName { get; set; } = "";
+        public long SessionId { get; set; } = 0;
+        public string GroupCode { get; set; } = "";
+        public string BranchCode { get; set; } = "";
+        public DateTime ReceiptDate { get; set; } = DateTime.Today;
+        public DateTime? UpToDate { get; set; }
+    }
+
+
+    public class StudentDetailsForFee
+    {
+        public string SiblingId { get; set; } = "";
+        public string StudentNo { get; set; } = "";
+        public long StudentId { get; set; }
+        public string SessionId { get; set; } = "";
+        public string SessionName { get; set; } = "";
+        public string ControlNo { get; set; } = "";
+        public string StudentName { get; set; } = "";
+        public string ClassCode { get; set; } = "";
+        public string ClassName { get; set; } = "";
+        public string SectionId { get; set; } = "";
+        public string SectionName { get; set; } = "";
+        public string ClassSection { get; set; } = "";
+        public string FatherContactNo { get; set; } = "";
+        public string FatherName { get; set; } = "";
+        public string MotherName { get; set; } = "";
+        public int ClassOrder { get; set; }
+        public string PeriodType { get; set; } = "";
+        public decimal? PreviousBalance { get; set; }
+        public string StudentAddress { get; set; } = "";
+        public string SocietyId { get; set; } = "";
+        public string SMSMobileNo { get; set; } = "";
+        public decimal? LateFee { get; set; }
+        public decimal? StudentBalance { get; set; }
+        public int SiblingCount { get; set; }
+        public string HostalRequired { get; set; } = "";
+        public bool IsValid { get; set; }
+        public string ConcessionName { get; set; } = "";
+        public int IsTransportRequired { get; set; }
+        public string DistanceName { get; set; } = "";
+        public string NextToKin { get; set; } = "";
+        public string NextToKinLabel { get; set; } = "";
+        public string NextToKinName { get; set; } = "";
+        public string NextToKinEmail { get; set; } = "";
+        public string NextToKinContactNo { get; set; } = "";
+    }
+    public class FeeCollectionDuesNew {
+        public long FeeHeadId { get; set; }
+        public string FeeHeadName { get; set; } = string.Empty; 
+        public string MonthDisplay { get; set; } = string.Empty; 
+        public int MonthNo { get; set; }
+        public decimal Amount { get; set; } 
+        public decimal Concession { get; set; }
+        public decimal ReceivedAmt { get; set; } 
+        public decimal Payable { get; set; } 
+        public DateTime? ReceivedDate { get; set; } 
+        public decimal WaiveOff { get; set; } 
+        public int Status { get; set; }
+        public long DetInvoiceId { get; set;
+        }
+
+        public class GetStudentFeeHeadDuesForAdjustmentRequest { 
+            public string GroupCode { get; set; } = string.Empty;
+            public string BranchCode { get; set; } = string.Empty; 
+            public long SessionId { get; set; } =0;
+            public long StudentId { get; set; } = 0; 
+            public string BankAccountId { get; set; } = string.Empty;
+            public string TillDate { get; set; } = string.Empty; 
+        }
+    }
+    #endregion
+
+
 
 }
 
