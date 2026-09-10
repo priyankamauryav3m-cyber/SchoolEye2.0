@@ -436,8 +436,8 @@ else
         groupcode = groupResult.Value;
         var username = await sessionStorage.GetAsync<string>("UserName");
         UserName = username.Value;
-        string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
-        menus = await httpService.Get<List<RoleaBase>>(apiUrl) ?? new();
+        // string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
+        // menus = await httpService.Get<List<RoleaBase>>(apiUrl) ?? new();
         sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
         classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
         string ApiUri1 = "gender/GetGender";
