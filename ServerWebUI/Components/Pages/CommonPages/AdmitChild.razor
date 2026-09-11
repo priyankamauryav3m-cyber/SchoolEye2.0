@@ -32,7 +32,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
-                <div class="tab-pane tab-pane-form fade show active overflow-auto min-h-650" style="height: calc(125vh - 285px)" ;>
+                <div class="tab-pane tab-pane-form fade show active overflow-auto min-h-650" style="height: calc(125vh - 285px); border-radius: 10px;" ;>
                     <EditForm Model="@studentDirectAdmission" OnValidSubmit="@(() => OnSave("Admission"))">
                         <DataAnnotationsValidator />
                         <div class="modal-body">
@@ -61,7 +61,7 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2">
                                         <div class="form-box-group">
-                                            <select class="floating-input" autocomplete="off" disabled="@IsBranchDisabled" maxlength="10" >
+                                            <select class="floating-input" autocomplete="off" disabled="@IsBranchDisabled" maxlength="10">
                                                 @foreach (var cs in branchlist)
                                                 {
                                                     <option Value="@cs.BranchId">@cs.BranchName</option>
@@ -1376,7 +1376,7 @@
             editContext.NotifyValidationStateChanged();
             return;
         }
-        
+
         var finalList = concessionTempList.Select(x => new FeeHeadDto { FeeHeadId = Convert.ToInt32(x.FeeHeadId), ConcStudId = x.ConcStudId, ConcessionId = Convert.ToInt32(x.ConcessionId), ConcessionType = !x.IsAmount ? 1 : 0, ConcessionValue = x.Amount }).ToList();
         var conceId = concessionTempList.Select(x => x.ConcessionId).Distinct().ToList();
         // if (finalList.Count == 0)
