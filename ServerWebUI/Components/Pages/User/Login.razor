@@ -1,272 +1,539 @@
 ﻿@page "/"
-@layout Layout.LoginLayout
-@using DomainModel.User;
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
-@inject ProtectedSessionStorage sessionStorage
-@inject NavigationManager NavigationManager
-@inject HttpClient httpClient;
-@inject ProtectedSessionStorage sessionStorage
-@inject IJSRuntime jsRuntime
-@inject NavigationManager nav
-@using BlazorCaptcha
-@using Microsoft.Extensions.Localization
-@using ServerWebUI.Components.Common
-@inject PermissionState PermissionState
-@inject AuthenticationStateProvider AuthStateProvider
+@layout LoginLayout
+@using ServerWebUI.Components.Layout
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
 @rendermode InteractiveServer
-@inject IStringLocalizer<Resource> Localizer
 @inject IJSRuntime JS
+@inject IJSRuntime jsRuntime
+@inject HttpClient httpClient
+@inject NavigationManager NavigationManager
+@inject NavigationManager nav
+@inject IConfiguration Configuration
+@inject Shared.IHttpService httpService
+@using Microsoft.AspNetCore.WebUtilities;
+@using System.Security.Claims
+@using System.Text.Json
+@using DomainModel.User
+@using MyApp.Common
+@using System.Timers;
+@inject IStringLocalizer<Resource> Localizer
+@inject PermissionState PermissionState
 
-<style>
-    input:-webkit-autofill {
-        background-color: rgb(249 249 249 / 0%) !important;
-        -webkit-box-shadow: 0 0 0px 1000px rgb(249 249 249 / 0%) inset !important;
-        -webkit-text-fill-color: #303030 !important;
-        transition: background-color 5000s ease-in-out 0s;
-        font-size: 13px;
-    }
-</style>
-<section class="main h-100">
-    <div class="row h-100 m-0">
+<section class="login-section">
+    <div class="login-card-container">
 
-        <section class="col-12 col-sm-12 col-md-12 col-lg-6 py-0 box-shadow-3 login-left d-lg-block d-none">
-            <div class="row h-100 flex-column justify-content-around">
-                <div class="col-12 p-0 mt-1">
-                    <div class="bg-gr-white w-fit border-top-right-radius-3 border-bottom-right-radius-3 p-1">
-                        <div class="login-schooleye-logo p-2">
-                            <a href="https://schooleye.in/" target="_blank">
-                                <img src="images/schooleye-logo.png" alt="SchoolEye">
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 mt-1">
-                    <div class="row justify-content-center">
-                        <div class="col-md-11 col-sm-12 col-12">
-                            <div class="erp-info-top">
-                                <p class="text-white m-0 fts-22 ftw-600 font-family-poppins mb-2">
-                                    Best School Management System
-                                </p>
-                                <p class="text-white fts-16 m-0 ftw-400">
-                                    A School Management System (SMS) is a software solution designed to automate and streamline school operations. It manages student records, attendance, exams, fees, and communication between teachers, parents, and administration.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 mt-1">
-                    <div class="row justify-content-center">
-                        <div class="col-md-11 col-sm-12 col-12 d-flex align-items-center justify-content-center">
-                            <div id="loginCarousel" class="carousel slide login-carousel" data-bs-ride="carousel">
-                                <div class="carousel-inner">
-                                    <div class="carousel-item active">
-                                        <img src="images/login-carousel-1.png" class="d-block w-100" alt="Login Carousel 1">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="images/login-carousel-2.png" class="d-block w-100" alt="Login Carousel 2">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="images/login-carousel-3.png" class="d-block w-100" alt="Login Carousel 3">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 mt-1">
-                    <div class="row justify-content-center mt-3">
-                        <div class="col-md-11 col-sm-12 col-12">
-                            <div class="erp-info-bottom">
-                                <p class="text-white mb-1 fts-16 ftw-400 text-center p-2">
-                                    Managing School, Made Simple !
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+        <!-- ===================== LEFT PANEL : School Logo + Login Form ===================== -->
+        <div class="left-panel">
+            <div class=" sign-data1 ">
+                <div class="school-logo-wrap sign-data">
+                    <img src="/images/school-logo.png" alt="School Logo" class="school-logo-img" />
                 </div>
             </div>
-        </section>
 
-        <section class="col-12 col-sm-12 col-md-12 col-lg-6 p-2 login-right">
-            <div class="row h-100 flex-column justify-content-between m-0">
-                <div class="col-12 d-flex align-items-center justify-content-center mt-5">
-                    <div class="school-logo p-2">
-                        <a href="javascript:void(0)">
-                            <img src="images/school-logo.png" alt="School Logo">
-                        </a>
+            <div class=" sign-data align-items-center justify-content-center">
+                <h2 class="signin-title ">Sign in</h2>
+            </div>
+
+            @* <p class="signin-sub">Welcome back to your school workspace.</p> *@
+
+            <EditForm Model="@loginModel" OnValidSubmit="ValidFormSubmitted" OnInvalidSubmit="HandleInvalidSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="field-block">
+                    <label class="field-label">Username</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-user"></i>
+                        <InputText @ref="usernameInput" class="field-input" placeholder="Enter your username" @bind-Value="loginModel.Username" autocomplete="off" disabled="@IsLoading" />
                     </div>
                 </div>
-                <div class="col-12 mt-1">
-                    <div class="row justify-content-center">
-                        <div class="col-xl-9 col-lg-10 col-md-10 col-sm-11 login-section">
-                            <div class="row">
-                                <div class="col-12">
-                                    <p class="fts-20 ftw-600 text-blue m-0 font-family-poppins text-center">Welcome Back !</p>
-                                    <p class="fts-14 text-dark-gray ftw-400 mb-4 text-center">
-                                        Your Gateway to Smarter School Management
-                                    </p>
-                                    <hr class="my-2">
-                                </div>
-                            </div>
 
-                            <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
-                                <DataAnnotationsValidator />
-                                <div class="row px-1">
-                                    <div class="col-12 mt-2">
-                                        <div class="input-box position-relative d-flex flex-column">
-                                            <label for="username1"
-                                                   class="input-label fts-12 ftw-600 text-dark-gray font-family-poppins mb-1">Username</label>
-                                            <div class="d-flex input-icon-box align-items-center px-2">
-                                                <div class="input-icon d-flex align-items-center justify-content-center px-1">
-                                                    <i class="bi bi-person"></i>
-                                                    <InputText @ref="usernameInput" class="login-input w-100" @bind-Value="loginModel.Username" />
-                                                </div>
-                                            </div>
-                                            <ValidationMessage For="@(() => loginModel.Username)" />
-                                        </div>
-                                    </div>
-                                    <div class="col-12 mt-3">
-                                        <div class="input-box position-relative d-flex flex-column">
-                                            <label for="password"
-                                                   class="input-label fts-12 ftw-600 text-dark-gray font-family-poppins mb-1">Password</label>
-                                            <div class="d-flex input-icon-box align-items-center px-2">
-                                                <div class="input-icon d-flex align-items-center justify-content-center px-1">
-                                                    <i class="bi bi-key"></i>
-                                                </div>
-                                                <InputText @ref="passwordInput" type="password" class="login-input w-100" @bind-Value="loginModel.Password" />
-                                            </div>
-                                            <ValidationMessage For="@(() => loginModel.Password)" />
-                                        </div>
-                                    </div>
-                                    <div class="col-12 mt-3 d-flex gap-3 align-items-end">
-                                        <div class="input-box position-relative d-flex flex-column w-webkit">
-                                            <label for="captcha"
-                                                   class="input-label fts-12 ftw-600 text-dark-gray font-family-poppins mb-1">Captcha</label>
-                                            <div class="d-flex input-icon-box align-items-center px-2">
-                                                <div class="input-icon d-flex align-items-center justify-content-center px-1">
-                                                    <i class="bi bi-arrow-repeat"></i>
-                                                </div>
-                                                <input @ref="captchaInput" class="login-input w-100" autocomplete="off" @bind="loginModel.CapchaCode">
-                                            </div>
-                                        </div>
-                                        <div class="captcha-box d-flex">
-                                            <div class="captcha-number">
-                                                <p class="m-0" for="captchaInput">@($"{firstNumber} {operation} {secondNumber} = ?")</p>
-                                            </div>
-                                            <button type="button" class="captcha-btn" @onclick="RefreshCaptcha">
-                                                <i class="bi bi-arrow-clockwise"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 mt-3">
-                                        <button type="submit" class="primary-btn mt-2 w-100 font-family-poppins fts-18 ftw-400">Login</button>
-                                    </div>
-                                    <div class="col-12 mt-1 d-flex justify-content-between">
-                                        <a href="javascript:void(0)"
-                                           class="primary-link font-family-poppins fts-12 text-dark-gray ftw-500 mx-1 open-popup"
-                                           data-id="forgotUserId">
-                                            Forgot User Id ?
-                                        </a>
-                                        <a href="javascript:void(0)"
-                                           class="primary-link font-family-poppins fts-12 text-dark-gray ftw-500 mx-1 open-popup"
-                                           data-id="forgotPassword">
-                                            Forgot Password ?
-                                        </a>
-                                    </div>
-                                </div>
-                            </EditForm>
-                            <div class="row justify-content-center">
-                                <div class="col-12 app-info d-flex justify-content-around">
-                                    <div class="w-100">
-                                        <div class="fxt-style-line">
-                                            <h2>OR</h2>
-                                            <div class="dvd-line position-absolute"></div>
-                                        </div>
-                                        <ul class="fxt-socials">
-                                            <div class="google-authentication ng-scope">
-                                                <button class="social-login_btn" @onclick="GoogleLogin">
-                                                    <svg class="google_svg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M14.1284 6.77594H13.625V6.75H8V9.25H11.5322C11.0169 10.7053 9.63219 11.75 8 11.75C5.92906 11.75 4.25 10.0709 4.25 8C4.25 5.92906 5.92906 4.25 8 4.25C8.95594 4.25 9.82563 4.61062 10.4878 5.19969L12.2556 3.43187C11.1394 2.39156 9.64625 1.75 8 1.75C4.54844 1.75 1.75 4.54844 1.75 8C1.75 11.4516 4.54844 14.25 8 14.25C11.4516 14.25 14.25 11.4516 14.25 8C14.25 7.58094 14.2069 7.17188 14.1284 6.77594Z" fill="#FFC107"></path>
-                                                        <path d="M2.4707 5.09094L4.52414 6.59688C5.07977 5.22125 6.42539 4.25 8.00008 4.25C8.95602 4.25 9.8257 4.61062 10.4879 5.19969L12.2557 3.43187C11.1395 2.39156 9.64633 1.75 8.00008 1.75C5.59945 1.75 3.51758 3.10531 2.4707 5.09094Z" fill="#FF3D00"></path>
-                                                        <path d="M8.0001 14.25C9.61447 14.25 11.0813 13.6322 12.1904 12.6275L10.256 10.9906C9.60746 11.4838 8.81493 11.7506 8.0001 11.75C6.37447 11.75 4.99416 10.7134 4.47416 9.26685L2.43604 10.8372C3.47041 12.8612 5.57104 14.25 8.0001 14.25Z" fill="#4CAF50"></path>
-                                                        <path d="M14.1284 6.77594H13.625V6.75H8V9.25H11.5322C11.2857 9.94263 10.8417 10.5479 10.255 10.9909L10.2559 10.9903L12.1903 12.6272C12.0534 12.7516 14.25 11.125 14.25 8C14.25 7.58094 14.2069 7.17188 14.1284 6.77594Z" fill="#1976D2"></path>
-                                                    </svg>
-                                                    <span class="d-none d-sm-block">
-                                                        Continue with Google
-                                                    </span>
-                                                    <span class="d-block d-sm-none">Google</span>
-                                                </button>
-                                            </div>
+                <div class="field-block">
+                    <label class="field-label">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-lock"></i>
+                        <InputText @ref="passwordInput" class="field-input" type="@(ShowPassword ? "text" : "password")" placeholder="Enter your password" disabled="@IsLoading" @bind-Value="loginModel.Password" autocomplete="off" />
+                        <a class="show-toggle" @onclick="() => ShowPassword = !ShowPassword">@(ShowPassword ? "Hide" : "Show")</a>
+                    </div>
+                </div>
 
-                                            <div class="microsoft-authentication ng-scope">
-                                                <button class="social-login_btn ng-scope" @onclick="LoginWithFacebook">
-                                                    <svg class="facebook_svg" width="20" height="20"
-                                                         xmlns="http://www.w3.org/2000/svg"
-                                                         viewBox="0 0 48 48">
-                                                        <path fill="#1877F2" d="M24 4C12.95 4 4 12.95 4 24c0 9.63 7.06 17.61 16.24 19.23V29.64h-4.89v-5.64h4.89v-4.15c0-4.82 2.86-7.49 7.25-7.49 2.1 0 4.29.37 4.29.37v4.7h-2.42c-2.38 0-3.12 1.48-3.12 3v3.57h5.3l-.85 5.64h-4.45v13.59C36.94 41.61 44 33.63 44 24c0-11.05-8.95-20-20-20z" />
-                                                    </svg>
+                <div class="field-block">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="field-label m-0">Security check</label>
+                        <span class="solve-hint">Solve the sum below</span>
+                    </div>
+                    <div class="captcha-row">
+                        <input @ref="captchaInput" class="field-input captcha-answer" placeholder="Your answer" @bind="loginModel.CapchaCode" @bind:event="oninput" autocomplete="off" />
+                        <div class="captcha-box">@firstNumber @operation @secondNumber = ?</div>
+                        <button type="button" class="captcha-refresh" @onclick="RefreshCaptcha" title="Refresh captcha">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
 
-                                                    <span class="d-none d-sm-block">
-                                                        Continue with Facebook
-                                                    </span>
-                                                    <span class="d-block d-sm-none">Facebook</span>
-                                                </button>
-                                            </div>
-                                            @*
-                                            <div class="microsoft-authentication ng-scope">
-                                                <button class="social-login_btn ng-scope">
-                                                    <svg class="google_svg" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M7 8H1V2H7V8Z" fill="#F1511B"></path>
-                                                        <path d="M14 8H8V2H14V8Z" fill="#80CC28"></path>
-                                                        <path d="M7 15H1V9H7V15Z" fill="#00ADEF"></path>
-                                                        <path d="M14 15H8V9H14V15Z" fill="#FBBC09"></path>
-                                                    </svg>
-                                                    <span class="d-none d-sm-block">
-                                                        Continue
-                                                        with Microsoft
-                                                    </span>
-                                                    <span class="d-block d-sm-none">Microsoft</span>
-                                                </button>
-                                            </div> *@
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
+                <button class="btn-signin" type="submit" disabled="@IsLoading">
+                    @if (IsLoading)
+                    {
+                        <div class="loading-text-container">
+                            <div class="loader-spinner"></div>
+                            <span>Signing in...</span>
                         </div>
-                    </div>
-                </div>
+                    }
+                    else
+                    {
+                        <span>Sign in <i class="fa-solid fa-arrow-right ms-1"></i></span>
+                    }
+                </button>
+            </EditForm>
 
-                <div class="col-12 mt-3 d-flex justify-content-center justify-content-sm-between flex-wrap gap-0-15">
-                    <a href="https://v3m.in/" target="_blank" class="primary-link font-family-poppins fts-12 text-dark-gray ftw-400 m-0">
-                        © 2025 | Powered by V3M Technologies
-                    </a>
-                    <div class="d-flex gap-3">
-                        <a href="https://schooleye.in/Terms-and-conditions.html" target="_blank" class="primary-link font-family-poppins fts-12 text-dark-gray ftw-400 m-0">
-                            Terms & Conditions
-                        </a>
-                        <a href="https://schooleye.in/Terms-and-conditions.html" target="_blank" class="primary-link font-family-poppins fts-12 text-dark-gray ftw-400 m-0">
-                            Privacy Policy
-                        </a>
-                    </div>
+            <div class="forgot-row">
+                <a href="/forgotusername" class="link-txt">Forgot username?</a>
+                <a href="/forgotpassword" class="link-txt">Forgot password?</a>
+            </div>
 
+            <div class="or justify-content-center">
+                <span>or continue with</span>
+            </div>
+
+            <div class="social-row">
+                <button type="button" class="social-btn" @onclick="GoogleLogin">
+                    <i class="fa-brands fa-google"></i> Google
+                </button>
+                <button type="button" class="social-btn" @onclick="LoginWithFacebook">
+                    <i class="fa-brands fa-facebook" style="color:#1877f2"></i> Facebook
+                </button>
+            </div>
+
+            <p class="help-text">Need help signing in? <a href="/contactschool">Contact your school</a></p>
+        </div>
+
+    
+        <div class="right-panel">
+            <div class="brand-top">
+                <div class="brand-header">
+                    <img src="/images/schooleye-logo.png" alt="SchoolEye" class="brand-logo-img" />
                 </div>
             </div>
-        </section>
+
+           
+            <div class="brand-body">
+                <p class="eyebrow">Your school. Connected.</p>
+                <h1 class="brand-heading">Hello,<br />SchoolEye family!</h1>
+                <p class="brand-desc">Learning, administration and communication. One connected school community.</p>
+
+                <a href="#" class="contact-btn">Contact your school <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+            </div>
+
+            <div class="brand-footer">
+                <p class="tagline">Managing school, made simple.</p>
+                <p class="powered">Powered by V3M Technologies</p>
+            </div>
+        </div>
 
     </div>
 </section>
-@if (IsLoading)
-{
-    <div class="grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
-    </div>
-}
 
 <CustomAlert @ref="customAlert" Title="Alert" />
 
-@code {
+<style>
+ 
+    body {
+        background-image: url('/images/backgroundSchoolEye.png');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
+        background-attachment: fixed;
+        background-color: #f0f0f0;
+    }
 
+       
+    .brand-top {
+        display: flex;
+        justify-content: center;
+        padding-left: 15px;
+    }
+
+    .login-card-container {
+        width: min(1100px, 100%);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border-radius: 26px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(2px);
+    }
+
+    :root {
+        --navy: #0d2e4d;
+        --navy2: #123a5e;
+        --teal: #1fa19a;
+        --blue: #1e6fb3;
+        --ink: #152238;
+        --muted: #6b7c8c
+    }
+
+    .left-panel {
+        padding: 44px 48px;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        background: white;
+        position: relative;
+    }
+
+    .school-logo-wrap {
+        border-radius: 12px;
+        display: inline-flex;
+        margin-bottom: 15px;
+        width:100%;
+        justify-content:center;
+    }
+
+    .school-logo-img {
+        max-height: 45px;
+        width: auto;
+        object-fit: contain
+    }
+
+    .signin-title {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -.02em
+    }
+
+    .signin-sub {
+        margin: 0 0 26px;
+        color: var(--muted);
+        font-size: 14px
+    }
+
+    .field-block {
+        margin-bottom: 10px
+    }
+
+    .field-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        color: #374151;
+        margin-bottom: 6px
+    }
+
+    .input-with-icon {
+        position: relative;
+        display: flex;
+        align-items: center
+    }
+
+        .input-with-icon i {
+            position: absolute;
+            left: 14px;
+            color: #94a3b8;
+            font-size: 14px
+        }
+
+    .field-input {
+        width: 100%;
+        height: 46px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: 0 14px 0 40px;
+        font-size: 14px;
+        color: var(--ink);
+        outline: 0
+    }
+
+        .field-input:focus {
+            border-color: var(--blue);
+            background: #fff;
+            box-shadow: 0 0 0 3px #1e6fb31a
+        }
+
+    .show-toggle {
+        position: absolute;
+        right: 14px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--blue);
+        cursor: pointer;
+        text-decoration: none
+    }
+
+    .solve-hint {
+        font-size: 11.5px;
+        color: var(--muted)
+    }
+
+    .captcha-row {
+        display: flex;
+        align-items: center;
+        gap: 10px
+    }
+
+    .captcha-answer {
+        padding-left: 14px;
+        flex: 1
+    }
+
+    .captcha-box {
+        height: 46px;
+        min-width: 90px;
+        display: grid;
+        place-items: center;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        background: #f1f5f9;
+        font-weight: 700;
+        font-size: 14px;
+        color: #334155;
+        white-space: nowrap;
+        padding: 0 10px
+    }
+
+    .captcha-refresh {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: var(--blue);
+        cursor: pointer;
+        font-size: 14px
+    }
+
+        .captcha-refresh:hover {
+            background: #eef2f6
+        }
+
+    .btn-signin {
+        width: 100%;
+        height: 50px;
+        margin-top: 6px;
+        border: 0;
+        border-radius: 12px;
+        color: #fff;
+        background: linear-gradient(100deg,var(--blue),var(--teal));
+        box-shadow: 0 12px 24px #1e6fb333;
+        font-weight: 750;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer
+    }
+
+        .btn-signin:disabled {
+            background: #cfdbe2;
+            box-shadow: none;
+            cursor: not-allowed
+        }
+
+    .loading-text-container {
+        display: flex;
+        align-items: center;
+        gap: 8px
+    }
+
+    .loader-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff55;
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin .7s linear infinite
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .forgot-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin-top: 14px;
+        font-size: 13px;
+    }
+
+    .link-txt {
+        color: var(--blue);
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+        .link-txt:hover {
+            text-decoration: underline;
+        }
+
+    
+
+    .social-row {
+        display: flex;
+        gap: 12px;
+       
+    }
+
+    .social-btn {
+        flex: 1;
+        height: 46px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 650;
+        color: var(--ink);
+        cursor: pointer
+    }
+
+        .social-btn:hover {
+            background: #f8fafc
+        }
+
+    .help-text {
+        text-align: center;
+        margin-top: 22px;
+        font-size: 12.5px;
+        color: var(--muted)
+    }
+
+        .help-text a {
+            color: var(--blue);
+            font-weight: 600;
+            text-decoration: none
+        }
+
+    /* ---------- RIGHT PANEL ---------- */
+
+
+    .brand-header {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px 30px;
+        display: inline-flex;
+        align-items: center;
+        max-width: 221px;
+        margin-bottom: 60px;
+        position: relative;
+        z-index: 2;
+        height: 60px;
+        justify-content: center;
+    }
+
+    .brand-logo-img {
+        max-height: 32px;
+        width: auto;
+        object-fit: contain
+    }
+
+    .brand-body {
+        text-align: center;
+        margin: auto 0;
+        position: relative;
+        z-index: 2
+    }
+
+    .eyebrow {
+        color: #7fd6cf;
+        font-size: 11.5px;
+        font-weight: 800;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        margin: 0 0 18px
+    }
+
+    .brand-heading {
+        font-size: 36px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -.02em;
+        margin: 0 0 16px;
+        color: #fff
+    }
+
+    .brand-desc {
+        color: #c3d4e2;
+        font-size: 14px;
+        line-height: 1.7;
+        max-width: 380px;
+        margin: 0 auto 26px
+    }
+
+    .contact-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 22px;
+        border-radius: 10px;
+        border: 1px solid #ffffff3a;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13.5px;
+        text-decoration: none;
+        background: #ffffff12
+    }
+
+        .contact-btn:hover {
+            background: #ffffff22
+        }
+
+    .brand-footer {
+        text-align: center;
+        margin-top: 40px;
+        position: relative;
+        z-index: 2
+    }
+
+    .tagline {
+        font-weight: 750;
+        font-size: 14px;
+        margin: 0 0 4px
+    }
+
+    .powered {
+        font-size: 11.5px;
+        color: #9db3c5;
+        margin: 0
+    }
+
+    @@media(max-width:900px) {
+        .login-card-container {
+            grid-template-columns: 1fr;
+            max-width: 520px
+        }
+
+        .right-panel {
+            order: -1;
+            padding: 30px
+        }
+
+        .brand-heading {
+            font-size: 28px
+        }
+
+        .brand-header {
+            margin-bottom: 26px
+        }
+
+        .left-panel {
+            padding: 32px 26px
+        }
+    }
+</style>
+
+@code {
     private UserModels loginModel = new UserModels();
     private int firstNumber;
     private int secondNumber;
@@ -280,10 +547,13 @@
     private InputText passwordInput;
     private ElementReference captchaInput;
     private bool IsLoading;
+    private bool ShowPassword = false;
+
     [Parameter]
     [SupplyParameterFromQuery(Name = "name")]
     public string? Name { get; set; }
     private string? deviceToken;
+
     private void RefreshCaptcha()
     {
         GenerateMathProblem();
@@ -304,6 +574,7 @@
             await jsRuntime.InvokeVoidAsync("focusElement", captchaInput);
         }
     }
+
     private void GenerateMathProblem()
     {
         Random random = new Random();
@@ -312,48 +583,22 @@
         operation = "+";
         correctResult = firstNumber + secondNumber;
     }
+
     private async Task ValidFormSubmitted(EditContext editContext)
     {
         await HandleLogin();
-
     }
-    // protected override async Task OnInitializedAsync()
-    // {
-    //     try
-    //     {
-    //         GenerateMathProblem();
 
-    //         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-
-    //         var user = authState.User;
-
-    //         if (user.Identity != null && user.Identity.IsAuthenticated)
-    //         {
-    //             var email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-
-    //             var name = user.Identity.Name;
-
-    //             Console.WriteLine($"Email: {email}");
-    //             Console.WriteLine($"Name: {name}");
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine(ex.Message);
-    //     }
-    // }
     protected override Task OnInitializedAsync()
     {
-
         GenerateMathProblem();
         return base.OnInitializedAsync();
     }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-     
         if (_isFirstRender)
         {
-            
             await JS.InvokeVoidAsync("initCarousel");
             _isFirstRender = false;
             await sessionStorage.DeleteAsync("userId");
@@ -376,8 +621,8 @@
         {
             await customAlert!.ShowCustomAlert("Incorrect login details.", false);
         }
-
     }
+
     private async Task HandleLogin()
     {
         try
@@ -386,14 +631,11 @@
             if (string.IsNullOrWhiteSpace(loginModel.Username) || string.IsNullOrWhiteSpace(loginModel.Password))
             {
                 await sessionStorage.SetAsync("alertMessage", "Please fill out all required fields.");
-
                 return;
             }
             if (string.IsNullOrWhiteSpace(loginModel.CapchaCode))
             {
-
                 await customAlert.ShowCustomAlert("Please solve the captcha before logging in!", false);
-                // await jsRuntime.InvokeVoidAsync("focusElement", captchaInput);
                 return;
             }
             if (int.TryParse(loginModel.CapchaCode, out int userInput) && userInput == correctResult)
@@ -437,9 +679,8 @@
                                 await sessionStorage.SetAsync("RoleId", user.RoleId);
                                 await sessionStorage.SetAsync("Dashboard", user.RoleDashBoard);
                                 PermissionState.RoleId = user.RoleId;
-                                if (user.RequiresTwoFactor ==false && string.IsNullOrWhiteSpace(user.Token))
+                                if (user.RequiresTwoFactor == false && string.IsNullOrWhiteSpace(user.Token))
                                 {
-                                 
                                     await sessionStorage.SetAsync("Email", user.EmailId);
                                     await sessionStorage.SetAsync("MobileNo", user.MobileNo);
                                     NavigationManager.NavigateTo("/verifyotppage", true);
@@ -459,10 +700,8 @@
                                         NavigationManager.NavigateTo("/", true);
                                     }
                                 }
-
                                 break;
                         }
-
                     }
                     else
                     {
@@ -476,7 +715,6 @@
             }
             else
             {
-                //await jsRuntime.InvokeVoidAsync("focusElement", captchaInput);
                 await customAlert.ShowCustomAlert("Captcha code not solved correctly!", false);
             }
         }
@@ -490,18 +728,14 @@
             StateHasChanged();
         }
     }
+
     private void GoogleLogin()
     {
-
         NavigationManager.NavigateTo("/login?provider=Google", true);
-        // nav.NavigateTo("http://localhost:5205/api/AuthGoogleFb/google", true);
-
     }
+
     private void LoginWithFacebook()
     {
         NavigationManager.NavigateTo("/login?provider=Facebook", true);
     }
-
-
 }
-

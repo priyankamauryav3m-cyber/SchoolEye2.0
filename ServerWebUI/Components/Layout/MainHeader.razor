@@ -15,6 +15,108 @@
 @inject BookmarkState BookmarkState
 @inject SweetAlertService Alert
 <style>
+    .bookmark-grid-scroll {
+        max-height: 420px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .bookmark-dropdown-panel {
+        width: 340px;
+        padding: 0;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .bookmark-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid #eef1f4;
+    }
+
+    .bookmark-header-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #e6f1fb;
+        color: #185fa5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .bookmark-header-sub {
+        font-size: 12px;
+        color: #8a94a6;
+    }
+
+    .bookmark-viewall-link {
+        border: none;
+        background: none;
+        color: #185fa5;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 0;
+    }
+
+    .bookmark-card-icon {
+        width: 34px;
+        height: 34px;
+        margin: 0 auto 8px;
+        border-radius: 9px;
+        background: #e6f1fb;
+        color: #1769aa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+    }
+
+    .bookmark-card-label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #172334;
+    }
+
+    .bookmark-panel-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        border-top: 1px solid #eef1f4;
+        font-size: 12px;
+        color: #8a94a6;
+    }
+
+    .bookmark-footer-brand {
+        color: #185fa5;
+        font-weight: 600;
+    }
+
+    .bookmark-modal-head {
+        background: linear-gradient(115deg, #0b2948, #123c66);
+        color: #fff;
+    }
+
+        .bookmark-modal-head .modal-title {
+            color: #fff;
+        }
+
+        .bookmark-modal-head .close {
+            color: #fff;
+            opacity: .85;
+        }
+
+    .bookmark-search-box input {
+        border: 1px solid #d9d9d9;
+        border-radius: 8px;
+        padding: 10px 14px;
+    }
+
     .profile-link {
         transition: all 0.2s ease;
         cursor: pointer;
@@ -113,10 +215,10 @@
     <div class="top-header d-flex align-items-center justify-content-between">
         <div class="d-flex h-100 gap-2 align-items-center">
             <div class="menu-btn d-flex justify-content-center align-items-center" id="menu-btn">
-               
+
                 <i class="bi bi-justify-left d-flex align-items-center justify-content-center text-blue"></i>
             </div>
-           
+
             <a href="javascript:void(0)" class="school-info d-flex gap-1 text-decoration-none align-items-center">
                 <div class="school-logo-ico">
                     <img src="images/school-favicon.svg" alt="School Logo">
@@ -126,7 +228,7 @@
         </div>
 
         <div class="header-action d-flex gap-2 h-100 align-items-center">
-            
+
             <div class="top-right-section d-flex gap-2 h-100">
                 <div class="d-flex align-items-center justify-content-center">
                     <button type="button" class="theme-toggle-btn" @onclick="ToggleTheme" title="Toggle theme">
@@ -250,7 +352,7 @@
                     </ul>
                 </div>
 
-                <div class="bookmark-menu notification dropdown overlay-open custom-tooltip " data-tooltip="Bookmark menu" @onclick="GetBookMark">
+                @*   <div class="bookmark-menu notification dropdown overlay-open custom-tooltip " data-tooltip="Bookmark menu" @onclick="GetBookMark">
                     <div class="nav-link line-height-normal" data-bs-toggle="dropdown">
                         <i class="bi bi-command line-height-normal text-blue"></i>
                     </div>
@@ -284,8 +386,77 @@
                         </li>
 
                     </ul>
+                </div> *@
+                @if (ShowAllBookmarksPopup)
+                {
+                    <div class="custom-modal row m-0">
+                        <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-6">
+                            <div class="modal-content clearfix main-popup">
+                                <div class="head-btn bookmark-modal-head">
+                                    <h5 class="modal-title">All bookmarks</h5>
+                                    <button data-access="Close" type="button" @onclick="CloseAllBookmarks" class="close"><span aria-hidden="true">×</span></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="bookmark-search-box mb-3">
+                                        <input type="search" class="form-input w-100" placeholder="Search bookmarks..." @bind="bookmarkSearchTerm" @bind:event="oninput" />
+                                    </div>
+                                    <div class="bookmark-grid-scroll">
+                                        <div class="row m-0">
+                                            @foreach (var item in FilteredBookmarks)
+                                            {
+                                                <div class="col-12 col-sm-6 col-lg-4 p-1">
+                                                    <div class="bookmark-card" style="cursor:pointer" @onclick="() => NavigateToBookmark(item.Url)">
+                                                        <div class="bookmark-card-icon"><i class="@item.Icon"></i></div>
+                                                        <span class="bookmark-card-label">@item.BookMarkCaption</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="bookmark-menu notification dropdown overlay-open custom-tooltip" data-tooltip="Bookmark menu" @onclick="GetBookMark">
+                    <div class="nav-link line-height-normal" data-bs-toggle="dropdown">
+                        <i class="bi bi-command line-height-normal text-blue"></i>
+                    </div>
+                    <ul class="dropdown-menu bookmark-dropdown-panel">
+                        <li class="bookmark-panel-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bookmark-header-icon"><i class="bi bi-bookmark"></i></div>
+                                <div>
+                                    <p class="mb-0 fw-bold">Bookmark links</p>
+                                    <span class="bookmark-header-sub">Your everyday shortcuts</span>
+                                </div>
+                            </div>
+                            <button type="button" class="bookmark-viewall-link" @onclick="OpenAllBookmarks" @onclick:stopPropagation="true">
+                                View all <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </li>
+                        <li class="dropdown-body bookmark-d-body">
+                            <div class="row m-0">
+                                @if (BookmarkState.Bookmarks.Any())
+                                {
+                                    @foreach (var item in BookmarkState.Bookmarks.Take(9))
+                                    {
+                                        <div class="col-4 p-1">
+                                            <div class="bookmark-card" style="cursor:pointer" @onclick="() => nav.NavigateTo(item.Url)">
+                                                <div class="bookmark-card-icon"><i class="@item.Icon"></i></div>
+                                                <span class="bookmark-card-label">@item.BookMarkCaption</span>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </li>
+                        <li class="bookmark-panel-footer">
+                            <span>@BookmarkState.Bookmarks.Count bookmarked links</span>
+                            <span class="bookmark-footer-brand">SchoolEye</span>
+                        </li>
+                    </ul>
                 </div>
-
                 <div class="profile dropdown overlay-open custom-tooltip " data-tooltip="Profile">
                     <div class="user-menu d-flex gap-1 align-items-center h-100 nav-link" data-bs-toggle="dropdown">
                         <div class="profile-section">
@@ -378,14 +549,14 @@
 <div class="main-overlay"></div>
 <script>
     window.schoolEyeTheme = {
-        apply: function (isDark) {
+        apply: function(isDark) {
             document.documentElement.classList.toggle(
                 "dark-mode",
                 !!isDark
             );
         },
 
-        set: function (isDark) {
+        set: function(isDark) {
             this.apply(isDark);
 
             try {
@@ -397,7 +568,7 @@
             }
         },
 
-        isDark: function () {
+        isDark: function() {
             try {
                 return localStorage.getItem("theme") === "dark";
             } catch (e) {
@@ -415,7 +586,7 @@
 <CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
-    private CustomAlert customAlert;    
+    private CustomAlert customAlert;
     public string hospitalName = "";
     private string Username = "";
     private string RoleName = "";
@@ -460,6 +631,36 @@
             IsDarkMode
         );
     }
+    private bool ShowAllBookmarksPopup = false;
+    private string? bookmarkSearchTerm;
+
+    private IEnumerable<BookMarkModel> FilteredBookmarks =>
+        string.IsNullOrWhiteSpace(bookmarkSearchTerm)
+            ? BookmarkState.Bookmarks
+            : BookmarkState.Bookmarks.Where(x => x.BookMarkCaption != null &&
+              x.BookMarkCaption.Contains(bookmarkSearchTerm, StringComparison.CurrentCultureIgnoreCase));
+
+    private void OpenAllBookmarks()
+    {
+        if (!BookmarkState.Bookmarks.Any())
+        {
+            return;
+        }
+        bookmarkSearchTerm = null;
+        ShowAllBookmarksPopup = true;
+        StateHasChanged();
+    }
+
+    private void CloseAllBookmarks()
+    {
+        ShowAllBookmarksPopup = false;
+        StateHasChanged();
+    }
+    private void NavigateToBookmark(string url)
+    {
+        ShowAllBookmarksPopup = false;
+        nav.NavigateTo(url);
+    }
     // private async Task ToggleTheme()
     // {
     //     IsDarkMode = !IsDarkMode;
@@ -470,7 +671,7 @@
     // {
     //     if (firstRender)
     //     {
-         
+
     //         await JS.InvokeVoidAsync("initBodyLoad");
     //         var vc_hospitalName = await sessionStorage.GetAsync<string>("Vc_HospitalName");
     //         hospitalName = vc_hospitalName.Value;
@@ -520,7 +721,7 @@
             //await sessionStorage.DeleteAsync("Vc_HospitalName");
             await sessionStorage.DeleteAsync("RoleId");
             await sessionStorage.DeleteAsync("RoleName");
-          
+
             nav.NavigateTo("/logout", true);
             // nav.NavigateTo("/");
         }
