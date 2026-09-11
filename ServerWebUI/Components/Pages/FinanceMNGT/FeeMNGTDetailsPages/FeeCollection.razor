@@ -61,7 +61,14 @@
         text-align: right;
         font-weight: 600;
     }
+        .fee-head-title {
+        font-weight: 600;
+    }
 
+    .fee-head-sub {
+        font-size: 12px;
+        color: #9ca3af;
+    }
     .amount-to-collect-card {
         background: linear-gradient(135deg, var(--navy), #14557f);
         color: #fff;
@@ -168,8 +175,6 @@
         z-index: 1050;
     }
 
-
-
    
     .student-suggest-item {
         display: grid;
@@ -255,7 +260,7 @@
                     </InputSelect>
                 </div>
                 <div class="form-box student-search-wrap">
-                    <input @key="searchInputKey" class="form-input" placeholder="Enter admission no. or student name" @bind-Value="searchTerm" @bind-Value:event="oninput" @bind-Value:after="OnSearchTermChanged" @onkeydown="HandleSearchKeyDown" />
+                    <input @key="searchInputKey" class="form-input" placeholder="Enter student no. or student name" @bind-Value="searchTerm" @bind-Value:event="oninput" @bind-Value:after="OnSearchTermChanged" @onkeydown="HandleSearchKeyDown" />
 
                     @if (ShowSuggestions)
                     {
@@ -302,37 +307,52 @@
                 </div>
             </PageHeading>
         </div>
-        <div class="col-12 p-1">
-            <div class="card">
-                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="student-avatar">@GetInitials(IsStudentSelected ? selectedStudent.StudentName : null)</div>
-                        <div>
-                            <div class="student-name">@(IsStudentSelected ? selectedStudent.StudentName : "No student selected")</div>
-                            <div class="student-sub">
-                                @if (IsStudentSelected)
-                                {
-                                    @:Admission no. @selectedStudent.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName
-                                }
-                                else
-                                {
-                                    @:Search and select a student to view fee details.
-                                }
-                            </div>
-                        </div>
+<div class="col-12 p-1">
+    <div class="card">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+
+            <div class="d-flex align-items-center gap-2">
+                <div class="student-avatar">
+                    @GetInitials(IsStudentSelected ? selectedStudent.StudentName : null)
+                </div>
+
+                <div>
+                    <div class="student-name">
+                        @(IsStudentSelected ? selectedStudent.StudentName : "No student selected")
                     </div>
 
-
-                    <div class="form-box">
-                        <label class="form-label">RECEIPT DATE</label>
-                        <InputDate @bind-Value="studentDetailsForFeeRequest.ReceiptDate" class="form-input" />
+                    <div class="student-sub">
+                        @if (IsStudentSelected)
+                        {
+                            @:Admission no. @selectedStudent.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName
+                        }
+                        else
+                        {
+                            @:Search and select a student to view fee details.
+                        }
                     </div>
-
-                    <button type="button" class="table-btn" @onclick="StudentDetails">Student details</button>
                 </div>
             </div>
-        </div>
 
+            <div class="d-flex align-items-center gap-2">
+
+                <div class="form-box">
+                    <label class="form-label">RECEIPT DATE</label>
+                    <InputDate @bind-Value="studentDetailsForFeeRequest.ReceiptDate"
+                               class="form-input" />
+                </div>
+
+                <button type="button"
+                        class="table-btn mt-3"
+                        @onclick="StudentDetails">
+                    Student details
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+</div>
 
         <div class="col-12 p-1 ">
 
@@ -374,7 +394,7 @@
         </div>
 
         <div class="col-12 col-lg-8 p-1">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-body table-card p-0">
 
                     <div class="quick-main">
@@ -401,7 +421,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="grid-box-with-btn">
+                        <div class="grid-box">
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
 
                                 <TemplateColumn Title="Feehead" Align="Align.Left">
@@ -446,20 +466,21 @@
 
                             </QuickGrid>
                         </div>
-                        <div class="d-flex align-items-center justify-content-between mt-3">
-                            <div class="fee-head-sub">
-                                <i class="bi bi-info-circle"></i>
-                                You can collect a partial amount by editing "Paying now".
-                            </div>
-                            <a href="javascript:void(0)" class="fee-head-sub">Reset amounts</a>
-                        </div>
-                        <div class="footer-pagination">
+                                 <div class="footer-pagination mt-3">
                             <div class="d-flex align-items-center">
                                 <div class="welcome-text w-100">
                                     <Paginator State="@pagination" />
                                 </div>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center justify-content-between mt-4">
+                            <div class="fee-head-sub">
+                                <i class="bi bi-info-circle"></i>
+                                You can collect a partial amount by editing "Paying now".
+                            </div>
+                            <a href="javascript:void(0)" class="fee-head-sub">Reset amounts</a>
+                        </div>
+               
 
                     </div>
 
@@ -583,7 +604,7 @@
                     <button data-access="Close" type="button" @onclick="CloseReceiptPreview" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 <div class="modal-body">
-                    <div class="receipt-preview-box card p-10">
+                    <div class="receipt-preview-box card p-2">
                         <div class="receipt-preview-row justify-content-between">
                             <span class="student-suggest-label">Student</span>
                             <span class="student-suggest-value">@selectedStudent.StudentName &middot; @selectedStudent.ClassSection</span>
@@ -641,33 +662,7 @@ else
 
 
 @code {
-    // ---------------------------------------------------------------------
-    // FIXES APPLIED (adjust further if something still doesn't match your
-    // actual model):
-    // - selectedStudent is now StudentDetailsForFee (non-nullable, always
-    //   "new()" by default) instead of a nullable reference. Every place
-    //   that used to check "selectedStudent != null" or "selectedStudent?."
-    //   never actually meant anything once it's non-nullable - those now
-    //   check the IsStudentSelected flag instead (header avatar/name/sub,
-    //   PreviousBalance/LateFee, StudentDetails()).
-    // - PreviousBalance/LateFee are plain decimal (not decimal?), so
-    //   "selectedStudent.PreviousBalance?.ToString(...)" would not compile
-    //   - fixed to a plain IsStudentSelected ? ... : "-" ternary instead of
-    //   relying on null-conditional on a value type.
-    // - TotalAmount/TotalConcession/TotalPayable were referenced in the
-    //   markup (Amount to collect card, Collect button) but were missing
-    //   from @code entirely in the pasted version - re-added as computed
-    //   properties off feeCollectionDuelist so they stay in sync with the
-    //   "Collect up to" month filter automatically.
-    // - OnSearchTermChanged() now resets selectedStudent back to new() (it
-    //   can't be set to null anymore) so the header doesn't keep showing a
-    //   stale student while a new search term is being typed.
-    // - "Collect ₹17,970" button text is now bound to TotalPayable too, to
-    //   match the "Amount to collect" card instead of staying hardcoded.
-    // - Removed the redundant "IsLoading = false;" that was duplicated
-    //   inside the success branch of GetStudentFeeDetails - the "finally"
-    //   block already always sets it.
-    // ---------------------------------------------------------------------
+
     private bool ShowReceiptPreview = false;
     private string SelectedPaymentMode = "Cash";
     private bool OpenDetail = false;
@@ -935,9 +930,16 @@ else
 
     private async Task StudentDetails()
     {
+        if( string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await Alert.ShowWarning("Please enter student no to search.");
+            StateHasChanged();
+            return;
+        }
         if (!IsStudentSelected)
         {
             await Alert.ShowWarning("Please fetch student data first.");
+             StateHasChanged();
             return;
         }
 
@@ -954,9 +956,16 @@ else
     }
     private async Task OpenReceiptPreview()
     {
+        if( string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await Alert.ShowWarning("Please enter student no to search.");
+            StateHasChanged();
+            return;
+        }
         if (!IsStudentSelected)
         {
-            await Alert.ShowWarning("Please select a student first.");
+            await Alert.ShowWarning("Please fetch student data first.");
+             StateHasChanged();
             return;
         }
 
