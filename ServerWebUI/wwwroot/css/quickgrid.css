@@ -5,7 +5,7 @@
     border-top: none !important;
 }
 
-.grid-loader-overlay {
+/*.grid-loader-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -21,7 +21,7 @@
         width: 130px;
         height: auto;
     }
-
+*/
 .quickgrid {
     width: 100%;
     border-collapse: collapse;
@@ -489,4 +489,121 @@ th .col-options-button {
         color: #198754 !important;
         font-size: 12px;
     }
+/*Change Loading*/
+.grid-loader-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(11, 41, 72, .45) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    z-index: 10;
+    animation: overlayFadeIn .2s ease;
+}
 
+@keyframes overlayFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.loader-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 34px 50px;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(16, 42, 67, 0.16);
+}
+
+/* ---------- Single rotating arc (YouTube-buffer style) ---------- */
+.loader-ring {
+    position: relative;
+    width: 90px;
+    height: 90px;
+}
+
+.loader-arc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid #fefefe;
+    border-top-color: #1e8fd3;
+    border-right-color: #37c977;
+    animation: spinArc .6s linear infinite;
+}
+
+@keyframes spinArc {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loader-core {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(16, 42, 67, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loader-logo {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+}
+
+/* ---------- Text ---------- */
+.loader-text {
+    margin: 0;
+    font-family: Inter, Segoe UI, Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: #1e8fd3;
+}
+
+    .loader-text .dot {
+        animation: dotBlink 1.4s infinite;
+        opacity: 0;
+    }
+
+.d1 {
+    animation-delay: 0s;
+}
+
+.d2 {
+    animation-delay: .2s;
+}
+
+.d3 {
+    animation-delay: .4s;
+}
+
+@keyframes dotBlink {
+    0%, 20% {
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}

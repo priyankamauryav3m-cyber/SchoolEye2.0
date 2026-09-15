@@ -384,7 +384,15 @@
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
     </div>
 }
 else
@@ -494,7 +502,6 @@ else
             if (!string.IsNullOrWhiteSpace(DashboardValue))
             {
                 await SearchByRegistration();
-                EnquiryState.DashboardValue = null;
             }
             StateHasChanged();
         }
@@ -709,9 +716,33 @@ else
         }
         if (DashboardValue == "GetRegistration")
         {
-            
             searchModel.DateFrom = null;
             searchModel.DateTo = null;
+        }
+        else if (DashboardValue == "Today")
+        {
+            var today = DateTime.Today;
+            searchModel.DateFrom = today;
+            searchModel.DateTo = today;
+        }
+        else if (DashboardValue == "ThisWeek")
+        {
+            var today = DateTime.Today;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+            searchModel.DateFrom = today.AddDays(-diff);
+            searchModel.DateTo = today;
+        }
+        else if (DashboardValue == "ThisMonth")
+        {
+            var today = DateTime.Today;
+            searchModel.DateFrom = new DateTime(today.Year, today.Month, 1);
+            searchModel.DateTo = today;
+        }
+        else if (DashboardValue == "ThisYear")
+        {
+            var today = DateTime.Today;
+            searchModel.DateFrom = new DateTime(today.Year, 1, 1);
+            searchModel.DateTo = today;
         }
         IsLoading = true;
         ShowPopup = false;

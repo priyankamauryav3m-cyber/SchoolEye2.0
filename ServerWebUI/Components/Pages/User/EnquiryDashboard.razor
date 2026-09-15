@@ -65,11 +65,11 @@
     }
 
     /* .stat-change {
-            padding-top: 10px;
-            padding-left: 35px;
-            font-size: 0.8rem;
-            color: #10b981;
-        } */
+                padding-top: 10px;
+                padding-left: 35px;
+                font-size: 0.8rem;
+                color: #10b981;
+            } */
 
     .state-icon--bxds {
         gap: 12px;
@@ -157,7 +157,7 @@
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="content">
-     
+
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
                     <PageHeading Tittle="Enquiry Dashboard">
@@ -567,11 +567,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
-                        <div class="visible content">Search</div>
-                        <div class="hidden content"><i class="bi bi-search"></i></div>
-                    </button>
+                <div class="modal-footer gap-3">
+                    <SaveUpdateButton ShowSaveButton="false" Text="Clear filter" OnClickCancel="ClearFilter" />
+
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchEnquiries">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content"><i class="bi bi-search"></i></div>
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -581,7 +586,15 @@
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
     </div>
 }
 @* <Enquiry Dashboardvalue="@SendDashboardvalue" /> *@
@@ -638,49 +651,46 @@
         if (value == "TotalEnquiry")
         {
             EnquiryState.DashboardValue = "GetEnquiry";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
         }
         else if (value == "TotalRegistration")
         {
             EnquiryState.DashboardValue = "GetRegistration";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
         }
         else if (value == "TotalAdmission")
         {
             EnquiryState.DashboardValue = "Admission";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/admitStudent");
-            StateHasChanged();
         }
-        else if(value=="TodayEnquiery")
+        else if (value == "TodayEnquiery")
         {
-            EnquiryState.DashboardValue = "Date";
+            EnquiryState.DashboardValue = "Today";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
         }
         else if (value == "TodayFollowup")
         {
             EnquiryState.DashboardValue = "Followup";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
         }
         else if (value == "TodayConversion")
         {
             EnquiryState.DashboardValue = "Conversion";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/ViewApplication");
-            StateHasChanged();
         }
         else if (value == "BasedOnSource")
         {
             EnquiryState.DashboardValue = "Source";
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
         }
-        // SendDashboardvalue="GetEnquiry";
-
     }
-
     // private ApexCharts.ApexChartOptions<TItem> GetDonutOptions<TItem>(List<string> orderedColors) where TItem : class => new()
     // {
     //     Chart = new ApexCharts.Chart
@@ -715,7 +725,7 @@
                 }
             }
         }
-       
+
     };
 
     // ===================== Load =====================
@@ -808,7 +818,7 @@
         }
         catch
         {
-            
+
         }
         finally
         {
@@ -864,4 +874,9 @@
 
     private void OpenSearch() { ShowPopup = true; StateHasChanged(); }
     private void ClosePopup() { ShowPopup = false; StateHasChanged(); }
+    private void ClearFilter()
+    {
+        searchAnyRequest = new();
+        StateHasChanged();
+    }
 }
