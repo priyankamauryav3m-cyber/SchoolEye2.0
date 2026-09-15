@@ -14,10 +14,99 @@
 @inject HttpClient Http
 @inject SweetAlertService Alert
 @inject ProtectedSessionStorage sessionStorage
+<style>
+    .module-section {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .module-section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 20px;
+        border-bottom: 1px solid #eef0f2;
+    }
+
+        .module-section-head h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+            color: #111827;
+        }
+
+        .module-section-head span {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+    .period-list {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .period-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        border: 1px solid #3a9eb0;
+        border-radius: 8px;
+        padding: 12px 14px;
+        cursor: pointer;
+        background: #effafb;
+        transition: border-color .15s ease, background-color .15s ease;
+    }
+
+        .period-option:hover {
+            border-color: #d1d5db;
+        }
+
+        .period-option.selected {
+            background: #eefbf9;
+            border-color: #14b8a6;
+        }
+
+        .period-option .check-cell {
+            width: 18px;
+            height: 18px;
+            margin-top: 13px;
+            accent-color: #118c91;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .period-option strong {
+            display: block;
+            font-size: 14px;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .period-option small {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+    @@media (max-width: 992px) {
+        .period-list {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .period-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 @if (IsVisible)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">Map Transport With Student</h5>
@@ -235,7 +324,19 @@
                                                             <input type="checkbox" checked="@IsAllMonthSelected" @onchange="SelectAllMonths" />
                                                         </div>
                                                     </div>
-                                                    <div class="table-card m-0 p-0 scrollbar-thin overflow-auto rounded border">
+                                                    <section class="module-section">
+                                                        <div class="module-section-head"><h3>Applicable periods</h3><span>Select fee months</span></div>
+                                                        <div class="period-list">
+                                                            @foreach (var m in MonthList)
+                                                            {
+                                                                <label class="period-option">
+                                                                    <input class="check-cell" type="checkbox"   @bind="m.IsSelected" />
+                                                                    <span><strong>@m.MonthName</strong><small>Monthly</small></span>
+                                                                </label>
+                                                            }
+                                                        </div>
+                                                    </section>
+                                                    @* <div class="table-card m-0 p-0 scrollbar-thin overflow-auto rounded border">
                                                         <table class="basic-table border-collapse-separate" style="min-width: 500px;">
                                                             <tr>
                                                                 @foreach (var month in MonthList.Take(6))
@@ -271,7 +372,7 @@
                                                                 }
                                                             </tr>
                                                         </table>
-                                                    </div>
+                                                    </div> *@
                                                 </div>
                                             </div>
                                             @* @if (IsUsingTransport == true)
@@ -685,7 +786,7 @@
                 return;
             }
             bool isSuccess = true;
-
+            IsVisible = false;
             string ApiUri = "MapTransport/AddOrUpdateTransportMapMonthConfig";
             foreach (var student in SetStudentMapTransportList)
             {
@@ -708,7 +809,7 @@
                 }
 
             }
-            IsVisible = false;
+           
             if (isSuccess)
             {
                 await Alert.ShowUpdate("Transport submitted successfully.");

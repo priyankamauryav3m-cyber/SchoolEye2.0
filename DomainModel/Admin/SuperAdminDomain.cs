@@ -1160,8 +1160,8 @@ namespace DomainModel.Admin
 
         public bool IsSearchOnAdmDate { get; set; }
 
-        public DateTime? AdmFromDate { get; set; }
-        public DateTime? AdmToDate { get; set; }
+        public DateTime? AdmFromDate { get; set; } = DateTime.Today;
+        public DateTime? AdmToDate { get; set; } = DateTime.Today;
 
         public string? ValidStatus { get; set; }
 

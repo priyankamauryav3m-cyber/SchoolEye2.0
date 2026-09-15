@@ -23,213 +23,16 @@
 @inject IJSRuntime JS
 @inject CommonMethod EnquiryState
 <style>
-    /* ---------- shared classes (same convention as Enquiry Dashboard) ---------- */
-    .dashboard-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 16px 18px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-        border: 1px solid #f1f5f9;
-        height: 100%;
+    .stat-icon.blue {
+        background-color: #c8dcf6;
+        color: #3b82f6;
     }
 
-    .table-btn.active {
-        background: linear-gradient(115deg, #1e7fb0, #0d2e4f);
-        color: #ffffff;
-        border: 1.5px solid #1e8fd3;
-        transform: translateY(-1px);
-    }
-    .card-header-custom {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    .card-title-custom {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .state-icon--bxds {
-        gap: 12px;
-        display: flex;
-        align-items: center;
-    }
-
-    .stat-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-        .stat-icon.blue {
-            background-color: #c8dcf6;
-            color: #3b82f6;
-        }
-
-        .stat-icon.orange {
-            background-color: #f1e0c5;
-            color: #f97316;
-        }
-
-        .stat-icon.green {
-            background-color: #d6f6e7;
-            color: #10b981;
-        }
-
-        .stat-icon.red {
-            background-color: #FDE9ED;
-            color: #ef4444;
-        }
-
-        .stat-icon.purple {
-            background-color: #ddc2f9;
-            color: #a855f7;
-        }
-
-    .stat-change {
-        padding-top: 10px;
-        padding-left: 35px;
-    }
-
-    .mini-stat-card {
-        border-radius: 10px;
-        padding: 15px;
-        border: 1px solid #f1f5f9;
-        height: 100%;
-    }
-
-        .mini-stat-card.mini-stat-blue {
-            background-color: #d7e7f9;
-        }
-
-        .mini-stat-card.mini-stat-green {
-            background-color: #b3f6c8;
-        }
-
-        .mini-stat-card.mini-stat-yellow {
-            background-color: #f9f3dd;
-        }
-
-        .mini-stat-card.mini-stat-purple {
-            background-color: #eadef6;
-        }
-
-    .custom-table th, .custom-table td {
-        font-size: 0.85rem;
-        padding: 8px 12px;
-    }
-
-    .progress-bar-custom {
-        height: 5px;
-    }
-
-    /* ---------- Admission Pipeline ---------- */
-    .stage-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 15px;
-    }
-
-    .pipeline {
-        padding-bottom: 6px;
-    }
-
-    .info-strip {
-        padding: 8px 12px;
-        margin-top: 8px;
-    }
-
-    /* ---------- Student Status donut (single source of truth — compact size) ---------- */
-    .status-donut-wrap {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .status-donut {
-        width: 130px;
-        height: 130px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: conic-gradient(#22c55e 0% 96.3%, #f97316 96.3% 97.9%, #ef4444 97.9% 100%);
-    }
-
-    .status-donut-inner {
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-
-        .status-donut-inner strong {
-            font-size: 1.05rem;
-            color: #1e293b;
-        }
-
-        .status-donut-inner span {
-            font-size: .68rem;
-            color: #64748b;
-        }
-
-    .status-legend {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-        .status-legend li {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: .8rem;
-            color: #334155;
-        }
-
-    .legend-dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-        .legend-dot.green {
-            background: #22c55e;
-        }
-
-        .legend-dot.orange {
-            background: #f97316;
-        }
-
-        .legend-dot.red {
-            background: #ef4444;
-        }
-
-    .status-badge {
-        font-size: .72rem;
-        font-weight: 600;
-        padding: 2px 10px;
-        border-radius: 99px;
-        background: #ecfdf5;
-        color: #16a34a;
+    .stat-icon.blue, .qa-icon.blue {
+        color: #1e7fb0 !important;
+        background: #ccfbf1 !important;
     }
 </style>
-
 <section class="main-container">
 
     <div class="row m-0 main-row">
@@ -237,7 +40,7 @@
 
             <div class="row g-3 mb-3 ">
                 <div class="col-12">
-                    <PageHeading Tittle="@DashboardName">
+                    <PageHeading Tittle="Admission Head">
                         <div class="form-box">
                             <button type="button" class="table-btn @(SelectedPeriod == "Today" ? "active" : "")" @onclick='() => ApplyPeriodFilter("Today")'>
                                 Today
@@ -559,7 +362,15 @@
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
     </div>
 }
 else
@@ -592,10 +403,19 @@ else
         Navigation.NavigateTo("/adminDashboard", forceLoad: true);
     }
     private string SelectedPeriod = "Today"; // default selected
+    protected override async Task OnInitializedAsync()
+    {
+        SelectedPeriod = string.IsNullOrEmpty(EnquiryState.DashboardValue)
+                            ? "Today"
+                            : EnquiryState.DashboardValue;
 
+        EnquiryState.DashboardValue = null;
+
+    }
     private async Task ApplyPeriodFilter(string period)
     {
         SelectedPeriod = period;
+        EnquiryState.DashboardValue = period;
 
         var today = DateTime.Today;
 
@@ -639,30 +459,52 @@ else
         public string StatusName { get; set; } = "";
         public int Count { get; set; }
     }
+    // private void GoToEnquiry(string value)
+    // {
+    //     if (value == "TotalEnquiry")
+    //     {
+    //         EnquiryState.DashboardValue = "GetEnquiry";
+    //         EnquiryState.DashboardValue = string.IsNullOrEmpty(SelectedPeriod) ? "GetEnquiry" : SelectedPeriod;
+    //         NavigationManager.NavigateTo("/enquiry");
+    //         StateHasChanged();
+    //     }
+    //     else if (value == "TotalRegistration")
+    //     {
+    //         EnquiryState.DashboardValue = string.IsNullOrEmpty(SelectedPeriod) ? "GetRegistration" : SelectedPeriod;
+    //         NavigationManager.NavigateTo("/ViewRegistration");
+    //         StateHasChanged();
+    //     }
+    //     else if (value == "TotalAdmission")
+    //     {
+    //         EnquiryState.DashboardValue = string.IsNullOrEmpty(SelectedPeriod) ? "" : SelectedPeriod;
+    //         NavigationManager.NavigateTo("/admitStudent");
+    //         StateHasChanged();
+    //     }
+
+
+     
+
+    // }
     private void GoToEnquiry(string value)
     {
         if (value == "TotalEnquiry")
         {
-            EnquiryState.DashboardValue = "GetEnquiry";
+            EnquiryState.DashboardValue = string.IsNullOrEmpty(SelectedPeriod) ? "GetEnquiry" : SelectedPeriod;
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/enquiry");
-            StateHasChanged();
         }
         else if (value == "TotalRegistration")
         {
-            EnquiryState.DashboardValue = "GetRegistration";
+            EnquiryState.DashboardValue = string.IsNullOrEmpty(SelectedPeriod) ? "GetRegistration" : SelectedPeriod;
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/ViewRegistration");
-            StateHasChanged();
         }
         else if (value == "TotalAdmission")
         {
-            EnquiryState.DashboardValue = "Admission";
+            EnquiryState.DashboardValue = string.IsNullOrEmpty(SelectedPeriod) ? "" : SelectedPeriod;
+            EnquiryState.CameFromDashboard = true;
             NavigationManager.NavigateTo("/admitStudent");
-            StateHasChanged();
         }
-
-
-        // SendDashboardvalue="GetEnquiry";
-
     }
     private string GetStatusColor(string name) => name switch
     {
@@ -734,11 +576,15 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        
         if (firstRender)
         {
 
             CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
+            var savedPeriod = string.IsNullOrEmpty(EnquiryState.DashboardValue)
+                       ? "Today"
+                       : EnquiryState.DashboardValue;
             await ApplyPeriodFilter(SelectedPeriod);
             StateHasChanged();
         }

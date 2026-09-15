@@ -16,7 +16,7 @@
 @using ServerWebUI.Components.Common
 @using ServerWebUI.Components.Pages.CommonPages
 @inject IHttpClientFactory ClientFactory
-@inject ICommonMethod  _commonmethod
+@inject ICommonMethod _commonmethod
 @inject IJSRuntime JS
 @inject PermissionState PermissionState
 @inject NavigationManager Nav
@@ -33,7 +33,7 @@
                     <div class="form-box">
                         <InputSelect @bind-Value="@CurrentSession" name="session" class="form-input">
                             <option value="0">-- Select Session --</option>
-                            @foreach (var data in sessionlist.Where(x=>x.IsValid==true))
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
                             {
                                 <option value="@data.SessionId">@data.SessionName </option>
                             }
@@ -70,7 +70,7 @@
                         </div>
                     </div>
                     <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick="SearchByStudent" tabindex="0">
+                        <button class="ui fade op-1 animated button form-btn" @onclick='() => SearchByStudent("Today")' tabindex="0">
                             <div class="visible content">Search</div>
                             <div class="hidden content">
                                 <i class="bi bi-search"></i>
@@ -95,7 +95,7 @@
                                     </HeaderTemplate>
                                     <ChildContent>
                                         <div>
-                                            <input type="checkbox"  @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
@@ -144,7 +144,7 @@
                                         @(string.IsNullOrWhiteSpace(context.MotherName) ? " " : context.MotherName)
                                     </ChildContent>
                                 </TemplateColumn>
-                                <TemplateColumn Class="text-center" Title="SMS No."  Align="Align.Left">
+                                <TemplateColumn Class="text-center" Title="SMS No." Align="Align.Left">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
                                     </ChildContent>
@@ -158,7 +158,7 @@
                                 </TemplateColumn> *@
                                 <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.AdmissionDate)" Title="ADM. DATE" Align="Align.Center" />
 
-                                <TemplateColumn Title="Distance"  Align="Align.Left">
+                                <TemplateColumn Title="Distance" Align="Align.Left">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.DistanceName) ? " " : context.DistanceName)
                                     </ChildContent>
@@ -237,7 +237,7 @@
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 <div class="modal-body">
-                    <EditForm Model="@request" OnSubmit="SearchByStudent">
+                    <EditForm Model="@request" OnSubmit='() => SearchByStudent("Today")'>
                         <div class="row gap-10-0">
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -359,7 +359,7 @@
                     </EditForm>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchByStudent" tabindex="0">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick='() => SearchByStudent("Today")' tabindex="0">
                         <div class="visible content">Search</div>
                         <div class="hidden content">
                             <i class="bi bi-search"></i>
@@ -377,7 +377,15 @@
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
     </div>
 }
 else
@@ -434,7 +442,7 @@ else
         .Where(x => x.IsSelected)
         .Select(x => x.ClassCode));
     private string SelectedText => SelectAll ? "All Class Selected" :
-        string.Join(", ", classlist .Where(x => x.IsSelected).Select(x => x.ClassName));
+        string.Join(", ", classlist.Where(x => x.IsSelected).Select(x => x.ClassName));
     private async Task OpenDateFrom(string value)
     {
         if (value == "DateFrom")
@@ -478,10 +486,9 @@ else
             DashboardValue = EnquiryState.DashboardValue;
             if (!string.IsNullOrWhiteSpace(DashboardValue))
             {
-                await SearchByStudent();
-                EnquiryState.DashboardValue = null;
+                await SearchByStudent(DashboardValue);
             }
-         //  await SearchByStudent();
+            //  await SearchByStudent();
             StateHasChanged();
         }
     }
@@ -542,7 +549,7 @@ else
         try
         {
             var data = moduleQuery.Where(x => x.IsSelected).ToList();
-            if (data.Count == 0) 
+            if (data.Count == 0)
             {
                 await JS.InvokeVoidAsync("showSelectRecordAlert");
                 return;
@@ -578,13 +585,13 @@ else
         bool isExcel = result.GetProperty("isDenied").GetBoolean();
         if (isPdf)
         {
-           // await PrintPdfList(data);
+            // await PrintPdfList(data);
 
         }
         else if (isExcel)
         {
 
-        //    await PrintExcel(data);
+            //    await PrintExcel(data);
         }
 
     }
@@ -623,7 +630,7 @@ else
         IsSelected = false;
         StateHasChanged();
     }
-    private async Task SearchByStudent()
+    private async Task SearchByStudent(string value)
     {
         IsLoading = true;
         request.GroupCode = groupcode;
@@ -636,6 +643,37 @@ else
             IsLoading = false;
             StateHasChanged();
             return;
+        }
+        if (value == "Admission")
+        {
+            request.AdmFromDate = null;
+            request.AdmToDate = null;
+        }
+        else if (value == "Today")
+        {
+            var today = DateTime.Today;
+            request.AdmFromDate = today;
+            request.AdmToDate = today;
+        }
+
+        else if (value == "ThisWeek")
+        {
+            var today = DateTime.Today;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+            request.AdmFromDate = today.AddDays(-diff);
+            request.AdmToDate = today;
+        }
+        else if (value == "ThisMonth")
+        {
+            var today = DateTime.Today;
+            request.AdmFromDate = new DateTime(today.Year, today.Month, 1);
+            request.AdmToDate = today;
+        }
+        else if (value == "ThisYear")
+        {
+            var today = DateTime.Today;
+            request.AdmFromDate = new DateTime(today.Year, 1, 1);
+            request.AdmToDate = today;
         }
         ShowPopup = false;
         StateHasChanged();

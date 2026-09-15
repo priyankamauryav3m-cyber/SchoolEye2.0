@@ -18,6 +18,7 @@
 @rendermode InteractiveServer
 @inject CommonMethod EnquiryState
 <style>
+    
     .quickgrid thead th:nth-last-child(2) {
         min-width: 75px;
     }
@@ -101,101 +102,102 @@
         width: 18px;
         height: 18px
     }
+
 </style>
 <section class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-                <PageHeading Tittle="View Enquiery">
-                    <div class="form-box">
-                        <div class="border-box d-flex justify-content-center align-items-center gap-3">
-                            <InputRadioGroup @bind-Value="@DateFilter" @bind-Value:after='() => SearchStudent("Date")'>
-                                <div class="d-flex align-items-center gap-1">
-                                    <InputRadio id="all" Value="@("Yesterday")" />
-                                    <label for="all" class="form-label">Yesterday</label>
-                                </div>
-                                <div class="d-flex align-items-center gap-1">
-                                    <InputRadio id="published" Value="@("Today")" />
-                                    <label for="published" class="form-label">Today</label>
-                                </div>
-                            </InputRadioGroup>
-                        </div>
+            <PageHeading Tittle="View Enquiery">
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                        <InputRadioGroup @bind-Value="@DateFilter" @bind-Value:after='() => SearchStudent("Today")'>
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio id="all" Value="@("Yesterday")" />
+                                <label for="all" class="form-label">Yesterday</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio id="published" Value="@("Today")" />
+                                <label for="published" class="form-label">Today</label>
+                            </div>
+                        </InputRadioGroup>
                     </div>
-                    <div class="form-box">
-                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
-                            @SelectedSourceText
-                        </button>
+                </div>
+                <div class="form-box">
+                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                        @SelectedSourceText
+                    </button>
 
-                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
+                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
 
+                        <div class="form-check">
+                            <input class="form-check-input map-checkbox"
+                                   type="checkbox"
+                                   @bind="SelectAllSource"
+                                   @bind:after="OnSourceAllChanged" />
+
+                            <span>All</span>
+                        </div>
+
+                        @foreach (var item in sourceOfEnquirilist)
+                        {
                             <div class="form-check">
+
                                 <input class="form-check-input map-checkbox"
                                        type="checkbox"
-                                       @bind="SelectAllSource"
-                                       @bind:after="OnSourceAllChanged" />
+                                       @bind="item.IsSelected"
+                                       @bind:after="OnSourceChanged" />
 
-                                <span>All</span>
+                                <span>@item.SourceName</span>
+
                             </div>
-
-                            @foreach (var item in sourceOfEnquirilist)
-                            {
-                                <div class="form-check">
-
-                                    <input class="form-check-input map-checkbox"
-                                           type="checkbox"
-                                           @bind="item.IsSelected"
-                                           @bind:after="OnSourceChanged" />
-
-                                    <span>@item.SourceName</span>
-
-                                </div>
-                            }
-                        </div>
+                        }
                     </div>
-                    <div class="form-box">
-                        <InputSelect @bind-Value="@CurrentSession" class="form-input">
-                            <option value="0">-- Select Session --</option>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                        <option value="0">-- Select Session --</option>
 
-                            @foreach (var data in sessionlist.Where(x => x.IsValid))
-                            {
-                                <option value="@data.SessionId">
-                                    @data.SessionName
-                                </option>
-                            }
-                        </InputSelect>
-                    </div>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid))
+                        {
+                            <option value="@data.SessionId">
+                                @data.SessionName
+                            </option>
+                        }
+                    </InputSelect>
+                </div>
 
-                    <div class="form-box">
-                        <div class="d-flex gap-2">
-                            <button class="icon-btn icon-btn-white open-popup"
-                                    @onclick="OpenSearch"
-                                    data-id="popup"
-                                    tabindex="0">
-                                <i class="bi bi-sliders"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn"
-                                tabindex="0"
-                                @onclick='() => SearchStudent("Enquiry")'>
-
-                            <div class="visible content">
-                                Search
-                            </div>
-
-                            <div class="hidden content">
-                                <i class="bi bi-search"></i>
-                            </div>
-
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup"
+                                @onclick="OpenSearch"
+                                data-id="popup"
+                                tabindex="0">
+                            <i class="bi bi-sliders"></i>
                         </button>
                     </div>
+                </div>
 
-                    <div class="form-box">
-                        <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddEnquiry" />
-                    </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn"
+                            tabindex="0"
+                            @onclick='() => SearchStudent("Enquiry")'>
 
-                </PageHeading>
+                        <div class="visible content">
+                            Search
+                        </div>
+
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+
+                    </button>
+                </div>
+
+                <div class="form-box">
+                    <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddEnquiry" />
+                </div>
+
+            </PageHeading>
 
         </div>
         <div class="col-12 p-1">
@@ -295,7 +297,7 @@
                 @if (enquiryList.Any(x => !string.IsNullOrWhiteSpace(x.RegistrationNo) && x.RegistrationNo != "0"))
                 {
                     <div class="welcome-text d-flex align-items-center gap-1">
-                        <span class="registered-row registered-dot" ></span>
+                        <span class="registered-row registered-dot"></span>
                         <span class="text-success fw-bold">Convert to Registration</span>
                     </div>
                 }
@@ -832,12 +834,18 @@
     </div>
 
 }
-
-
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
     </div>
 }
 else
@@ -938,17 +946,31 @@ else
             {
                 item.IsSelected = true;
             }
-            await SearchStudent("Date");
             var dashboardValue = EnquiryState.DashboardValue;
-            if (dashboardValue == "Date")
+            if (EnquiryState.CameFromDashboard && !string.IsNullOrWhiteSpace(dashboardValue))
+            {
+                DateFilter = null;
+
+                await SearchStudent(dashboardValue);
+
+                EnquiryState.CameFromDashboard = false;
+            }
+            else
             {
                 DateFilter = "Today";
+                await SearchStudent("Today");
             }
-            if (!string.IsNullOrWhiteSpace(dashboardValue))
-            {
-                await SearchStudent(dashboardValue);
-                EnquiryState.DashboardValue = null;
-            }
+            // await SearchStudent("Today");
+            // var dashboardValue = EnquiryState.DashboardValue;
+            // if (dashboardValue == "Today")
+            // {
+            //     DateFilter = "Today";
+            // }
+            // if (!string.IsNullOrWhiteSpace(dashboardValue))
+            // {
+            //     await SearchStudent(dashboardValue);
+            //     EnquiryState.DashboardValue = null;
+            // }
             StateHasChanged();
         }
 
@@ -1048,13 +1070,14 @@ else
         }
         finally
         {
-           await SearchStudent("Enquiry");
+            await SearchStudent("Enquiry");
             StateHasChanged();
         }
     }
 
     private async Task SearchStudent(string value)
     {
+        enquiryList.Clear();
         // value = Dashboardvalue;
         requestlist.GroupCode = groupcode;
         requestlist.BranchCode = branchcode;
@@ -1063,7 +1086,7 @@ else
         {
 
         }
-        else if (value == "Date")
+        else if (value == "Today")
         {
             if (DateFilter == "Today")
             {
@@ -1096,12 +1119,30 @@ else
             requestlist.ToDate = DateTime.Today;
             requestlist.DateWorkAs = "0";
             requestlist.Source = "";
-
         }
         else if (value == "GetEnquiry")
         {
             requestlist.FromDate = null;
             requestlist.ToDate = null;
+        }
+        else if (value == "ThisWeek")
+        {
+            var today = DateTime.Today;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+            requestlist.FromDate = today.AddDays(-diff);
+            requestlist.ToDate = today;
+        }
+        else if (value == "ThisMonth")
+        {
+            var today = DateTime.Today;
+            requestlist.FromDate = new DateTime(today.Year, today.Month, 1);
+            requestlist.ToDate = today;
+        }
+        else if (value == "ThisYear")
+        {
+            var today = DateTime.Today;
+            requestlist.FromDate = new DateTime(today.Year, 1, 1);
+            requestlist.ToDate = today;
         }
         IsLoading = true;
         ShowPopup = false;
@@ -1239,14 +1280,14 @@ else
             {
                 await Alert.ShowWarning("No data found");
                 StateHasChanged();
-                 IsLoading=false;
+                IsLoading = false;
                 return;
             }
             requestlist.GroupCode = groupcode;
             requestlist.BranchCode = branchcode;
             requestlist.SessionId = CurrentSession;
             var apiResponse = await httpService.Post<ApiResponse<List<EnquirySummaryTableResponse>>>("Enquiry/GetEnquirySummaryData", requestlist);
-            if(apiResponse.Data!=null&& apiResponse.Success)
+            if (apiResponse.Data != null && apiResponse.Success)
             {
                 enquirySummarylist = apiResponse.Data ?? new();
                 var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnquerySummary", enquirySummarylist);
@@ -1267,8 +1308,8 @@ else
             {
                 return;
             }
-          
 
+          
         }
         catch (Exception ex)
         {
@@ -1286,19 +1327,19 @@ else
     {
         try
         {
-             IsLoading=true;
+            IsLoading = true;
             var data = moduleQuery.ToList();
             if (data.Count == 0)
             {
                 await Alert.ShowWarning("No data found");
                 StateHasChanged();
-                  IsLoading = false;
+                IsLoading = false;
                 return;
             }
             var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentEnqueryListExcel", data);
             if (response != null && response.Success)
             {
-                  IsLoading = false;
+                IsLoading = false;
                 var base64 = response.Data;
                 await JS.InvokeVoidAsync("downloadExcel", base64, "Student.xlsx");
                 //await JS.InvokeVoidAsync("openExcelDirect", base64);

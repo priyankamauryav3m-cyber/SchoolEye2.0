@@ -18,8 +18,11 @@
 
             <span class="mx-1">Dashboard</span>
             <span class="mx-0">/</span>
-            <span class="mx-0">@FeatureName</span>
-            <span class="mx-0">/</span>
+            @if (!string.IsNullOrWhiteSpace(FeatureName))
+            {
+                <span class="mx-0">@FeatureName</span>
+                <span class="mx-0">/</span>
+            }
         }
 
         @PageName
@@ -70,19 +73,79 @@
         SetPageName();
         InvokeAsync(StateHasChanged);
     }
+    // private void SetPageName()
+    // {
+    //     var currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    //     currentUrl = "/" + currentUrl.Split('?')[0].Split('#')[0].Trim('/');
 
+    //     var dashboardUrl = "/" + MenuState.DashboardUrl.Split('?')[0].Split('#')[0].Trim('/');
+
+    //     PageName = Tittle ?? "";
+
+    //     Dashboard route pe hamesha plain heading — back button/breadcrumb kabhi nahi
+    //     if (string.Equals(currentUrl, dashboardUrl, StringComparison.OrdinalIgnoreCase))
+    //     {
+    //         ShowBackButton = false;
+    //         FeatureName = "";
+    //         return;
+    //     }
+
+    //     Dashboard se page open hua hai ya nahi
+    //     ShowBackButton = !string.IsNullOrEmpty(EnquiryState.DashboardValue);
+
+    //     if (!ShowBackButton)
+    //     {
+    //         Dashboard se nahi aaya — sirf Tittle chahiye, feature lookup ki zarurat nahi
+    //         FeatureName = "";
+    //         return;
+    //     }
+
+    //     Sirf yahan tak pahuchega jab dashboard se navigate karke aaya ho — breadcrumb ke liye feature dhoondo
+    //     foreach (var module in MenuState.Features)
+    //     {
+    //         foreach (var feature in module.Features)
+    //         {
+    //             var activity = feature.Activites.FirstOrDefault(x =>
+    //                 string.Equals(
+    //                     x.URL?.TrimEnd('/'),
+    //                     currentUrl.TrimEnd('/'),
+    //                     StringComparison.OrdinalIgnoreCase));
+
+    //             if (activity != null)
+    //             {
+    //                 FeatureName = feature.FeaturesName;
+    //                 return;
+    //             }
+    //         }
+    //     }
+
+    //     FeatureName = "";
+    // }
     private void SetPageName()
     {
-        var currentUrl = NavigationManager.ToBaseRelativePath(
-            NavigationManager.Uri);
+        var currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        currentUrl = "/" + currentUrl.Split('?')[0].Split('#')[0].Trim('/');
 
-        currentUrl = "/" + currentUrl
-            .Split('?')[0]
-            .Split('#')[0]
-            .Trim('/');
+        var dashboardUrl = "/" + MenuState.DashboardUrl.Split('?')[0].Split('#')[0].Trim('/');
 
-        // Dashboard se page open hua hai ya nahi
-        ShowBackButton = !string.IsNullOrEmpty(EnquiryState.DashboardValue);
+        PageName = Tittle ?? "";
+
+        if (string.Equals(currentUrl, dashboardUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            ShowBackButton = false;
+            FeatureName = "";
+            return;
+        }
+
+        // Sirf ye flag decide karega back-button — filtering wali DashboardValue se koi lena-dena nahi
+        ShowBackButton = EnquiryState.CameFromDashboard;
+        // EnquiryState.CameFromDashboard = false;  
+
+        if (!ShowBackButton)
+        {
+            FeatureName = "";
+            return;
+        }
 
         foreach (var module in MenuState.Features)
         {
@@ -97,19 +160,12 @@
                 if (activity != null)
                 {
                     FeatureName = feature.FeaturesName;
-                    PageName = $"{Tittle}";
-                    return;
-                }
-                else
-                {
-                    FeatureName = feature.FeaturesName;
-                    PageName = $"{Tittle}";
                     return;
                 }
             }
         }
 
-        PageName = "";
+        FeatureName = "";
     }
 
     public void Dispose()

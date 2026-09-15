@@ -614,8 +614,8 @@
                 @* <EditForm Model="@controlAccess" OnSubmit="OnSuperAdminSave"> *@
                 <div class="modal-body">
                     <input type="hidden" name="__RequestVerificationToken" />
-                    <div class="form-row row gap-10-0 pl-3 fix-row-div">
-                        <div class="col-12 col-sm-6 col-md-6 d-flex align-items-center mt-3">
+                    <div class=" row gap-10-0 pl-3 fix-row-div">
+                        <div class="col-12 col-sm-6 col-md-6 d-flex align-items-center">
                             <div class="border-box-sec w-webkit">
                                 <p class="fw-bold m-0 fts-14 cl-gray">
                                     Role Name :
@@ -623,7 +623,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-6 col-md-6 mt-3">
+                        <div class="col-12 col-sm-6 col-md-6 ">
                             <div class="expanding-search-form">
                                 <input id="global-search" type="search" placeholder="Search by module name..." class="form-input w-webkit" @bind="SearchText" @bind:event="oninput" />
                             </div>
@@ -844,9 +844,16 @@
 
 @if (IsLoading)
 {
-    <div class=" grid-loader-overlay">
-        <img src="images/loading.gif" alt="Loading..." />
-
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
     </div>
 
 }
