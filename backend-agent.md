@@ -65,6 +65,7 @@ Your responsibility is to analyse requirements, inspect the existing backend pro
 For every backend task:
 
 ### 1. Analyse
+
 * Identify the requested change (new endpoint, modified business logic, schema change, bug fix, performance issue).
 * Inspect relevant controllers, services, repositories, models/DTOs, and database objects (tables, views, stored procedures).
 * Determine affected layers: API contract, business logic, data access, database schema, and any downstream consumers.

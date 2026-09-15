@@ -39,7 +39,7 @@ Do not introduce a new architecture or coding pattern when an existing project p
 
 ## Frontend
 
-- Angular
+- Blazor
 - HTML
 - CSS
 - Bootstrap
@@ -98,9 +98,9 @@ Before creating a new class:
 The preferred frontend request flow is:
 
 ```
-Angular Component
+Blazor Component
     ↓
-Angular Service
+Blazor Service
     ↓
 HttpClient
     ↓
@@ -113,13 +113,13 @@ Repository
 SQL Server
 ```
 
-Follow the existing Angular project structure.
+Follow the existing Blazor project structure.
 
 Before creating a new component:
 
 1. Search for similar components.
 2. Search for existing reusable components.
-3. Search for existing Angular services.
+3. Search for existing Blazor services.
 4. Search for existing API integration patterns.
 5. Reuse existing UI patterns.
 
@@ -699,9 +699,10 @@ The Main Agent must not silently:
 
 Critical configuration files include:
 
+
 - `CLAUDE.md`
-- `.claude/agents/*`
-- `.claude/rules/*`
+- `.claude/backend-agent.md`
+- `.claude/database-agent.md`
 
 During normal feature development, the Main Agent must not modify these files automatically.
 
