@@ -108,7 +108,7 @@
                                         </div>
                                     </ColumnOptions>
                                 </PropertyColumn>
-                                <TemplateColumn Title="Student Name" Sortable="true"     SortBy="GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.StudentName)"  Align="Align.Left">
+                                <TemplateColumn Title="Student Name" Sortable="true" SortBy="GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.StudentName)" Align="Align.Left">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
                                     </ChildContent>
@@ -118,7 +118,7 @@
                                         </div>
                                     </ColumnOptions>
                                 </TemplateColumn>
-                                <TemplateColumn Title="Class" Class="text-center" Sortable="true"     SortBy="GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.ClassName)"  Align="Align.Center">
+                                <TemplateColumn Title="Class" Class="text-center" Sortable="true" SortBy="GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.ClassName)" Align="Align.Center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
                                     </ChildContent>
@@ -130,7 +130,7 @@
                                     </ChildContent>
 
                                 </TemplateColumn>
-                                <TemplateColumn Title="Invoice No." Class="text-center" Sortable="true"     SortBy="GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.InvoiceNo)"  Align="Align.Center">
+                                <TemplateColumn Title="Invoice No." Class="text-center" Sortable="true" SortBy="GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.InvoiceNo)" Align="Align.Center">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.InvoiceNo) ? " " : context.InvoiceNo)
                                     </ChildContent>
@@ -193,11 +193,11 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
-                                <option  value="" selected>--Select--</option>
-                                @foreach (var data in PeriodTypeList)
-                                {
-                                <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
-                                }
+                                    <option value="" selected>--Select--</option>
+                                    @foreach (var data in PeriodTypeList)
+                                    {
+                                        <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                    }
                                 </InputSelect>
                                 <label class="floating-label">Period Type</label>
                             </div>
@@ -205,11 +205,11 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodId">
-                                <option  value="" selected>--Select--</option>
-                                @foreach (var data in feeCollectionPeriodlist.Where(x => string.Equals(x.PeriodType, searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                <option value="@data.PeriodId">@data.PeriodName</option>
-                                }
+                                    <option value="" selected>--Select--</option>
+                                    @foreach (var data in feeCollectionPeriodlist.Where(x => string.Equals(x.PeriodType, searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        <option value="@data.PeriodId">@data.PeriodName</option>
+                                    }
                                 </InputSelect>
                                 <label class="floating-label">Period</label>
                             </div>
@@ -217,7 +217,7 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.StudentCategory">
-                                <option value="0" selected>No-Item</option>
+                                    <option value="0" selected>No-Item</option>
                                 </InputSelect>
                                 <label class="floating-label">Student Category</label>
                             </div>
@@ -226,9 +226,9 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.IsGenerated">
-                                <option value="-1" selected>All</option>
-                                <option Value="1">Yes</option>
-                                <option Value="0">No</option>
+                                    <option value="-1" selected>All</option>
+                                    <option Value="1">Yes</option>
+                                    <option Value="0">No</option>
                                 </InputSelect>
                                 <label class="floating-label">Generated</label>
                             </div>
@@ -363,11 +363,11 @@
                                         <div class="col-12 p-2 mt-2">
                                             <div class="form-box-group static-label">
                                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="studentInvoice.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
-                                                <option  value="" selected>--Select--</option>
-                                                @foreach (var data in PeriodTypeList)
-                                                {
-                                                <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
-                                                }
+                                                    <option value="" selected>--Select--</option>
+                                                    @foreach (var data in PeriodTypeList)
+                                                    {
+                                                        <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                                    }
                                                 </InputSelect>
                                                 <label class="floating-label">Period Type</label>
                                             </div>
@@ -381,9 +381,19 @@
                                                     </button>
                                                     <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
                                                         <div class="form-check">
-                                                            <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllPeriod" @bind:after="ToggleSelectAllPeriod" />
+                                                            @if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+                                                            {
+                                                                <span> Select Period Type</span>
+                                                             
+                                                            }
+                                                            else
+                                                            {
+                                                                   <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllPeriod" @bind:after="ToggleSelectAllPeriod" />
                                                             <span> All</span>
+                                                            }
+                                                         
                                                         </div>
+
                                                         @foreach (var data in feeCollectionPeriodlist)
                                                         {
                                                             <div class="form-check">
@@ -398,11 +408,11 @@
                                         <div class="col-12 p-2">
                                             <div class="form-box-group static-label">
                                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="studentInvoice.InvoiceTypeId">
-                                                <option  value="" selected>--Select--</option>
-                                                @foreach (var data in InvoiceTypelist)
-                                                {
-                                                <option value="@data.InvoiceTypeId" selected="@(data.InvoiceTypeName == "With Transport")"> @data.InvoiceTypeName </option>
-                                                }
+                                                    <option value="" selected>--Select--</option>
+                                                    @foreach (var data in InvoiceTypelist)
+                                                    {
+                                                        <option value="@data.InvoiceTypeId" selected="@(data.InvoiceTypeName == "With Transport")"> @data.InvoiceTypeName </option>
+                                                    }
                                                 </InputSelect>
                                                 <label class="floating-label">Invoice type</label>
                                             </div>
@@ -410,9 +420,9 @@
                                         <div class="col-12 p-2">
                                             <div class="form-box-group static-label">
                                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="studentInvoice.InvoiceFor">
-                                                    <option  value="" selected>--Select--</option>
-                                                <option value="1">Regular</option>
-                                                <option value="2">Admission</option>
+                                                    <option value="" selected>--Select--</option>
+                                                    <option value="1">Regular</option>
+                                                    <option value="2">Admission</option>
                                                 </InputSelect>
                                                 <label class="floating-label">Invoice For</label>
                                             </div>
@@ -484,6 +494,7 @@ else
     {
         get
         {
+
             var selected = feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodName).ToList();
 
             if (!selected.Any())
@@ -643,14 +654,20 @@ else
     {
         try
         {
+            feeCollectionPeriodlist.Clear();
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
             searchAny.SessionId = CurrentSession;
+            if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+            {
+                StateHasChanged();
+                return;
+            }
             searchAny.RequestName = studentInvoice.PeriodType;
 
             string ApiUri3 = "FeeCollectionPeriodConfig/GetFeeCollectionPeriod";
 
-            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>(ApiUri3, searchAny)?? new();
+            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>(ApiUri3, searchAny) ?? new();
             SelectAll = false;
 
             foreach (var item in feeCollectionPeriodlist)
@@ -710,10 +727,10 @@ else
     {
         if (firstRender)
         {
-            
+
             CurrentSession = await _commonmethod.SetCurrentSessionData();
             await LoadData();
-            await OnPeriodTypeChanged();
+            //  await OnPeriodTypeChanged();
             StateHasChanged();
         }
     }
@@ -798,7 +815,7 @@ else
             return;
 
         }
-        else if (studentInvoice.InvoiceTypeId==0)
+        else if (studentInvoice.InvoiceTypeId == 0)
         {
             await Alert.ShowWarning("Please select a invoice type");
             ShowPopupGenerateInvoice = true;

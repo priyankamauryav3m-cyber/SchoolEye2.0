@@ -10,7 +10,6 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static DomainModel.FinanceMNGT.FeeCollectionDuesNew;
 
 namespace Infrastructure.FinanceMNGT.FeeMNGT
 {
@@ -20,8 +19,74 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
 
         public StudentFeeService(IConfiguration configuration)
         {
-            _connectionString = configuration.GetValue<string>("DatabaseSettings1:ConnectionString")
-         ?? throw new ArgumentNullException("DatabaseSettings1:ConnectionString");
+            _connectionString = configuration.GetValue<string>("DatabaseSettings1:ConnectionString")    ?? throw new ArgumentNullException("DatabaseSettings1:ConnectionString");
+        }
+
+        public async Task<AdjustStudentFeeHeadWiseResponse> AdjustStudentFeeHeadWise(AdjustStudentFeeHeadWiseRequest request)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                var table = new DataTable();
+                table.Columns.Add("FeeHeadId", typeof(int));
+                table.Columns.Add("PaidAmount", typeof(decimal));
+                table.Columns.Add("LumpsumAmount", typeof(decimal));
+                table.Columns.Add("MonthNoCsv", typeof(string));
+                table.Columns.Add("FeeHeadAmount", typeof(decimal));
+                table.Columns.Add("Concession", typeof(decimal));
+                table.Columns.Add("Deduction", typeof(decimal));
+                table.Columns.Add("StatusFlag", typeof(string));
+                table.Columns.Add("DetInvoiceId", typeof(int));
+                table.Columns.Add("AdjustAmount", typeof(decimal));
+
+                foreach (var item in request.FeeHeadDetails)
+                {
+                    table.Rows.Add(
+                        item.FeeHeadId, item.PaidAmount, item.LumpsumAmount, item.MonthNoCsv,
+                        item.FeeHeadAmount, item.Concession, item.Deduction, item.StatusFlag,
+                        item.DetInvoiceId, item.AdjustAmount);
+                }
+
+                var param = new DynamicParameters();
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionId", request.SectionId);
+                param.Add("@PaidAmount", request.PaidAmount);
+                param.Add("@Balance", request.Balance);
+                param.Add("@PaymentMode", request.PaymentMode);
+                param.Add("@ChequeNo", request.ChequeNo);
+                param.Add("@ChequeDate", request.ChequeDate);
+                param.Add("@ChequeBank", request.ChequeBank);
+                param.Add("@ChequeType", request.ChequeType);
+                param.Add("@LateFee", request.LateFee);
+                param.Add("@PreviousBalance", request.PreviousBalance);
+                param.Add("@Remark", request.Remark);
+                param.Add("@SocietyId", request.SocietyId);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@ReceiptDate", request.ReceiptDate);
+                param.Add("@BankAccountId", request.BankAccountId);
+                param.Add("@BankBranch", request.BankBranch);
+                param.Add("@FeeHeadDetails", table.AsTableValuedParameter("dbo.FeeHeadDetailType"));
+                param.Add("@StudentReceiptNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                param.Add("@ReceiptId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync("V3M_FIN_AdjustStudentFeeHeadWise_Fast",
+                      param,
+                      commandType: CommandType.StoredProcedure);
+
+                return new AdjustStudentFeeHeadWiseResponse
+                {
+                    StudentReceiptNo = param.Get<string>("@StudentReceiptNo"),
+                    ReceiptId = param.Get<long>("@ReceiptId")
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while adjusting student fee head wise: {ex.Message}", ex);
+            }
         }
 
         public async Task<IEnumerable<StudentDetailsForFee>> GetStudentDetailsForFeeAsync(StudentDetailsForFeeRequest request)
@@ -64,7 +129,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 var parameters = new DynamicParameters();
 
                 parameters.Add("@GroupCode", request.GroupCode);
-                parameters.Add("@BranchCode", request.BranchCode);
+                parameters.Add("@BranchCode", request.BranchCode);  
                 parameters.Add("@SessionId", request.SessionId);
                 parameters.Add("@StudentId", request.StudentId);
                 parameters.Add("@BankAccountId", request.BankAccountId);
@@ -84,5 +149,96 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 return Enumerable.Empty<FeeCollectionDuesNew>();
             }
         }
+        public async Task<ReceiptResponse> AdjustStudentFeeHeadWise(FeeReceiptRequest request)
+        {
+            try
+            {
+
+                using var con = new SqlConnection(_connectionString);
+                var feeHeadTable = BuildFeeHeadDetailsTable(request.FeeHeadDetails);
+                var param = new DynamicParameters();
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionId", request.SectionId);
+                param.Add("@Balance", request.Balance);
+                param.Add("@PaymentMode", request.PaymentMode);
+                param.Add("@ChequeNo", request.ChequeNo);
+                param.Add("@ChequeDate", request.ChequeDate);
+                param.Add("@ChequeBank", request.ChequeBank);
+                param.Add("@ChequeType", request.ChequeType);
+                param.Add("@LateFee", request.LateFee);
+                param.Add("@PreviousBalance", request.PreviousBalance);
+                param.Add("@Remark", request.Remark);
+                param.Add("@SocietyId", request.SocietyId);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@ReceiptDate", request.ReceiptDate);
+                param.Add("@BankAccountId", request.BankAccountId);
+                param.Add("@BankBranch", request.BankBranch);
+                param.Add("@FeeHeadDetails", feeHeadTable.AsTableValuedParameter("dbo.FeeHeadDetailTypes"));
+                param.Add("@StudentReceiptNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                param.Add("@ReceiptId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(
+                    "V3M_FIN_GeneratedStudentCounterAdjustemntReceiptNew",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                string receiptNo = param.Get<string>("@StudentReceiptNo");
+                long? receiptId = param.Get<long?>("@ReceiptId");
+
+                if (string.IsNullOrWhiteSpace(receiptNo) || receiptId == null || receiptId == 0)
+                    throw new Exception("Receipt generation failed.");
+
+                return new ReceiptResponse
+                {
+                    StudentId = request.StudentId,
+                    ReceiptNo = receiptNo,
+                    ReceiptId = receiptId.Value,
+                    ReceiptDate = request.ReceiptDate
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+
+        private static DataTable BuildFeeHeadDetailsTable(System.Collections.Generic.List<FeeHeadDetailLine> lines)
+        {
+            var table = new DataTable();
+            table.Columns.Add("FeeHeadId", typeof(int));
+            table.Columns.Add("MonthNo", typeof(int));
+            table.Columns.Add("PaidAmount", typeof(decimal));
+            table.Columns.Add("Amount", typeof(decimal));
+            table.Columns.Add("Concession", typeof(decimal));
+            table.Columns.Add("WaiveOff", typeof(decimal));
+            table.Columns.Add("IsAdvanceLine", typeof(bool));
+            table.Columns.Add("OverrideAmount", typeof(decimal));
+            table.Columns.Add("AdjustmentAmount", typeof(decimal));
+            table.Columns.Add("DetInvoiceId", typeof(int));
+
+            foreach (var line in lines)
+            {
+                table.Rows.Add(
+                    line.FeeHeadId,
+                    line.MonthNo,
+                    line.PaidAmount,
+                    line.Amount,
+                    line.Concession,
+                    line.WaiveOff,
+                    line.IsAdvanceLine,
+                    line.OverrideAmount,
+                    line.AdjustmentAmount,
+                    line.DetInvoiceId);
+            }
+
+            return table;
+        }
+
     }
 }

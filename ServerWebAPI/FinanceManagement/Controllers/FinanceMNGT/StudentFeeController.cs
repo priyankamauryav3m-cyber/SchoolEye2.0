@@ -9,7 +9,7 @@ using static DomainModel.FinanceMNGT.FeeCollectionDuesNew;
 namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
 {
     [ApiExplorerSettings(GroupName = "FinanceManagement")]
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class StudentFeeController : ControllerBase
@@ -92,5 +92,90 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
 
             }
         }
+        [HttpPost("AdjustStudentFeeCollection")]
+        public async Task<IActionResult> AdjustStudentFeeHeadWiseData([FromBody] AdjustStudentFeeHeadWiseRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request."
+                    });
+                }
+
+                var result = await _studentFeeRepository.AdjustStudentFeeHeadWise(request);
+
+                if (result == null)
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Fee adjustment failed."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(result.StudentReceiptNo))
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Receipt could not be generated."
+                    });
+                }
+
+                return Ok(new ApiResponse<AdjustStudentFeeHeadWiseResponse>
+                {
+                    Success = true,
+                    Message = "Fee adjusted successfully.",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+        }
+        [HttpPost("StudentFeeHeadCollectionRecept")]
+        public async Task<IActionResult> AdjustStudentFeeHeadWise([FromBody] FeeReceiptRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+            try
+            {
+                var result = await _studentFeeRepository.AdjustStudentFeeHeadWise(request);
+                return Ok(new ApiResponse<ReceiptResponse>
+                {
+                    Success = true,
+                    Message = "Fee adjustment receipt generated successfully.",
+                    Code = 1,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while generating the fee adjustment receipt.",
+                    Code = -1
+                });
+            }
+        }
+
     }
 }
