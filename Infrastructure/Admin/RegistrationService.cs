@@ -734,7 +734,7 @@ namespace Infrastructure.SuperAdmin
                 param.Add("@SessionId", SessionId);
                 return await con.QueryFirstOrDefaultAsync<SiblingDetailResponse>(
                     "Sp_GetSiblingDetail",
-                    param,
+                    param,  
                     commandType: CommandType.StoredProcedure);
             }
             catch (Exception ex)

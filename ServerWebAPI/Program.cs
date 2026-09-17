@@ -263,10 +263,11 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 #region Services
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<GlobalFormatFilter>();
-});
+//builder.Services.AddControllers(options =>
+//{
+//    options.Filters.Add<GlobalFormatFilter>();
+//});
+builder.Services.AddControllers();
 Infrastructure.User.DependencyInjection.AddInfrastructure(builder.Services, builder.Configuration);
 #endregion
 

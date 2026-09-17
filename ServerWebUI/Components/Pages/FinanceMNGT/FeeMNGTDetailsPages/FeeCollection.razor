@@ -86,26 +86,6 @@
         font-size: 14px;
     }
 
-    .fee-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13.5px;
-    }
-
-        .fee-table thead th {
-            text-align: left;
-            font-size: 11px;
-            color: #6c757d;
-            letter-spacing: .04em;
-            border-bottom: 1px solid #e5e7eb;
-            padding: 8px 10px;
-        }
-
-        .fee-table tbody td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #f1f3f5;
-            vertical-align: middle;
-        }
 
     .fee-head-title {
         font-weight: 600;
@@ -307,10 +287,10 @@
     }
 
     /* ===================== Fee module popup content =====================
-                   Scoped under .fee-module-content so it never leaks outside these
-                   popups. Inner design ported from the static reference; only the
-                   outer popup shell (custom-modal / head-btn / modal-body / modal-footer)
-                   follows our own convention. */
+                                       Scoped under .fee-module-content so it never leaks outside these
+                                       popups. Inner design ported from the static reference; only the
+                                       outer popup shell (custom-modal / head-btn / modal-body / modal-footer)
+                                       follows our own convention. */
     .fee-module-content {
         --m-navy: #0b2948;
         --m-line: #dbe4ee;
@@ -824,7 +804,6 @@
         <div class="col-12 col-lg-8 p-1">
             <div class="card h-100">
                 <div class="card-body table-card p-0">
-
                     <div class="quick-main">
                         <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
                             <div>
@@ -933,7 +912,7 @@
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">PREVIOUS ADVANCE</div>
-                        <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.PreviousBalance?.ToString("N2") : "-")</div>
+                        <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.PreviousBalance.ToString("N2") : "-")</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">CONCESSION</div>
@@ -941,7 +920,7 @@
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">LATE FEE INCLUDED</div>
-                        <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.LateFee?.ToString("N2") : "-")</div>
+                        <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.LateFee.ToString("N2") : "-")</div>
                     </div>
                 </div>
             </div>
@@ -952,15 +931,41 @@
 
                     <label class="fee-head-sub d-block mb-2">Payment mode</label>
                     <div class="d-flex gap-2 mb-3">
-                        <button type="button" class="payment-mode-btn active">Cash</button>
-                        <button type="button" class="payment-mode-btn">UPI</button>
-                        <button type="button" class="payment-mode-btn">Cheque</button>
+                        <button type="button" class="payment-mode-btn @(SelectedPaymentMode == "Cash" ? "active" : "")" @onclick='() => SelectPaymentMode("Cash")'>
+                            Cash
+                        </button>
+
+                        <button type="button" class="payment-mode-btn @(SelectedPaymentMode == "UPI" ? "active" : "")" @onclick='() => SelectPaymentMode("UPI")'>
+                            UPI
+                        </button>
+                        <button type="button" class="payment-mode-btn @(SelectedPaymentMode == "Cheque" ? "active" : "")" @onclick='() => SelectPaymentMode("Cheque")'>
+                            Cheque
+                        </button>
                     </div>
 
-                    <div class="form-box-group mb-3">
-                        <input type="text" class="floating-input" placeholder="Optional for cash payment" />
-                        <label class="floating-label">Reference / transaction no.</label>
-                    </div>
+                    @if (SelectedPaymentMode == "Cash")
+                    {
+                        <div class="form-box-group mb-3">
+                            <input type="number"
+                                   class="floating-input"
+                                   min="0.01"
+                                   step="0.01"
+                                  @bind="@CashPaymentAmount"
+                                   @oninput="ValidateCashPaymentAmount"
+                                   placeholder="Optional for cash payment" />
+                            <label class="floating-label">Paying</label>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-box-group mb-3">
+                            <input type="text"
+                                   class="floating-input"
+                                   placeholder="Enter reference / transaction no." />
+
+                            <label class="floating-label">Reference / transaction no.</label>
+                        </div>
+                    }
 
                     <div class="row g-2 mb-3">
                         <div class="col-6">
@@ -979,9 +984,8 @@
                         </div>
                     </div>
 
-                    <label class="fee-head-sub d-block mb-2">Remark</label>
-                    <textarea class="fee-remark" rows="2" placeholder="Add an internal note (optional)"></textarea>
-
+                    <label class="form-label d-block mb-2">Remark</label>
+                    <InputTextArea class="fee-remark" @bind-Value="adjustStudentFeeHeadWise.Remark" rows="2" placeholder="Add an internal note (optional)"></InputTextArea>
                     <div class="row g-2 mt-3">
                         <div class="col-4">
 
@@ -998,8 +1002,8 @@
                         <div class="col-8">
 
 
-                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0">
-                                <div class="visible content justify-content-center">Collect &#8377;@TotalPayable.ToString("N2")</div>
+                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" @onclick="OnSaveFeeCollection">
+                                <div class="visible content justify-content-center">Collect &#8377;@CashPaymentAmount.ToString("N2")</div>
                                 <div class="hidden content">
                                     <i class="bi bi-check-lg"></i>
                                 </div>
@@ -1688,9 +1692,17 @@ else
 }
 <StudentViewDetails IsVisible="@OpenDetail" SessionId="@CurrentSession" CurrectUrl="@currentUrl" StudentId="@SelectedStudentId" OnClose="@ClosePopup" />
 
+<CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
-
+    private string SelectedPaymentMode { get; set; } = "Cash";
+    private decimal CashPaymentAmount { get; set; }
+       private CustomAlert customAlert;
+    private void SelectPaymentMode(string mode)
+    {
+        SelectedPaymentMode = mode;
+        StateHasChanged();
+    }
     private bool ShowReceiptPreview = false;
     private string AdvancePaymentMode = "Cash";
     private bool OpenDetail = false;
@@ -1707,6 +1719,9 @@ else
     private string? studentNoFilter = "";
     private StudentDetailsForFeeRequest studentDetailsForFeeRequest = new();
     private GetStudentFeeHeadDuesForAdjustmentRequest getStudentFeeHeadDuesForAdjustment = new();
+    private AdjustStudentFeeHeadWiseRequest adjustStudentFeeHeadWise = new();
+    private FeeReceiptRequest feeReceiptRequest = new();
+
     private List<FeeCollectionDuesNew> feeCollectionDuelist = new();
     private List<FeeCollectionDuesNew> allFeeCollectionDues = new();
     private List<FeeCollectionDuesNew> distinctMonths = new();
@@ -1728,9 +1743,15 @@ else
     private bool ShowAdvancePopup = false;
     private bool ShowChallanPopup = false;
     private bool ShowAdjustPopup = false;
-    private int SelectedTillMonth = 4; // Default: April
-    private readonly int academicStartYear = 2026; // ASSUMPTION - see notes above
-
+    private int SelectedTillMonth = 4; 
+    private readonly int academicStartYear = 2026; 
+    private void ValidateCashPaymentAmount(ChangeEventArgs e)
+    {
+        if (CashPaymentAmount <= 0 || CashPaymentAmount > TotalPayable)
+        {
+            CashPaymentAmount = TotalPayable;
+        }
+    }
 
     private void OpenLedgerPopup() { ShowLedgerPopup = true; StateHasChanged(); }
     private void CloseLedgerPopup() { ShowLedgerPopup = false; StateHasChanged(); }
@@ -1790,6 +1811,7 @@ else
         StateHasChanged();
 
 
+
     }
     protected IQueryable<FeeCollectionDuesNew> moduleQuery
     {
@@ -1838,10 +1860,82 @@ else
 
         SelectedTillMonth = 4;
         getStudentFeeHeadDuesForAdjustment.TillDate = "";
-
         await GetStudentFeeDetails();
+      
         StateHasChanged();
     }
+       
+    private async Task OnSaveFeeCollection()
+    {
+        try
+        {
+            
+            adjustStudentFeeHeadWise.GroupCode = groupcode;
+            adjustStudentFeeHeadWise.BranchCode = branchcode;
+            adjustStudentFeeHeadWise.SessionId = CurrentSession;
+            adjustStudentFeeHeadWise.StudentId = selectedStudent.StudentId;
+            adjustStudentFeeHeadWise.ClassCode = selectedStudent.ClassCode;
+            adjustStudentFeeHeadWise.SectionId = selectedStudent.SectionId;
+            adjustStudentFeeHeadWise.PaidAmount = TotalPayable;
+            adjustStudentFeeHeadWise.Balance = selectedStudent.StudentBalance;
+            adjustStudentFeeHeadWise.PaymentMode = "Cash";
+            adjustStudentFeeHeadWise.ChequeNo = "";
+            adjustStudentFeeHeadWise.ChequeDate = null;
+            adjustStudentFeeHeadWise.ChequeBank = "";
+            adjustStudentFeeHeadWise.ChequeType = "";
+            adjustStudentFeeHeadWise.LateFee = selectedStudent.LateFee;
+            adjustStudentFeeHeadWise.PreviousBalance = selectedStudent.PreviousBalance;
+            adjustStudentFeeHeadWise.SocietyId = 0;
+            adjustStudentFeeHeadWise.CreatedBy = UserName;
+            adjustStudentFeeHeadWise.ReceiptDate = studentDetailsForFeeRequest.ReceiptDate;
+            adjustStudentFeeHeadWise.BankAccountId = 1;
+            adjustStudentFeeHeadWise.BankBranch = "";
+            adjustStudentFeeHeadWise.FeeHeadDetails = feeCollectionDuelist
+              .Select(x => new FeeHeadDetailModel
+              {
+                  FeeHeadId = (int)x.FeeHeadId,
+                  PaidAmount = x.Payable,
+                  LumpsumAmount = x.Amount,
+                  MonthNoCsv = x.MonthNo.ToString(),
+                  FeeHeadAmount = x.Amount,
+                  Concession = x.Concession,
+                  Deduction = x.WaiveOff,
+                  StatusFlag = x.Status.ToString(),
+                  DetInvoiceId = (int)x.DetInvoiceId,
+                  AdjustAmount = x.Payable
+              })
+              .ToList();
+
+              IsLoading = true;
+            var response = await httpService.Post<ApiResponse<AdjustStudentFeeHeadWiseResponse>>("StudentFee/AdjustStudentFeeCollection", adjustStudentFeeHeadWise);
+
+            if (response != null && response.Success && response.Data != null)
+            {
+
+               await customAlert.ShowCustomAlert( $"Fee adjusted successfully. Receipt No: {response.Data.StudentReceiptNo}", false);
+            }
+            else
+            {
+                allFeeCollectionDues = new();
+                feeCollectionDuelist = new();
+                distinctMonths = new();
+                await Alert.ShowWarning(response?.Message ?? "No student fee details found.");
+            }
+                 await GetStudentFeeDetails();
+                adjustStudentFeeHeadWise = new();
+               StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching student details: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
 
     private void OnTillMonthChanged()
     {
@@ -1880,15 +1974,16 @@ else
                     .ToList();
 
                 SelectedTillMonth = distinctMonths.FirstOrDefault()?.MonthNo ?? SelectedTillMonth;
-
+                 
                 ApplyTillMonthFilter();
+                CashPaymentAmount = TotalPayable;
             }
             else
             {
                 allFeeCollectionDues = new();
                 feeCollectionDuelist = new();
                 distinctMonths = new();
-                await Alert.ShowWarning(response?.Message ?? "No student fee details found.");
+                await customAlert.ShowCustomAlert("Either challan is not genereated of this student or fee is already paid.", true);
             }
 
             StateHasChanged();
@@ -1960,6 +2055,7 @@ else
                     IsStudentSelected = false;
                     ShowSuggestions = true;
                 }
+              
             }
             else
             {
