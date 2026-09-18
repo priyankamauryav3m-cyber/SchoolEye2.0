@@ -1697,7 +1697,7 @@ else
 @code {
     private string SelectedPaymentMode { get; set; } = "Cash";
     private decimal CashPaymentAmount { get; set; }
-       private CustomAlert customAlert;
+    private CustomAlert customAlert;
     private void SelectPaymentMode(string mode)
     {
         SelectedPaymentMode = mode;
@@ -1840,6 +1840,7 @@ else
 
     private void OnSearchTermChanged()
     {
+        feeCollectionDuelist.Clear();
         ShowSuggestions = false;
         filteredSuggestions = new();
         selectedStudent = new();
@@ -1861,15 +1862,42 @@ else
         SelectedTillMonth = 4;
         getStudentFeeHeadDuesForAdjustment.TillDate = "";
         await GetStudentFeeDetails();
-      
+
         StateHasChanged();
     }
-       
+
     private async Task OnSaveFeeCollection()
     {
         try
         {
-            
+            IsLoading = true;
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                await Alert.ShowWarning("Please enter student name or student no to search.");
+                IsLoading = false;
+                StateHasChanged();
+                return;
+            }
+            if (studentDetailsForFeeList.Count == 0)
+            {
+                await Alert.ShowWarning("Please fetch student data first.");
+                StateHasChanged();
+                return;
+            }
+            if (!IsStudentSelected)
+            {
+                await Alert.ShowWarning("Please select a student");
+                StateHasChanged();
+                return;
+            }
+            if (string.IsNullOrEmpty(adjustStudentFeeHeadWise.Remark))
+            {
+                await customAlert.ShowCustomAlert("Please enter remarks", false);
+                StateHasChanged();
+                return;
+            }
+        
+
             adjustStudentFeeHeadWise.GroupCode = groupcode;
             adjustStudentFeeHeadWise.BranchCode = branchcode;
             adjustStudentFeeHeadWise.SessionId = CurrentSession;
@@ -1906,24 +1934,26 @@ else
               })
               .ToList();
 
-              IsLoading = true;
+             
             var response = await httpService.Post<ApiResponse<AdjustStudentFeeHeadWiseResponse>>("StudentFee/AdjustStudentFeeCollection", adjustStudentFeeHeadWise);
 
             if (response != null && response.Success && response.Data != null)
             {
 
                await customAlert.ShowCustomAlert( $"Fee adjusted successfully. Receipt No: {response.Data.StudentReceiptNo}", false);
+                await GetStudentFeeDetails();
+                adjustStudentFeeHeadWise = new();
+                StateHasChanged();
             }
             else
             {
+                IsLoading = false ;
                 allFeeCollectionDues = new();
                 feeCollectionDuelist = new();
                 distinctMonths = new();
-                await Alert.ShowWarning(response?.Message ?? "No student fee details found.");
+                await Alert.ShowWarning("No student fee details found.");
             }
-                 await GetStudentFeeDetails();
-                adjustStudentFeeHeadWise = new();
-               StateHasChanged();
+                
         }
         catch (Exception ex)
         {
@@ -1937,8 +1967,20 @@ else
     }
 
 
-    private void OnTillMonthChanged()
+    private async Task  OnTillMonthChanged()
     {
+        if (studentDetailsForFeeList.Count == 0)
+        {
+            await Alert.ShowWarning("Please fetch student data first.");
+            StateHasChanged();
+            return;
+        }
+        if (!IsStudentSelected)
+        {
+            await Alert.ShowWarning("Please select a student");
+            StateHasChanged();
+            return;
+        }
         ApplyTillMonthFilter();
         StateHasChanged();
     }
@@ -1983,7 +2025,7 @@ else
                 allFeeCollectionDues = new();
                 feeCollectionDuelist = new();
                 distinctMonths = new();
-                await customAlert.ShowCustomAlert("Either challan is not genereated of this student or fee is already paid.", true);
+                await customAlert.ShowCustomAlert("Either challan is not genereated of this student or fee is already paid.", false);
             }
 
             StateHasChanged();
@@ -2114,9 +2156,15 @@ else
             StateHasChanged();
             return;
         }
-        if (!IsStudentSelected)
+        if (studentDetailsForFeeList.Count==0)
         {
             await Alert.ShowWarning("Please fetch student data first.");
+            StateHasChanged();
+            return;
+        }
+        if (!IsStudentSelected)
+        {
+            await Alert.ShowWarning("Please select a student");
             StateHasChanged();
             return;
         }
