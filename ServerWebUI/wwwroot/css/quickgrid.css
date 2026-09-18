@@ -365,17 +365,21 @@ th .col-options-button {
     justify-content: center;
     gap: 7px;
 }
-
-.btn-icon {
-    padding: 3px 6px;
-    padding-top: 4px;
-    border-radius: 2px;
-    background-color: transparent;
+.btn-icon-data {
+    background: transparent;
     cursor: pointer;
-    transition: 0.3s;
-    margin: 0px;
+    transition: .2s;
+    font-size: 13px;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 13px !important;
 }
+
 .activeClr {
     background: #22c55e;
     border-radius: 20px;
@@ -490,23 +494,25 @@ th .col-options-button {
         font-size: 12px;
     }
 /*Change Loading*/
+
 .grid-loader-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: fixed;
+    inset-inline: 0;
     bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(11, 41, 72, .45) !important;
-    backdrop-filter: blur(6px);
+    background-color: rgba(11, 41, 72, 0.45) !important;
+    /* Synchronized backdrop filter properties */
     -webkit-backdrop-filter: blur(14px) saturate(120%);
-    z-index: 10;
-    animation: overlayFadeIn .2s ease;
+    backdrop-filter: blur(14px) saturate(120%);
+    z-index: 999;
+    animation: overlayFadeIn 0.2s ease forwards;
+    height: 100%;
 }
 
-@keyframes overlayFadeIn {
+/* Required keyframe animation */
+@keyframes grid-loader-overlayFadeIn {
     from {
         opacity: 0;
     }
@@ -515,6 +521,8 @@ th .col-options-button {
         opacity: 1;
     }
 }
+
+
 
 .loader-card {
     display: flex;
