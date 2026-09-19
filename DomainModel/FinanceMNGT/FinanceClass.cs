@@ -2082,58 +2082,60 @@ namespace DomainModel.FinanceMNGT
         public string StudentReceiptNo { get; set; }
         public long ReceiptId { get; set; }
     }
-    #endregion
 
-    public class FeeReceiptRequest
+    public class StudentLedgerChallanMiniDetailsRequest
     {
-     
-        public long StudentId { get; set; }
         public string? GroupCode { get; set; }
         public string? BranchCode { get; set; }
         public long SessionId { get; set; }
-        public string? ClassCode { get; set; }
-        public int SectionId { get; set; }
-        public decimal Balance { get; set; }
-        public string? PaymentMode { get; set; }
-        public string? ChequeNo { get; set; }
-        public DateTime? ChequeDate { get; set; }
-        public string? ChequeBank { get; set; }
-        public string? ChequeType { get; set; }
-        public decimal LateFee { get; set; }
-
-
-        public decimal PreviousBalance { get; set; }
-
-        public string? Remark { get; set; }
-        public int SocietyId { get; set; }
-        public string? CreatedBy { get; set; }
-        public DateTime ReceiptDate { get; set; }
-        public int BankAccountId { get; set; }
-        public string? BankBranch { get; set; }
-
-        public List<FeeHeadDetailLine> FeeHeadDetails { get; set; } = new List<FeeHeadDetailLine>();
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
     }
 
-    public class ReceiptResponse
+    public class StudentLedgerChallanMiniDetailsResponse
+    {
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public int SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? FatherContactNo { get; set; }
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public int ClassOrder { get; set; }
+        public string? PeriodType { get; set; }
+        public int SocietyId { get; set; }
+    }
+    public class StudentChallanRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+    }
+
+    public class StudentChallanResponse
     {
         public long StudentId { get; set; }
-        public string? ReceiptNo { get; set; }
-        public long ReceiptId { get; set; }
-        public DateTime ReceiptDate { get; set; }
+        public string? ControlNo { get; set; }
+        public string? InvoiceNo { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal TotalConcession { get; set; }
+        public long PeriodId { get; set; }
+        public int Ch_Status { get; set; }
+        public string? PeriodName { get; set; }
+        public string? CreatedDate { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassSection { get; set; }
+        public long InvoiceId { get; set; }
     }
-    public class FeeHeadDetailLine
-    {
-        public int FeeHeadId { get; set; }
-        public int MonthNo { get; set; }
-        public decimal PaidAmount { get; set; }
-        public decimal Amount { get; set; }
-        public decimal Concession { get; set; }
-        public decimal WaiveOff { get; set; }
-        public bool IsAdvanceLine { get; set; }
-        public decimal OverrideAmount { get; set; }
-        public decimal AdjustmentAmount { get; set; }
-        public int DetInvoiceId { get; set; }
-    }
+
+    #endregion
+
 
 
 }
