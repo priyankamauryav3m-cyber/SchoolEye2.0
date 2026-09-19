@@ -1103,68 +1103,92 @@
                             <div class="row gap-10-0 m-0">
                                 <div class="col-12 p-1">
                                     <div class="page-heading d-flex align-items-center justify-content-between">
-                                      
-                                            <p class="m-0 page-name px-1">
-                                          
-                                                    <div class="form-box">
-                                                        <select class="form-input" @bind="CurrentSession">
-                                                            @foreach (var s in sessionlist.Where(x => x.IsValid))
-                                                            {
-                                                                <option value="@s.SessionId">@s.SessionName</option>
-                                                            }
-                                                        </select>
-                                                        <label class="floating-label">Session</label>
-                                                    </div>
-                                           
-                                             
-                                                    <div class="form-box student-search-wrap">
-                                                        <input @key="ledgerSearchInputKey" class="form-input" placeholder=" " @bind-Value="ledgerSearchTerm" @bind-Value:event="oninput" @bind-Value:after="OnLedgerSearchTermChanged" @onkeydown="HandleLedgerSearchKeyDown" />
-                                                        <label class="floating-label">Enter student no. or student name</label>
-                                                    </div>
 
-                                                    @if (ShowLedgerSuggestions)
+                                       
+                                        <div class="form-box">
+                                            <select class="form-input" @bind="CurrentSession">
+                                                @foreach (var s in sessionlist.Where(x => x.IsValid))
+                                                {
+                                                    <option value="@s.SessionId">@s.SessionName</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="form-box student-search-wrap">
+                                            <input @key="ledgerSearchInputKey" class="form-input" placeholder="Enter student no. or student name" @bind-Value="ledgerSearchTerm" @bind-Value:event="oninput" @bind-Value:after="OnLedgerSearchTermChanged" @onkeydown="HandleLedgerSearchKeyDown" />
+                                        </div>
+                                        @if (ShowLedgerSuggestions)
+                                        {
+                                            <div class="student-suggest-box-popup">
+                                                @if (ledgerFilteredSuggestions.Count == 0)
+                                                {
+                                                    <div class="student-suggest-empty">No matching student found.</div>
+                                                }
+                                                else
+                                                {
+                                                    @foreach (var item in ledgerFilteredSuggestions)
                                                     {
-                                                        <div class="student-suggest-box-popup">
-                                                            @if (ledgerFilteredSuggestions.Count == 0)
-                                                            {
-                                                                <div class="student-suggest-empty">No matching student found.</div>
-                                                            }
-                                                            else
-                                                            {
-                                                                @foreach (var item in ledgerFilteredSuggestions)
-                                                                {
-                                                                    <div class="student-suggest-item" @onclick="() => SelectLedgerStudent(item)">
-                                                                        <div class="student-suggest-column">
-                                                                            <span class="student-suggest-label">Student Name</span>
-                                                                            <span class="student-suggest-value">@item.StudentName</span>
-                                                                        </div>
-                                                                        <div class="student-suggest-column">
-                                                                            <span class="student-suggest-label">Admission No.</span>
-                                                                            <span class="student-suggest-value">@item.ControlNo</span>
-                                                                        </div>
-                                                                        <div class="student-suggest-column">
-                                                                            <span class="student-suggest-label">Class</span>
-                                                                            <span class="student-suggest-value">@item.ClassSection</span>
-                                                                        </div>
-                                                                        <div class="student-suggest-column">
-                                                                            <span class="student-suggest-label">Father</span>
-                                                                            <span class="student-suggest-value">@item.FatherName</span>
-                                                                        </div>
-                                                                    </div>
-                                                                }
-                                                            }
+                                                        <div class="student-suggest-item" @onclick="() => SelectLedgerStudent(item)">
+                                                            <div class="student-suggest-column">
+                                                                <span class="student-suggest-label">Student Name</span>
+                                                                <span class="student-suggest-value">@item.StudentName</span>
+                                                            </div>
+                                                            <div class="student-suggest-column">
+                                                                <span class="student-suggest-label">Admission No.</span>
+                                                                <span class="student-suggest-value">@item.ControlNo</span>
+                                                            </div>
+                                                            <div class="student-suggest-column">
+                                                                <span class="student-suggest-label">Class</span>
+                                                                <span class="student-suggest-value">@item.ClassSection</span>
+                                                            </div>
+                                                            <div class="student-suggest-column">
+                                                                <span class="student-suggest-label">Father</span>
+                                                                <span class="student-suggest-value">@item.FatherName</span>
+                                                            </div>
                                                         </div>
                                                     }
-                                         
-                                                    <div class="form-box">
-                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchLedgerStudent">
-                        <div class="visible content justify-content-center">Search</div>
-                        <div class="hidden content">
-                            <i class="bi bi-search"></i>
-                        </div>
-                    </button>
-                </div>
-                   </p>
+                                                }
+                                            </div>
+                                        }
+
+                                        <div class="form-box">
+                                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchLedgerStudent">
+                                                <div class="visible content justify-content-center">Search</div>
+                                                <div class="hidden content">
+                                                    <i class="bi bi-search"></i>
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                                <div class="col-12 p-1">
+                                    <div class="card">
+                                        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                            @if (!IsLedgerStudentSelected)
+                                            {
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="student-avatar" style="background:#e5e7eb;color:#6b7280;">?</div>
+                                                    <div>
+                                                        <div class="student-name">No student selected</div>
+                                                        <div class="student-sub">Search and select a student to view fee details.</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="student-avatar">@GetInitials(selectedLedgerStudent?.StudentName)</div>
+                                                    <div>
+                                                        <div class="student-name">@selectedLedgerStudent?.StudentName</div>
+                                                        <div class="student-sub">
+                                                            Admission no. @selectedLedgerStudent?.ControlNo &nbsp;&middot;&nbsp; Class @selectedLedgerStudent?.ClassSection &nbsp;&middot;&nbsp; Father: @selectedLedgerStudent?.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedLedgerStudent?.FatherContactNo
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-12 ">
@@ -2089,7 +2113,7 @@ else
     {
         if (string.IsNullOrWhiteSpace(ledgerSearchTerm))
         {
-            await Alert.ShowWarning("Please enter student name or student no to search.");
+            await Alert.ShowCustomAlert("Please enter student name or student no to search.",false);
             return;
         }
 
