@@ -139,6 +139,97 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
-        
+        [HttpPost("GetStudentLedgerChallanMiniDetails")]
+        public async Task<IActionResult> GetStudentLedgerChallanMiniDetails([FromBody] StudentLedgerChallanMiniDetailsRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+            try
+            {
+                var data = await _studentFeeRepository.GetStudentLedgerChallanMiniDetails(request);
+                if (data == null || !data.Any())
+                {
+                    return Ok(new ApiResponse<IEnumerable<StudentLedgerChallanMiniDetailsResponse>>
+                    {
+                        Success = true,
+                        Message = "No records found.",
+                        Code = 0,
+                        Data = Enumerable.Empty<StudentLedgerChallanMiniDetailsResponse>()
+                    });
+                }
+                return Ok(new ApiResponse<IEnumerable<StudentLedgerChallanMiniDetailsResponse>>
+                {
+                    Success = true,
+                    Message = "Student details retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the student details.",
+                    Code = -1
+                });
+            }
+        }
+        [HttpPost("GetStudentChallan")]
+        public async Task<IActionResult> GetStudentChallanDetails([FromBody] StudentChallanRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+
+            try
+            {
+                var data = await _studentFeeRepository.GetStudentChallanDetails(request);
+
+                if (data == null || !data.Any())
+                {
+                    return Ok(new ApiResponse<IEnumerable<StudentChallanResponse>>
+                    {
+                        Success = true,
+                        Message = "No records found.",
+                        Code = 0,
+                        Data = Enumerable.Empty<StudentChallanResponse>()
+                    });
+                }
+
+                return Ok(new ApiResponse<IEnumerable<StudentChallanResponse>>
+                {
+                    Success = true,
+                    Message = "Student challan retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the student challan.",
+                    Code = -1
+                });
+            }
+        }
+
     }
 }

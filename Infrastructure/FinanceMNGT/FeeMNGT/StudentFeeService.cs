@@ -149,7 +149,50 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 return Enumerable.Empty<FeeCollectionDuesNew>();
             }
         }
-       
+        public async Task<IEnumerable<StudentLedgerChallanMiniDetailsResponse>> GetStudentLedgerChallanMiniDetails(StudentLedgerChallanMiniDetailsRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ControlNo", request.ControlNo);
+                param.Add("@StudentName", request.StudentName);
+                return await con.QueryAsync<StudentLedgerChallanMiniDetailsResponse>(
+                    "V3M_GetStudentLedgerChallanMiniDetails",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+        public async Task<IEnumerable<StudentChallanResponse>> GetStudentChallanDetails(StudentChallanRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                return await con.QueryAsync<StudentChallanResponse>(
+                    "V3M_FIN_GetStudentChallan",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
 
     }
 }
