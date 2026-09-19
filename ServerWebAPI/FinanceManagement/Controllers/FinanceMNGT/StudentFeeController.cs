@@ -72,11 +72,8 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                         Data = null
                     });
                 }
-
                 var response = await _studentFeeRepository.GetStudentDetailsForFeeDue(request);
-
                 if (response == null)
-
                     return NotFound(ApiResponse<string>.Fail("No  List  found"));
                 return Ok(new ApiResponse<IEnumerable<FeeCollectionDuesNew>>
                 {
@@ -142,40 +139,6 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
-        [HttpPost("StudentFeeHeadCollectionRecept")]
-        public async Task<IActionResult> AdjustStudentFeeHeadWise([FromBody] FeeReceiptRequest request)
-        {
-            if (request == null)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Data not found.",
-                    Code = 0
-                });
-            }
-            try
-            {
-                var result = await _studentFeeRepository.AdjustStudentFeeHeadWise(request);
-                return Ok(new ApiResponse<ReceiptResponse>
-                {
-                    Success = true,
-                    Message = "Fee adjustment receipt generated successfully.",
-                    Code = 1,
-                    Data = result
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "An error occurred while generating the fee adjustment receipt.",
-                    Code = -1
-                });
-            }
-        }
-
+        
     }
 }
