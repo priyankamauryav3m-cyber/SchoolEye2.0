@@ -14,7 +14,5 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<IEnumerable<StudentDetailsForFee>> GetStudentDetailsForFeeAsync( StudentDetailsForFeeRequest request);
         public Task<IEnumerable<FeeCollectionDuesNew>> GetStudentDetailsForFeeDue(GetStudentFeeHeadDuesForAdjustmentRequest request);
         public Task<AdjustStudentFeeHeadWiseResponse> AdjustStudentFeeHeadWise(AdjustStudentFeeHeadWiseRequest request);
-        public Task<ReceiptResponse> AdjustStudentFeeHeadWise(FeeReceiptRequest request);
-
     }
 }
