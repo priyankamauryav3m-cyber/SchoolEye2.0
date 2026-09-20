@@ -242,119 +242,119 @@
                     <h5 class="modal-title">Generate Student Fee Invoice</h5>
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
-                    <div class="modal-body">
-                        <div class="row gap-10-0">
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                                <div class="form-box">
-                                    <label for="first-name" class="form-label">Class</label>
-                                    <div class="position-relative">
-                                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
-                                            @SelectedText
-                                        </button>
-                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Class</label>
+                                <div class="position-relative">
+                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                        @SelectedText
+                                    </button>
+                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
 
-                                            <div class="form-check">
-                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
+                                        <div class="form-check">
+                                            <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
 
-                                                <span>All</span>
-                                            </div>
-
-                                            @foreach (var item in classlist)
-                                            {
-                                                <div class="form-check">
-
-                                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" @bind:after="GetSectionData" />
-                                                    <span>@item.ClassName</span>
-
-                                                </div>
-                                            }
-
+                                            <span>All</span>
                                         </div>
-                                    </div>
-                                </div>
 
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-
-                                <div class="form-box">
-                                    <label for="first-name" class="form-label">Section</label>
-                                    <div class="position-relative">
-                                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
-                                            @SelectedSectionText
-                                        </button>
-
-                                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
-
+                                        @foreach (var item in classlist)
+                                        {
                                             <div class="form-check">
 
-                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllSection" @bind:after="ToggleSelectAllSection" />
-
-                                                <span>All</span>
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" @bind:after="GetSectionData" />
+                                                <span>@item.ClassName</span>
 
                                             </div>
+                                        }
 
-                                            @foreach (var item in sectionModellist)
-                                            {
-                                                <div class="form-check">
-
-                                                    <input class="form-check-input map-checkbox"
-                                                           type="checkbox"
-                                                           @bind="item.IsSelected" />
-
-                                                    <span>@item.SectionName</span>
-
-                                                </div>
-                                            }
-
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                                <div class="form-box-group static-label">
-                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
-                                        <option  value="" selected>--Select--</option>
-                                        @foreach (var data in PeriodTypeList)
-                                        {
-                                            <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
-                                        }
-                                    </InputSelect>
-                                    <label class="floating-label">Period Type</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                                <div class="form-box-group static-label">
-                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodId">
-                                        <option  value="" selected>--Select--</option>
-                                        @foreach (var data in feeCollectionPeriodlist)
-                                        {
-                                            <option value="@data.PeriodId">@data.PeriodName</option>
-                                        }
-                                    </InputSelect>
-                                    <label class="floating-label">Period</label>
-                                </div>
-                            </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                                <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.StudentNo" autocomplete="off" />
-                                    <label class="floating-label">Student No.</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                                <div class="form-box-group static-label">
-                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@searchModel.InvType">
-                                        <option  value="" selected>--Select--</option>
-                                        @foreach (var data in InvoiceTypelist)
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+
+                            <div class="form-box">
+                                <label for="first-name" class="form-label">Section</label>
+                                <div class="position-relative">
+                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                        @SelectedSectionText
+                                    </button>
+
+                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
+
+                                        <div class="form-check">
+
+                                            <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllSection" @bind:after="ToggleSelectAllSection" />
+
+                                            <span>All</span>
+
+                                        </div>
+
+                                        @foreach (var item in sectionModellist)
                                         {
-                                            <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
+                                            <div class="form-check">
+
+                                                <input class="form-check-input map-checkbox"
+                                                       type="checkbox"
+                                                       @bind="item.IsSelected" />
+
+                                                <span>@item.SectionName</span>
+
+                                            </div>
                                         }
-                                    </InputSelect>
-                                    <label class="floating-label">Invoice Type</label>
+
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
+                                    <option value="" selected>--Select--</option>
+                                    @foreach (var data in PeriodTypeList)
+                                    {
+                                        <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Period Type</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodId">
+                                    <option value="" selected>--Select--</option>
+                                    @foreach (var data in feeCollectionPeriodlist)
+                                    {
+                                        <option value="@data.PeriodId">@data.PeriodName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Period</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.StudentNo" autocomplete="off" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="@searchModel.InvType">
+                                    <option value="" selected>--Select--</option>
+                                    @foreach (var data in InvoiceTypelist)
+                                    {
+                                        <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Invoice Type</label>
+                            </div>
+                        </div>
                     </div>
+                </div>
                 <div class="modal-footer">
                     <button class="ui fade op-1 animated button form-btn" @onclick="SearchStudentAdvamceData" tabindex="0">
                         <div class="visible content">Search</div>
@@ -397,7 +397,7 @@
                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-3 mt-2">
                                     <div class="form-box-group static-label">
                                         <InputSelect class="floating-input" placeholder=" " @bind-Value="@SelectInvtypeId" @bind-Value:after="OpenStudentInvoicePreviewAndEdit">
-                                            <option  value="" selected>--Select--</option>
+                                            <option value="0" selected>--Select--</option>
                                             @foreach (var data in InvoiceTypelist)
                                             {
                                                 <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
@@ -482,7 +482,7 @@
                                         <div class="card-body table-card p-0">
                                             <div class="quick-main">
                                                 <div class="grid-box scrollbar-thin" style="max-height: 250px; min-height:100px;">
-                                                    <QuickGrid Items="@FeeHeadList.AsQueryable()" Pagination="@pagination" Class="table">
+                                                    <QuickGrid Items="@FeeHeadList.AsQueryable()" Pagination="@studentfeeheadpagination" Class="table">
                                                         <TemplateColumn Title="" Align="Align.Center">
                                                             <ChildContent>
                                                                 <div>
@@ -492,7 +492,6 @@
                                                         </TemplateColumn>
 
                                                         <TemplateColumn Title="Fee Head" Align="Align.Left" Sortable="true" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadName)">
-
                                                             <ChildContent>
                                                                 @(string.IsNullOrEmpty(context.FeeHeadName) ? " " : context.FeeHeadName)
                                                             </ChildContent>
@@ -504,7 +503,6 @@
                                                             </ChildContent>
                                                         </TemplateColumn>
                                                         <TemplateColumn Title="Amount (₹)" Sortable="true" Class="text-right" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadAmount)" Align="Align.Right">
-
                                                             <ChildContent>
                                                                 @(context.FeeHeadAmount)
                                                             </ChildContent>
@@ -527,11 +525,15 @@
                                                         <TemplateColumn Title="Received (₹)" Class="text-right" Align="Align.Right">
                                                             <span>@context.ReceivedAmt.ToString("N0")</span>
                                                         </TemplateColumn>
-
                                                     </QuickGrid>
-
                                                 </div>
-
+                                                <div class="footer-pagination">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="welcome-text w-100">
+                                                            <Paginator State="@studentfeeheadpagination" />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -699,7 +701,7 @@
     @if (ShowPopupAddFeehead)
     {
         <div class="custom-modal row m-0 align-items-center">
-            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-6">
+            <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
                 <div class="modal-content clearfix main-popup">
                     <div class="head-btn">
                         <h5 class="modal-title">Select Fee Head</h5>
@@ -716,10 +718,9 @@
                                                 <p class="m-0 headline-text">Add Fee Head With Amount</p>
                                                 <div class="d-flex align-items-center gap-2">
                                                     <InputCheckbox class="form-check-input" @bind-Value="@IsTransport" @bind-Value:after="OnTransportChanged" />
-                                                    <label for="" class="form-label mb-0">Is Transport </label>
+                                                    <label for="" class="form-label mb-0">Is Transport Using</label>
                                                 </div>
                                             </div>
-
                                         </div>
                                     </div>
 
@@ -737,14 +738,49 @@
                                                 <label class="floating-label">Amount</label>
                                             </div>
                                         </div>
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
+                                            <div class="form-box">
+                                                <div class="sef-month-grid">
+                                                    @foreach (var month in MonthList)
+                                                    {
+                                                        <label class="sef-month-pill">
+                                                            <input type="checkbox" @bind="month.IsSelected"  />
+                                                            <span>@month.MonthName</span>
+                                                        </label>
+                                                    }
+                                                </div>
+
+                                                @{
+                                                    var selectedCount = MonthList.Count(m => m.IsSelected);
+                                                    var currentHeadName = IsTransport ? InvoiceMaster.DistanceName : feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId)?.FeeHeadName;
+                                                    var perMonthAmount = IsTransport ? SelectedDistanceAmount : SelectedFeeHeadAmount;
+                                                    var totalPayable = selectedCount * perMonthAmount;
+                                                }
+
+                                                <div class="sef-selected-summary">
+                                                    <span class="sef-sel-text">
+                                                        Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
+                                                        @if (!string.IsNullOrWhiteSpace(currentHeadName))
+                                                        {
+                                                            @: · @currentHeadName
+                                                        }
+                                                    </span>
+                                                    <span>
+                                                        <span class="sef-total-label">Total Payable</span>
+                                                        <span class="sef-total-value">₹ @totalPayable</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     }
                                     else
                                     {
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
                                             <div class="form-box-group static-label">
                                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="SelectedFeeHeadId" @bind-Value:after="OnFeeHeadChanged">
-                                                    <option  value="" selected>--Select--</option>
-                                                    @foreach (var item in feeHeadDropdownlist)
+                                                    <option value="0" selected>--Select--</option>
+                                                    @foreach (var item in feeHeadDropdownlist.Where(x=>x.FeeHeadName!="Transport"))
                                                     {
                                                         <option value="@item.FeeHeadId">
                                                             @item.FeeHeadName
@@ -761,43 +797,44 @@
                                                 <label class="floating-label">Fee Head Amount<span class="required">*</span></label>
                                             </div>
                                         </div>
-                                    }
-
-                                    <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
-                                        <div class="form-box">
-                                            <div class="sef-month-grid">
-                                                @foreach (var month in MonthList)
-                                                {
-                                                    <label class="sef-month-pill">
-                                                        <input type="checkbox" @bind="month.IsSelected" disabled="@month.IsDisabled" />
-                                                        <span>@month.MonthName</span>
-                                                    </label>
-                                                }
-                                            </div>
-
-                                            @{
-                                                var selectedCount = MonthList.Count(m => m.IsSelected);
-                                                var currentHeadName = IsTransport ? InvoiceMaster.DistanceName : feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId)?.FeeHeadName;
-                                                var perMonthAmount = IsTransport ? SelectedDistanceAmount : SelectedFeeHeadAmount;
-                                                var totalPayable = selectedCount * perMonthAmount;
-                                            }
-
-                                            <div class="sef-selected-summary">
-                                                <span class="sef-sel-text">
-                                                    Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
-                                                    @if (!string.IsNullOrWhiteSpace(currentHeadName))
+                                        <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
+                                            <div class="form-box">
+                                                <div class="sef-month-grid">
+                                                    @foreach (var month in MonthList)
                                                     {
-                                                        @: · @currentHeadName
+                                                        <label class="sef-month-pill">
+                                                            <input type="checkbox" @bind="month.IsSelected" disabled="@month.IsDisabled" />
+                                                            <span>@month.MonthName</span>
+                                                        </label>
                                                     }
-                                                </span>
-                                                <span>
-                                                    <span class="sef-total-label">Total Payable</span>
-                                                    <span class="sef-total-value">₹ @totalPayable</span>
-                                                </span>
+                                                </div>
+
+                                                @{
+                                                    var selectedCount = MonthList.Count(m => m.IsSelected);
+                                                    var currentHeadName = IsTransport ? InvoiceMaster.DistanceName : feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId)?.FeeHeadName;
+                                                    var perMonthAmount = IsTransport ? SelectedDistanceAmount : SelectedFeeHeadAmount;
+                                                    var totalPayable = selectedCount * perMonthAmount;
+                                                }
+
+                                                <div class="sef-selected-summary">
+                                                    <span class="sef-sel-text">
+                                                        Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
+                                                        @if (!string.IsNullOrWhiteSpace(currentHeadName))
+                                                        {
+                                                            @: · @currentHeadName
+                                                        }
+                                                    </span>
+                                                    <span>
+                                                        <span class="sef-total-label">Total Payable</span>
+                                                        <span class="sef-total-value">₹ @totalPayable</span>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
+                                    }
+
+                                  
                                    
                                 </div>
                             </div>
@@ -873,31 +910,42 @@ else
     {
         if (IsTransport == true)
         {
-            var trans = transportFeelist.FirstOrDefault(x => x.DistanceId == InvoiceMaster.RouteDistance);
-            if (trans != null)
+            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if(data[0].IsTransportRequired !=0)
             {
-                SelectedDistanceAmount = trans.Amount;
+                var trans = transportFeelist.FirstOrDefault(x => x.DistanceId == InvoiceMaster.RouteDistance);
+                if (trans != null)
+                {
+                    SelectedDistanceAmount = trans.Amount;
+                }
+                else
+                {
+                    SelectedDistanceAmount = 0;
+                }
+                foreach (var month in MonthList)
+                {
+                    month.IsDisabled = false;
+                    month.IsSelected = false;
+                }
+                foreach (var item in transportSelectMonthlist)
+                {
+                    var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
+                    if (month != null)
+                    {
+                        month.IsSelected = true;
+                        month.IsDisabled = true;
+                    }
+                }
+                SelectedFeeHeadId = 0;
+                SelectedFeeHeadAmount = 0;
             }
             else
             {
-                SelectedDistanceAmount = 0;
+                await customAlert.ShowCustomAlert("Please map the transport first before proceeding with the fee collection.", false);
+                StateHasChanged();
+                IsTransport = false;
+                return;
             }
-            foreach (var month in MonthList)
-            {
-                month.IsDisabled = false;
-                month.IsSelected = false;
-            }
-            foreach (var item in transportSelectMonthlist)
-            {
-                var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
-                if (month != null)
-                {
-                    month.IsSelected = true;
-                    month.IsDisabled = true;
-                }
-            }
-            SelectedFeeHeadId = 0;
-            SelectedFeeHeadAmount = 0;
 
         }
         else
@@ -1010,6 +1058,7 @@ else
     private List<SessionModel> sessionlist = new();
     private List<SectionModel> sectionModellist = new();
     PaginationState pagination = new() { ItemsPerPage = 15 };
+    PaginationState studentfeeheadpagination = new() { ItemsPerPage = 15 };
     private bool IsAllSelected;
     private SearchStudentBalanceDto searchModel = new();
     private StudentInvoice studentInvoice = new();
@@ -1023,9 +1072,10 @@ else
     private ChallanDueDateModal challanDueDate = new();
     private FeeHeadToStudentChallan feeHeadToStudent = new();
     private List<InvoiceTypeModel> InvoiceTypelist = new();
-    private List<FeeHeadDropdownModel> feeHeadDropdownlist = new();
+    private List<ClassFeeHeadsModel> feeHeadDropdownlist = new();
     private List<TransportSelectMonthModel> transportSelectMonthlist = new();
     private List<InvoiceDetailsResponse> InvoiceList = new();
+    private FeeHeadTemplateRequest gridRequest = new();
     private void ToggleAll()
     {
         foreach (var row in moduleQuery)
@@ -1052,7 +1102,7 @@ else
         string ApiUri3 = "Society/ListSociety";
         societyModellist = await httpService.Get<List<SocietyModel>>(ApiUri3) ?? new();
         PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
-        InvoiceTypelist = await httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList") ?? new();
+        await GetInvoivetype();
         MonthList = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
         transportFeelist = await httpService.Get<List<TransportFeeConfig>>("TransportFee/GetTransport") ?? new();
         OnClassAllChanged();
@@ -1247,6 +1297,14 @@ else
         ShowPopup = true;
         StateHasChanged();
     }
+    private async Task GetInvoivetype()
+    {
+        InvoiceTypelist = await httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList") ?? new();
+        if (InvoiceTypelist.Count > 1)
+        {
+            SelectInvtypeId = InvoiceTypelist[0].InvoiceTypeId;
+        }        
+    }
 
     private async Task OpenStudentInvoicePreviewAndEdit()
     {
@@ -1266,6 +1324,7 @@ else
                 await JS.InvokeVoidAsync("showSelectRecordAlert");
                 return;
             }
+            await GetInvoivetype();
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
             searchAny.RequestName = string.Join(",", data.Select(x => x.InvoiceId));
@@ -1331,6 +1390,7 @@ else
                 await JS.InvokeVoidAsync("showSelectRecordAlert");
                 return;
             }
+            await GetInvoivetype();
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
             searchAny.RequestName = string.Join(",", data.Select(x => x.InvoiceId));
@@ -1411,6 +1471,8 @@ else
     }
     private async Task CloseFeeheadPopup()
     {
+        transportSelectMonthlist.Clear();
+        feeHeadDropdownlist.Clear();
         ShowPopupAddFeehead = false;
         StateHasChanged();
     }
@@ -1545,15 +1607,22 @@ else
     {
         try
         {
-            searchAny.GroupCode = groupcode;
-            searchAny.BranchCode = branchcode;
-            searchAny.SessionId = CurrentSession;
-            var response = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", searchAny);
-            if (response.Data.Count != 0 && response.Success)
+
+            gridRequest.GroupCode = groupcode;
+            gridRequest.BranchCode = branchcode;
+            gridRequest.SessionId = CurrentSession;
+            gridRequest.FeeHeadType = null;
+            gridRequest.FeeHeadId = 0;
+            var selecyttemplateId=moduleQuery.Where(x=>x.IsSelected).ToList();
+            if (selecyttemplateId.Count == 0)
             {
-                feeHeadDropdownlist = response.Data ?? new();
+                await Alert.ShowWarning("Please select a student");
                 StateHasChanged();
+                return;
             }
+            gridRequest.TemplateId = selecyttemplateId[0].TemplateId;
+            feeHeadDropdownlist = await httpService.Post<List<ClassFeeHeadsModel>>("ViewTemplateFeeHead/GetFeeHeadsMappedWithTemplateList", gridRequest);
+         
             var data = moduleQuery.Where(x => x.IsSelected).Select(x => x.StudentId).FirstOrDefault();
             if (data == 0)
             {
@@ -1658,7 +1727,7 @@ else
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-3 ">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="@SelectInvtypeId" @bind-Value:after="OpenStudentInvoicePreview">
-                                    <option  value="" selected>--Select--</option>
+                                    <option value="" selected>--Select--</option>
                                     @foreach (var data in InvoiceTypelist)
                                     {
                                         <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
@@ -1791,7 +1860,7 @@ else
                                                 </tr>
                                             </tfoot>
                                         </table>
-                       
+
                                     </div>
                                 </div>
                             </div>
