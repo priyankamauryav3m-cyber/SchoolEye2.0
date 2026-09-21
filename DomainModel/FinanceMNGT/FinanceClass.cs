@@ -1892,6 +1892,7 @@ namespace DomainModel.FinanceMNGT
         public decimal TotalAmount { get; set; }
         public decimal TotalConcession { get; set; }
         public decimal ReceivedAmount { get; set; }
+        public int IsTransportRequired { get; set; }
 
 
     }
@@ -1919,6 +1920,8 @@ namespace DomainModel.FinanceMNGT
         public long FeeHeadId { get; set; }
         public string FeeHeadName { get; set; } = string.Empty;
         public decimal Amount { get; set; }
+        public string? FeeHeadType { get; set; }
+        public string? FeeApplicableType { get; set; }
     }
     public class TransportSelectMonthModel
     {
@@ -2096,6 +2099,7 @@ namespace DomainModel.FinanceMNGT
     public class StudentLedgerChallanMiniDetailsResponse
     {
         public string? StudentNo { get; set; }
+        public long StudentId { get; set; }
         public string? ControlNo { get; set; }
         public string? StudentName { get; set; }
         public string? ClassCode { get; set; }
@@ -2125,6 +2129,7 @@ namespace DomainModel.FinanceMNGT
         public string? InvoiceNo { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal TotalConcession { get; set; }
+        public decimal TotalWaiveOff { get; set; }
         public long PeriodId { get; set; }
         public int Ch_Status { get; set; }
         public string? PeriodName { get; set; }
@@ -2133,10 +2138,55 @@ namespace DomainModel.FinanceMNGT
         public string? ClassSection { get; set; }
         public long InvoiceId { get; set; }
     }
+    public class StudentReceiptsRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+    }
+
+    public class StudentReceiptsResponse
+    {
+        public long StudentId { get; set; }
+        public int ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public DateTime ReceiptDate { get; set; }
+        public decimal ReceiptAmount { get; set; }
+        public decimal LateFee { get; set; }
+        public int ReceiptType { get; set; }
+        public int Status { get; set; }
+        public int IsActive { get; set; }
+        public string? PaymentMode { get; set; }
+    }
 
     #endregion
 
-
+    public class InvoiceFeeheadMonthNoResponse
+    {
+        public long StudentId { get; set; }
+        public int FeeHeadId { get; set; }
+        public int MonthNo { get; set; }
+        public string? FeeHeadName { get; set; }
+        public string? FeeApplicableType { get; set; }
+    }
+    public class InvoiceFeeheadMonthNoRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+        public int FeeHeadId { get; set; }
+    }
+    public class ApplyStudentConcessionOnChallanRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public int InvoiceId { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? Narration { get; set; }
+    }
 
 }
 

@@ -14,7 +14,7 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<List<InvoiceTypeModel>> GetInvoiceTypeList();
         public Task<IEnumerable<StudentClassModal>> GetStudentsByClassAsync(SearchAnyRequestModel searchAnyRequest);
         public Task<IEnumerable<StudentDuesModel>> GetStudentInvoiceDuesData(StudentInvoiceDuesRequest request);
-        public Task<IEnumerable<SearchStudentBalanceDto>> GetStudentAdvanceBalanceData(SearchStudentBalanceDto request);
+        public Task<IEnumerable<SearchStudentBalanceDto>> GetStudentGenerateInvoiceFee(SearchStudentBalanceDto request);
         public Task<int> StudentUpdateChallanDueDate(ChallanDueDateModal request);
 
         Task<IEnumerable<InvoiceDetailsResponse>> GetInvoiceDetailsAsync(SearchAnyRequestModel RequestModel);
@@ -22,6 +22,8 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<IEnumerable<TransportSelectMonthModel>> GetMonthWithTranspoet(SearchAnyRequestModel searchAnyRequest);
         public Task<int> AddFeeHeadToStudentChallanData(FeeHeadToStudentChallan request);
         public Task<int> RemoveFeeHeadToStudentChallanData(FeeHeadToStudentChallan request);
+        public Task<int> ApplyStudentConcessionOnChallanData(ApplyStudentConcessionOnChallanRequest request);
+        Task<IEnumerable<InvoiceFeeheadMonthNoResponse>> GetInvoiceFeeheadMonthNo(InvoiceFeeheadMonthNoRequest request);
 
     }
 }

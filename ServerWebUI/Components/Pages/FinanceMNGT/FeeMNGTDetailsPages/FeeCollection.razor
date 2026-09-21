@@ -23,8 +23,14 @@
 
 
 <style>
+    
     .quickgrid thead th:last-child {
         min-width: 70px;
+    }
+
+    .grid-box {
+        height: calc(85vh - 250px);
+        min-height: 250px;
     }
 
     .quickgrid thead th:nth-last-child(2) {
@@ -49,8 +55,13 @@
         font-size: 15px;
     }
 
+    .text-muted {
+        font-weight: 500;
+    }
+
     .student-sub {
-        font-size: 12.5px;
+        font-weight: 500;
+        font-size: 13px;
         color: #6c757d;
     }
 
@@ -235,7 +246,7 @@
         top: 100%;
         left: 0;
         right: 0;
-        margin-top: 4px;
+        margin-top: 2px;
         border: 1px solid #d9d9d9;
         border-radius: 8px;
         background: #fff;
@@ -243,6 +254,8 @@
         overflow-y: auto;
         box-shadow: 0 8px 20px rgba(0,0,0,.15);
         z-index: 2000;
+            width: 50%;
+                   margin-left: 41.5%;
     }
 
     .student-suggest-item {
@@ -585,6 +598,11 @@
             margin: 0;
         }
 
+        .fee-module-content .ledger-pane .module-section {
+            height: 100%;
+            margin: 0;
+        }
+
         .fee-module-content .module-caption {
             font-size: 12px;
             color: var(--m-muted);
@@ -650,6 +668,64 @@
             grid-template-columns: 1fr 1fr;
         }
     }
+
+    .module-section-head {
+        padding: 13px 16px;
+        border-bottom: 1px solid #eef1f5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+        .module-section-head h6 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .module-section-head span {
+            color: #94a3b8;
+            font-size: 12.5px;
+        }
+     .module-section-head.no-border {
+    border-bottom: none;
+     }
+    .empty-state {
+        min-height: 240px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px 20px;
+    }
+
+    .empty-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: #eaf3fb;
+        color: #177a9b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 12px;
+        font-size: 20px;
+    }
+
+    .empty-state strong {
+        display: block;
+        font-size: 14px;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+
+    .empty-state div div {
+        color: #94a3b8;
+        font-size: 13px;
+    }
+   
 </style>
 
 <div class="main-container">
@@ -1102,9 +1178,7 @@
                         <div class="tab-content form-tab-count">
                             <div class="row gap-10-0 m-0">
                                 <div class="col-12 p-1">
-                                    <div class="page-heading d-flex align-items-center justify-content-between">
-
-                                       
+                                    <div class="page-heading d-flex align-items-center justify-content-end gap-4">
                                         <div class="form-box">
                                             <select class="form-input" @bind="CurrentSession">
                                                 @foreach (var s in sessionlist.Where(x => x.IsValid))
@@ -1121,7 +1195,10 @@
                                             <div class="student-suggest-box-popup">
                                                 @if (ledgerFilteredSuggestions.Count == 0)
                                                 {
-                                                    <div class="student-suggest-empty">No matching student found.</div>
+                                                    <div class="student-suggest-empty">
+                                                        No matching student found.
+
+                                                    </div>
                                                 }
                                                 else
                                                 {
@@ -1147,20 +1224,14 @@
                                                         </div>
                                                     }
                                                 }
+
                                             </div>
                                         }
 
                                         <div class="form-box">
-                                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchLedgerStudent">
-                                                <div class="visible content justify-content-center">Search</div>
-                                                <div class="hidden content">
-                                                    <i class="bi bi-search"></i>
-                                                </div>
-                                            </button>
+                                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchLedgerStudent"><div class="visible content justify-content-center">Search</div><div class="hidden content"><i class="bi bi-search"></i></div></button>
                                         </div>
-
                                     </div>
-
                                 </div>
                                 <div class="col-12 p-1">
                                     <div class="card">
@@ -1170,8 +1241,14 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="student-avatar" style="background:#e5e7eb;color:#6b7280;">?</div>
                                                     <div>
-                                                        <div class="student-name">No student selected</div>
-                                                        <div class="student-sub">Search and select a student to view fee details.</div>
+                                                        <div class="student-name">
+                                                            No student selected
+
+                                                        </div>
+                                                        <div class="student-sub">
+                                                            Search and select a student to view fee details.
+
+                                                        </div>
                                                     </div>
                                                 </div>
                                             }
@@ -1191,31 +1268,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-12 ">
-                                    @if (!IsLedgerStudentSelected)
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="student-avatar" style="background:#e5e7eb;color:#6b7280;">?</div>
-                                            <div>
-                                                <div class="student-name">No student selected</div>
-                                                <div class="student-sub">Search and select a student to view fee details.</div>
-                                            </div>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="student-avatar">@GetInitials(selectedLedgerStudent?.StudentName)</div>
-                                            <div>
-                                                <div class="student-name">@selectedLedgerStudent?.StudentName</div>
-                                                <div class="student-sub">
-                                                    Admission no. @selectedLedgerStudent?.ControlNo &nbsp;&middot;&nbsp; Class @selectedLedgerStudent?.ClassSection &nbsp;&middot;&nbsp; Father: @selectedLedgerStudent?.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedLedgerStudent?.FatherContactNo
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                                <div class="col-12">
+
+                                <div class="col-12 p-1">
                                     <div class="dashboard-card">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 class="card-title-custom mb-0">
@@ -1223,39 +1277,49 @@
                                             </h5>
                                             <span class="text-muted small">All amounts in INR</span>
                                         </div>
-                                        <div class="row g-3">
+                                      <div class="row g-3">
                                             <div class="col-6 col-md-3">
                                                 <div class="text-muted small mb-1">Total fee due</div>
-                                                <div class="metric-box"><span>&#8377;</span><strong>12,85,36,473.00</strong></div>
-                                            </div>
-                                            <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Total concession</div>
-                                                <div class="metric-box"><span>&#8377;</span><strong>2,87,270.00</strong></div>
-                                            </div>
-                                            <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Total waive off</div>
-                                                <div class="metric-box"><span>&#8377;</span><strong>5,000.00</strong></div>
-                                            </div>
-                                            <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Late fine</div>
-                                                <div class="metric-box"><span>&#8377;</span><strong>0.00</strong></div>
+                                                <div class="metric-box metric-blue"><span>&#8377;</span><strong>@TotalfeeAmount.ToString("N2")</strong></div>
                                             </div>
 
                                             <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Total received</div>
-                                                <div class="metric-box metric-box-green"><span>&#8377;</span><strong>12,24,841.00</strong></div>
+                                                <div class="text-muted small mb-1">waive off</div>
+                                                <div class="metric-box metric-orange"><span>&#8377;</span><strong>@TotalWaiveOff.ToString("N2")</strong></div>
                                             </div>
                                             <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Total outstanding</div>
-                                                <div class="metric-box metric-box-dark"><span>&#8377;</span><strong>12,70,28,422.00</strong></div>
+                                                <div class="text-muted small mb-1">Adv. Approved</div>
+                                                <div class="metric-box metric-purple"><span>&#8377;</span><strong>0.00</strong></div>
+                                            </div>
+
+                                            <div class="col-6 col-md-3">
+                                                <div class="text-muted small mb-1">Adj. Approved</div>
+                                                <div class="metric-box metric-green"><span>&#8377;</span><strong>12,24,841.00</strong></div>
                                             </div>
                                             <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Pre-session advance</div>
-                                                <div class="metric-box"><span>&#8377;</span><strong>1,485.00</strong></div>
+                                                <div class="text-muted small mb-1">Balance</div>
+                                                <div class="metric-box metric-red"><span>&#8377;</span><strong>@BalanceAmount.ToString("N2")</strong></div>
                                             </div>
                                             <div class="col-6 col-md-3">
-                                                <div class="text-muted small mb-1">Current advance</div>
-                                                <div class="metric-box"><span>&#8377;</span><strong>-5,545.00</strong></div>
+                                                <div class="text-muted small mb-1">Received</div>
+                                                <div class="metric-box metric-teal"><span>&#8377;</span><strong>@TotalReceivedAmount.ToString("N2")</strong></div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <div class="text-muted small mb-1">Total Late Fee</div>
+                                                <div class="metric-box metric-amber"><span>&#8377;</span><strong>@TotalLateFee.ToString("N2")</strong></div>
+                                            </div>
+
+                                            <div class="col-6 col-md-3">
+                                                <div class="text-muted small mb-1">Refunded Amt.</div>
+                                                <div class="metric-box metric-pink"><span>&#8377;</span><strong>-5,545.00</strong></div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <div class="text-muted small mb-1">Total Fee</div>
+                                                <div class="metric-box metric-indigo"><span>&#8377;</span><strong>@TotalfeeAmount.ToString("N2")</strong></div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <div class="text-muted small mb-1">Total Concession</div>
+                                                <div class="metric-box metric-cyan"><span>&#8377;</span><strong>@TotalStudentConcession.ToString("N2")</strong></div>
                                             </div>
                                         </div>
                                     </div>
@@ -1265,59 +1329,119 @@
                                     <div class="card h-100">
                                         <div class="card-body table-card p-0">
                                             <div class="quick-main">
-
-                                                <div class="grid-box">
-                                                    <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
-
-                                                        <TemplateColumn Title="Feehead" Align="Align.Left">
-                                                            <ChildContent>
-                                                                @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
-                                                            </ChildContent>
-                                                            <ColumnOptions>
-                                                                <div class="search-box">
-                                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Feehead name..." />
-                                                                </div>
-                                                            </ColumnOptions>
-                                                        </TemplateColumn>
-                                                        <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.MonthDisplay)" Title="Month">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount">
-
-                                                        </PropertyColumn>
-
-                                                        <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.Concession)" Title="Concession" />
-                                                        <PropertyColumn Property="@(x => x.WaiveOff)" Title="Waive Off" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Title="Payable" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Title="Paying" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-
-                                                        <TemplateColumn Title="Status" Align="Align.Center">
-                                                            <ChildContent>
-                                                                <div class="text-center">
-                                                                    <button type="button"
-                                                                            class="btn btn-link text-danger p-0"
-                                                                            title="Delete">
-                                                                        <i class="bi bi-trash-fill"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </ChildContent>
-                                                        </TemplateColumn>
-
-                                                    </QuickGrid>
+                                                <div class="module-section-head @(studentChallanlist.Any(x => x.InvoiceId != null && x.InvoiceId != 0) ? "no-border" : "")">
+                                                    <h6>Invoice Details</h6>
+                                                    <span>
+                                                        @(studentChallanlist?.Any() == true ? $"{studentChallanlist.Count()} invoices" : "No invoices")
+                                                    </span>
                                                 </div>
-                                                <div class="footer-pagination mt-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="welcome-text w-100">
-                                                            <Paginator State="@pagination" />
+
+                                                @if (studentChallanlist.Any(x => x.InvoiceId != null && x.InvoiceId != 0))
+                                                {
+                                                    <div class="grid-box">
+                                                        <QuickGrid Items="@studentinvoicemoduleQuery" Pagination="@studentinvoivepagination" Class="table">
+
+                                                            <TemplateColumn Title="Invoice No" class="text-center" Align="Align.Center">
+                                                                <ChildContent>
+                                                                    @(string.IsNullOrWhiteSpace(context.InvoiceNo) ? " " : context.InvoiceNo)
+                                                                </ChildContent>
+                                                                <ColumnOptions>
+                                                                    <div class="search-box">
+                                                                        <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Invoice no..." />
+                                                                    </div>
+                                                                </ColumnOptions>
+                                                            </TemplateColumn>
+                                                            <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.PeriodName)" Title="Period">
+                                                            </PropertyColumn>
+                                                            <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.TotalAmount)" Title="Amount">
+                                                            </PropertyColumn>
+
+                                                            <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.TotalConcession)" Title="Concession" />
+
+                                                        </QuickGrid>
+                                                    </div>
+                                                    <div class="footer-pagination mt-3">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="welcome-text w-100">
+                                                                <Paginator State="@studentinvoivepagination" />
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="empty-state">
+                                                        <div>
+                                                            <div class="empty-icon">
+                                                                <i class="bi bi-file-earmark-text"></i>
+                                                            </div>
+                                                            <strong>No invoices recorded</strong>
+                                                            <div>Generated invoices will appear here.</div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-4 p-1">
+                                    <div class="card h-100">
+                                        <div class="card-body table-card p-0">
+                                            <div class="quick-main">
+                                                <div class="module-section-head">
+                                                    <h6>Student receipts</h6>
+                                                    <span>
+                                                        @(studentReceiptllist?.Any() == true ? $"{studentReceiptllist.Count()} receipts" : "No receipts")
+                                                    </span>
                                                 </div>
+                                                @if (studentReceiptllist.Count() > 0)
+                                                {
+                                                    <div class="grid-box">
+                                                        <QuickGrid Items="@StudentreceiptmoduleQuery" Pagination="@Studentreceiptpagination" Class="table">
+
+                                                            <TemplateColumn Title="Receipt No." class="text-center" Align="Align.Center">
+                                                                <ChildContent>
+                                                                    @(string.IsNullOrWhiteSpace(context.ReceiptNo) ? " " : context.ReceiptNo)
+                                                                </ChildContent>
+                                                                <ColumnOptions>
+                                                                    <div class="search-box">
+                                                                        <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Receipt no..." />
+                                                                    </div>
+                                                                </ColumnOptions>
+                                                            </TemplateColumn>
+                                                            <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.ReceiptDate)" Title="Rec Date">
+
+                                                            </PropertyColumn>
+                                                            <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.ReceiptAmount)" Title="Rec Amount">
+
+                                                            </PropertyColumn>
+
+                                                            <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.LateFee)" Title="Late Fee" />
+                                                            
+                                                        </QuickGrid>
+                                                    </div>
+                                                    <div class="footer-pagination mt-3">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="welcome-text w-100">
+                                                                <Paginator State="@Studentreceiptpagination" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="empty-state">
+                                                        <div>
+                                                            <div class="empty-icon">
+                                                                <i class="bi bi-receipt"></i>
+                                                            </div>
+                                                            <strong>No receipts recorded</strong>
+                                                            <div>Collected payments will appear here.</div>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                
 
 
                                             </div>
@@ -1330,126 +1454,82 @@
                                     <div class="card h-100">
                                         <div class="card-body table-card p-0">
                                             <div class="quick-main">
-
-                                                <div class="grid-box">
-                                                    <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
-
-                                                        <TemplateColumn Title="Feehead" Align="Align.Left">
-                                                            <ChildContent>
-                                                                @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
-                                                            </ChildContent>
-                                                            <ColumnOptions>
-                                                                <div class="search-box">
-                                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Feehead name..." />
-                                                                </div>
-                                                            </ColumnOptions>
-                                                        </TemplateColumn>
-                                                        <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.MonthDisplay)" Title="Month">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount">
-
-                                                        </PropertyColumn>
-
-                                                        <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.Concession)" Title="Concession" />
-                                                        <PropertyColumn Property="@(x => x.WaiveOff)" Title="Waive Off" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Title="Payable" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Title="Paying" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-
-                                                        <TemplateColumn Title="Status" Align="Align.Center">
-                                                            <ChildContent>
-                                                                <div class="text-center">
-                                                                    <button type="button"
-                                                                            class="btn btn-link text-danger p-0"
-                                                                            title="Delete">
-                                                                        <i class="bi bi-trash-fill"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </ChildContent>
-                                                        </TemplateColumn>
-
-                                                    </QuickGrid>
+                                                <div class="module-section-head">
+                                                    <h6>Bank receipts</h6>
+                                                    <span>
+                                                        @(studentReceiptllist?.Any() == true ? $"{studentReceiptllist.Count()} receipts" : "No receipts")
+                                                    </span>
                                                 </div>
-                                                <div class="footer-pagination mt-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="welcome-text w-100">
-                                                            <Paginator State="@pagination" />
+                                                @if (studentReceiptllist.Count() > 0)
+                                                {
+                                                    <div class="grid-box">
+                                                        <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+
+                                                            <TemplateColumn Title="Feehead" Align="Align.Left">
+                                                                <ChildContent>
+                                                                    @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                                </ChildContent>
+                                                                <ColumnOptions>
+                                                                    <div class="search-box">
+                                                                        <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Feehead name..." />
+                                                                    </div>
+                                                                </ColumnOptions>
+                                                            </TemplateColumn>
+                                                            <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.MonthDisplay)" Title="Month">
+
+                                                            </PropertyColumn>
+                                                            <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount">
+
+                                                            </PropertyColumn>
+
+                                                            <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.Concession)" Title="Concession" />
+                                                            <PropertyColumn Property="@(x => x.WaiveOff)" Title="Waive Off" Align="Align.Center" class="text-right">
+
+                                                            </PropertyColumn>
+                                                            <PropertyColumn Title="Payable" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
+
+                                                            </PropertyColumn>
+                                                            <PropertyColumn Title="Paying" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
+
+                                                            </PropertyColumn>
+
+                                                            <TemplateColumn Title="Status" Align="Align.Center">
+                                                                <ChildContent>
+                                                                    <div class="text-center">
+                                                                        <button type="button"
+                                                                                class="btn btn-link text-danger p-0"
+                                                                                title="Delete">
+                                                                            <i class="bi bi-trash-fill"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </ChildContent>
+                                                            </TemplateColumn>
+
+                                                        </QuickGrid>
+                                                    </div>
+                                                    <div class="footer-pagination mt-3">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="welcome-text w-100">
+                                                                <Paginator State="@pagination" />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                </div>
-                                <div class="col-12 col-lg-4 p-1">
-                                    <div class="card h-100">
-                                        <div class="card-body table-card p-0">
-                                            <div class="quick-main">
-
-                                                <div class="grid-box">
-                                                    <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
-
-                                                        <TemplateColumn Title="Feehead" Align="Align.Left">
-                                                            <ChildContent>
-                                                                @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
-                                                            </ChildContent>
-                                                            <ColumnOptions>
-                                                                <div class="search-box">
-                                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Feehead name..." />
-                                                                </div>
-                                                            </ColumnOptions>
-                                                        </TemplateColumn>
-                                                        <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.MonthDisplay)" Title="Month">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount">
-
-                                                        </PropertyColumn>
-
-                                                        <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.Concession)" Title="Concession" />
-                                                        <PropertyColumn Property="@(x => x.WaiveOff)" Title="Waive Off" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Title="Payable" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-                                                        <PropertyColumn Title="Paying" Property="@(x => x.Payable)" Align="Align.Center" class="text-right">
-
-                                                        </PropertyColumn>
-
-                                                        <TemplateColumn Title="Status" Align="Align.Center">
-                                                            <ChildContent>
-                                                                <div class="text-center">
-                                                                    <button type="button"
-                                                                            class="btn btn-link text-danger p-0"
-                                                                            title="Delete">
-                                                                        <i class="bi bi-trash-fill"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </ChildContent>
-                                                        </TemplateColumn>
-
-                                                    </QuickGrid>
-                                                </div>
-                                                <div class="footer-pagination mt-3">
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="welcome-text w-100">
-                                                            <Paginator State="@pagination" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="empty-state">
+                                                        <div>
+                                                            <div class="empty-icon">
+                                                                <i class="bi bi-bank"></i>
+                                                            </div>
+                                                            <strong>No bank receipts</strong>
+                                                            <div>Verified bank payments will appear here.</div>
                                                         </div>
                                                     </div>
-                                                </div>
+                                                }
 
-
+                                       
                                             </div>
 
                                         </div>
@@ -2001,28 +2081,6 @@ else
 <CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
-    // ---------------------------------------------------------------------
-    // ASSUMPTIONS (Ledger popup search - completed in this pass):
-    // - StudentFee/GetStudentLedgerChallanMiniDetails is assumed to be
-    //   wrapped in ApiResponse<List<T>>, matching every other endpoint in
-    //   this project (no controller code was given for this endpoint -
-    //   adjust if it actually returns the raw list).
-    // - Student No. search sends ControlNo only (StudentName empty) and is
-    //   expected to return at most one match, which auto-selects. Student
-    //   Name search sends StudentName only (ControlNo empty) and can
-    //   return several, shown in the same student-suggest-box pattern
-    //   used elsewhere on this page.
-    // - "Mobile No" in the ledger toolbar is bound to FatherContactNo,
-    //   since that is the only phone-like field on
-    //   StudentLedgerChallanMiniDetailsResponse.
-    // - LedgerSessionId defaults to 0 until a session is picked in this
-    //   popup; if left unset, the search falls back to the page's own
-    //   CurrentSession.
-    // - The dashboard-card metrics, Challan details table, and Student/
-    //   Bank receipts panes remain static placeholders - no API was given
-    //   for that financial data, only for the student-search endpoint
-    //   above, so only the search/select part is now wired to real data.
-    // ---------------------------------------------------------------------
 
     private string SelectedPaymentMode { get; set; } = "Cash";
     private decimal CashPaymentAmount { get; set; }
@@ -2062,7 +2120,9 @@ else
     private List<SessionModel> sessionlist = new();
     private List<MonthModel> MonthList = new();
     private List<MonthModel> transportMonths = new();
-    PaginationState pagination = new() { ItemsPerPage = 30 };
+    PaginationState pagination = new() { ItemsPerPage = 20 };
+    PaginationState studentinvoivepagination = new() { ItemsPerPage = 10 };
+    PaginationState Studentreceiptpagination = new() { ItemsPerPage = 10 };
     private bool ShowLedgerPopup = false;
     private bool ShowTransportPopup = false;
     private bool ShowConcessionPopup = false;
@@ -2078,6 +2138,8 @@ else
     private string ledgerSearchInputKey = Guid.NewGuid().ToString();
     private bool ShowLedgerSuggestions = false;
     private List<StudentLedgerChallanMiniDetailsResponse> ledgerFilteredSuggestions = new();
+    private List<StudentReceiptsResponse> studentReceiptllist = new();
+    private List<StudentChallanResponse> studentChallanlist = new();
     private StudentLedgerChallanMiniDetailsResponse? selectedLedgerStudent;
     private bool IsLedgerStudentSelected = false;
 
@@ -2088,8 +2150,27 @@ else
             CashPaymentAmount = TotalPayable;
         }
     }
-
-    private void OpenLedgerPopup() { ShowLedgerPopup = true; StateHasChanged(); }
+    private decimal TotalfeeAmount => studentChallanlist.Sum(x => x.TotalAmount);
+    private decimal TotalWaiveOff => studentChallanlist.Sum(x => x.TotalWaiveOff);
+    private decimal TotalStudentConcession => studentChallanlist.Sum(x => x.TotalConcession);
+    private decimal TotalReceivedAmount => studentReceiptllist.Sum(x => x.ReceiptAmount);
+    private decimal TotalLateFee => studentReceiptllist.Sum(x => x.LateFee);
+    private decimal BalanceAmount => TotalfeeAmount - TotalReceivedAmount;
+    private async Task OpenLedgerPopup()
+    {
+          IsLoading = true;
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await Alert.ShowWarning("Student name or student no. can not be blank.");
+            StateHasChanged();
+             IsLoading = false;
+            return;
+        }
+        ledgerSearchTerm = searchTerm;
+        await SearchLedgerStudent();
+        ShowLedgerPopup = true;
+        IsLoading = false;
+    }
     private void CloseLedgerPopup() { ShowLedgerPopup = false; StateHasChanged(); }
 
     private async Task HandleLedgerSearchKeyDown(KeyboardEventArgs e)
@@ -2102,6 +2183,8 @@ else
 
     private void OnLedgerSearchTermChanged()
     {
+        studentReceiptllist.Clear();
+        studentChallanlist.Clear();
         ShowLedgerSuggestions = false;
         ledgerFilteredSuggestions = new();
         selectedLedgerStudent = null;
@@ -2142,13 +2225,9 @@ else
     {
         try
         {
-            var response = await httpService.Post<ApiResponse<List<StudentLedgerChallanMiniDetailsResponse>>>(
-                "StudentFee/GetStudentLedgerChallanMiniDetails", request);
 
-            var results = (response != null && response.Success && response.Data != null)
-                ? response.Data
-                : new();
-
+            var response = await httpService.Post<ApiResponse<List<StudentLedgerChallanMiniDetailsResponse>>>("StudentFee/GetStudentLedgerChallanMiniDetails", request);
+            var results = (response != null && response.Success && response.Data != null) ? response.Data : new();
             if (results.Count == 0)
             {
                 ledgerFilteredSuggestions = new();
@@ -2157,7 +2236,8 @@ else
             }
             else if (results.Count == 1)
             {
-                SelectLedgerStudent(results[0]);
+                await SelectLedgerStudent(results[0]);
+
             }
             else
             {
@@ -2174,14 +2254,98 @@ else
         }
     }
 
-    private void SelectLedgerStudent(StudentLedgerChallanMiniDetailsResponse item)
+
+    private async Task SelectLedgerStudent(StudentLedgerChallanMiniDetailsResponse item)
     {
+        studentReceiptllist.Clear();
+        studentChallanlist.Clear();
         selectedLedgerStudent = item;
         IsLedgerStudentSelected = true;
         ShowLedgerSuggestions = false;
         ledgerSearchTerm = item.StudentName;
         ledgerSearchInputKey = Guid.NewGuid().ToString();
         StateHasChanged();
+        await GetStudentInvoiceDetails();
+        await GetSearchStudentreceipt();
+    }
+    private async Task GetStudentInvoiceDetails()
+    {
+        try
+        {
+            var request = new StudentChallanRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                StudentId = selectedLedgerStudent.StudentId
+            };
+            var response = await httpService.Post<ApiResponse<List<StudentChallanResponse>>>("StudentFee/GetStudentChallan", request);
+
+            if (response.Success && response.Code == 1)
+            {
+                studentChallanlist = response.Data ?? new();
+            }
+
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching student ledger details: {ex.Message}");
+        }
+    }
+    protected IQueryable<StudentChallanResponse> studentinvoicemoduleQuery
+    {
+        get
+        {
+            var result = studentChallanlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.PeriodName != null && x.PeriodName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.InvoiceNo != null && x.InvoiceNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
+    }
+    private async Task GetSearchStudentreceipt()
+    {
+        try
+        {
+            var request = new StudentReceiptsRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                StudentId = selectedLedgerStudent.StudentId
+            };
+            var response = await httpService.Post<ApiResponse<List<StudentReceiptsResponse>>>("StudentFee/GetStudentReceipts", request);
+
+            if (response.Success && response.Code == 1)
+            {
+                studentReceiptllist = response.Data ?? new();
+            }
+
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching student ledger details: {ex.Message}");
+        }
+    }
+    protected IQueryable<StudentReceiptsResponse> StudentreceiptmoduleQuery
+    {
+        get
+        {
+            var result = studentReceiptllist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.ReceiptNo != null && x.ReceiptNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+
+            }
+            return result;
+        }
     }
 
     private void OpenTransportPopup() { ShowTransportPopup = true; StateHasChanged(); }

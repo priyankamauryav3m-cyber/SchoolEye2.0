@@ -192,6 +192,27 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
+        public async Task<IEnumerable<StudentReceiptsResponse>> GetStudentReceipts(StudentReceiptsRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                return await con.QueryAsync<StudentReceiptsResponse>(
+                    "V3M_FIN_UspGetStudentReceipts",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
 
 
     }
