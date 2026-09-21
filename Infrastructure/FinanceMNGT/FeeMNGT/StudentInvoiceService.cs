@@ -179,7 +179,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw new Exception($"Error: {ex.Message}", ex);
             }
         }
-        public async Task<IEnumerable<SearchStudentBalanceDto>> GetStudentAdvanceBalanceData(SearchStudentBalanceDto request)
+        public async Task<IEnumerable<SearchStudentBalanceDto>> GetStudentGenerateInvoiceFee(SearchStudentBalanceDto request)
         {
             try
             {
@@ -247,6 +247,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 param.Add("@GroupCode", searchAnyRequest.GroupCode);
                 param.Add("@BranchCode", searchAnyRequest.BranchCode);
                 param.Add("@SessionId", searchAnyRequest.SessionId);
+                param.Add("@TemplateId", searchAnyRequest.RequestId);
                 var result = await con.QueryAsync<FeeHeadDropdownModel>("USP_GetFeeCollectionConfig", param);
                 return result.ToList();
             }
@@ -331,7 +332,55 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw new Exception("Unexpected error while adding Fee Head to Student Challan.", ex);
             }
         }
+        public async Task<IEnumerable<InvoiceFeeheadMonthNoResponse>> GetInvoiceFeeheadMonthNo(InvoiceFeeheadMonthNoRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@FeeHeadId", request.FeeHeadId);
 
+                return await con.QueryAsync<InvoiceFeeheadMonthNoResponse>(
+                    "Usp_EditInvoiceFeeheadMonthNoUpdate",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<int> ApplyStudentConcessionOnChallanData(ApplyStudentConcessionOnChallanRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@InvoiceId", request.InvoiceId);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@Narration", request.Narration);
+                param.Add("@ResultValue", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                var result = await con.ExecuteAsync(
+                     "V3M_FIN_UspApplyStudentConcessionOnChallan",
+                     param,
+                     commandType: CommandType.StoredProcedure);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
 
     }
 }

@@ -175,16 +175,16 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
             {
                 Success = true,
                 Data = base64Pdf,
-                Message = "PDFList generated successfully"
+                Message = "List generated successfully"
             });
         }
 
-        [HttpPost("GetStudentAdvanceBalance")]
+        [HttpPost("GetStudentGenerateInvoiceFee")]
         public async Task<IActionResult> GetStudentAdvanceDuesData(SearchStudentBalanceDto request)
         {
             try
             {
-                var resultlist = await _service.GetStudentAdvanceBalanceData(request);
+                var resultlist = await _service.GetStudentGenerateInvoiceFee(request);
                 if (resultlist == null || !resultlist.Any())
                 {
                     return Ok(new ApiResponse<IEnumerable<SearchStudentBalanceDto>>
@@ -307,7 +307,7 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 return StatusCode(500, ApiResponse<string>.Fail($"An error occurred: {ex.Message}"));
 
             }
-            
+
 
         }
         [HttpPost("GetTransportMonthWithStudent")]
@@ -421,8 +421,146 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                         Success = false,
                         Code = 500,
                         Message = ex.Message
+                    }
+                );
+
+            }
+        }
+        [HttpPost("GetInvoiceFeeheadMonthNo")]
+        public async Task<IActionResult> GetInvoiceFeeheadMonthNo([FromBody] InvoiceFeeheadMonthNoRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+
+            try
+            {
+                var data = await _service.GetInvoiceFeeheadMonthNo(request);
+
+                if (data == null || !data.Any())
+                {
+                    return Ok(new ApiResponse<IEnumerable<InvoiceFeeheadMonthNoResponse>>
+                    {
+                        Success = true,
+                        Message = "No records found.",
+                        Code = 0,
+                        Data = Enumerable.Empty<InvoiceFeeheadMonthNoResponse>()
+                    });
+                }
+
+                return Ok(new ApiResponse<IEnumerable<InvoiceFeeheadMonthNoResponse>>
+                {
+                    Success = true,
+                    Message = "Invoice fee head month details retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the invoice fee head month details.",
+                    Code = -1
+                });
+            }
+        }
+        [HttpPost("ApplyStudentConcessionOnChallan")]
+        public async Task<IActionResult> ApplyStudentConcessionOnChallanData([FromBody] ApplyStudentConcessionOnChallanRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+            try
+            {
+                int result = await _service.ApplyStudentConcessionOnChallanData(request);
+
+                return result switch
+                {
+                    1 => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invoice not found.",
+                        Code = result
+                    }),
+
+                    2 => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invoice is not in an active status.",
+                        Code = result
+                    }),
+
+                    5 => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "A concession has already been applied to this invoice.",
+                        Code = result
+                    }),
+
+                    6 => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invoice is not eligible for concession.",
+                        Code = result
+                    }),
+
+                    -1 => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Concession could not be applied: computed amount is invalid.",
+                        Code = result
+                    }),
+
+                    -11 => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Concession amount exceeds the fee head amount.",
+                        Code = result
+                    }),
+
+                    10 => Ok(new ApiResponse<object>
+                    {
+                        Success = true,
+                        Message = "Concession applied successfully.",
+                        Code = result
+                    }),
+
+                    _ => Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Challan recalculation failed.",
+                        Code = result
+                    })
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "An error occurred while recalculating the student challans.",
+                        Code = -500
                     });
             }
         }
+
     }
 }

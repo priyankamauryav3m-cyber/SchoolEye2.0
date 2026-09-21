@@ -220,7 +220,7 @@
                         </button>
                     </div>
                     <div class="form-box">
-                        <button type="button" class="table-btn" @onclick="OpenStudentInvoicePreviewAndEdit">
+                        <button type="button" class="table-btn" @onclick="OpenEditInvoice">
                             Edit Invoice
                         </button>
                     </div>
@@ -607,7 +607,7 @@
 
                                 <div class="col-12 mt-2">
                                     <div class="form-box-group">
-                                        <textarea type="text" class="floating-input sms-aria" placeholder=" "></textarea>
+                                        <InputTextArea  class="floating-input sms-aria" @bind-Value="studentConcessionOnChallanRequest.Narration"  placeholder=" "></InputTextArea>
                                         <label class="floating-label text-primary">Narration</label>
                                     </div>
                                 </div>
@@ -644,7 +644,7 @@
                             </div>
 
                             <div class="form-box">
-                                <button type="button" class="table-btn">
+                                <button type="button" class="table-btn" @onclick="ApplyConcessionEditInvoice">
                                     Apply Concession
                                 </button>
                             </div>
@@ -744,7 +744,7 @@
                                                     @foreach (var month in MonthList)
                                                     {
                                                         <label class="sef-month-pill">
-                                                            <input type="checkbox" @bind="month.IsSelected"  />
+                                                            <input type="checkbox" @bind="month.IsSelected" />
                                                             <span>@month.MonthName</span>
                                                         </label>
                                                     }
@@ -778,13 +778,11 @@
                                     {
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
                                             <div class="form-box-group static-label">
-                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="SelectedFeeHeadId" @bind-Value:after="OnFeeHeadChanged">
+                                                <InputSelect class="floating-input" @bind-Value="SelectedFeeHeadId" @bind-Value:after="OnFeeHeadChanged">
                                                     <option value="0" selected>--Select--</option>
-                                                    @foreach (var item in feeHeadDropdownlist.Where(x=>x.FeeHeadName!="Transport"))
+                                                    @foreach (var item in feeHeadDropdownlist.Where(x => x.FeeHeadName != "Transport"))
                                                     {
-                                                        <option value="@item.FeeHeadId">
-                                                            @item.FeeHeadName
-                                                        </option>
+                                                        <option value="@item.FeeHeadId">  @item.FeeHeadName </option>
                                                     }
 
                                                 </InputSelect>
@@ -803,7 +801,7 @@
                                                     @foreach (var month in MonthList)
                                                     {
                                                         <label class="sef-month-pill">
-                                                            <input type="checkbox" @bind="month.IsSelected" disabled="@month.IsDisabled" />
+                                                            <input type="checkbox" @bind="month.IsSelected" disabled="@(month.IsDisabled || (!month.IsSelected && IsMonthLimitReached))" />
                                                             <span>@month.MonthName</span>
                                                         </label>
                                                     }
@@ -880,6 +878,7 @@ else
 
 @code {
     private List<MonthModel> MonthList = new();
+    private List<InvoiceFeeheadMonthNoResponse> monthNoResponseslist = new();
     private async Task OnSessionChanged()
     {
 
@@ -911,7 +910,7 @@ else
         if (IsTransport == true)
         {
             var data = moduleQuery.Where(x => x.IsSelected).ToList();
-            if(data[0].IsTransportRequired !=0)
+            if (data[0].IsTransportRequired != 0)
             {
                 var trans = transportFeelist.FirstOrDefault(x => x.DistanceId == InvoiceMaster.RouteDistance);
                 if (trans != null)
@@ -962,48 +961,86 @@ else
     }
     private async Task OnFeeHeadChanged()
     {
+        var SelectStudentId = moduleQuery.Where(x => x.IsSelected).Select(x => x.StudentId).FirstOrDefault();
+        if (SelectStudentId == 0)
+        {
+            await Alert.ShowWarning("Please select a student!");
+            StateHasChanged();
+            return;
+        }
         var feeHead = feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId);
         SelectedFeeHeadAmount = feeHead?.Amount ?? 0;
+        var request = new InvoiceFeeheadMonthNoRequest
+        {
+            BranchCode = branchcode,
+            GroupCode = groupcode,
+            StudentId = SelectStudentId,
+            SessionId = CurrentSession,
+            FeeHeadId = SelectedFeeHeadId
+        };
+        var response = await httpService.Post<ApiResponse<List<InvoiceFeeheadMonthNoResponse>>>("StudentFeeInvoice/GetInvoiceFeeheadMonthNo", request);
+        if (response.Success && response.Data != null)
+        {
+            monthNoResponseslist = response.Data ?? new();
+        }
         foreach (var month in MonthList)
         {
             month.IsDisabled = false;
             month.IsSelected = false;
         }
-        var feeHeadItems = FeeHeadList.Where(x => x.FeeHeadId == SelectedFeeHeadId).ToList();
+        MaxNewMonths = null;
+        var feeHeadItems = monthNoResponseslist.Where(x => x.FeeHeadId == SelectedFeeHeadId).ToList();
         if (feeHeadItems.Any())
         {
-            var applicableType = feeHeadItems.First().FeeApplicableType;
-            if (applicableType.Equals("Annual", StringComparison.OrdinalIgnoreCase) || applicableType.Equals("OneTime", StringComparison.OrdinalIgnoreCase))
+            foreach (var item in feeHeadItems)
             {
-                foreach (var month in MonthList)
+                var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
+                if (month != null)
                 {
+                    month.IsSelected = true;
                     month.IsDisabled = true;
                 }
-                foreach (var item in feeHeadItems)
-                {
-                    var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
-                    if (month != null)
-                    {
-                        month.IsSelected = true;
-                    }
-                }
             }
-            else
-            {
-                foreach (var item in feeHeadItems)
-                {
-                    var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
-                    if (month != null)
-                    {
-                        month.IsSelected = true;
-                        month.IsDisabled = true;
-                    }
-                }
-            }
+
         }
 
-        await InvokeAsync(StateHasChanged);
+        var applicableType = feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId)?.FeeApplicableType;
+        if (string.Equals(applicableType, "Quarterly", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplyQuarterlyMonthRules();
+        }
+
+        StateHasChanged();
     }
+
+    // Quarterly: each selected month represents one quarter (3 months in session order).
+    // Only the first month of each remaining future quarter stays enabled;
+    // everything up to and including the last already-invoiced quarter is disabled.
+    private void ApplyQuarterlyMonthRules()
+    {
+        const int quarterSize = 3;
+        var existingIndexes = MonthList
+            .Select((m, i) => new { m, i })
+            .Where(x => x.m.IsSelected && x.m.IsDisabled)
+            .Select(x => x.i)
+            .ToList();
+
+        int alignment = existingIndexes.Count > 0 ? existingIndexes[0] % quarterSize : 0;
+        int lastExisting = existingIndexes.Count > 0 ? existingIndexes.Max() : -1;
+
+        for (int i = 0; i < MonthList.Count; i++)
+        {
+            bool isQuarterStart = i % quarterSize == alignment;
+            bool isFuture = i >= lastExisting + quarterSize;
+            if (!(isQuarterStart && isFuture) && !MonthList[i].IsSelected)
+            {
+                MonthList[i].IsDisabled = true;
+            }
+        }
+    }
+    private int? MaxNewMonths;
+    private bool IsMonthLimitReached => MaxNewMonths.HasValue
+        && MonthList.Count(m => m.IsSelected && !m.IsDisabled) >= MaxNewMonths.Value;
     private bool IsTransport;
     private List<TransportFeeConfig> transportFeelist = new();
     private int SelectedFeeHeadId { get; set; }
@@ -1053,6 +1090,7 @@ else
     private int SelectInvtypeId = 0;
     private long CurrentSession;
     private SearchAnyRequestModel searchAny = new();
+    private ApplyStudentConcessionOnChallanRequest studentConcessionOnChallanRequest = new();
     private List<BranchClassModel> classlist = new();
     private List<GenderModal> genderModallist = new();
     private List<SessionModel> sessionlist = new();
@@ -1072,7 +1110,7 @@ else
     private ChallanDueDateModal challanDueDate = new();
     private FeeHeadToStudentChallan feeHeadToStudent = new();
     private List<InvoiceTypeModel> InvoiceTypelist = new();
-    private List<ClassFeeHeadsModel> feeHeadDropdownlist = new();
+    private List<FeeHeadDropdownModel> feeHeadDropdownlist = new();
     private List<TransportSelectMonthModel> transportSelectMonthlist = new();
     private List<InvoiceDetailsResponse> InvoiceList = new();
     private FeeHeadTemplateRequest gridRequest = new();
@@ -1152,7 +1190,7 @@ else
         StateHasChanged();
         try
         {
-            string apiUrl = "StudentFeeInvoice/GetStudentAdvanceBalance";
+            string apiUrl = "StudentFeeInvoice/GetStudentGenerateInvoiceFee";
             var apiResponse = await httpService.Post<ApiResponse<List<SearchStudentBalanceDto>>>(apiUrl, searchModel);
             if (apiResponse.Success)
             {
@@ -1300,11 +1338,28 @@ else
     private async Task GetInvoivetype()
     {
         InvoiceTypelist = await httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList") ?? new();
-        if (InvoiceTypelist.Count > 1)
+        if (InvoiceTypelist.Count > 0)
         {
             SelectInvtypeId = InvoiceTypelist[0].InvoiceTypeId;
-        }        
+        }
     }
+
+    // Edit Invoice button: always start with the first invoice type selected,
+    // because ClosePopup resets SelectInvtypeId to 0.
+    private async Task OpenEditInvoice()
+    {
+        if (InvoiceTypelist.Count == 0)
+        {
+            await GetInvoivetype();
+        }
+        else
+        {
+            SelectInvtypeId = InvoiceTypelist[0].InvoiceTypeId;
+        }
+        await OpenStudentInvoicePreviewAndEdit();
+    }
+
+    private int _lastLoadedInvoiceTypeId;
 
     private async Task OpenStudentInvoicePreviewAndEdit()
     {
@@ -1324,7 +1379,7 @@ else
                 await JS.InvokeVoidAsync("showSelectRecordAlert");
                 return;
             }
-            await GetInvoivetype();
+            // await GetInvoivetype();
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
             searchAny.RequestName = string.Join(",", data.Select(x => x.InvoiceId));
@@ -1344,19 +1399,28 @@ else
                 SelectTemplate = moduleQuery.Where(x => x.IsSelected).Select(x => x.TemplateName).FirstOrDefault();
                 StudentImagePreview = string.IsNullOrWhiteSpace(moduleQuery.Where(x => x.IsSelected).Select(x => x.ImagePath).FirstOrDefault()) ?
                 "https://demo.schooleye.in/Images/NoPhoto.gif" : moduleQuery.Where(x => x.IsSelected).Select(x => x.ImagePath).FirstOrDefault();
+                _lastLoadedInvoiceTypeId = SelectInvtypeId;
                 StateHasChanged();
             }
             else
             {
-                InvoiceList = new();
-                InvoiceMaster = new();
-                FeeHeadList = new();
-
-                SelectTemplate = string.Empty;
-
-                StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
-
+                // Keep the previously loaded invoice data; only inform the user
+                // and restore the dropdown to the invoice type that is still shown.
+                if (InvoiceList.Count != 0)
+                {
+                    SelectInvtypeId = _lastLoadedInvoiceTypeId;
+                }
+                else
+                {
+                    InvoiceList = new();
+                    InvoiceMaster = new();
+                    FeeHeadList = new();
+                    SelectTemplate = string.Empty;
+                    StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+                }
+                await customAlert.ShowCustomAlert("No invoice found for the selected invoice type.", false);
                 StateHasChanged();
+                return;
             }
         }
         catch (Exception ex)
@@ -1549,6 +1613,59 @@ else
         }
 
     }
+    private async Task ApplyConcessionEditInvoice()
+    {
+        try
+        {
+            IsLoading = true;
+            var data = moduleQuery.Where(x => x.IsSelected).Select(x => new { x.StudentId, x.InvoiceId }).FirstOrDefault();
+            if (data == null)
+            {
+                await customAlert.ShowCustomAlert("Please select student first !", false);
+                return;
+            }
+            if (data.InvoiceId <= 0)
+            {
+                await customAlert.ShowCustomAlert("Invoice not found for the selected student !", false);
+                return;
+            }
+            bool submit = await customAlert.ShowConfirmationAlert("Are you sure,you want to apply concession on this Invoice?");
+            if (!submit)
+            {
+                return;
+            }
+
+            studentConcessionOnChallanRequest.GroupCode = groupcode;
+            studentConcessionOnChallanRequest.BranchCode = branchcode;
+            studentConcessionOnChallanRequest.SessionId = CurrentSession;
+            studentConcessionOnChallanRequest.InvoiceId = data.InvoiceId;
+            studentConcessionOnChallanRequest.CreatedBy = UserName;
+
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/ApplyStudentConcessionOnChallan", studentConcessionOnChallanRequest);
+            if (response == null)
+            {
+                await customAlert.ShowCustomAlert("Unable to apply concession. Please try again.", false);
+            }
+            else if (response.Success && response.Code == 10)
+            {
+                await Alert.ShowSuccess(response.Message ?? "Concession applied on Invoice successfully.");
+                await OpenStudentInvoicePreviewAndEdit();
+            }
+            else
+            {
+                await customAlert.ShowCustomAlert(response.Message ?? "Unable to apply concession on Invoice.", false);
+            }
+        }
+        catch (Exception)
+        {
+            await customAlert.ShowCustomAlert("Something went wrong while applying concession.", false);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
     private async Task OnSaveFeeHeadAmount()
     {
         try
@@ -1608,21 +1725,33 @@ else
         try
         {
 
-            gridRequest.GroupCode = groupcode;
-            gridRequest.BranchCode = branchcode;
-            gridRequest.SessionId = CurrentSession;
-            gridRequest.FeeHeadType = null;
-            gridRequest.FeeHeadId = 0;
-            var selecyttemplateId=moduleQuery.Where(x=>x.IsSelected).ToList();
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+
+            var selecyttemplateId = moduleQuery.Where(x => x.IsSelected).ToList();
             if (selecyttemplateId.Count == 0)
             {
                 await Alert.ShowWarning("Please select a student");
                 StateHasChanged();
                 return;
             }
-            gridRequest.TemplateId = selecyttemplateId[0].TemplateId;
-            feeHeadDropdownlist = await httpService.Post<List<ClassFeeHeadsModel>>("ViewTemplateFeeHead/GetFeeHeadsMappedWithTemplateList", gridRequest);
-         
+            searchAny.RequestId = selecyttemplateId[0].TemplateId;
+            MaxNewMonths = null;
+            var response = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", searchAny) ?? new();
+            if (response.Success && response.Data != null)
+            {
+                feeHeadDropdownlist = response.Data
+                    .Where(x => !string.Equals(x.FeeApplicableType, "OneTime", StringComparison.OrdinalIgnoreCase)
+                             && !string.Equals(x.FeeApplicableType, "Annual", StringComparison.OrdinalIgnoreCase)
+                             && !string.Equals(x.FeeHeadType, "Transport", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else
+            {
+                feeHeadDropdownlist = new();
+                return;
+            }
             var data = moduleQuery.Where(x => x.IsSelected).Select(x => x.StudentId).FirstOrDefault();
             if (data == 0)
             {
@@ -1639,6 +1768,7 @@ else
                 transportSelectMonthlist = apiResponse.Data ?? new();
                 StateHasChanged();
             }
+
             ShowPopupAddFeehead = true;
             StateHasChanged();
         }

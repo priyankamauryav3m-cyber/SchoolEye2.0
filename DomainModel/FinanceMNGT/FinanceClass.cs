@@ -1920,6 +1920,8 @@ namespace DomainModel.FinanceMNGT
         public long FeeHeadId { get; set; }
         public string FeeHeadName { get; set; } = string.Empty;
         public decimal Amount { get; set; }
+        public string? FeeHeadType { get; set; }
+        public string? FeeApplicableType { get; set; }
     }
     public class TransportSelectMonthModel
     {
@@ -2160,7 +2162,31 @@ namespace DomainModel.FinanceMNGT
 
     #endregion
 
-
+    public class InvoiceFeeheadMonthNoResponse
+    {
+        public long StudentId { get; set; }
+        public int FeeHeadId { get; set; }
+        public int MonthNo { get; set; }
+        public string? FeeHeadName { get; set; }
+        public string? FeeApplicableType { get; set; }
+    }
+    public class InvoiceFeeheadMonthNoRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+        public int FeeHeadId { get; set; }
+    }
+    public class ApplyStudentConcessionOnChallanRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public int InvoiceId { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? Narration { get; set; }
+    }
 
 }
 
