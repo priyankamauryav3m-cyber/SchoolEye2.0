@@ -1815,10 +1815,12 @@ else
             else if (response.Code == -1)
             {
                 await customAlert.ShowCustomAlert("An error occurred while removing the concession.",false);
+                    StateHasChanged();
             }
             else
             {
                 await customAlert.ShowCustomAlert("No action was taken.",false);
+                    StateHasChanged();
             }
         }
         catch (Exception ex)
