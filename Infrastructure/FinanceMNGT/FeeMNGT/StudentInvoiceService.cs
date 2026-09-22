@@ -356,7 +356,64 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
             }
         }
 
-        public async Task<int> ApplyStudentConcessionOnChallanData(ApplyStudentConcessionOnChallanRequest request)
+        public async Task<ApplyStudentConcessionOnChallanResponse> ApplyStudentConcessionOnChallanData(ApplyStudentConcessionOnChallanRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@InvoiceId", request.InvoiceId);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@Narration", request.Narration);
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@ConcessionIds", request.ConcessionId);
+                param.Add("@AppliedConcessionIds", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                param.Add("@SkippedConcessionIds", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                param.Add("@ResultMessage", dbType: DbType.String, size: 1000, direction: ParameterDirection.Output);
+                param.Add("@ResultValue", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(
+                    "V3M_FIN_UspApplyStudentConcessionOnChallan",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return new ApplyStudentConcessionOnChallanResponse
+                {
+                    ResultValue = param.Get<int>("@ResultValue"),
+                    AppliedConcessionIds = param.Get<string>("@AppliedConcessionIds"),
+                    SkippedConcessionIds = param.Get<string>("@SkippedConcessionIds"),
+                    ResultMessage = param.Get<string>("@ResultMessage")
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+        public async Task<List<StudentMappedConcessionDto>> GetStudentMappedConcession(SearchAnyRequestModel searchAnyRequest)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var parameters = new DynamicParameters();
+                parameters.Add("@GroupCode", searchAnyRequest.GroupCode);
+                parameters.Add("@BranchCode", searchAnyRequest.BranchCode); 
+                parameters.Add("@StudentId", searchAnyRequest.StudentId);
+                parameters.Add("@SessionId", searchAnyRequest.SessionId);
+
+                var result = await connection.QueryAsync<StudentMappedConcessionDto>(
+                    "USP_GetStudentMappedApprovedConcession",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result.ToList();
+            }
+        }
+        public async Task<int> RemoveStudentConcessionFromInvoice(RemoveStudentConcessionFromInvoiceRequest request)
         {
             try
             {
@@ -369,11 +426,13 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 param.Add("@CreatedBy", request.CreatedBy);
                 param.Add("@Narration", request.Narration);
                 param.Add("@ResultValue", dbType: DbType.Int32, direction: ParameterDirection.Output);
-                var result = await con.ExecuteAsync(
-                     "V3M_FIN_UspApplyStudentConcessionOnChallan",
-                     param,
-                     commandType: CommandType.StoredProcedure);
-                return result;
+
+                await con.ExecuteAsync(
+                    "V3M_FIN_UspRemoveStudentConcessionFromInvoice",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return param.Get<int>("@ResultValue");  
             }
             catch (Exception ex)
             {
@@ -381,6 +440,5 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
-
     }
 }

@@ -2183,11 +2183,28 @@ namespace DomainModel.FinanceMNGT
         public string? GroupCode { get; set; }
         public string? BranchCode { get; set; }
         public long SessionId { get; set; }
+        public long StudentId { get; set; }
+        public string? ConcessionId { get; set; }
         public int InvoiceId { get; set; }
         public string? CreatedBy { get; set; }
         public string? Narration { get; set; }
     }
-
+    public class ApplyStudentConcessionOnChallanResponse
+    {
+        public int ResultValue { get; set; }
+        public string? AppliedConcessionIds { get; set; }
+        public string? SkippedConcessionIds { get; set; }
+        public string? ResultMessage { get; set; }
+    }
+    public class RemoveStudentConcessionFromInvoiceRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public int InvoiceId { get; set; }
+        public string? CreatedBy { get; set; }
+        public string? Narration { get; set; }
+    }
 }
 
 

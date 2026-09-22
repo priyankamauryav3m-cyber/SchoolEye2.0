@@ -607,7 +607,7 @@
 
                                 <div class="col-12 mt-2">
                                     <div class="form-box-group">
-                                        <InputTextArea  class="floating-input sms-aria" @bind-Value="studentConcessionOnChallanRequest.Narration"  placeholder=" "></InputTextArea>
+                                        <InputTextArea class="floating-input sms-aria" @bind-Value="studentConcessionOnChallanRequest.Narration" placeholder=" "></InputTextArea>
                                         <label class="floating-label text-primary">Narration</label>
                                     </div>
                                 </div>
@@ -617,7 +617,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12 p-3">
+                <div class="col-12 p-1">
                     <div class="page-heading d-flex align-items-center justify-content-end">
                         <div class="d-flex align-items-center gap-2">
                             <div class="form-box">
@@ -644,16 +644,16 @@
                             </div>
 
                             <div class="form-box">
-                                <button type="button" class="table-btn" @onclick="ApplyConcessionEditInvoice">
-                                    Apply Concession
+                                <button type="button" class="table-btn" @onclick="OpenApplyConcession">
+                                     Concession Apply
                                 </button>
                             </div>
 
-                            <div class="form-box">
-                                <button type="button" class="table-btn">
-                                    Remove Concession
-                                </button>
-                            </div>
+                          <div class="form-box">
+                                    <button type="button" class="table-btn" @onclick="RemoveApplyConcessionEditInvoice">
+                                        Remove Concession
+                                    </button>
+                                </div>
 
 
                         </div>
@@ -844,6 +844,146 @@
                             </div>
                         </div>
                     </EditForm>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Showpopupapplyconcession)
+    {
+        <div class="custom-modal row m-0 align-items-center">
+            <div class="col-12 col-sm-10 col-md-9 col-lg-10">
+                <div class="modal-content clearfix main-popup">
+                    <div class="head-btn">
+                        <h5 class="modal-title">Concession Details</h5>
+                        <button data-access="Close" type="button" @onclick="ClosePopupConcession" class="close"><span aria-hidden="true">×</span></button>
+                    </div>
+                    <div class="overflow-auto" style="height: calc(120vh - 280px); min-height: 400px; border-radius:10px;">
+                        <div class="modal-body">
+
+                          
+                            <div class="quick-main mt-3">
+                                <div class="grid-box-with-btn">
+
+                                    <QuickGrid Items="@MappedconcessionQueryable" Class="table">
+                                        <TemplateColumn Title="" class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                @{
+                                                    var firstItem = context.FirstOrDefault();
+                                                }
+                                                <div>
+                                                    @if (firstItem != null)
+                                                    {
+                                                        <input type="checkbox" checked="@firstItem.IsSelected" @onchange="e => OnConcessionCheckChanged(firstItem, e)" @onclick:stopPropagation="true" />
+                                                    }
+
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Concession" Align="Align.Left">
+                                            <ChildContent>
+                                                @{
+                                                    var firstItem = context.FirstOrDefault();
+                                                }
+
+                                                @if (firstItem != null)
+                                                {
+                                                    @(string.IsNullOrWhiteSpace(firstItem.ConcessionName) ? " " : firstItem.ConcessionName)
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Fee Head" Align="Align.Left">
+                                            <ChildContent>
+                                                @foreach (var item in context)
+                                                {
+                                                    <div class="m-0">
+                                                        @(string.IsNullOrWhiteSpace(item.FeeHeadName) ? " " : item.FeeHeadName)
+                                                    </div>
+
+                                                    @if (item != context.Last())
+                                                    {
+                                                        <hr class="my-1 row-tb" />
+                                                    }
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="VALUE (% OR AMOUNT)" Class="text-right" Align="Align.Center">
+                                            <ChildContent>
+                                                @foreach (var item in context)
+                                                {
+                                                    <div class="m-0 ">
+                                                        @(item.ConcessionType == 0 ? $"{item.ConcessionValue:0}%" : $"{item.ConcessionValue}")
+                                                    </div>
+
+                                                    @if (item != context.Last())
+                                                    {
+                                                        <hr class="my-1 row-tb" />
+                                                    }
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Approve Remarks" Align="Align.Left">
+                                            <ChildContent>
+                                                @foreach (var item in context)
+                                                {
+                                                    <div class="m-0 ">
+                                                        @(string.IsNullOrWhiteSpace(item.ApproveRemarks) ? " " : item.ApproveRemarks)
+                                                    </div>
+
+                                                    @if (item != context.Last())
+                                                    {
+                                                        <hr class="my-1 row-tb" />
+                                                    }
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                            <ChildContent>
+                                                @{
+                                                    var firstItem = context.FirstOrDefault();
+                                                }
+
+                                                @if (firstItem != null)
+                                                {
+                                                    @if (firstItem.Status == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-warning text-dark">Pending... </span>
+                                                    }
+                                                    else if (firstItem.Status == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success"> Approved </span>
+                                                    }
+                                                    else if (firstItem.Status == 2)
+                                                    {
+                                                        <span class="badge rounded-pill bg-danger"> Rejected</span>
+                                                    }
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
+
+                                                    
+                                    </QuickGrid>
+
+                                </div>
+
+                            </div>
+
+                         
+                           
+                        </div>
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <div class="form-box">
+                                    <button type="button" class="table-btn" @onclick="ApplyConcessionEditInvoice">
+                                        Apply Concession
+                                    </button>
+                                </div>
+                                <SaveUpdateButton ShowSaveButton="false" OnClickCancel="ClosePopupConcession"/>
+                                 
+
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1086,6 +1226,7 @@ else
     private string? SelectTemplate;
     private string? nameFilter = "";
     private bool ShowPopup = false;
+    private bool Showpopupapplyconcession = false;
     private string? roleId;
     private int SelectInvtypeId = 0;
     private long CurrentSession;
@@ -1108,12 +1249,16 @@ else
     private List<InvoiceFeeHeadModel> FeeHeadList = new();
     private InvoiceMasterModel InvoiceMaster = new();
     private ChallanDueDateModal challanDueDate = new();
+    private RemoveStudentConcessionFromInvoiceRequest removeStudentConcessionFromInvoice = new();
     private FeeHeadToStudentChallan feeHeadToStudent = new();
     private List<InvoiceTypeModel> InvoiceTypelist = new();
     private List<FeeHeadDropdownModel> feeHeadDropdownlist = new();
     private List<TransportSelectMonthModel> transportSelectMonthlist = new();
     private List<InvoiceDetailsResponse> InvoiceList = new();
     private FeeHeadTemplateRequest gridRequest = new();
+    private List<StudentMappedConcessionDto> mappedConcessionlist = new();
+    private IQueryable<IGrouping<int, StudentMappedConcessionDto>> MappedconcessionQueryable => mappedConcessionlist.GroupBy(x => x.ConcStudId).AsQueryable();
+
     private void ToggleAll()
     {
         foreach (var row in moduleQuery)
@@ -1500,6 +1645,11 @@ else
         }
         InvoicePreview = true;
     }
+    private void ClosePopupConcession()
+    {
+        Showpopupapplyconcession = false;
+        StateHasChanged();
+    }
     private void ClosePopup()
     {
         foreach (var item in classlist)
@@ -1521,6 +1671,7 @@ else
         StateHasChanged();
         searchAny = new();
         SelectInvtypeId = 0;
+        studentConcessionOnChallanRequest = new();
     }
     private async Task CloseDueDatePopup()
     {
@@ -1586,7 +1737,7 @@ else
             feeHeadToStudent.StudentId = data.StudentId;
             feeHeadToStudent.HeadId = selecteddata.FeeHeadId;
             feeHeadToStudent.CreatedBy = UserName;
-            feeHeadToStudent.Narration1 = "";
+            feeHeadToStudent.Narration1 = studentConcessionOnChallanRequest.Narration;
             feeHeadToStudent.SelectMonthNo = selecteddata.MonthNo;
             InvoiceEdit = false;
             ShowPopupAddFeehead = false;
@@ -1594,6 +1745,7 @@ else
             if (response.Success && response.Code == 1)
             {
                 await Alert.ShowSuccess("Fee head removed successfully.");
+                studentConcessionOnChallanRequest.Narration = "";
                 await OpenStudentInvoicePreviewAndEdit();
                 InvoiceEdit = true;
                 StateHasChanged();
@@ -1613,12 +1765,89 @@ else
         }
 
     }
+    private async Task RemoveApplyConcessionEditInvoice()
+    {
+        try
+        {
+
+            var selecteddata = moduleQuery.Where(x => x.IsSelected).Select(x=>x.InvoiceId).FirstOrDefault();
+            if (selecteddata == 0)
+            {
+                //await JS.InvokeVoidAsync("showSelectRecordAlert");
+                await customAlert.ShowCustomAlert("Please select a student !", false);
+                StateHasChanged();
+                InvoiceEdit = true;
+                return;
+
+            }
+
+            bool submit = await customAlert.ShowConfirmationAlert("Are you sure,you want to remove applied concession on selected invoice?");
+            if (!submit)
+            {
+                InvoiceEdit = true;
+                StateHasChanged();
+                return;
+            }
+            removeStudentConcessionFromInvoice.GroupCode = groupcode;
+            removeStudentConcessionFromInvoice.BranchCode = branchcode;
+            removeStudentConcessionFromInvoice.CreatedBy = UserName;
+            removeStudentConcessionFromInvoice.InvoiceId = Convert.ToInt32(selecteddata);
+            removeStudentConcessionFromInvoice.SessionId = CurrentSession;
+            removeStudentConcessionFromInvoice.Narration = studentConcessionOnChallanRequest.Narration;
+
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/RemoveStudentConcessionFromInvoice", removeStudentConcessionFromInvoice);
+            if (response == null)
+            {
+                await customAlert.ShowCustomAlert( "Unable to remove concession. Please try again.", false);
+            }
+            else if (response.Code == 2 && response.Success)
+            {
+                await customAlert.ShowCustomAlert("Concession removed successfully.",false);
+                removeStudentConcessionFromInvoice = new();
+                await OpenStudentInvoicePreviewAndEdit();
+                InvoiceEdit = true;
+                StateHasChanged();
+            }
+            else if (response.Code == 1)
+            {
+                await customAlert.ShowCustomAlert("This invoice has no concession to remove.", false);
+            }
+            else if (response.Code == -1)
+            {
+                await customAlert.ShowCustomAlert("An error occurred while removing the concession.",false);
+                    StateHasChanged();
+            }
+            else
+            {
+                await customAlert.ShowCustomAlert("No action was taken.",false);
+                    StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+
+            return;
+        }
+        finally
+        {
+            StateHasChanged();
+            IsLoading = false;
+        }
+
+    }
     private async Task ApplyConcessionEditInvoice()
     {
         try
         {
+
             IsLoading = true;
             var data = moduleQuery.Where(x => x.IsSelected).Select(x => new { x.StudentId, x.InvoiceId }).FirstOrDefault();
+            var SelectConcessionIds = MappedconcessionQueryable .SelectMany(x => x) .Where(x => x.IsSelected) .Select(x => x.ConcessionId) .Distinct() .ToList();
+            if(SelectConcessionIds.Count==0)
+            {
+                await customAlert.ShowCustomAlert("Please select atleast one concession !", false);
+                return;
+            }
             if (data == null)
             {
                 await customAlert.ShowCustomAlert("Please select student first !", false);
@@ -1638,22 +1867,49 @@ else
             studentConcessionOnChallanRequest.GroupCode = groupcode;
             studentConcessionOnChallanRequest.BranchCode = branchcode;
             studentConcessionOnChallanRequest.SessionId = CurrentSession;
+            studentConcessionOnChallanRequest.StudentId  = data.StudentId ;
             studentConcessionOnChallanRequest.InvoiceId = data.InvoiceId;
+            studentConcessionOnChallanRequest.ConcessionId = string.Join(",",SelectConcessionIds);
             studentConcessionOnChallanRequest.CreatedBy = UserName;
 
-            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/ApplyStudentConcessionOnChallan", studentConcessionOnChallanRequest);
+            var response = await httpService.Post<ApiResponse<ApplyStudentConcessionOnChallanResponse>>("StudentFeeInvoice/ApplyStudentConcessionOnChallan", studentConcessionOnChallanRequest);
             if (response == null)
             {
-                await customAlert.ShowCustomAlert("Unable to apply concession. Please try again.", false);
-            }
-            else if (response.Success && response.Code == 10)
-            {
-                await Alert.ShowSuccess(response.Message ?? "Concession applied on Invoice successfully.");
-                await OpenStudentInvoicePreviewAndEdit();
+                await customAlert.ShowCustomAlert( "Unable to apply concession. Please try again.", false);
             }
             else
             {
-                await customAlert.ShowCustomAlert(response.Message ?? "Unable to apply concession on Invoice.", false);
+                var result = response.Data;
+
+                // SP ka apna detailed message (Applied + Skipped dono) priority pe use karo
+                var message = !string.IsNullOrWhiteSpace(result.ResultMessage)
+                    ? result.ResultMessage
+                    : result.ResultValue switch
+                    {
+                        1 => "Invoice not found.",
+                        2 => "Invoice is not in an active status.",
+                        5 => "A concession has already been applied to this invoice.",
+                        6 => "No active concession mapping found for this student.",
+                        7 => "Given StudentId does not match the invoice.",
+                        8 => "Maximum 2 concessions can be applied at once.",
+                        9 => "None of the given concessions are active for this student.",
+                        -1 => "Concession could not be applied: received amount cannot go below 0.",
+                        -11 => "Concession amount exceeds the fee head amount.",
+                        10 => "Concession applied successfully.",
+                        0 => "No concession was applicable on this invoice's fee months.",
+                        _ => "Challan recalculation failed."
+                    };
+
+                if (result.ResultValue == 10)
+                {
+                    await customAlert.ShowCustomAlert(message, false);
+                    await OpenStudentInvoicePreviewAndEdit();
+                }
+                else
+                {
+                    await customAlert.ShowCustomAlert(message, false);
+                    StateHasChanged();
+                }
             }
         }
         catch (Exception)
@@ -1663,6 +1919,62 @@ else
         finally
         {
             IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private async Task OnConcessionCheckChanged(StudentMappedConcessionDto item, ChangeEventArgs e)
+    {
+        bool isChecked = (bool)e.Value;
+
+        if (!isChecked)
+        {
+            var selectedCount = MappedconcessionQueryable
+                .SelectMany(x => x)
+                .Count(x => x.IsSelected);
+
+            if (selectedCount <= 1)
+            {
+                await customAlert.ShowCustomAlert("At least 1 concession must be selected.",false);
+                return;
+            }
+        }
+
+        item.IsSelected = isChecked;
+    }
+    private async Task OpenApplyConcession()
+    {
+        try
+        {
+            var SelectStudentId = moduleQuery.Where(x => x.IsSelected).Select(x => x.StudentId).FirstOrDefault();
+            if (SelectStudentId == 0)
+            {
+                await Alert.ShowWarning("Please select a student!");
+                StateHasChanged();
+                return;
+            }
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            searchAny.StudentId = SelectStudentId;
+            string ApiUri1 = "StudentFeeInvoice/GetStudentMappedConcession";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentMappedConcessionDto>>>(ApiUri1, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                mappedConcessionlist = apiResponse.Data ?? new();
+                foreach (var item in mappedConcessionlist)
+                {
+                    item.IsSelected = true;
+                }
+
+            }
+            Showpopupapplyconcession = true;
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        finally
+        {
             StateHasChanged();
         }
     }
@@ -1686,7 +1998,7 @@ else
             feeHeadToStudent.HeadId = SelectedFeeHeadId;
             feeHeadToStudent.HeadAmount = SelectedFeeHeadAmount;
             feeHeadToStudent.CreatedBy = UserName;
-            feeHeadToStudent.Narration1 = "";
+            feeHeadToStudent.Narration1 = studentConcessionOnChallanRequest.Narration;
             feeHeadToStudent.MonthNo = MonthList.Where(x => x.IsSelected && !x.IsDisabled).Select(x => x.MonthNo).ToList();
             if (feeHeadToStudent.HeadId == 0)
             {
@@ -1700,6 +2012,7 @@ else
             {
                 await Alert.ShowSuccess("Feehead added sucessfully.");
                 await OpenStudentInvoicePreviewAndEdit();
+                studentConcessionOnChallanRequest.Narration = "";
                 await OnFeeHeadChanged();
                 InvoiceEdit = true;
                 StateHasChanged();

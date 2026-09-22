@@ -474,7 +474,28 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
             }
         }
         [HttpPost("ApplyStudentConcessionOnChallan")]
-        public async Task<IActionResult> ApplyStudentConcessionOnChallanData([FromBody] ApplyStudentConcessionOnChallanRequest request)
+        public async Task<ApiResponse<object>> ApplyStudentConcessionOnChallan([FromBody] ApplyStudentConcessionOnChallanRequest request)
+        {
+            try
+            {
+                var result = await _service.ApplyStudentConcessionOnChallanData(request);
+
+                var isSuccess = result.ResultValue == 10;
+
+                return new ApiResponse<object>
+                {
+                    Success = isSuccess,
+                    Message = result.ResultMessage ?? (isSuccess ? "Concession applied." : "Concession could not be applied."),
+                    Data = result
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<object> { Success = false, Message = ex.Message };
+            }
+        }
+        [HttpPost("RemoveStudentConcessionFromInvoice")]
+        public async Task<IActionResult> RemoveStudentConcessionFromInvoice([FromBody] RemoveStudentConcessionFromInvoiceRequest request)
         {
             if (request == null)
             {
@@ -485,82 +506,145 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                     Code = 0
                 });
             }
+
             try
             {
-                int result = await _service.ApplyStudentConcessionOnChallanData(request);
+                int result = await _service.RemoveStudentConcessionFromInvoice(request);
 
                 return result switch
                 {
-                    1 => Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Invoice not found.",
-                        Code = result
-                    }),
-
                     2 => Ok(new ApiResponse<object>
                     {
-                        Success = false,
-                        Message = "Invoice is not in an active status.",
-                        Code = result
-                    }),
-
-                    5 => Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "A concession has already been applied to this invoice.",
-                        Code = result
-                    }),
-
-                    6 => Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Invoice is not eligible for concession.",
-                        Code = result
-                    }),
-
-                    -1 => Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Concession could not be applied: computed amount is invalid.",
-                        Code = result
-                    }),
-
-                    -11 => Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Concession amount exceeds the fee head amount.",
-                        Code = result
-                    }),
-
-                    10 => Ok(new ApiResponse<object>
-                    {
                         Success = true,
-                        Message = "Concession applied successfully.",
-                        Code = result
+                        Message = "Concession removed successfully.",
+                        Code = 2
                     }),
-
-                    _ => Ok(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Challan recalculation failed.",
-                        Code = result
-                    })
+                    1 => Ok(new ApiResponse<object> { Success = false, Message = "This invoice has no concession to remove.", Code = 1 }),
+                    -1 => Ok(new ApiResponse<object> { Success = false, Message = "An error occurred while removing the concession.", Code = -1 }),
+                    _ => Ok(new ApiResponse<object> { Success = false, Message = "No action was taken.", Code = result })
                 };
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Exception: {ex.Message}");
-
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "An error occurred while recalculating the student challans.",
-                        Code = -500
-                    });
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while removing the concession.",
+                    Code = -1
+                });
             }
         }
+        //[HttpPost("ApplyStudentConcessionOnChallan")]
+        //public async Task<IActionResult> ApplyStudentConcessionOnChallanData([FromBody] ApplyStudentConcessionOnChallanRequest request)
+        //{
+        //    if (request == null)
+        //    {
+        //        return BadRequest(new ApiResponse<object>
+        //        {
+        //            Success = false,
+        //            Message = "Data not found.",
+        //            Code = 0
+        //        }); 
+        //    }
+        //    try
+        //    {
+        //        int result = await _service.ApplyStudentConcessionOnChallanData(request);
 
+        //        return result switch
+        //        {
+        //            1 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "Invoice not found.",
+        //                Code = result
+        //            }),
+
+        //            2 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "Invoice is not in an active status.",
+        //                Code = result
+        //            }),
+
+        //            5 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "A concession has already been applied to this invoice.",
+        //                Code = result
+        //            }),
+
+        //            6 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "Invoice is not eligible for concession.",
+        //                Code = result
+        //            }),
+
+        //            -1 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "Concession could not be applied: computed amount is invalid.",
+        //                Code = result
+        //            }),
+
+        //            -11 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "Concession amount exceeds the fee head amount.",
+        //                Code = result
+        //            }),
+
+        //            10 => Ok(new ApiResponse<object>
+        //            {
+        //                Success = true,
+        //                Message = "Concession applied successfully.",
+        //                Code = result
+        //            }),
+
+        //            _ => Ok(new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "Challan recalculation failed.",
+        //                Code = result
+        //            })
+        //        };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Exception: {ex.Message}");
+
+        //        return StatusCode(StatusCodes.Status500InternalServerError,
+        //            new ApiResponse<object>
+        //            {
+        //                Success = false,
+        //                Message = "An error occurred while recalculating the student challans.",
+        //                Code = -500
+        //            });
+        //    }
+        //}
+        [HttpPost("GetStudentMappedConcession")]
+        public async Task<IActionResult> GetStudentMapConStudent([FromBody] SearchAnyRequestModel searchAny)
+        {
+
+            try
+            {
+                var result = await _service.GetStudentMappedConcession(searchAny);
+                return Ok(new ApiResponse<IEnumerable<StudentMappedConcessionDto>>
+                {
+                    Success = true,
+                    Data = result
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = "An error occurred while fetching data.",
+                    Error = ex.Message
+                });
+            }
+        }
     }
 }
