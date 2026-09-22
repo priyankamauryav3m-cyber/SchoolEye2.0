@@ -7,7 +7,7 @@
         <div class="modal-body alert-body">
             <div class="d-flex align-items-center justify-content-center flex-column gap-2">
                 <img src="images/alert-img.png" />
-                <p class="m-0">@Message</p>
+             <p class="m-0 alert-message">@Message</p>
             </div>
             
         </div>
@@ -26,7 +26,18 @@
         </div>
     </div>
 </div>
-
+<style>
+    .alert-message {
+    max-width: 560px;
+    width: 100%;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.6;
+}
+</style>
 @code {
     [Parameter] public string Title { get; set; } = "Alert";
     [Parameter] public string Message { get; set; } = "This is an alert message.";

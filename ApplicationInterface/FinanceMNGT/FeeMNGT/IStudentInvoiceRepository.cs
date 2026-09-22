@@ -22,8 +22,10 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<IEnumerable<TransportSelectMonthModel>> GetMonthWithTranspoet(SearchAnyRequestModel searchAnyRequest);
         public Task<int> AddFeeHeadToStudentChallanData(FeeHeadToStudentChallan request);
         public Task<int> RemoveFeeHeadToStudentChallanData(FeeHeadToStudentChallan request);
-        public Task<int> ApplyStudentConcessionOnChallanData(ApplyStudentConcessionOnChallanRequest request);
+        public Task<ApplyStudentConcessionOnChallanResponse> ApplyStudentConcessionOnChallanData(ApplyStudentConcessionOnChallanRequest request);
         Task<IEnumerable<InvoiceFeeheadMonthNoResponse>> GetInvoiceFeeheadMonthNo(InvoiceFeeheadMonthNoRequest request);
+        public Task<List<StudentMappedConcessionDto>> GetStudentMappedConcession(SearchAnyRequestModel searchAnyRequest);
+        public Task<int> RemoveStudentConcessionFromInvoice(RemoveStudentConcessionFromInvoiceRequest request);
 
     }
 }
