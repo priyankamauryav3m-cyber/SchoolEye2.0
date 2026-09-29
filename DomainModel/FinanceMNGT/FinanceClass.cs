@@ -2136,7 +2136,10 @@ namespace DomainModel.FinanceMNGT
         public string? CreatedDate { get; set; }
         public string? StudentName { get; set; }
         public string? ClassSection { get; set; }
+        public string? ImagePath { get; set; }
+        public string? TemplateName { get; set; }
         public long InvoiceId { get; set; }
+        public bool IsSelected { get; set; }
     }
     public class StudentReceiptsRequest
     {

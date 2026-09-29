@@ -1341,6 +1341,13 @@
                                                     <div class="grid-box">
                                                         <QuickGrid Items="@studentinvoicemoduleQuery" Pagination="@studentinvoivepagination" Class="table">
 
+                                                            <TemplateColumn Title="" class="text-center" Align="Align.Center">
+                                                                <ChildContent>
+                                                                    <div>
+                                                                        <input type="checkbox" checked="@context.IsSelected" @onchange="e => OnInvoiceCheckChanged(context, e)" @onclick:stopPropagation="true" />
+                                                                    </div>
+                                                                </ChildContent>
+                                                            </TemplateColumn>
                                                             <TemplateColumn Title="Invoice No" class="text-center" Align="Align.Center">
                                                                 <ChildContent>
                                                                     @(string.IsNullOrWhiteSpace(context.InvoiceNo) ? " " : context.InvoiceNo)
@@ -1550,8 +1557,13 @@
                                         <i class="bi bi-printer"></i>
                                     </div>
                                 </button>
+                          
                             </div>
-
+                                 <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OpenEditInvoice">
+                            Edit Invoice
+                        </button>
+                    </div>
 
                         </div>
 
@@ -1561,6 +1573,17 @@
             </div>
         </div>
     </div>
+}
+
+@if (ShowEditInvoice)
+{
+    <EditInvoice SelectedStudent="@EditInvoiceStudent"
+                 CurrentSessionInfo="@sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)"
+                 SessionId="@CurrentSession"
+                 BranchCode="@branchcode"
+                 GroupCode="@groupcode"
+                 UserName="@UserName"
+                 OnClose="CloseEditInvoice" />
 }
 
 @if (ShowTransportPopup)
@@ -2142,6 +2165,8 @@ else
     private List<StudentChallanResponse> studentChallanlist = new();
     private StudentLedgerChallanMiniDetailsResponse? selectedLedgerStudent;
     private bool IsLedgerStudentSelected = false;
+    private bool ShowEditInvoice;
+    private SearchStudentBalanceDto EditInvoiceStudent = new();
 
     private void ValidateCashPaymentAmount(ChangeEventArgs e)
     {
@@ -2308,6 +2333,61 @@ else
             return result;
         }
     }
+
+    // Invoice Details grid checkbox: checking one invoice unchecks the rest,
+    // so there's always at most one invoice selected to edit.
+    private void OnInvoiceCheckChanged(StudentChallanResponse item, ChangeEventArgs e)
+    {
+        bool isChecked = (bool)e.Value;
+        if (isChecked)
+        {
+            foreach (var invoice in studentChallanlist)
+            {
+                invoice.IsSelected = false;
+            }
+        }
+        item.IsSelected = isChecked;
+        StateHasChanged();
+    }
+
+    private async Task OpenEditInvoice()
+    {
+        var selected = studentChallanlist.FirstOrDefault(x => x.IsSelected);
+        if (selected == null)
+        {
+            await customAlert.ShowCustomAlert("Please select a invoice first.", false);
+            return;
+        }
+        EditInvoiceStudent = new SearchStudentBalanceDto
+        {
+            StudentId = selectedLedgerStudent?.StudentId ?? 0,
+            InvoiceId = (int)selected.InvoiceId,
+            ControlNo = selectedLedgerStudent?.ControlNo,
+            StudentName = selectedLedgerStudent?.StudentName,
+            ClassCode = selectedLedgerStudent?.ClassCode,
+           TemplateName = selected.TemplateName,
+           ImagePath = selected.ImagePath,
+            ClassSection = selectedLedgerStudent?.ClassSection
+        };
+        ShowEditInvoice = true;
+        StateHasChanged();
+    }
+
+    private async Task CloseEditInvoice(bool refresh)
+    {
+        ShowEditInvoice = false;
+        EditInvoiceStudent = new();
+        foreach (var invoice in studentChallanlist)
+        {
+            invoice.IsSelected = false;
+        }
+        if (refresh)
+        {
+            await GetStudentInvoiceDetails();
+        }
+        StateHasChanged();
+    }
+
     private async Task GetSearchStudentreceipt()
     {
         try
