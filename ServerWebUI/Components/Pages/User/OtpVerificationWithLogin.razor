@@ -21,7 +21,6 @@
 @inject SweetAlertService Alert
 @using System.Timers;
 @inject IHttpClientFactory HttpClientFactory
-
 <section class="verification-section">
     <div class="otp-card-container">
 
@@ -37,7 +36,9 @@
                 }
                 else
                 {
-                    <div></div>
+                    <a @onclick="BackTologin" class="back-link" style="cursor:pointer;">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back login page
+                    </a>
                 }
                 <span class="step-pill">Step @(IsOtpSent ? "2" : "1") of 2</span>
             </div>
@@ -179,8 +180,10 @@
     :root{--navy:#0d2e4d;--navy2:#123c66;--teal:#1fa19a;--blue:#1e6fb3;--ink:#152238;--muted:#6b7c8c}
 
     .verification-section{
-         place-items: center;
-    padding: 60px 40px;
+            min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 36px 15px;
     }
 
     .otp-card-container{
@@ -322,6 +325,12 @@
                 OtpError = "";
         }
     }
+    private void BackTologin()
+    {
+
+        Nav.NavigateTo("/");
+        StateHasChanged();
+    }
     private void BackToSelectMode()
     {
         // Stop the active timer
@@ -360,10 +369,21 @@
         {
             var branchResult = await sessionStorage.GetAsync<int>("userId");
             UserId = branchResult.Value;
+
             var emailvalue = await sessionStorage.GetAsync<string>("Email");
             Email = emailvalue.Value;
+
             var mobileno = await sessionStorage.GetAsync<string>("MobileNo");
             Mobile = mobileno.Value;
+
+            // Direct URL hit guard: agar login-flow se session data set nahi hua hai
+            // (UserId=0 ya dono Email/Mobile khaali), to is page par access nahi milega.
+            if (UserId <= 0 || (string.IsNullOrWhiteSpace(Email) && string.IsNullOrWhiteSpace(Mobile)))
+            {
+                Nav.NavigateTo("/", true);
+                return;
+            }
+
             StateHasChanged();
         }
     }
@@ -395,6 +415,12 @@
         }
         await JS.InvokeVoidAsync("showProcessingAlert");
         var response = await httpService.Post<ApiResponse<string>>("users/SendOtp", sendOtpRequest);
+        if (response == null)
+        {
+            await Task.Delay(2000);
+            await JS.InvokeVoidAsync("closeSwal");
+            return;
+        }
         if (response.Success && response.Code == 1)
         {
             await Task.Delay(2000);

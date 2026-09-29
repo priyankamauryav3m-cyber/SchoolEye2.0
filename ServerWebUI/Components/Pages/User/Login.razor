@@ -25,8 +25,6 @@
 
 <section class="login-section">
     <div class="login-card-container">
-
-        <!-- ===================== LEFT PANEL : School Logo + Login Form ===================== -->
         <div class="left-panel">
             <div class=" sign-data1 ">
                 <div class="school-logo-wrap sign-data">
@@ -507,30 +505,60 @@
         color: #9db3c5;
         margin: 0
     }
-
-    @@media(max-width:900px) {
-        .login-card-container {
-            grid-template-columns: 1fr;
-            max-width: 520px
-        }
-
-        .right-panel {
-            order: -1;
-            padding: 30px
-        }
-
-        .brand-heading {
-            font-size: 28px
-        }
-
-        .brand-header {
-            margin-bottom: 26px
-        }
-
-        .left-panel {
-            padding: 32px 26px
-        }
+    @@media (max-width: 900px) {
+    .login-card-container {
+        grid-template-columns: 1fr;
+        max-width: 520px;
     }
+
+    .right-panel {
+        order: -1;
+        padding: 30px;
+        border-radius: 26px 26px 0 0;
+    }
+
+    .left-panel {
+        padding: 32px 26px;
+        border-radius: 0 0 26px 26px;
+    }
+
+    .brand-heading {
+        font-size: 28px;
+    }
+
+    .brand-header {
+        margin-bottom: 26px;
+    }
+}
+
+@@media (max-width: 520px) {
+    .login-section {
+        padding: 16px 10px;
+    }
+
+    .login-card-container {
+        border-radius: 18px;
+        max-width: 100%;
+    }
+
+    .right-panel {
+        padding: 24px 20px;
+        border-radius: 18px 18px 0 0;
+    }
+
+    .left-panel {
+        padding: 26px 20px;
+        border-radius: 0 0 18px 18px;
+    }
+
+    .brand-heading {
+        font-size: 24px;
+    }
+
+    .brand-header {
+        margin-bottom: 20px;
+    }
+}
 </style>
 
 @code {
