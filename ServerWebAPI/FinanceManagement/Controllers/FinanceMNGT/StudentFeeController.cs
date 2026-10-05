@@ -32,7 +32,7 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                     return BadRequest(new ApiResponse<List<StudentDetailsForFee>>
                     {
                         Code = 0,
-                        Message = "Invalid request.",
+                        Message = "Invalid request.",   
                         Data = null
                     });
                 }

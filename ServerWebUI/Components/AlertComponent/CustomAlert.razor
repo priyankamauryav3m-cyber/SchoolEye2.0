@@ -44,6 +44,10 @@
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public bool showConfirmationButtons { get; set; }
 
+    // Optional: raised when the alert is dismissed via OK / ×, so a host popup
+    // that hid itself while the alert was shown can show itself again.
+    [Parameter] public EventCallback OnAlertClosed { get; set; }
+
     private TaskCompletionSource<bool> confirmationTcs;
 
     public async Task<bool> ShowConfirmationAlert(string message)
@@ -71,7 +75,10 @@
     private async Task OnClose()
     {
         IsVisible = false;
+        // × on a confirmation alert counts as "No" so the awaiting caller is not left hanging.
+        confirmationTcs?.TrySetResult(false);
         await InvokeAsync(StateHasChanged); // Close the alert and update UI
+        await OnAlertClosed.InvokeAsync();
     }
 
     private async Task Confirm(bool confirmed)

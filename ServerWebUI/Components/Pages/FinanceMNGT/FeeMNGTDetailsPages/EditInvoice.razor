@@ -1,9 +1,12 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
 @inject IStringLocalizer<Resource> Localizer
 
+@if (IsEditInvoiceOpen)
+{
 <div class="custom-modal row m-0 align-items-center">
     <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
         <div class="modal-content clearfix main-popup">
@@ -293,6 +296,7 @@
         </div>
     </div>
 </div>
+}
 @if (ShowPopupUpdateDueDate)
 {
     <div class="custom-modal row m-0 align-items-center">
@@ -320,7 +324,6 @@
                     <div class="modal-footer">
                         <div class="form-group btn-gr">
                             <SaveUpdateButton TextSave="Submit" OnClickCancel="CloseDueDatePopup" />
-
                         </div>
                     </div>
                 </EditForm>
@@ -633,7 +636,7 @@
     </div>
 }
 
-<CustomAlert @ref="customAlert" Title="Alert" />
+<CustomAlert @ref="customAlert" Title="Alert" OnAlertClosed="ReopenEditInvoicePopup" />
 
 @code {
     [Parameter] public SearchStudentBalanceDto SelectedStudent { get; set; } = new();
@@ -647,6 +650,14 @@
     // underlying invoice data changed (due date / fee head / concession updates)
     // so the parent can refresh its grid.
     [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    // Calling page passes true to open the Edit Invoice popup.
+    [Parameter] public bool ShowEditInvoice { get; set; }
+
+    // Local visibility of the Edit Invoice popup. It is hidden while any alert
+    // is on screen and shown again once the alert is dismissed.
+    private bool IsEditInvoiceOpen;
+    private bool _lastShowEditInvoice;
 
     private CustomAlert customAlert;
     private bool IsLoading;
@@ -700,6 +711,65 @@
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Sync only when the parent actually changes the flag, so a parent
+        // re-render does not reopen the popup while an alert is showing.
+        if (ShowEditInvoice != _lastShowEditInvoice)
+        {
+            _lastShowEditInvoice = ShowEditInvoice;
+            IsEditInvoiceOpen = ShowEditInvoice;
+        }
+    }
+
+    private void HideEditInvoicePopup()
+    {
+        IsEditInvoiceOpen = false;
+        StateHasChanged();
+    }
+
+    private void ReopenEditInvoicePopup()
+    {
+        IsEditInvoiceOpen = ShowEditInvoice;
+        StateHasChanged();
+    }
+
+    // CustomAlert OK alert: returns immediately, so the popup is reopened
+    // from CustomAlert.OnAlertClosed when the user dismisses it.
+    private async Task ShowInfoAlert(string message)
+    {
+        HideEditInvoicePopup();
+        await customAlert.ShowCustomAlert(message, false);
+    }
+
+    // SweetAlert: the call completes only after the alert is dismissed.
+    private async Task ShowSweetAlert(Func<Task> alert)
+    {
+        HideEditInvoicePopup();
+        try
+        {
+            await alert();
+        }
+        finally
+        {
+            ReopenEditInvoicePopup();
+        }
+    }
+
+    // Yes/No confirmation (CustomAlert or SweetAlert).
+    private async Task<bool> ShowConfirmAlert(Func<Task<bool>> confirm)
+    {
+        HideEditInvoicePopup();
+        try
+        {
+            return await confirm();
+        }
+        finally
+        {
+            ReopenEditInvoicePopup();
         }
     }
 
@@ -780,14 +850,14 @@
                     SelectTemplate = string.Empty;
                     StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
                 }
-                await customAlert.ShowCustomAlert("No invoice found for the selected invoice type.", false);
+                await ShowInfoAlert("No invoice found for the selected invoice type.");
                 StateHasChanged();
                 return;
             }
         }
         catch (Exception)
         {
-            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            await ShowSweetAlert(() => Alert.ShowCustomAlert(@Localizer["Admin"]));
         }
         finally
         {
@@ -871,7 +941,7 @@
             }
             else
             {
-                await customAlert.ShowCustomAlert("Please map the transport first before proceeding with the fee collection.", false);
+                await ShowInfoAlert("Please map the transport first before proceeding with the fee collection.");
                 StateHasChanged();
                 IsTransport = false;
                 return;
@@ -895,7 +965,7 @@
     {
         if (SelectedStudent.StudentId == 0)
         {
-            await Alert.ShowWarning("Please select a student!");
+            await ShowSweetAlert(() => Alert.ShowWarning("Please select a student!"));
             StateHasChanged();
             return;
         }
@@ -979,17 +1049,17 @@
             var result = FeeHeadList.Where(x => x.IsSelected).ToList();
             if (result.Count == 0)
             {
-                await customAlert.ShowCustomAlert("Please select a record !", false);
+                await ShowInfoAlert("Please select a record !");
                 StateHasChanged();
                 return;
             }
             else if (result.Count > 1)
             {
-                await customAlert.ShowCustomAlert("Please select a record !", false);
+                await ShowInfoAlert("Please select a record !");
                 StateHasChanged();
                 return;
             }
-            var submit = await Alert.ShowConfirm("Are you sure,you want to remove selected fee head?");
+            var submit = await ShowConfirmAlert(() => Alert.ShowConfirm("Are you sure,you want to remove selected fee head?"));
             if (!submit)
             {
                 StateHasChanged();
@@ -998,7 +1068,7 @@
             var selecteddata = result.Select(x => new { x.FeeHeadId, x.InvoiceId, x.MonthNo }).FirstOrDefault();
             if (SelectedStudent.StudentId == 0)
             {
-                await customAlert.ShowCustomAlert("Please select student first !", false);
+                await ShowInfoAlert("Please select student first !");
                 return;
             }
             feeHeadToStudent.InvoiceId = selecteddata.InvoiceId;
@@ -1010,7 +1080,7 @@
             var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/RemoveFeeHeadToStudentChallan", feeHeadToStudent);
             if (response.Success && response.Code == 1)
             {
-                await Alert.ShowSuccess("Fee head removed successfully.");
+                await ShowSweetAlert(() => Alert.ShowSuccess("Fee head removed successfully."));
                 studentConcessionOnChallanRequest.Narration = "";
                 DataChanged = true;
                 await LoadInvoiceForEdit();
@@ -1035,12 +1105,12 @@
         {
             if (SelectedStudent.InvoiceId == 0)
             {
-                await customAlert.ShowCustomAlert("Please select a student !", false);
+                await ShowInfoAlert("Please select a student !");
                 StateHasChanged();
                 return;
             }
 
-            bool submit = await customAlert.ShowConfirmationAlert("Are you sure,you want to remove applied concession on selected invoice?");
+            bool submit = await ShowConfirmAlert(() => customAlert.ShowConfirmationAlert("Are you sure,you want to remove applied concession on selected invoice?"));
             if (!submit)
             {
                 StateHasChanged();
@@ -1056,11 +1126,11 @@
             var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/RemoveStudentConcessionFromInvoice", removeStudentConcessionFromInvoice);
             if (response == null)
             {
-                await customAlert.ShowCustomAlert("Unable to remove concession. Please try again.", false);
+                await ShowInfoAlert("Unable to remove concession. Please try again.");
             }
             else if (response.Code == 2 && response.Success)
             {
-                await customAlert.ShowCustomAlert("Concession removed successfully.", false);
+                await ShowInfoAlert("Concession removed successfully.");
                 removeStudentConcessionFromInvoice = new();
                 DataChanged = true;
                 await LoadInvoiceForEdit();
@@ -1068,16 +1138,16 @@
             }
             else if (response.Code == 1)
             {
-                await customAlert.ShowCustomAlert("This invoice has no concession to remove.", false);
+                await ShowInfoAlert("This invoice has no concession to remove.");
             }
             else if (response.Code == -1)
             {
-                await customAlert.ShowCustomAlert("An error occurred while removing the concession.", false);
+                await ShowInfoAlert("An error occurred while removing the concession.");
                 StateHasChanged();
             }
             else
             {
-                await customAlert.ShowCustomAlert("No action was taken.", false);
+                await ShowInfoAlert("No action was taken.");
                 StateHasChanged();
             }
         }
@@ -1100,20 +1170,20 @@
             var SelectConcessionIds = MappedconcessionQueryable.SelectMany(x => x).Where(x => x.IsSelected).Select(x => x.ConcessionId).Distinct().ToList();
             if (SelectConcessionIds.Count == 0)
             {
-                await customAlert.ShowCustomAlert("Please select atleast one concession !", false);
+                await ShowInfoAlert("Please select atleast one concession !");
                 return;
             }
             if (SelectedStudent.StudentId == 0)
             {
-                await customAlert.ShowCustomAlert("Please select student first !", false);
+                await ShowInfoAlert("Please select student first !");
                 return;
             }
             if (SelectedStudent.InvoiceId <= 0)
             {
-                await customAlert.ShowCustomAlert("Invoice not found for the selected student !", false);
+                await ShowInfoAlert("Invoice not found for the selected student !");
                 return;
             }
-            bool submit = await customAlert.ShowConfirmationAlert("Are you sure,you want to apply concession on this Invoice?");
+            bool submit = await ShowConfirmAlert(() => customAlert.ShowConfirmationAlert("Are you sure,you want to apply concession on this Invoice?"));
             if (!submit)
             {
                 return;
@@ -1130,7 +1200,7 @@
             var response = await httpService.Post<ApiResponse<ApplyStudentConcessionOnChallanResponse>>("StudentFeeInvoice/ApplyStudentConcessionOnChallan", studentConcessionOnChallanRequest);
             if (response == null)
             {
-                await customAlert.ShowCustomAlert("Unable to apply concession. Please try again.", false);
+                await ShowInfoAlert("Unable to apply concession. Please try again.");
             }
             else
             {
@@ -1157,20 +1227,20 @@
 
                 if (result.ResultValue == 10)
                 {
-                    await customAlert.ShowCustomAlert(message, false);
+                    await ShowInfoAlert(message);
                     DataChanged = true;
                     await LoadInvoiceForEdit();
                 }
                 else
                 {
-                    await customAlert.ShowCustomAlert(message, false);
+                    await ShowInfoAlert(message);
                     StateHasChanged();
                 }
             }
         }
         catch (Exception)
         {
-            await customAlert.ShowCustomAlert("Something went wrong while applying concession.", false);
+            await ShowInfoAlert("Something went wrong while applying concession.");
         }
         finally
         {
@@ -1191,7 +1261,7 @@
 
             if (selectedCount <= 1)
             {
-                await customAlert.ShowCustomAlert("At least 1 concession must be selected.", false);
+                await ShowInfoAlert("At least 1 concession must be selected.");
                 return;
             }
         }
@@ -1205,7 +1275,7 @@
         {
             if (SelectedStudent.StudentId == 0)
             {
-                await Alert.ShowWarning("Please select a student!");
+                await ShowSweetAlert(() => Alert.ShowWarning("Please select a student!"));
                 StateHasChanged();
                 return;
             }
@@ -1245,7 +1315,7 @@
             if (SelectedStudent.StudentId == 0)
             {
                 ShowPopupAddFeehead = false;
-                await customAlert.ShowCustomAlert("Please select student first !", false);
+                await ShowInfoAlert("Please select student first !");
                 return;
             }
             feeHeadToStudent.InvoiceId = SelectedStudent.InvoiceId;
@@ -1257,14 +1327,14 @@
             feeHeadToStudent.MonthNo = MonthList.Where(x => x.IsSelected && !x.IsDisabled).Select(x => x.MonthNo).ToList();
             if (feeHeadToStudent.HeadId == 0)
             {
-                await customAlert.ShowCustomAlert("Please select fee head name !", false);
+                await ShowInfoAlert("Please select fee head name !");
                 return;
             }
             ShowPopupAddFeehead = false;
             var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/AddFeeHeadToStudentChallan", feeHeadToStudent);
             if (response.Success && response.Code == 1)
             {
-                await Alert.ShowSuccess("Feehead added sucessfully.");
+                await ShowSweetAlert(() => Alert.ShowSuccess("Feehead added sucessfully."));
                 DataChanged = true;
                 await LoadInvoiceForEdit();
                 studentConcessionOnChallanRequest.Narration = "";
@@ -1294,7 +1364,7 @@
 
             if (SelectedStudent.StudentId == 0)
             {
-                await Alert.ShowWarning("Please select a student");
+                await ShowSweetAlert(() => Alert.ShowWarning("Please select a student"));
                 StateHasChanged();
                 return;
             }
@@ -1346,7 +1416,7 @@
             if (SelectedStudent.InvoiceId == 0)
             {
                 ShowPopupUpdateDueDate = false;
-                await customAlert.ShowCustomAlert("Please select student first !", false);
+                await ShowInfoAlert("Please select student first !");
                 return;
             }
 
@@ -1358,7 +1428,7 @@
             var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/StudentUpdateInvoiceDue", challanDueDate);
             if (response.Code == 1 && response.Success)
             {
-                await Alert.ShowSuccess("Invoice due date has been updated successfully..");
+                await ShowSweetAlert(() => Alert.ShowSuccess("Invoice due date has been updated successfully.."));
                 DataChanged = true;
                 await LoadInvoiceForEdit();
                 StateHasChanged();

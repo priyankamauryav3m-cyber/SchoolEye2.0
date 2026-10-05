@@ -1,0 +1,370 @@
+@page "/ViewStudentsLedger"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<style>
+
+    .student-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .student-name {
+        font-weight: 700;
+        font-size: 15px;
+    }
+
+    .student-sub {
+        font-weight: 500;
+        font-size: 13px;
+        color: #6c757d;
+    }
+
+    .student-match-item {
+        cursor: pointer;
+    }
+
+        .student-match-item:hover td {
+            background-color: #e7f1ff !important;
+        }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Students Ledger">
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName </option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <input class="form-input" placeholder="StudentNo..." maxlength="50"
+                           @bind="searchModel.ControlNo" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" />
+                </div>
+                <div class="form-box">
+                    <input class="form-input" placeholder="StudentName..." maxlength="200"
+                           @bind="searchModel.StudentName" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" />
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudentLedger">
+                        <div class="visible content justify-content-center">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="student-avatar">
+                            @GetInitials(IsStudentSelected ? selectedStudent!.StudentName : null)
+                        </div>
+                        <div>
+                            <div class="student-name">
+                                @(IsStudentSelected ? selectedStudent!.StudentName : "No student selected")
+                            </div>
+                            <div class="student-sub">
+                                @if (IsStudentSelected)
+                                {
+                                    @:Admission no. @selectedStudent!.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @GetMobileNo(selectedStudent)
+                                }
+                                else if (studentMatchList.Count > 1)
+                                {
+                                    @:@studentMatchList.Count students found. Select a student from the list below.
+                                }
+                                else
+                                {
+                                    @:Enter student no. or student name and press Enter / Search to view ledger.
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        @if (!IsStudentSelected && studentMatchList.Count > 1)
+                        {
+                            <div class="grid-box">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center">Student No.</th>
+                                            <th>Student Name</th>
+                                            <th class="text-center">Class Section</th>
+                                            <th>Father Name</th>
+                                            <th class="text-center">Mobile No.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in studentMatchList)
+                                        {
+                                            <tr class="student-match-item" @onclick="() => SelectStudent(item)">
+                                                <td class="text-center">@item.ControlNo</td>
+                                                <td>@item.StudentName</td>
+                                                <td class="text-center">@item.ClassSection</td>
+                                                <td>@item.FatherName</td>
+                                                <td class="text-center">@GetMobileNo(item)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="grid-box-with-btn">
+                                <QuickGrid Items="@ledgerQuery" Pagination="@pagination" Class="table">
+                                    <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TxnDate)" Title="Date" Align="Align.Center" />
+                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.TxnType)" Title="Txn Type" Align="Align.Center">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Txn Type...." />
+                                            </div>
+                                        </ColumnOptions>
+                                    </PropertyColumn>
+                                    <PropertyColumn Sortable="true" Property="@(x => x.FeeHeadName)" Title="Fee Head">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Fee Head...." />
+                                            </div>
+                                        </ColumnOptions>
+                                    </PropertyColumn>
+                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ReferenceNo)" Title="Reference No." Align="Align.Center">
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Reference No...." />
+                                            </div>
+                                        </ColumnOptions>
+                                    </PropertyColumn>
+                                    <PropertyColumn Property="@(x => x.Remarks)" Title="Remarks" />
+                                    <PropertyColumn Property="@(x => x.TransactionBy)" Title="Transaction By" />
+                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.DebitAmount)" Title="Debit (₹)" Align="Align.Right" />
+                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.CreditAmount)" Title="Credit (₹)" Align="Align.Right" />
+                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.RunningBalance)" Title="Balance (₹)" Align="Align.Right" />
+                                </QuickGrid>
+                            </div>
+                            <div class="footer-pagination">
+                                <div class="d-flex align-items-center">
+                                    <div class="welcome-text w-100">
+                                        <Paginator State="@pagination" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsLoading = false;
+    private string? branchcode;
+    private string? groupcode;
+    private long CurrentSession;
+    private List<SessionModel> sessionlist = new();
+    private StudentDetailsForFeeRequest searchModel = new();
+    private StudentDetailsForFee? selectedStudent;
+    private List<StudentDetailsForFee> studentMatchList = new();
+    private StudentLedgerRequest ledgerRequest = new();
+    private List<StudentLedgerResponse> ledgerList = new();
+    private string? nameFilter;
+    PaginationState pagination = new() { ItemsPerPage = 20 };
+
+    private bool IsStudentSelected => selectedStudent != null;
+
+    protected IQueryable<StudentLedgerResponse> ledgerQuery
+    {
+        get
+        {
+            var result = ledgerList.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.TxnType != null && x.TxnType.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.ReferenceNo != null && x.ReferenceNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        }
+        catch
+        {
+            sessionlist = new();
+        }
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "NumpadEnter")
+        {
+            await SearchStudentLedger();
+        }
+    }
+
+    private async Task SelectStudent(StudentDetailsForFee student)
+    {
+        searchModel.ControlNo = student.ControlNo;
+        searchModel.StudentName = "";
+        await SearchStudentLedger();
+    }
+
+    private async Task SearchStudentLedger()
+    {
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(searchModel.ControlNo) && string.IsNullOrWhiteSpace(searchModel.StudentName))
+        {
+            await Alert.ShowWarning("Please enter student no. or student name.");
+            return;
+        }
+
+        var request = new StudentDetailsForFeeRequest
+        {
+            GroupCode = groupcode ?? "",
+            BranchCode = branchcode ?? "",
+            SessionId = CurrentSession,
+            ControlNo = searchModel.ControlNo?.Trim() ?? "",
+            StudentName = searchModel.StudentName?.Trim() ?? "",
+            UpToDate = null
+        };
+
+        selectedStudent = null;
+        studentMatchList = new();
+        ledgerList = new();
+        nameFilter = null;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var studentResponse = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", request);
+            studentMatchList = studentResponse?.Data ?? new();
+
+            if (studentMatchList.Count == 0)
+            {
+                await Alert.ShowWarning("Student record was not found.");
+            }
+            else if (studentMatchList.Count == 1)
+            {
+                selectedStudent = studentMatchList[0];
+                await LoadStudentLedger(selectedStudent);
+            }
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowWarning(ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadStudentLedger(StudentDetailsForFee student)
+    {
+        ledgerRequest = new StudentLedgerRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = student.StudentId
+        };
+        var apiResponse = await httpService.Post<ApiResponse<List<StudentLedgerResponse>>>("StudentFeeInvoice/GetStudentLedgerNew", ledgerRequest);
+        if (apiResponse != null && apiResponse.Success)
+        {
+            ledgerList = apiResponse.Data ?? new List<StudentLedgerResponse>();
+        }
+        else
+        {
+            ledgerList = new List<StudentLedgerResponse>();
+            await Alert.ShowWarning(apiResponse?.Message ?? "Unable to load student ledger.");
+        }
+    }
+
+    private static string GetMobileNo(StudentDetailsForFee student)
+        => !string.IsNullOrWhiteSpace(student.FatherContactNo) ? student.FatherContactNo : student.SMSMobileNo;
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+    }
+}

@@ -26,6 +26,8 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         Task<IEnumerable<InvoiceFeeheadMonthNoResponse>> GetInvoiceFeeheadMonthNo(InvoiceFeeheadMonthNoRequest request);
         public Task<List<StudentMappedConcessionDto>> GetStudentMappedConcession(SearchAnyRequestModel searchAnyRequest);
         public Task<int> RemoveStudentConcessionFromInvoice(RemoveStudentConcessionFromInvoiceRequest request);
+        public Task<IEnumerable<StudentLedgerResponse>> GetStudentLedgerNewData(StudentLedgerRequest request);
+
 
     }
 }

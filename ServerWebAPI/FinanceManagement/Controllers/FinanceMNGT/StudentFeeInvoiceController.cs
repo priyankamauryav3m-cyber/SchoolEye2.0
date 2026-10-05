@@ -646,5 +646,50 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
+
+            [HttpPost("GetStudentLedgerNew")]
+            public async Task<IActionResult> GetStudentLedgerNewData([FromBody] StudentLedgerRequest request)
+            {
+                if (request == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Data not found.",
+                        Code = 0
+                    });
+                }
+                try
+                {
+                    var data = await _service.GetStudentLedgerNewData(request);
+                    if (data == null || !data.Any())
+                    {
+                        return Ok(new ApiResponse<IEnumerable<StudentLedgerResponse>>
+                        {
+                            Success = true,
+                            Message = "No records found.",
+                            Code = 0,
+                            Data = Enumerable.Empty<StudentLedgerResponse>()
+                        });
+                    }
+                    return Ok(new ApiResponse<IEnumerable<StudentLedgerResponse>>
+                    {
+                        Success = true,
+                        Message = "Student ledger retrieved successfully.",
+                        Code = 1,
+                        Data = data
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Exception: {ex.Message}");
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "An error occurred while fetching the student ledger.",
+                        Code = -1
+                    });
+                }
+            }
     }
 }
