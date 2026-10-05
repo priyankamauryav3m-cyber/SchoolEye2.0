@@ -2208,6 +2208,31 @@ namespace DomainModel.FinanceMNGT
         public string? CreatedBy { get; set; }
         public string? Narration { get; set; }
     }
+
+    public class StudentLedgerRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+    }
+    public class StudentLedgerResponse
+    {
+        public long LedgerTxnId { get; set; }
+        public DateTime TxnDate { get; set; }
+        public string? TxnType { get; set; }
+        public int? FeeHeadId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public string? ReferenceType { get; set; }
+        public string? ReferenceNo { get; set; }
+        public string? Remarks { get; set; }
+        public string? TransactionBy { get; set; }
+        public decimal DebitAmount { get; set; }
+        public decimal CreditAmount { get; set; }
+        public decimal RunningBalance { get; set; }
+    }
+
+
 }
 
 

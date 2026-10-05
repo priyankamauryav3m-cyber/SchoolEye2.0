@@ -18,6 +18,7 @@
 @inject ICommonMethod _commonmethod
 @inject PermissionState PermissionState
 @inject NavigationManager Nav
+
 <style>
     .quickgrid thead th:nth-last-child(2) {
         min-width: 75px;
@@ -31,30 +32,197 @@
         min-width: 75px;
     }
 
+    /* ===================== Professional grid styling ===================== */
+    .ft-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid #e5e9f0;
+        background: #fbfcfe;
+    }
+
+    .ft-card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #172334;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ft-card-title i {
+        color: #1769aa;
+        font-size: 16px;
+    }
+
+    .ft-legend {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 11.5px;
+        color: #68778a;
+    }
+
+    .ft-legend-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .ft-legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+
+    .ft-legend-dot.open {
+        background: #e9f8fa;
+        border: 1px solid #9fd8e2;
+    }
+
+    .ft-legend-dot.locked {
+        background: #f1f3f6;
+        border: 1px solid #d6dbe3;
+    }
+
+    .grid-box-with-btn .quickgrid {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .grid-box-with-btn .quickgrid thead th {
+        background: #f5f8fb;
+        color: #44536b;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        font-weight: 750;
+        border-bottom: 1px solid #e5e9f0;
+    }
+
+    .grid-box-with-btn .quickgrid tbody td {
+        vertical-align: middle;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .grid-box-with-btn .quickgrid tbody tr:hover td {
+        background: #fbfdff;
+    }
+
+    .grid-input-group {
+        display: flex;
+        align-items: stretch;
+        border: 1px solid #cfd8e3;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        transition: border-color .15s ease, box-shadow .15s ease;
+        min-width: 110px;
+    }
+
+    .grid-input-group:focus-within {
+        border-color: #1769aa;
+        box-shadow: 0 0 0 3px rgba(23, 105, 170, .12);
+    }
+
+    .grid-input-group.is-locked {
+        background: #f6f7f9;
+        border-color: #e4e8ee;
+    }
+
+    .grid-input-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        background: #f5f8fb;
+        color: #5a6b7d;
+        border-right: 1px solid #e4e8ee;
+        flex-shrink: 0;
+    }
+
+    .grid-input-group.is-locked .grid-input-icon {
+        color: #a3adbb;
+    }
+
+    .grid-input {
+        border: 0;
+        outline: none;
+        width: 100%;
+        padding: 6px 10px;
+        font-weight: 650;
+        font-size: 13.5px;
+        text-align: right;
+        background: transparent;
+        color: #172334;
+    }
+
+    .grid-input:disabled {
+        color: #a3adbb;
+        cursor: not-allowed;
+    }
+
+    .grid-static-cell {
+        font-weight: 650;
+        color: #172334;
+    }
+
+    .fee-type-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .3px;
+    }
+
+    .fee-type-badge.onetime {
+        background: #fff1e0;
+        color: #a0570c;
+    }
+
+    .fee-type-badge.annual {
+        background: #eef2ff;
+        color: #3949ab;
+    }
+
+    .fee-type-badge.quarterly {
+        background: #e9f8fa;
+        color: #0d7f91;
+    }
+
+    .fee-type-badge.monthly {
+        background: #e9f8f0;
+        color: #1b8a5a;
+    }
 </style>
+
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
-            <PageHeading Tittle="Set Fee Taking Methoud">
+            <PageHeading Tittle="Set Fee Taking Method">
                 <div class="form-box">
                     <InputSelect @bind-Value="@CurrentSession" name="session" class="form-input">
                         <option value="0">-- Select Session --</option>
                         @foreach (var data in sessionlist.Where(x => x.IsValid == true))
                         {
-                            <option value="@data.SessionId" >@data.SessionName </option>
+                            <option value="@data.SessionId">@data.SessionName </option>
                         }
                     </InputSelect>
                 </div>
                 <div class="form-box">
-                    <InputSelect @bind-Value=gridRequest.RequestId" class="form-input">
+                    <InputSelect @bind-Value="gridRequest.RequestId" class="form-input">
                         <option value="0" selected>Select-Template</option>
                         @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
                         {
-                            <option Value="@cs.FeeTemplateId">@cs.TemplateName</option>
+                            <option value="@cs.FeeTemplateId">@cs.TemplateName</option>
                         }
                     </InputSelect>
                 </div>
-
 
                 <div class="form-box">
                     <button class="ui fade op-1 animated button form-btn" @onclick="SearchByTemplateName" tabindex="0">
@@ -69,6 +237,13 @@
 
         <div class="col-12 p-1">
             <div class="card">
+                <div class="ft-card-head">
+                    <h5 class="ft-card-title"><i class="bi bi-grid-3x3-gap"></i> Fee Taking Grid</h5>
+                    <div class="ft-legend">
+                        <span class="ft-legend-chip"><span class="ft-legend-dot open"></span> Open for entry</span>
+                        <span class="ft-legend-chip"><span class="ft-legend-dot locked"></span> Locked (Quarterly cooldown)</span>
+                    </div>
+                </div>
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
                         <div class="grid-box-with-btn">
@@ -102,13 +277,30 @@
                                                 }
                                                 else if (feeType == "Quarterly")
                                                 {
-                                                    if (filledCount >= 4 && currentNum == 0)
+                                                    // Quarterly cooldown: after a month is filled, the NEXT 2 months
+                                                    // (in chronological column order) are locked - this spaces
+                                                    // entries 3 months apart instead of just capping the total at 4.
+                                                    var monthIdx = monthColumns.IndexOf(prop);
+                                                    if (monthIdx >= 0 && currentNum == 0)
                                                     {
-                                                        isDisabled = true;
+                                                        for (int m = 0; m < monthColumns.Count; m++)
+                                                        {
+                                                            if (m == monthIdx) continue;
+
+                                                            var mKey = $"{feeHeadId}_{monthColumns[m]}";
+                                                            if (inputValues.TryGetValue(mKey, out var mVal) && int.TryParse(mVal, out var mNum) && mNum > 0)
+                                                            {
+                                                                var gap = monthIdx - m;
+                                                                if (gap == 1 || gap == 2)
+                                                                {
+                                                                    isDisabled = true;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
 
-                                              
                                                 if (!inputValues.ContainsKey(idKey))
                                                 {
                                                     if (context.TryGetProperty("Id", out var idVal))
@@ -131,24 +323,35 @@
                                                         inputValues[key] = "";
                                                     }
                                                 }
-                                                else if (prop == "Fee Head" || prop == "FeeType")
+
+                                                if (prop == "FeeType")
                                                 {
-                                                    @inputValues[key]
+                                                    var badgeClass = feeType.ToLower() switch
+                                                    {
+                                                        "onetime" => "onetime",
+                                                        "annual" => "annual",
+                                                        "quarterly" => "quarterly",
+                                                        "monthly" => "monthly",
+                                                        _ => "monthly"
+                                                    };
+                                                    <span class="fee-type-badge @badgeClass">@inputValues[key]</span>
+                                                }
+                                                else if (prop == "Fee Head")
+                                                {
+                                                    <span class="grid-static-cell">@inputValues[key]</span>
                                                 }
                                                 else
                                                 {
-                                                    <div class="input-group">
-                                                        <span class="input-group-text" id="basic-addon1">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-currency-rupee" viewBox="0 0 16 16">
+                                                    <div class="grid-input-group @(isDisabled ? "is-locked" : "")">
+                                                        <span class="grid-input-icon">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-currency-rupee" viewBox="0 0 16 16">
                                                                 <path d="M4 3.06h2.726c1.22 0 2.12.575 2.325 1.724H4v1.051h5.051C8.855 7.001 8 7.558 6.788 7.558H4v1.317L8.437 14h2.11L6.095 8.884h.855c2.316-.018 3.465-1.476 3.688-3.049H12V4.784h-1.345c-.08-.778-.357-1.335-.793-1.732H12V2H4z"></path>
                                                             </svg>
                                                         </span>
-                                                        <InputText @bind-Value="inputValues[key]" class="grid-input" disabled="@isDisabled" autocomplete="off"  oninput="this.value = this.value.replace(/[^0-9]/g, '')" onkeyup="if(parseInt(this.value) > 10000) this.value = 10000" onblur="if(this.value === '') this.value = '0'" placeholder="Amount" />
+                                                        <InputText @bind-Value="inputValues[key]" class="grid-input" disabled="@isDisabled" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onkeyup="if(parseInt(this.value) > 10000) this.value = 10000" onblur="if(this.value === '') this.value = '0'" placeholder="0" />
                                                     </div>
                                                 }
                                             }
-
-
 
                                         </ChildContent>
 
@@ -204,9 +407,29 @@
 }
 else
 {
-    
+
 }
 @code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS / FIXES (no binding or API logic changed otherwise):
+    // - Fixed a broken attribute in the pasted source:
+    //   @bind-Value=gridRequest.RequestId" (missing opening quote) ->
+    //   @bind-Value="gridRequest.RequestId" - same bound property, just
+    //   corrected malformed Razor syntax that wouldn't have compiled.
+    // - Fixed <option Value="..."> -> <option value="..."> (lowercase) on
+    //   the template dropdown, for the same reason.
+    // - Quarterly logic changed as requested: instead of only capping the
+    //   total filled months at 4, entering an amount in a month now locks
+    //   the NEXT 2 months (in column/calendar order) for that fee head,
+    //   forcing a 3-month gap between entries. This assumes `columns`
+    //   (and therefore monthColumns) are already in chronological month
+    //   order as returned by the API - if not, the lock will follow
+    //   whatever order the API returns instead of calendar order.
+    // - OneTime/Annual single-entry logic is unchanged.
+    // - Fixed title typo "Set Fee Taking Methoud" -> "Set Fee Taking
+    //   Method" as part of the design pass.
+    // ---------------------------------------------------------------------
+
     bool isDisabled = false;
     private Dictionary<string, string> inputValues = new();
     private bool showModal { get; set; }
@@ -229,6 +452,13 @@ else
     List<JsonElement> gridData;
     private List<JsonElement> originalGridData;
     List<string> columns = new();
+
+    // Month-only columns (excludes Id/FeeHeadId/Fee Head/FeeType), used to
+    // compute the Quarterly 2-month cooldown by chronological position.
+    private List<string> monthColumns => columns
+        .Where(c => c != "Id" && c != "FeeHeadId" && c != "Fee Head" && c != "FeeType")
+        .ToList();
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -289,7 +519,7 @@ else
     {
         var dict = new Dictionary<string, object>();
 
-        foreach (var prop in element.EnumerateObject().OrderBy(p => p.Name)) 
+        foreach (var prop in element.EnumerateObject().OrderBy(p => p.Name))
         {
             dict[prop.Name] = prop.Value.ToString();
         }
@@ -331,7 +561,7 @@ else
                 StateHasChanged();
                 return;
             }
-            
+
             feeTaking.SessionId = CurrentSession;
             feeTaking.GroupCode = groupcode;
             feeTaking.BranchCode = branchcode;
@@ -367,7 +597,7 @@ else
                 StateHasChanged();
                 IsLoading = false;
             }
-    
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -437,4 +667,3 @@ else
     }
 
 }
-

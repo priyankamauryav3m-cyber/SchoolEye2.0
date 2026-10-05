@@ -3,8 +3,11 @@ using Dapper;
 using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.InkML;
 using DomainModel.FinanceMNGT;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using MyApp.Common;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -440,5 +443,30 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
+
+        public async Task<IEnumerable<StudentLedgerResponse>> GetStudentLedgerNewData(StudentLedgerRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                return await con.QueryAsync<StudentLedgerResponse>(
+                    "V3M_FIN_UspGetStudentLedger",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+
+
     }
 }
