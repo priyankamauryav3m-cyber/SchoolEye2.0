@@ -145,33 +145,25 @@
                         {
                             <div class="grid-box-with-btn">
                                 <QuickGrid Items="@ledgerQuery" Pagination="@pagination" Class="table">
-                                    <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TxnDate)" Title="Date" Align="Align.Center" />
-                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.TxnType)" Title="Txn Type" Align="Align.Center">
+                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Control No." Align="Align.Center">
                                         <ColumnOptions>
-                                            <div class="search-box">
-                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Txn Type...." />
-                                            </div>
-                                        </ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Control No...." />
+                                        </div>
+                                    </ColumnOptions>
                                     </PropertyColumn>
-                                    <PropertyColumn Sortable="true" Property="@(x => x.FeeHeadName)" Title="Fee Head">
-                                        <ColumnOptions>
-                                            <div class="search-box">
-                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Fee Head...." />
-                                            </div>
-                                        </ColumnOptions>
-                                    </PropertyColumn>
-                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ReferenceNo)" Title="Reference No." Align="Align.Center">
-                                        <ColumnOptions>
-                                            <div class="search-box">
-                                                <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Reference No...." />
-                                            </div>
-                                        </ColumnOptions>
-                                    </PropertyColumn>
-                                    <PropertyColumn Property="@(x => x.Remarks)" Title="Remarks" />
-                                    <PropertyColumn Property="@(x => x.TransactionBy)" Title="Transaction By" />
-                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.DebitAmount)" Title="Debit (₹)" Align="Align.Right" />
-                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.CreditAmount)" Title="Credit (₹)" Align="Align.Right" />
+                                        <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name">
+                                       <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student  name...." />
+                                        </div>
+                                    </ColumnOptions>
+                                        </PropertyColumn>
+                                            <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" />
+                                    <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.TransactionBy) ? " " : x.TransactionBy)" Title="Transaction By" />
+                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.Amount)" Title="Amount (₹)" Align="Align.Right" />
                                     <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.RunningBalance)" Title="Balance (₹)" Align="Align.Right" />
+                                   <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TransactionDate)" Title="Date" Align="Align.Center" />
                                 </QuickGrid>
                             </div>
                             <div class="footer-pagination">
@@ -220,20 +212,22 @@
 
     private bool IsStudentSelected => selectedStudent != null;
 
-    protected IQueryable<StudentLedgerResponse> ledgerQuery
-    {
-        get
+        protected IQueryable<StudentLedgerResponse> ledgerQuery
         {
-            var result = ledgerList.AsQueryable();
-            if (!string.IsNullOrEmpty(nameFilter))
+            get
             {
-                result = result.Where(x => (x.TxnType != null && x.TxnType.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-                (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-                (x.ReferenceNo != null && x.ReferenceNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+                var result = ledgerList.AsQueryable();
+
+                if (!string.IsNullOrEmpty(nameFilter))
+                {
+                    result = result.Where(x =>
+                        (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                        (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+                }
+
+                return result;
             }
-            return result;
         }
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -339,7 +333,6 @@
             GroupCode = groupcode,
             BranchCode = branchcode,
             SessionId = CurrentSession,
-            StudentId = student.StudentId
         };
         var apiResponse = await httpService.Post<ApiResponse<List<StudentLedgerResponse>>>("StudentFeeInvoice/GetStudentLedgerNew", ledgerRequest);
         if (apiResponse != null && apiResponse.Success)
