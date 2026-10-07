@@ -1,0 +1,304 @@
+@page "/ViewFeeHeadLedger"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Fee Head Ledger">
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" @bind-Value:after="OnSessionChanged" name="session" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="searchRequest.FeeHeadId" name="feehead" class="form-input">
+                        <option value="0">-- All Fee Head --</option>
+                        @foreach (var cs in detSessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.FeeHeadId">@cs.FeeHeadName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <input class="form-input" placeholder="StudentNo..." maxlength="50"
+                           @bind="searchRequest.ControlNo" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" />
+                </div>
+                <div class="form-box">
+                    <InputDate class="form-input" @bind-Value="searchRequest.DateFrom" title="From Date" />
+                </div>
+                <div class="form-box">
+                    <InputDate class="form-input" @bind-Value="searchRequest.DateTo" title="To Date" />
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchFeeHeadLedger">
+                        <div class="visible content justify-content-center">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@ledgerQuery" Pagination="@pagination" Class="table">
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.TransId)" Title="TransId" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="TransId...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.FeeHeadName) ? " " : x.FeeHeadName)" Title="Fee Head">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Fee Head...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TransDate)" Title="Trans Date" Align="Align.Center" />
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.MonthName) ? " " : x.MonthName)" Title="Month For" Align="Align.Center" />
+                                <PropertyColumn Sortable="true" Format="N2" Class="text-right" Property="@(x => x.Amount)" Title="Amount (₹)" Align="Align.Right" />
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" />
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.TransType) ? " " : x.TransType)" Title="Trans Type" Align="Align.Center" />
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.StudentNo) ? " " : x.StudentNo)" Title="StudentNo" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Name">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student name...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.ClassName) ? " " : x.ClassName)" Title="Class" Align="Align.Center" />
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.EnteredVia) ? " " : x.EnteredVia)" Title="EnteredVia" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center justify-content-between">
+                                  <Paginator State="@pagination" />
+                                <div class="welcome-text">Total Amount: @totalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsLoading = false;
+    private string? branchcode;
+    private string? groupcode;
+    private long CurrentSession;
+    private List<SessionModel> sessionlist = new();
+    private List<DetSessionModel> detSessionlist = new();
+    private SearchAnyRequestModel searchAny = new();
+    private FeeHeadLedgerRequest searchRequest = new() { FeeHeadId = 0, ChkDateRangeFlag = false, DateFrom = DateTime.Today, DateTo = DateTime.Today };
+    private List<FeeHeadLedgerResponse> ledgerList = new();
+    private string? nameFilter;
+    PaginationState pagination = new() { ItemsPerPage = 20 };
+
+    private decimal totalAmount => ledgerQuery.Sum(x => x.Amount);
+
+    protected IQueryable<FeeHeadLedgerResponse> ledgerQuery
+    {
+        get
+        {
+            var result = ledgerList.AsQueryable();
+
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x =>
+                    x.TransId.ToString().Contains(nameFilter) ||
+                    (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentNo != null && x.StudentNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+
+            return result;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await LoadData();
+            await LoadFeeHeads();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        }
+        catch
+        {
+            sessionlist = new();
+        }
+    }
+
+    private async Task OnSessionChanged()
+    {
+        // Session badalne par fee head list reload karo aur "All" select karo
+        searchRequest.FeeHeadId = 0;
+        ledgerList = new();
+        await LoadFeeHeads();
+    }
+
+    private async Task LoadFeeHeads()
+    {
+        try
+        {
+            if (CurrentSession <= 0)
+            {
+                detSessionlist = new();
+                return;
+            }
+
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+
+            string ApiUri2 = "SessionFeeHeads/GetSessionFeeHead";
+            var apiResponse = await httpService.Post<ApiResponse<List<DetSessionModel>>>(ApiUri2, searchAny) ?? new();
+            if (apiResponse.Success)
+            {
+                detSessionlist = apiResponse.Data ?? new List<DetSessionModel>();
+            }
+            else
+            {
+                detSessionlist = new List<DetSessionModel>();
+            }
+        }
+        catch
+        {
+            detSessionlist = new List<DetSessionModel>();
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "NumpadEnter")
+        {
+            await SearchFeeHeadLedger();
+        }
+    }
+
+    private async Task SearchFeeHeadLedger()
+    {
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        if (searchRequest.DateFrom == null || searchRequest.DateTo == null)
+        {
+            await Alert.ShowWarning("Please select from date and to date.");
+            return;
+        }
+        if (searchRequest.DateFrom > searchRequest.DateTo)
+        {
+            await Alert.ShowWarning("From date cannot be greater than to date.");
+            return;
+        }
+
+        var request = new FeeHeadLedgerRequest
+        {
+            GroupCode = groupcode ?? "",
+            BranchCode = branchcode ?? "",
+            SessionId = CurrentSession,
+            FeeHeadId = searchRequest.FeeHeadId, // 0 = All Fee Heads
+            ControlNo = searchRequest.ControlNo?.Trim() ?? "",
+            ChkDateRangeFlag = false,
+            DateFrom = searchRequest.DateFrom?.Date,
+            DateTo = searchRequest.DateTo?.Date
+        };
+
+        ledgerList = new();
+        nameFilter = null;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<List<FeeHeadLedgerResponse>>>("StudentFeeInvoice/GetFeeHeadLedger", request);
+            if (apiResponse != null && apiResponse.Success)
+            {
+                ledgerList = apiResponse.Data ?? new List<FeeHeadLedgerResponse>();
+                if (ledgerList.Count == 0)
+                {
+                    await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+                }
+            }
+            else
+            {
+                ledgerList = new List<FeeHeadLedgerResponse>();
+                await Alert.ShowWarning(apiResponse?.Message ?? "Unable to load fee head ledger.");
+            }
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception)
+        {
+            ledgerList = new();
+            await Alert.ShowWarning("Unable to load fee head ledger.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -453,7 +453,6 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 param.Add("@GroupCode", request.GroupCode);
                 param.Add("@BranchCode", request.BranchCode);
                 param.Add("@SessionId", request.SessionId);
-                param.Add("@StudentId", request.StudentId);
                 return await con.QueryAsync<StudentLedgerResponse>(
                     "V3M_FIN_UspGetStudentLedger",
                     param,
@@ -465,6 +464,33 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
+
+        public async Task<IEnumerable<FeeHeadLedgerResponse>> GetFeeHeadLedger(FeeHeadLedgerRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ControlNo", request.ControlNo);
+                param.Add("@chkDateRangeFlag", request.ChkDateRangeFlag);
+                param.Add("@DateFrom", request.DateFrom);
+                param.Add("@DateTo", request.DateTo);
+                param.Add("@FeeHeadId", request.FeeHeadId);
+                return await con.QueryAsync<FeeHeadLedgerResponse>(
+                    "V3M_FIN_UspGetFeeHeadLedger",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
 
 
 

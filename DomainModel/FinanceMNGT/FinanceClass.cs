@@ -787,10 +787,9 @@ namespace DomainModel.FinanceMNGT
         [Display(Name = "Class Name")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
         public string? ClassCode { get; set; }
-        public string? MotherName { get; set; }
+        public string? MotherName { get; set; } = string.Empty;
         //[RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
         public string? Email { get; set; }
-
         public string? ContactNo { get; set; }
         public string? SourceOfEnquiry { get; set; }
         [Display(Name = "Address")]
@@ -2218,19 +2217,62 @@ namespace DomainModel.FinanceMNGT
     }
     public class StudentLedgerResponse
     {
-        public long LedgerTxnId { get; set; }
-        public DateTime TxnDate { get; set; }
-        public string? TxnType { get; set; }
-        public int? FeeHeadId { get; set; }
-        public string? FeeHeadName { get; set; }
-        public string? ReferenceType { get; set; }
-        public string? ReferenceNo { get; set; }
-        public string? Remarks { get; set; }
-        public string? TransactionBy { get; set; }
-        public decimal DebitAmount { get; set; }
-        public decimal CreditAmount { get; set; }
+        public int StudentId { get; set; }
+        public string ControlNo { get; set; } = string.Empty;
+        public string StudentName { get; set; } = string.Empty;
+        public int RollNo { get; set; }
+        public string ClassCode { get; set; } = string.Empty;
+        public string ClassSection { get; set; } = string.Empty;
+        public string FatherName { get; set; } = string.Empty;
+        public string Narration { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
         public decimal RunningBalance { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public string TransactionBy { get; set; } = string.Empty;
     }
+
+    public class FeeHeadLedgerRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string ControlNo { get; set; } = "";
+        public bool ChkDateRangeFlag { get; set; }
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+        public int FeeHeadId { get; set; }
+    }
+    public class FeeHeadLedgerResponse
+    {
+        public long TransId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassName { get; set; }
+        public string? Narration { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime TransDate { get; set; }
+        public string? FeeHeadName { get; set; }
+        public string? MonthName { get; set; }
+        public string? MonthNoFor { get; set; }
+        public string? TransType { get; set; }
+        public long? CurrentSession { get; set; }
+        public int? HeadId { get; set; }
+        public int? MonthNoInDue { get; set; }
+        public long? SessionFor { get; set; }
+        public string? RefType { get; set; }
+        public string? RefId { get; set; }
+        public long? InvoiceId { get; set; }
+        public string? TransBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public string? EnteredVia { get; set; }
+        public long? ReceiptId { get; set; }
+        public bool? IsReceiptOnline { get; set; }
+        public string? CrDr { get; set; }
+    }
+
+
 
 
 }
