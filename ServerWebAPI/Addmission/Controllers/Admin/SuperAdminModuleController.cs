@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MyApp.Common;
+using System.Security.Claims;
+using ServerWebAPI.Dependency;
+using V3MAdminOnlyAttribute = ServerWebAPI.Authorization.V3MAdminOnlyAttribute;
+using ApplicationInterface.User;
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
@@ -17,9 +21,29 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
     public class SuperAdminModuleController : ControllerBase
     {
         private readonly ISuperAdmin _repo;
-        public SuperAdminModuleController(ISuperAdmin repo)
+        private readonly IUser _users;
+        public SuperAdminModuleController(ISuperAdmin repo, IUser users)
         {
             _repo = repo;
+            _users = users;
+        }
+
+        // UI page guard: is the logged-in user (from JWT) a V3M Admin?
+        [HttpGet("IsV3MAdmin")]
+        public async Task<IActionResult> IsV3MAdmin()
+        {
+            var userSid = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userSid))
+                return Unauthorized(ApiResponse<string>.Fail("Unable to identify the current user."));
+            try
+            {
+                bool isAdmin = await _users.IsUserInRoleAsync(userSid, V3MAdminOnlyAttribute.RoleName);
+                return Ok(ApiResponse<bool>.Ok(isAdmin));
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail("Something went wrong."));
+            }
         }
         // Module  Data 
         [HttpPost("Add_Module")]
@@ -306,6 +330,40 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
+        // Activity page: returns 1 in Data when the activity is added
+        [V3MAdminOnly]
+        [HttpPost("InsertMstActivityListNew")]
+        [ApiResponseValidation]
+        public async Task<IActionResult> InsertMstActivityListNew([FromBody] ActivityCreateRequest activity)
+        {
+            if (activity == null)
+                return BadRequest(ApiResponse<string>.Fail("Invalid activity data."));
+
+            // audit user from the verified JWT, never from the client
+            var createdBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(createdBy))
+                return Unauthorized(ApiResponse<string>.Fail("Unable to identify the current user."));
+
+            try
+            {
+                int result = await _repo.InsertMstActivityListNew(activity, createdBy);
+                return result switch
+                {
+                    1 => Ok(ApiResponse<int>.Ok(1, "Activity added successfully.")),
+                    0 => Conflict(ApiResponse<string>.Fail("Activity name already exists.")),
+                    -2 => BadRequest(ApiResponse<string>.Fail("Selected feature was not found.")),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<string>.Fail("Activity could not be added."))
+                };
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<string>.Fail("Something went wrong.")
+                );
+            }
+        }
+
         [HttpGet("GetActivity/{FeatureId}")]
         public async Task<IActionResult> GetAddActivity(int FeatureId)
         {
@@ -329,6 +387,25 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
+        [V3MAdminOnly]
+        [HttpGet("GetModuleTree")]
+        public async Task<IActionResult> GetModuleTree()
+        {
+            try
+            {
+                var result = await _repo.GetModuleTreeData();
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<string>.Fail("Something went wrong.")
+                );
+            }
+        }
+
+        [V3MAdminOnly]
         [HttpPost("ControlMapping")]
         public async Task<IActionResult> AccessControlMapping([FromBody] List<ControlAccess> model)
         {
@@ -364,6 +441,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
+        [V3MAdminOnly]
         [HttpGet("GetControlMappingByRole/{roleId}")]
         public async Task<IActionResult> GetControlMappingByRole(int roleId)
         {
@@ -416,6 +494,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
+        [V3MAdminOnly]
         [HttpPost("DeleteMapping")]
         public async Task<IActionResult> DeleteMapping([FromBody] List<int> accessIds)
         {
@@ -438,6 +517,81 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
             }
         }
+        // Role wise menu order
+        [V3MAdminOnly]
+        [HttpGet("RoleMenuOrder/{roleId}")]
+        public async Task<IActionResult> GetRoleMenuOrder(int roleId)
+        {
+            if (roleId <= 0)
+                return BadRequest(ApiResponse<string>.Fail("Invalid role."));
+            try
+            {
+                var data = await _repo.GetRoleMenuOrder(roleId);
+                return Ok(ApiResponse<IEnumerable<RoleMenuOrderRow>>.Ok(data, "Menu order fetched successfully."));
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<string>.Fail("Something went wrong.")
+                );
+            }
+        }
+
+        [V3MAdminOnly]
+        [HttpPost("RoleMenuOrder")]
+        public async Task<IActionResult> SaveRoleMenuOrder([FromBody] RoleMenuOrderSaveRequest request)
+        {
+            if (request == null || !ModelState.IsValid)
+                return BadRequest(ApiResponse<string>.Fail("Invalid menu order data."));
+
+            if (request.Items.GroupBy(i => new { i.LevelType, i.RefId }).Any(g => g.Count() > 1))
+                return BadRequest(ApiResponse<string>.Fail("Duplicate menu items in request."));
+
+            // Audit user comes from the verified JWT, never from the client payload
+            var createdBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(createdBy))
+                return Unauthorized(ApiResponse<string>.Fail("Unable to identify the current user."));
+
+            try
+            {
+                int result = await _repo.SaveRoleMenuOrder(request.RoleId, request.Items, createdBy);
+                if (result == -1)
+                    return NotFound(ApiResponse<string>.Fail("Role not found."));
+                if (result == 0)
+                    return BadRequest(ApiResponse<string>.Fail("No changes detected."));
+
+                return Ok(ApiResponse<int>.Ok(result, "Menu order saved successfully."));
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<string>.Fail("Something went wrong.")
+                );
+            }
+        }
+
+        [V3MAdminOnly]
+        [HttpPost("RoleMenuOrder/Reset/{roleId}")]
+        public async Task<IActionResult> ResetRoleMenuOrder(int roleId)
+        {
+            if (roleId <= 0)
+                return BadRequest(ApiResponse<string>.Fail("Invalid role."));
+            try
+            {
+                int result = await _repo.ResetRoleMenuOrder(roleId);
+                return Ok(ApiResponse<int>.Ok(result, "Menu order reset to default."));
+            }
+            catch (Exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<string>.Fail("Something went wrong.")
+                );
+            }
+        }
+
         [HttpGet("GetDashboard")]
         public async Task<IActionResult> GetDashboardData()
         {

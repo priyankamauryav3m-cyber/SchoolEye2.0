@@ -23,8 +23,14 @@ namespace ApplicationInterface.SuperAdmin
         public Task<IEnumerable<SuperAdminActivity>> GetAddActivityData(int featureId);
         public Task<IEnumerable<SuperAdminFeatures>> GetAddFeaturesData(int moduleId);
         public Task<IEnumerable<SuperAdminModule>> GetAddModuleData();
+        public Task<List<SuperAdminModule>> GetModuleTreeData();
         public Task<IEnumerable<RolebaseActivity>> GetRoleBasedActivity(int roleId);
         public Task DeleteAccessMappings(List<int> accessIds);
         public Task<IEnumerable<DashboardModel>> GetDashboardData();
+        public Task<IEnumerable<RoleMenuOrderRow>> GetRoleMenuOrder(int roleId);
+        public Task<int> SaveRoleMenuOrder(int roleId, List<RoleMenuOrderItem> items, string createdBy);
+        public Task<int> ResetRoleMenuOrder(int roleId);
+        // 1 = inserted, 0 = duplicate name, -1 = DB error, -2 = feature not found
+        public Task<int> InsertMstActivityListNew(ActivityCreateRequest activity, string createdBy);
     }
 }

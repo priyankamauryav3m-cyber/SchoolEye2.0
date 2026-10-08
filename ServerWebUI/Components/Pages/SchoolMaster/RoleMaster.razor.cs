@@ -65,16 +65,12 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
             StateHasChanged();
 
         }
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+        // called by V3MAdminGuard after the page is rendered, only for V3M Admin
+        private async Task OnAccessAllowed()
         {
-            if (firstRender)
-            {
-                await JS.InvokeVoidAsync("menuMap");
-                await LoadData();
-                StateHasChanged();
-              
-            }
-  
+            await JS.InvokeVoidAsync("menuMap");
+            await LoadData();
+            StateHasChanged();
         }
         private void UpdateFeaturesName()
         {
@@ -304,19 +300,10 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
             try
             {
                 IsLoading = true;
-                string ApiUri1 = "SuperAdminModule/GetAdd_Module";
-                moduleList = await httpService.Get<List<SuperAdminModule>>(ApiUri1) ?? new();
+                // Module -> Features -> Activities ek hi API call me
+                string ApiUri = "SuperAdminModule/GetModuleTree";
+                moduleList = await httpService.Get<List<SuperAdminModule>>(ApiUri) ?? new();
                 moduleQuery = moduleList.AsQueryable();
-                foreach (var module in moduleList)
-                {
-                    string ApiUri2 = $"SuperAdminModule/GetByModule/{module.ModuleId}";
-                    module.Features = await httpService.Get<List<SuperAdminFeatures>>(ApiUri2) ?? new();
-                    foreach (var feature in module.Features)
-                    {
-                        string ApiUri3 = $"SuperAdminModule/GetActivity/{feature.FeatureId}";
-                        feature.Activites = await httpService.Get<List<SuperAdminActivity>>(ApiUri3) ?? new();
-                    }
-                }
                 IsLoading = false;
                 ResetAdminState();
                 ExpandAll();
@@ -533,73 +520,90 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
         }
         private async Task OnSuperAdminSave()
         {
-            ShowPopupAdmin = false;
-
-            var savedPermissions =await httpService.Get<List<ControlAccess>>( $"SuperAdminModule/GetControlMappingByRole/{SelectedRoleId}")
-                ?? new List<ControlAccess>();
-
-            var selectedActivities = moduleList .SelectMany(m => m.Features).SelectMany(f => f.Activites).Where(a => a.IsSelected).ToList();
-            var controlAccessList = new List<ControlAccess>();
-
-            foreach (var act in selectedActivities)
+            try
             {
-                var feature = moduleList
-                    .SelectMany(m => m.Features)
-                    .First(f => f.FeatureId == act.FeatureId);
+                // Mst_ACMapping stores one row per Activity, so a feature with no activities cannot be saved
+                var emptyFeatures = moduleList.SelectMany(m => m.Features)
+                    .Where(f => f.IsSelected && (f.Activites == null || !f.Activites.Any()))
+                    .Select(f => f.FeaturesName)
+                    .ToList();
 
-                var module = moduleList
-                    .First(m => m.ModuleId == feature.ModuleId);
-
-                controlAccessList.Add(new ControlAccess
+                var controlAccessList = new List<ControlAccess>();
+                foreach (var module in moduleList)
                 {
-                    RoleId = SelectedRoleId,
-                    ModuleId = module.ModuleId,
-                    FeatureId = act.FeatureId,
-                    ActivityId = act.ActivityId,
-                    IsAdd = act.IsAdd,
-                    IsModifiy = act.IsModifiy,
-                    IsPrint = act.IsPrint,
-                    IsExportToExcel = act.IsExportToExcel,
-                    IsPII = act.IsPII,
-                    Action1 = act.Action1,
-                    Action2 = act.Action2,
-                    Action3 = act.Action3,
-                    CreatedBy = username
-                });
-            }
-
-            var deleteList = savedPermissions.Where(sp => !selectedActivities.Any(a =>
-                    a.ActivityId == sp.ActivityId &&
-                    a.FeatureId == sp.FeatureId))
-                .Select(sp => sp.AccessId)
-                .ToList();
-
-          
-            if (controlAccessList.Any())
-            {
-               var apiResponse1 = await httpService.Post<ApiResponse<object>>( "SuperAdminModule/ControlMapping",controlAccessList);
-                if (apiResponse1.Success)
-                {
-                    if (apiResponse1.ActionType == "Update")
+                    foreach (var feature in module.Features)
                     {
-                        await Alert.ShowSuccess("Access " + @Localizer["Updated"]);
-                    }
-                    else
-                    {
-                        await Alert.ShowSuccess("Access " + @Localizer["Saved"]);
+                        foreach (var act in feature.Activites.Where(a => a.IsSelected))
+                        {
+                            controlAccessList.Add(new ControlAccess
+                            {
+                                RoleId = SelectedRoleId,
+                                ModuleId = module.ModuleId,
+                                FeatureId = feature.FeatureId,
+                                ActivityId = act.ActivityId,
+                                IsAdd = act.IsAdd,
+                                IsModifiy = act.IsModifiy,
+                                IsPrint = act.IsPrint,
+                                IsExportToExcel = act.IsExportToExcel,
+                                IsPII = act.IsPII,
+                                Action1 = act.Action1,
+                                Action2 = act.Action2,
+                                Action3 = act.Action3,
+                                CreatedBy = username
+                            });
+                        }
                     }
                 }
-               
 
+                var savedPermissions = await httpService.Get<List<ControlAccess>>($"SuperAdminModule/GetControlMappingByRole/{SelectedRoleId}")
+                    ?? new List<ControlAccess>();
+
+                var deleteList = savedPermissions.Where(sp => !controlAccessList.Any(a =>
+                        a.ActivityId == sp.ActivityId &&
+                        a.FeatureId == sp.FeatureId))
+                    .Select(sp => sp.AccessId)
+                    .ToList();
+
+                if (!controlAccessList.Any() && !deleteList.Any())
+                {
+                    await Alert.ShowWarning(emptyFeatures.Any()
+                        ? $"No activity is mapped to: {string.Join(", ", emptyFeatures)}. Please add activities to these features first."
+                        : "Please select at least one activity.");
+                    return;
+                }
+
+                if (controlAccessList.Any())
+                {
+                    var apiResponse1 = await httpService.Post<ApiResponse<object>>("SuperAdminModule/ControlMapping", controlAccessList);
+                    if (apiResponse1 == null || !apiResponse1.Success)
+                    {
+                        await Alert.ShowWarning(apiResponse1?.Message ?? "Access could not be saved.");
+                        return;
+                    }
+                }
+                if (deleteList.Any())
+                {
+                    await httpService.Post<ApiResponse<object>>("SuperAdminModule/DeleteMapping", deleteList);
+                }
+
+                ShowPopupAdmin = false;
+                await Alert.ShowSuccess("Access " + (savedPermissions.Any() ? Localizer["Updated"] : Localizer["Saved"]));
+                if (emptyFeatures.Any())
+                {
+                    await Alert.ShowWarning($"Not saved (no activity mapped): {string.Join(", ", emptyFeatures)}");
+                }
+
+                ApplySavedHighlight();
+                ResetAdminState();
             }
-            if (deleteList.Any())
+            catch (Exception ex)
             {
-                await httpService.Post<ApiResponse<object>>( "SuperAdminModule/DeleteMapping",deleteList);
+                await Alert.ShowError($"{Localizer["Error"]}: {ex.Message}");
             }
-            ApplySavedHighlight();
-            ResetAdminState();
-            StateHasChanged();
-
+            finally
+            {
+                StateHasChanged();
+            }
         }
 
 

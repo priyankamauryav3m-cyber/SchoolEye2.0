@@ -1,0 +1,431 @@
+@page "/menumappingwithrolebase"
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject IStringLocalizer<Resource> Localizer
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+<style>
+    /* Same look as Role Master -> Menu Activity */
+    :root {
+        --map-primary: #1E8FD3;
+        --map-primary-dark: #146da3;
+        --map-primary-soft: rgba(30, 143, 211, 0.08);
+        --map-success: #16a34a;
+        --map-border: #e4e9ef;
+        --map-text: #37474f;
+        --map-text-soft: #6b7a85;
+    }
+
+    .map-box {
+        border: 1px solid var(--map-border);
+        border-radius: 7px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(20, 40, 60, 0.05);
+    }
+
+    .map-top-header p {
+        color: #fff;
+        font-size: 13.5px;
+        font-weight: 600;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .mo-page .map-menu {
+        background: #f6f8fa;
+        padding: 16px;
+        height: auto;
+        max-height: calc(100vh - 330px);
+        min-height: 300px;
+        overflow-y: auto;
+    }
+
+        .mo-page .map-menu::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .mo-page .map-menu::-webkit-scrollbar-thumb {
+            background: #cfd8e0;
+            border-radius: 8px;
+        }
+
+    .mo-page .tree {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        color: var(--map-text);
+    }
+
+        .mo-page .tree:before,
+        .mo-page .tree li:before {
+            content: none;
+        }
+
+        .mo-page .tree .tree {
+            margin-top: 8px;
+            margin-left: 14px;
+            padding: 10px 10px 2px 18px;
+            border-left: 2px dashed #d7e2ea;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+    .mo-page .main-menu {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .mo-page .main-menu > li {
+            border: 1px solid var(--map-border);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(20, 40, 60, 0.04);
+        }
+
+            .mo-page .main-menu > li:hover {
+                box-shadow: 0 4px 14px rgba(20, 40, 60, 0.08);
+            }
+
+        .mo-page .main-menu .tree > li {
+            border: 1px solid var(--map-border);
+            border-radius: 7px;
+            background: #fbfcfd;
+        }
+
+    .mo-page .branch {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: transparent;
+        padding: 10px 14px;
+        font-size: 15px;
+        color: var(--map-text);
+        font-weight: 600;
+        border-radius: 7px;
+        gap: 10px;
+    }
+
+        .mo-page .branch:hover {
+            background-color: #f4f8fb;
+        }
+
+        .mo-page .branch.activity {
+            font-size: 14px;
+            font-weight: 500;
+            background: #fff;
+        }
+
+    .mo-page .menu-name {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        cursor: pointer;
+    }
+
+        .mo-page .menu-name .toggle-icon {
+            color: var(--map-text-soft);
+            font-size: 13px;
+            margin-right: 6px;
+            width: 12px;
+            text-align: center;
+        }
+
+        .mo-page .menu-name .folder-icon {
+            color: #f0a545;
+            font-size: 15px;
+            margin-right: 6px;
+        }
+
+        .mo-page .menu-name .file-icon {
+            color: var(--map-primary);
+            font-size: 14px;
+            margin-right: 6px;
+        }
+
+    .mo-page .item-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .feature-chip {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 8px;
+        padding: 3px 9px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #6b7a85;
+        background: #f3f5ff;
+        border: 1px solid #d6ddff;
+        border-radius: 6px;
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+
+    .custom-chip {
+        color: var(--map-success);
+        background: rgba(22, 163, 74, 0.08);
+        border-color: rgba(22, 163, 74, 0.3);
+    }
+
+    .mo-order {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        background: #f6f8fa;
+        border: 1px solid #acc6e4;
+        border-radius: 20px;
+        padding: 3px 6px;
+    }
+
+    .mo-move {
+        width: 26px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 50%;
+        background: #eef3f7;
+        color: var(--map-primary-dark);
+        padding: 0;
+        font-size: 12px;
+        transition: background-color .18s ease, color .18s ease;
+    }
+
+        .mo-move:hover:not(:disabled) {
+            background: var(--map-primary);
+            color: #fff;
+        }
+
+        .mo-move:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+    .mo-pos {
+        width: 52px;
+        height: 26px;
+        text-align: center;
+        border: 1px solid #c9d4de;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--map-primary-dark);
+        background: #fff;
+    }
+
+    .mo-empty {
+        padding: 50px 16px;
+        text-align: center;
+        color: var(--map-text-soft);
+    }
+
+    @@media (max-width: 767px) {
+        .mo-page .map-menu {
+            padding: 10px;
+        }
+
+        .mo-page .branch {
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .mo-page .tree .tree {
+            margin-left: 6px;
+            padding-left: 10px;
+        }
+
+        .feature-chip {
+            display: none;
+        }
+    }
+</style>
+
+<V3MAdminGuard PageName="Menu Order" OnAllowed="LoadRoles">
+<div class="main-container mo-page">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <PageHeading Tittle="Menu Order" />
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row gap-10-0 fix-row-div">
+                        <div class="col-12 col-sm-6 col-md-6 d-flex align-items-center">
+                            <div class="border-box-sec w-webkit d-flex align-items-center gap-2">
+                                <p class="fw-bold m-0 fts-14 cl-gray text-nowrap">Role Name :</p>
+                                <select class="form-input w-webkit" value="@SelectedRoleId" @onchange="OnRoleChanged" disabled="@IsBusy">
+                                    <option value="0">-- Select Role --</option>
+                                    @foreach (var role in Roles)
+                                    {
+                                        <option value="@role.RoleId">@role.RoleName</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-6">
+                            <div class="expanding-search-form">
+                                <input type="search" placeholder="Search by module name..." class="form-input w-webkit"
+                                       @bind="SearchText" @bind:event="oninput" disabled="@(!Modules.Any())" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                <p class="total-text-with-bg">Menu Order Mapping</p>
+                                <hr class="m-0 w-webkit text-light-gray op-1">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="map-box">
+                                <div class="row m-0 map-top-header">
+                                    <div class="col-7 col-md-8 d-flex align-items-center">
+                                        <p>Modules <span class="fw-normal text-capitalize">/ Features / Activity</span></p>
+                                    </div>
+                                    <div class="col-5 col-md-4 d-flex align-items-center justify-content-end pe-4">
+                                        <p>Display Order</p>
+                                    </div>
+                                </div>
+                                <div class="map-menu">
+                                    @if (IsBusy)
+                                    {
+                                        <div class="mo-empty">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status"></div> Loading...
+                                        </div>
+                                    }
+                                    else if (SelectedRoleId <= 0)
+                                    {
+                                        <div class="mo-empty">Select a role to set its menu order.</div>
+                                    }
+                                    else if (!Modules.Any())
+                                    {
+                                        <div class="mo-empty">No menu is mapped to this role. Map activities from Role Master → Menu Activity first.</div>
+                                    }
+                                    else
+                                    {
+                                        <ul class="tree main-menu">
+                                            @foreach (var module in VisibleModules)
+                                            {
+                                                int m = Modules.IndexOf(module);
+                                                <li @key="module">
+                                                    <div class="branch">
+                                                        <span class="menu-name" @onclick="() => module.IsExpanded = !module.IsExpanded">
+                                                            <i class="fa @(module.IsExpanded ? "fa-minus-square" : "fa-plus-square") toggle-icon"></i>
+                                                            <i class="fa fa-folder folder-icon"></i>
+                                                            <span class="item-name">@module.Name</span>
+                                                            <p class="feature-chip">@module.Children.Count Features</p>
+                                                            @if (module.IsCustom)
+                                                            {
+                                                                <p class="feature-chip custom-chip">Custom</p>
+                                                            }
+                                                        </span>
+                                                        @OrderControls(Modules, module, m)
+                                                    </div>
+
+                                                    @if (module.IsExpanded)
+                                                    {
+                                                        <ul class="tree d-flex">
+                                                            @for (int f = 0; f < module.Children.Count; f++)
+                                                            {
+                                                                var feature = module.Children[f];
+                                                                <li @key="feature">
+                                                                    <div class="branch">
+                                                                        <span class="menu-name" @onclick="() => feature.IsExpanded = !feature.IsExpanded">
+                                                                            <i class="fa @(feature.IsExpanded ? "fa-minus-square" : "fa-plus-square") toggle-icon"></i>
+                                                                            <i class="fa fa-folder folder-icon"></i>
+                                                                            <span class="item-name">@feature.Name</span>
+                                                                            <p class="feature-chip">@feature.Children.Count Activity</p>
+                                                                            @if (feature.IsCustom)
+                                                                            {
+                                                                                <p class="feature-chip custom-chip">Custom</p>
+                                                                            }
+                                                                        </span>
+                                                                        @OrderControls(module.Children, feature, f)
+                                                                    </div>
+
+                                                                    @if (feature.IsExpanded)
+                                                                    {
+                                                                        <ul class="tree d-flex">
+                                                                            @for (int a = 0; a < feature.Children.Count; a++)
+                                                                            {
+                                                                                var activity = feature.Children[a];
+                                                                                <li @key="activity">
+                                                                                    <div class="branch activity">
+                                                                                        <span class="menu-name">
+                                                                                            <i class="bi bi-file-earmark-text file-icon"></i>
+                                                                                            <span class="item-name">@activity.Name</span>
+                                                                                            @if (activity.IsCustom)
+                                                                                            {
+                                                                                                <p class="feature-chip custom-chip">Custom</p>
+                                                                                            }
+                                                                                        </span>
+                                                                                        @OrderControls(feature.Children, activity, a)
+                                                                                    </div>
+                                                                                </li>
+                                                                            }
+                                                                        </ul>
+                                                                    }
+                                                                </li>
+                                                            }
+                                                        </ul>
+                                                    }
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between px-3 pb-3">
+                    <span class="total_text">
+                        Total Modules : @Modules.Count
+                        @if (IsDirty)
+                        {
+                            <span class="text-warning ms-2">(unsaved changes)</span>
+                        }
+                    </span>
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SaveOrder"
+                                disabled="@(IsBusy || SelectedRoleId <= 0 || !Modules.Any())">
+                            <div class="visible content">Save</div>
+                            <div class="hidden content"><i class="bi bi-check-lg"></i></div>
+                        </button>
+                        <button type="button" class="ui fade op-1 animated button btn-cancle" @onclick="ResetOrder"
+                                disabled="@(IsBusy || SelectedRoleId <= 0 || !Modules.Any())">
+                            <div class="visible content">Reset</div>
+                            <div class="hidden content"><i class="bi bi-arrow-counterclockwise"></i></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</V3MAdminGuard>
+
+@code {
+    // ▲ / position box / ▼ for one node inside its sibling list
+    private RenderFragment OrderControls(List<MenuNode> list, MenuNode node, int index) =>
+    @<div class="mo-order">
+        <button type="button" class="mo-move" title="Move up" disabled="@(index == 0)"
+                @onclick="() => MoveTo(list, node, index)">
+            <i class="bi bi-chevron-up"></i>
+        </button>
+        <input @key="node.Version" type="number" class="mo-pos" min="1" max="@list.Count" value="@(index + 1)"
+               title="Position (1 - @list.Count)" aria-label="Position"
+               @onchange="e => OnPositionChanged(list, node, e.Value)" />
+        <button type="button" class="mo-move" title="Move down" disabled="@(index == list.Count - 1)"
+                @onclick="() => MoveTo(list, node, index + 2)">
+            <i class="bi bi-chevron-down"></i>
+        </button>
+    </div>;
+}

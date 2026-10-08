@@ -420,6 +420,7 @@
 
 </style>
 
+<V3MAdminGuard PageName="Role" OnAllowed="OnAccessAllowed">
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1">
@@ -706,7 +707,8 @@
                                                                 <div class="branch @(feature.IsSaved ? "saved-highlight" : "")">
                                                                     <div class="d-flex align-items-center gap-2">
 
-                                                                        <input type="checkbox" class="form-check-input map-checkbox" @bind="feature.IsSelected" @bind:after="() => OnFeatureChecked(feature)" />
+                                                                        <input type="checkbox" class="form-check-input map-checkbox" @bind="feature.IsSelected" @bind:after="() => OnFeatureChecked(feature)"
+                                                                               disabled="@(feature.Activites?.Any() != true)" title="@(feature.Activites?.Any() == true ? "" : "No activity mapped")" />
 
                                                                         <span class="menu-name open-menu" @onclick="UpdateActivityName">
 
@@ -865,3 +867,5 @@ else
 {
 
 }
+
+</V3MAdminGuard>

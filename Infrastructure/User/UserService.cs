@@ -340,6 +340,22 @@ namespace Infrastructure.User
             return Convert.ToBase64String(resultArray, 0, resultArray.Length);
         }
 
+        public async Task<bool> IsUserInRoleAsync(string userSid, string roleName)
+        {
+            if (!int.TryParse(userSid, out var sid) || string.IsNullOrWhiteSpace(roleName))
+                return false;
+
+            using var con = new SqlConnection(_connectionString);
+            const string sql = @"SELECT COUNT(1)
+                                 FROM MstUsers u WITH (NOLOCK)
+                                 INNER JOIN MstRoles r WITH (NOLOCK) ON r.RoleId = u.RoleId
+                                 WHERE u.UserSid = @UserSid
+                                   AND r.RoleName = @RoleName
+                                   AND ISNULL(r.IsValid, 0) = 1
+                                   AND ISNULL(u.IsValid, 1) = 1";
+            return await con.ExecuteScalarAsync<int>(sql, new { UserSid = sid, RoleName = roleName }) > 0;
+        }
+
         public async Task<UserModels?> GetUser(string loginId)
         {
             UserModels response = null;

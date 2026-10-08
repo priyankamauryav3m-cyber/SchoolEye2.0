@@ -28,7 +28,7 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<int> RemoveStudentConcessionFromInvoice(RemoveStudentConcessionFromInvoiceRequest request);
         public Task<IEnumerable<StudentLedgerResponse>> GetStudentLedgerNewData(StudentLedgerRequest request);
         public Task<IEnumerable<FeeHeadLedgerResponse>> GetFeeHeadLedger(FeeHeadLedgerRequest request);
-
+        public Task<int> CancelGeneratedStudentChallan(CancelGeneratedStudentChallanRequest request);
 
 
     }

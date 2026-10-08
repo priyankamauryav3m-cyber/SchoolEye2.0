@@ -233,6 +233,58 @@ namespace Infrastructure.SuperAdmin
             }
         }
 
+        // Loads Module -> Features -> Activities in a single API call.
+        // Existing SPs are reused; per-module / per-feature EXECs are batched into one
+        // command each, so the DB is hit 3 times instead of once per module/feature.
+        public async Task<List<SuperAdminModule>> GetModuleTreeData()
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                var modules = (await connection.QueryAsync<SuperAdminModule>("SELECT * FROM Mstmodule")).ToList();
+                if (!modules.Any())
+                    return modules;
+
+                var featureSql = new StringBuilder();
+                var featureParams = new DynamicParameters();
+                for (int i = 0; i < modules.Count; i++)
+                {
+                    featureSql.AppendLine($"EXEC V3M_SecurityFeatureByModule @ModuleId = @m{i};");
+                    featureParams.Add($"m{i}", modules[i].ModuleId);
+                }
+                using (var grid = await connection.QueryMultipleAsync(featureSql.ToString(), featureParams))
+                {
+                    foreach (var module in modules)
+                        module.Features = (await grid.ReadAsync<SuperAdminFeatures>()).ToList();
+                }
+
+                var features = modules.SelectMany(m => m.Features).ToList();
+                if (!features.Any())
+                    return modules;
+
+                var activitySql = new StringBuilder();
+                var activityParams = new DynamicParameters();
+                for (int i = 0; i < features.Count; i++)
+                {
+                    activitySql.AppendLine($"EXEC V3M_Security_Activity_GetByFeature @FeatureId = @f{i};");
+                    activityParams.Add($"f{i}", features[i].FeatureId);
+                }
+                using (var grid = await connection.QueryMultipleAsync(activitySql.ToString(), activityParams))
+                {
+                    foreach (var feature in features)
+                        feature.Activites = (await grid.ReadAsync<SuperAdminActivity>()).ToList();
+                }
+
+                return modules;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error occurred while fetching module tree.", ex);
+            }
+        }
+
         public async Task<(int insertCount, int updateCount)> AccessControlMappingData(List<ControlAccess> controls)
         {
             try
@@ -310,7 +362,7 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@RoleId", roleId);
 
                 return await con.QueryAsync<RolebaseActivity>(
-                    "RB_RoleBasedActivity",
+                    "V3M_RoleMenuAndPermission",
                     parameters,
                     commandType: CommandType.StoredProcedure
                 );
@@ -348,6 +400,106 @@ namespace Infrastructure.SuperAdmin
             {
                 Console.WriteLine($"Exception: {ex.Message}");
                 throw;
+            }
+        }
+
+        // Role wise menu order
+        public async Task<IEnumerable<RoleMenuOrderRow>> GetRoleMenuOrder(int roleId)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                return await con.QueryAsync<RoleMenuOrderRow>(
+                    "V3M_RoleMenuOrder_GetByRole",
+                    new { RoleId = roleId },
+                    commandType: CommandType.StoredProcedure
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error occurred while fetching role menu order.", ex);
+            }
+        }
+
+        public async Task<int> SaveRoleMenuOrder(int roleId, List<RoleMenuOrderItem> items, string createdBy)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var jsonData = JsonConvert.SerializeObject(items);
+                return await con.ExecuteScalarAsync<int>(
+                    "V3M_RoleMenuOrder_Save",
+                    new { RoleId = roleId, CreatedBy = createdBy, JsonData = jsonData },
+                    commandType: CommandType.StoredProcedure
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error occurred while saving role menu order.", ex);
+            }
+        }
+
+        // Usp_InsertMstActivityList answers through its RETURN value: 1 = inserted, 0 = duplicate, -1 = error
+        public async Task<int> InsertMstActivityListNew(ActivityCreateRequest activity, string createdBy)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+
+                // MstActivityList has no FK to MstFeaturesList, so make sure the feature exists
+                bool featureExists = await con.ExecuteScalarAsync<int>(
+                    "SELECT COUNT(1) FROM MstFeaturesList WHERE FeatureId = @FeatureId",
+                    new { activity.FeatureId }) > 0;
+                if (!featureExists)
+                    return -2;
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@ActivityName", activity.ActivityName?.Trim());
+                parameters.Add("@DisplayName", activity.DisplayName?.Trim());
+                parameters.Add("@DisplayOrder", activity.DisplayOrder);
+                parameters.Add("@IsValid", activity.IsValid ? 1 : 0);
+                parameters.Add("@FeatureId", activity.FeatureId);
+                parameters.Add("@IsAdd", activity.IsAdd ? 1 : 0);
+                parameters.Add("@IsModifiy", activity.IsModifiy ? 1 : 0);
+                parameters.Add("@IsPrint", activity.IsPrint ? 1 : 0);
+                parameters.Add("@IsExportToExcel", activity.IsExportToExcel ? 1 : 0);
+                parameters.Add("@IsPII", activity.IsPII ? 1 : 0);
+                // MstActivityList.Action1..3 are BIT columns; the SP takes them as text
+                parameters.Add("@Action1", activity.Action1 ? "1" : "0");
+                parameters.Add("@Action1Desc", activity.Action1 ? activity.Action1Desc?.Trim() : null);
+                parameters.Add("@Action2", activity.Action2 ? "1" : "0");
+                parameters.Add("@Action2Desc", activity.Action2 ? activity.Action2Desc?.Trim() : null);
+                parameters.Add("@Action3", activity.Action3 ? "1" : "0");
+                parameters.Add("@Action3Desc", activity.Action3 ? activity.Action3Desc?.Trim() : null);
+                parameters.Add("@CreatedBy", createdBy);
+                parameters.Add("@URL", activity.URL?.Trim());
+                parameters.Add("@ModuleLebal", string.IsNullOrWhiteSpace(activity.ModuleLebal) ? null : activity.ModuleLebal.Trim());
+                parameters.Add("@LabelIcon", string.IsNullOrWhiteSpace(activity.LabelIcon) ? null : activity.LabelIcon.Trim());
+                parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+
+                await con.ExecuteAsync("Usp_InsertMstActivityList", parameters, commandType: CommandType.StoredProcedure);
+                return parameters.Get<int>("@ReturnValue");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error occurred while adding activity.", ex);
+            }
+        }
+
+        public async Task<int> ResetRoleMenuOrder(int roleId)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                return await con.ExecuteScalarAsync<int>(
+                    "V3M_RoleMenuOrder_Reset",
+                    new { RoleId = roleId },
+                    commandType: CommandType.StoredProcedure
+                );
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error occurred while resetting role menu order.", ex);
             }
         }
 

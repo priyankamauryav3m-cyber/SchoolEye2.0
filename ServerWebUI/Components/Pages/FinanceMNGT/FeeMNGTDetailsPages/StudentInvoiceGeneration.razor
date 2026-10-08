@@ -17,18 +17,10 @@
 
 <style>
 
-    .sms-aria {
-        height: 64px;
-    }
-
-    .profile-photo {
-        width: 100px;
+     .sms-aria {
         height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #e5e7eb;
-        background: #fff;
     }
+    
 
     .field-title {
         font-weight: 500;
@@ -62,6 +54,7 @@
         }
 
 </style>
+
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
@@ -117,8 +110,8 @@
                                             </HeaderTemplate>
                                             <ChildContent>
                                                 <div>
-                                                    <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
-                                                </div>
+                                                  <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" disabled="@(context.Status == "0")" />
+                                               </div>
                                             </ChildContent>
                                         </TemplateColumn>
                                         <TemplateColumn Title="Admission No" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.AdmissionNo)">
@@ -222,6 +215,11 @@
                     <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OpenEditInvoice">
                             Edit Invoice
+                        </button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OpenCancelInvoice">
+                            Cancel Invoice
                         </button>
                     </div>
                 </div>
@@ -374,14 +372,44 @@
 
 @if (ShowEditInvoice)
 {
-    <EditInvoice ShowEditInvoice="@ShowEditInvoice"
-                 SelectedStudent="@EditInvoiceStudent"
-                 CurrentSessionInfo="@sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)"
-                 SessionId="@CurrentSession"
-                 BranchCode="@branchcode"
-                 GroupCode="@groupcode"
-                 UserName="@UserName"
-                 OnClose="CloseEditInvoice" />
+          <EditInvoice ShowEditInvoice="@ShowEditInvoice" SelectedStudent="@EditInvoiceStudent"  CurrentSessionInfo="@sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)"
+           SessionId="@CurrentSession" BranchCode="@branchcode" GroupCode="@groupcode"   UserName="@UserName" OnClose="CloseEditInvoice" />
+}
+
+@if (ShowCancelInvoice)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Cancel Invoice</h5>
+                    <button data-access="Close" type="button" @onclick="CloseCancelInvoice" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12">
+                            <span class="field-title">Student:</span>
+                            <span class="field-value">@CancelInvoiceStudent.StudentName - @CancelInvoiceStudent.AdmissionNo</span>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-box">
+                                <label class="form-label">Reason <span class="text-danger">*</span></label>
+                                <textarea class=" sms-aria form-input" rows="4" maxlength="200" placeholder="Enter reason for cancellation" @bind="CancelReason" @bind:event="oninput"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="ui fade op-1 animated button form-btn" type="button" @onclick="SubmitCancelInvoice" disabled="@IsLoading" tabindex="0">
+                        <div class="visible content">Submit</div>
+                        <div class="hidden content">
+                            <i class="bi bi-check2"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 @if (IsLoading)
@@ -430,6 +458,9 @@ else
     private bool InvoicePreview;
     private bool ShowEditInvoice;
     private SearchStudentBalanceDto EditInvoiceStudent = new();
+    private bool ShowCancelInvoice;
+    private SearchStudentBalanceDto CancelInvoiceStudent = new();
+    private string CancelReason = string.Empty;
     private bool SelectAllSection = true;
     private bool addstudent { get; set; }
     private DateTime fromDate = DateTime.Now;
@@ -718,6 +749,80 @@ else
             await SearchStudentAdvamceData();
         }
         StateHasChanged();
+    }
+
+    // Cancel Invoice button: exactly one invoice must be checked; the reason
+    // entered in the popup is sent as Narration1.
+    private async Task OpenCancelInvoice()
+    {
+        var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        if (data.Count == 0 || data.Count > 1)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        if (data[0].InvoiceId <= 0)
+        {
+            await Alert.ShowWarning("Selected student has no generated invoice.");
+            return;
+        }
+        CancelInvoiceStudent = data[0];
+        CancelReason = string.Empty;
+        ShowCancelInvoice = true;
+        StateHasChanged();
+    }
+
+    private void CloseCancelInvoice()
+    {
+        ShowCancelInvoice = false;
+        CancelInvoiceStudent = new();
+        CancelReason = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task SubmitCancelInvoice()    
+    {
+         ShowCancelInvoice = false;
+        if (string.IsNullOrWhiteSpace(CancelReason))
+        {
+            await Alert.ShowWarning("Please enter reason for cancel invoice.");
+             ShowCancelInvoice = true;
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            // Matches CancelGeneratedStudentChallanRequest on the API side.
+            var request = new
+            {
+                InvoiceId = CancelInvoiceStudent.InvoiceId,
+                CreatedBy = UserName,
+                Narration1 = CancelReason.Trim()
+            };
+            var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/CancelGeneratedStudentChallan", request);
+            if (response != null && response.Success)
+            {
+                ShowCancelInvoice = false;
+                CancelInvoiceStudent = new();
+                CancelReason = string.Empty;
+                await Alert.ShowSuccess("Invoice cancelled successfully.");
+                await SearchStudentAdvamceData();
+            }
+            else
+            {
+                await Alert.ShowError(string.IsNullOrWhiteSpace(response?.Message) ? "Unable to cancel invoice." : response.Message);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to cancel invoice.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task OpenStudentInvoicePreview()

@@ -229,55 +229,96 @@
     {
         BookmarkState.OnChange -= StateHasChanged;
     }
-
-
     protected async Task GetMenuMappingList()
-    {
-        var data = await sessionStorage.GetAsync<string>("Dashboard");
-        DashboardUrl = data.Value;
-        if (string.IsNullOrEmpty(DashboardUrl))
+{
+    DashboardUrl = (await sessionStorage.GetAsync<string>("Dashboard")).Value;
+    if (string.IsNullOrEmpty(DashboardUrl)) DashboardUrl = "/";
+
+    roleId   = (await sessionStorage.GetAsync<string>("RoleId")).Value;
+    username = (await sessionStorage.GetAsync<string>("UserName")).Value;
+
+    // ✅ Sirf ek API call
+    rolebaseActivities = await httpService.Get<List<RolebaseActivity>>($"SuperAdminModule/RoleBasedActivity/{roleId}") ?? new();
+
+    // Permission
+    var admitPermission = rolebaseActivities
+        .Where(x => x.ModuleId >= 1 && x.FeatureId >= 1).ToList();
+    permissionState.SetFromRoleActivities(roleId, admitPermission);
+
+    // Menu (same list se)
+    feature = rolebaseActivities
+        .GroupBy(m => new { m.ModuleId, m.MName })
+        .Select(module => new SuperAdminModule
         {
-            DashboardUrl = "/";
-        }
-        var roleResult = await sessionStorage.GetAsync<string>("RoleId");
-        roleId = roleResult.Value;
-        var userResult = await sessionStorage.GetAsync<string>("UserName");
-        username = userResult.Value;
-        string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
-        string apiUrl1 = "SuperAdminModule/RoleBasedActivity/" + roleId;
-        menus = await httpService.Get<List<RoleaBase>>(apiUrl) ?? new();
-        rolebaseActivities = await httpService.Get<List<RolebaseActivity>>(apiUrl1) ?? new();
-        var admitPermission = rolebaseActivities.Where(x => x.ModuleId >= 1 && x.FeatureId >= 1).ToList();
-        //  permissionState.RoleId = roleId;
-        permissionState.SetFromRoleActivities(roleId, admitPermission);
-        feature = menus.GroupBy(m => new { m.ModuleId, m.MName })
-            .Select(module => new SuperAdminModule
-            {
-                ModuleId = module.Key.ModuleId,
-                MName = module.Key.MName,
-
-                Features = module
-                    .GroupBy(f => new { f.FeatureId, f.FeaturesName, f.Icon })
-                    .Select(feat => new SuperAdminFeatures
+            ModuleId = module.Key.ModuleId,
+            MName = module.Key.MName,
+            Features = module
+                .GroupBy(f => new { f.FeatureId, f.FeaturesName, f.Icon })
+                .Select(feat => new SuperAdminFeatures
+                {
+                    FeatureId = feat.Key.FeatureId,
+                    FeaturesName = feat.Key.FeaturesName,
+                    Icon = feat.Key.Icon,
+                    Activites = feat.Select(a => new SuperAdminActivity
                     {
-                        FeatureId = feat.Key.FeatureId,
-                        FeaturesName = feat.Key.FeaturesName,
-                        Icon = feat.Key.Icon,
-
-                        Activites = feat
-                            .Select(a => new SuperAdminActivity
-                            {
-                                ActivityId = a.ActivityId,
-                                DisplayName = a.DisplayName,
-                                Icon=a.LabelIcon,
-                                URL = a.URL
-                            }).ToList()
+                        ActivityId = a.ActivityId,
+                        DisplayName = a.DisplayName,
+                        Icon = a.LabelIcon,
+                        URL = a.URL
                     }).ToList()
-            }).ToList();
-        MenuState.SetDashboardUrl(DashboardUrl);
-        MenuState.SetFeatures(feature);
+                }).ToList()
+        }).ToList();
 
-    }
+    MenuState.SetDashboardUrl(DashboardUrl);
+    MenuState.SetFeatures(feature);
+}
+
+    // protected async Task GetMenuMappingList()
+    // {
+    //     var data = await sessionStorage.GetAsync<string>("Dashboard");
+    //     DashboardUrl = data.Value;
+    //     if (string.IsNullOrEmpty(DashboardUrl))
+    //     {
+    //         DashboardUrl = "/";
+    //     }
+    //     var roleResult = await sessionStorage.GetAsync<string>("RoleId");
+    //     roleId = roleResult.Value;
+    //     var userResult = await sessionStorage.GetAsync<string>("UserName");
+    //     username = userResult.Value;
+    //     string apiUrl = $"SuperAdminModule/GetRoleBased?roleId={roleId}";
+    //     string apiUrl1 = "SuperAdminModule/RoleBasedActivity/" + roleId;
+    //     menus = await httpService.Get<List<RoleaBase>>(apiUrl) ?? new();
+    //     rolebaseActivities = await httpService.Get<List<RolebaseActivity>>(apiUrl1) ?? new();
+    //     var admitPermission = rolebaseActivities.Where(x => x.ModuleId >= 1 && x.FeatureId >= 1).ToList();
+    //     permissionState.SetFromRoleActivities(roleId, admitPermission);
+    //     feature = menus.GroupBy(m => new { m.ModuleId, m.MName })
+    //         .Select(module => new SuperAdminModule
+    //         {
+    //             ModuleId = module.Key.ModuleId,
+    //             MName = module.Key.MName,
+
+    //             Features = module
+    //                 .GroupBy(f => new { f.FeatureId, f.FeaturesName, f.Icon })
+    //                 .Select(feat => new SuperAdminFeatures
+    //                 {
+    //                     FeatureId = feat.Key.FeatureId,
+    //                     FeaturesName = feat.Key.FeaturesName,
+    //                     Icon = feat.Key.Icon,
+
+    //                     Activites = feat
+    //                         .Select(a => new SuperAdminActivity
+    //                         {
+    //                             ActivityId = a.ActivityId,
+    //                             DisplayName = a.DisplayName,
+    //                             Icon=a.LabelIcon,
+    //                             URL = a.URL
+    //                         }).ToList()
+    //                 }).ToList()
+    //         }).ToList();
+    //     MenuState.SetDashboardUrl(DashboardUrl);
+    //     MenuState.SetFeatures(feature);
+
+    // }
 
 
 }

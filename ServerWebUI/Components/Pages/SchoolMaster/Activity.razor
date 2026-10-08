@@ -1,0 +1,550 @@
+@page "/activity"
+@using DomainModel.Admin
+@using MyApp.Common
+@using System.Text.Json
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject IWebHostEnvironment env
+@rendermode InteractiveServer
+<style>
+    :root {
+        --act-primary: #1E8FD3;
+        --act-primary-dark: #146da3;
+        --act-primary-soft: rgba(30, 143, 211, 0.08);
+        --act-border: #e4e9ef;
+        --act-text: #37474f;
+        --act-text-soft: #6b7a85;
+    }
+
+    .act-hint {
+        font-size: 11.5px;
+        color: var(--act-text-soft);
+        margin-top: 2px;
+    }
+
+    .act-switch-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-bottom: 10px;
+    }
+
+    .act-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border: 1px solid #c9d8e8;
+        border-radius: 20px;
+        background: #f6f8fa;
+        cursor: pointer;
+        user-select: none;
+        margin: 0;
+    }
+
+        .act-switch .form-check-input {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .act-switch:has(.form-check-input:checked) {
+            border-color: var(--act-primary);
+            background: var(--act-primary-soft);
+            color: var(--act-primary-dark);
+        }
+
+    .act-icon-field {
+        display: flex;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .act-icon-preview {
+        height:47px;
+        width: 40px;
+        min-width: 40px;
+        border: 1px solid #c9d4de;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--act-primary-dark);
+        background: #f6f8fa;
+    }
+
+    /* icon picker */
+    .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        gap: 8px;
+        max-height: calc(100vh - 320px);
+        min-height: 300px;
+        overflow-y: auto;
+        padding: 4px;
+    }
+
+    .icon-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 84px;
+        border: 1px solid var(--act-border);
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        padding: 6px;
+        transition: border-color .15s ease, background-color .15s ease;
+    }
+
+        .icon-tile i {
+            font-size: 22px;
+            color: var(--act-text);
+        }
+
+        .icon-tile span {
+            font-size: 10.5px;
+            color: var(--act-text-soft);
+            text-align: center;
+            line-height: 1.2;
+            word-break: break-all;
+        }
+
+        .icon-tile:hover {
+            border-color: var(--act-primary);
+            background: var(--act-primary-soft);
+        }
+
+        .icon-tile.selected {
+            border-color: var(--act-primary);
+            background: var(--act-primary);
+        }
+
+            .icon-tile.selected i,
+            .icon-tile.selected span {
+                color: #fff;
+            }
+
+
+</style>
+<V3MAdminGuard PageName="Activity" OnAllowed="LoadModules">
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Activity" />
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body">
+                    <EditForm Model="@model" OnValidSubmit="SaveActivity" FormName="activity-form">
+                        <DataAnnotationsValidator />
+                        <div class="row m-0 form-row">
+
+                            @* ---------- Row 1 ---------- *@
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" @bind-Value="model.ModuleId" @bind-Value:after="OnModuleChanged" disabled="@IsSaving">
+                                        <option value="0">--Select--</option>
+                                        @foreach (var m in modules)
+                                        {
+                                            <option value="@m.ModuleId">@m.MName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Module <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.ModuleId)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" @bind-Value="model.FeatureId" @bind-Value:after="OnFeatureChanged" disabled="@(IsSaving || model.ModuleId <= 0)">
+                                        <option value="0">@(model.ModuleId <= 0 ? "--Select Module first--" : "--Select--")</option>
+                                        @foreach (var f in features)
+                                        {
+                                            <option value="@f.FeatureId">@f.FeaturesName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Feature <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.FeatureId)" />
+                                </div>
+                                @if (model.FeatureId > 0)
+                                {
+                                    <div class="act-hint">@existingActivityCount activit@(existingActivityCount == 1 ? "y" : "ies") already in this feature.</div>
+                                }
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="50"
+                                               @bind-Value="model.ActivityName" @bind-Value:after="OnActivityNameChanged" />
+                                    <label class="floating-label">Activity Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.ActivityName)" />
+                                </div>
+                            </div>
+
+                            @* ---------- Row 2 ---------- *@
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="50"
+                                               @bind-Value="model.DisplayName" @bind-Value:after="() => displayNameTouched = true" />
+                                    <label class="floating-label">Display Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.DisplayName)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="200"
+                                               @bind-Value="model.URL" @bind-Value:after="OnUrlChanged" />
+                                    <label class="floating-label">Page URL  <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.URL)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputNumber class="floating-input" placeholder=" " min="1" max="9999" @bind-Value="model.DisplayOrder" />
+                                    <label class="floating-label">Display Order <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => model.DisplayOrder)" />
+                                </div>
+                            </div>
+
+                            @* ---------- Row 3 ---------- *@
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="30" @bind-Value="model.ModuleLebal" />
+                                    <label class="floating-label">Module Label</label>
+                                    <ValidationMessage For="@(() => model.ModuleLebal)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <div class="act-icon-field">
+                                    <div class="act-icon-preview" title="Selected icon">
+                                        <i class="@(string.IsNullOrEmpty(model.LabelIcon) ? "bi bi-image text-muted" : model.LabelIcon)"></i>
+                                    </div>
+                                    <div class="form-box-group flex-grow-1">
+                                        <input class="floating-input" placeholder=" " readonly value="@model.LabelIcon" @onclick="OpenIconPicker" style="cursor:pointer" />
+                                        <label class="floating-label">Icon (click to choose)</label>
+                                        <ValidationMessage For="@(() => model.LabelIcon)" />
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(model.LabelIcon))
+                                    {
+                                        <button type="button" class="btn btn-link text-danger p-0 align-self-center" title="Remove icon" @onclick="() => model.LabelIcon = null">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 d-flex align-items-start">
+                                <label class="act-switch">
+                                    <InputCheckbox class="form-check-input" role="switch" @bind-Value="model.IsValid" />
+                                    <span>@(model.IsValid ? "Active" : "Inactive")</span>
+                                </label>
+                            </div>
+
+                            @* ---------- Permissions ---------- *@
+                            <div class="col-12">
+                                <div class="divider-box d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <p class="total-text-with-bg">Permissions</p>
+                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                </div>
+                                <div class="act-switch-row">
+                                    <label class="act-switch"><InputCheckbox class="form-check-input" @bind-Value="model.IsAdd" /><span>Add</span></label>
+                                    <label class="act-switch"><InputCheckbox class="form-check-input" @bind-Value="model.IsModifiy" /><span>Modify</span></label>
+                                    <label class="act-switch"><InputCheckbox class="form-check-input" @bind-Value="model.IsPrint" /><span>Print</span></label>
+                                    <label class="act-switch"><InputCheckbox class="form-check-input" @bind-Value="model.IsExportToExcel" /><span>Export to Excel</span></label>
+                                    <label class="act-switch"><InputCheckbox class="form-check-input" @bind-Value="model.IsPII" /><span>PII</span></label>
+                                </div>
+                            </div>
+
+                            @* ---------- Custom actions (3 in a row) ---------- *@
+                            <div class="col-12">
+                                <div class="divider-box d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <p class="total-text-with-bg">Custom Actions</p>
+                                    <hr class="m-0 w-webkit text-light-gray op-1">
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <label class="act-switch mb-2"><InputCheckbox class="form-check-input" @bind-Value="model.Action1" /><span>Action 1</span></label>
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="50" disabled="@(!model.Action1)" @bind-Value="model.Action1Desc" />
+                                    <label class="floating-label">Action 1 Description</label>
+                                    <ValidationMessage For="@(() => model.Action1Desc)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <label class="act-switch mb-2"><InputCheckbox class="form-check-input" @bind-Value="model.Action2" /><span>Action 2</span></label>
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="50" disabled="@(!model.Action2)" @bind-Value="model.Action2Desc" />
+                                    <label class="floating-label">Action 2 Description</label>
+                                    <ValidationMessage For="@(() => model.Action2Desc)" />
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                                <label class="act-switch mb-2"><InputCheckbox class="form-check-input" @bind-Value="model.Action3" /><span>Action 3</span></label>
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " autocomplete="off" maxlength="50" disabled="@(!model.Action3)" @bind-Value="model.Action3Desc" />
+                                    <label class="floating-label">Action 3 Description</label>
+                                    <ValidationMessage For="@(() => model.Action3Desc)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <div class="form-group btn-gr">
+                                <SaveUpdateButton Id="0" Text="Reset" OnClickCancel="ResetForm" />
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------- Icon picker popup ---------- *@
+@if (ShowIconPicker)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-xl-10 mx-auto">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Select Icon</h5>
+                    <button data-access="Close" type="button" @onclick="CloseIconPicker" class="close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <div class="form-box flex-grow-1" style="max-width:420px">
+                            <input type="search" class="form-input w-100" placeholder="Search icons (e.g. receipt, cash, people)..."
+                                   @bind="iconSearch" @bind:event="oninput" autofocus />
+                        </div>
+                        <span class="text-muted small">
+                            @(FilteredIcons.Count) icon@(FilteredIcons.Count == 1 ? "" : "s")
+                            @if (FilteredIcons.Count > MaxIconsShown)
+                            {
+                                <text> &middot; showing first @MaxIconsShown, type to narrow</text>
+                            }
+                        </span>
+                    </div>
+                    @if (!allIcons.Any())
+                    {
+                        <div class="text-center text-muted py-5">Icon list could not be loaded.</div>
+                    }
+                    else if (!FilteredIcons.Any())
+                    {
+                        <div class="text-center text-muted py-5">No icon matches "@iconSearch".</div>
+                    }
+                    else
+                    {
+                        <div class="icon-grid">
+                            @foreach (var name in FilteredIcons.Take(MaxIconsShown))
+                            {
+                                var css = $"bi bi-{name}";
+                                <button type="button" class="icon-tile @(model.LabelIcon == css ? "selected" : "")" title="@css" @onclick="() => SelectIcon(css)">
+                                    <i class="@css"></i>
+                                    <span>@name</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr d-flex">
+                        <SaveUpdateButton ShowSaveButton="false" Text="Close" OnClickCancel="CloseIconPicker" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+</V3MAdminGuard>
+
+@code {
+    private ActivityCreateRequest model = new();
+    private List<SuperAdminModule> modules = new();
+    private List<SuperAdminFeatures> features = new();
+    private int existingActivityCount;
+    private bool IsSaving;
+    private bool displayNameTouched;
+
+    // icon picker
+    private static List<string>? iconCache;
+    private List<string> allIcons = new();
+    private bool ShowIconPicker;
+    private string iconSearch = string.Empty;
+    private const int MaxIconsShown = 400;
+
+    private List<string> FilteredIcons
+    {
+        get
+        {
+            var term = iconSearch?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(term))
+                return allIcons;
+            // "people fill" matches icons containing every word
+            var words = term.Replace("bi-", "").Split(' ', '-', StringSplitOptions.RemoveEmptyEntries);
+            return allIcons.Where(n => words.All(w => n.Contains(w))).ToList();
+        }
+    }
+
+    // HttpService needs session storage (JS interop) -> load after first render
+    // runs only for V3M Admin (called by V3MAdminGuard)
+    private async Task LoadModules()
+    {
+        try
+        {
+            modules = (await httpService.Get<List<SuperAdminModule>>("SuperAdminModule/GetAdd_Module") ?? new())
+                .Where(m => m.IsValid)
+                .OrderBy(m => m.MName)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"Unable to load modules: {ex.Message}");
+        }
+        StateHasChanged();
+    }
+
+    // module changed -> load its features
+    private async Task OnModuleChanged()
+    {
+        model.FeatureId = 0;
+        features = new();
+        existingActivityCount = 0;
+        if (model.ModuleId <= 0) return;
+
+        try
+        {
+            features = (await httpService.Get<List<SuperAdminFeatures>>($"SuperAdminModule/GetByModule/{model.ModuleId}") ?? new())
+                .OrderBy(f => f.DisplayOrder)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            await Alert.ShowError($"Unable to load features: {ex.Message}");
+        }
+    }
+
+    // feature changed -> suggest the next display order inside this feature
+    private async Task OnFeatureChanged()
+    {
+        existingActivityCount = 0;
+        if (model.FeatureId <= 0) return;
+
+        try
+        {
+            var activities = await httpService.Get<List<SuperAdminActivity>>($"SuperAdminModule/GetActivity/{model.FeatureId}") ?? new();
+            existingActivityCount = activities.Count;
+            model.DisplayOrder = activities.Any() ? Math.Min(9999, activities.Max(a => a.DisplayOrder) + 1) : 1;
+        }
+        catch
+        {
+            // API answers 404 when the feature has no activity yet
+            model.DisplayOrder = 1;
+        }
+    }
+
+    // fill display name from activity name until the user types their own
+    private void OnActivityNameChanged()
+    {
+        if (!displayNameTouched || string.IsNullOrWhiteSpace(model.DisplayName))
+        {
+            model.DisplayName = model.ActivityName;
+            displayNameTouched = false;
+        }
+    }
+
+    private void OnUrlChanged()
+    {
+        var url = model.URL?.Trim();
+        if (!string.IsNullOrEmpty(url) && !url.StartsWith("/"))
+            url = "/" + url;
+        model.URL = url;
+    }
+
+    private async Task SaveActivity()
+    {
+        try
+        {
+            IsSaving = true;
+            var response = await httpService.Post<ApiResponse<int>>("SuperAdminModule/InsertMstActivityListNew", model);
+
+            if (response != null && response.Success && response.Data == 1)
+            {
+                await Alert.ShowSuccess(response.Message ?? "Activity added successfully.");
+
+                // keep module / feature for the next entry
+                var moduleId = model.ModuleId;
+                var featureId = model.FeatureId;
+                var nextOrder = Math.Min(9999, model.DisplayOrder + 1);
+                model = new ActivityCreateRequest { ModuleId = moduleId, FeatureId = featureId, DisplayOrder = nextOrder };
+                existingActivityCount++;
+                displayNameTouched = false;
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Activity could not be added.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // HttpService throws with the API's safe message (duplicate name, validation, ...)
+            await Alert.ShowWarning(ex.Message);
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        model = new ActivityCreateRequest();
+        features = new();
+        existingActivityCount = 0;
+        displayNameTouched = false;
+    }
+
+    // ---------------- Icon picker ----------------
+
+    private async Task OpenIconPicker()
+    {
+        if (iconCache == null)
+        {
+            try
+            {
+                // name list of bootstrap-icons 1.13.1 (same version App.razor loads)
+                var path = Path.Combine(env.WebRootPath, "data", "bootstrap-icons-1.13.1.json");
+                var json = await File.ReadAllTextAsync(path);
+                iconCache = JsonSerializer.Deserialize<List<string>>(json) ?? new();
+            }
+            catch (Exception)
+            {
+                iconCache = null;
+                await Alert.ShowError("Icon list could not be loaded.");
+                return;
+            }
+        }
+        allIcons = iconCache;
+        iconSearch = string.Empty;
+        ShowIconPicker = true;
+    }
+
+    private void SelectIcon(string css)
+    {
+        model.LabelIcon = css;
+        ShowIconPicker = false;
+    }
+
+    private void CloseIconPicker() => ShowIconPicker = false;
+}
