@@ -91,6 +91,80 @@ namespace DomainModel.Admin
     #endregion
 
     #region  -------------------------- Super Admin Activity -------------
+    public class InsertMstActivityListRequest
+    {
+        [Display(Name = "Activity name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(200, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? ActivityName { get; set; }
+
+        [Display(Name = "Display name")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? DisplayName { get; set; }
+
+        [Display(Name = "Display order")]
+        [Range(0, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int DisplayOrder { get; set; }
+
+        [Display(Name = "Is valid")]
+        [Range(0, 1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int IsValid { get; set; }
+
+        [Display(Name = "Feature")]
+        [Range(1, int.MaxValue, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public int FeatureId { get; set; }
+
+        [Display(Name = "Add")]
+        [Range(0, 1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int IsAdd { get; set; }
+
+        [Display(Name = "Modify")]
+        [Range(0, 1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int IsModifiy { get; set; }
+
+        [Display(Name = "Print")]
+        [Range(0, 1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int IsPrint { get; set; }
+
+        [Display(Name = "Export to excel")]
+        [Range(0, 1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int IsExportToExcel { get; set; }
+
+        [Display(Name = "PII")]
+        [Range(0, 1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "InvalidValue")]
+        public int IsPII { get; set; }
+
+        public bool? Action1 { get; set; }
+        [Display(Name = "Action1Desc")]
+        [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? Action1Desc { get; set; }
+
+        public bool? Action2 { get; set; }
+        [Display(Name = "Action2Desc")]
+        [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? Action2Desc { get; set; }
+
+        public bool? Action3 { get; set; }
+        [Display(Name = "Action3Desc")]
+        [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? Action3Desc { get; set; }
+
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+
+        [Display(Name = "URL")]
+        [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        public string? URL { get; set; }
+
+        [Display(Name = "Module label")]
+        [StringLength(30, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? ModuleLebal { get; set; }
+
+        [Display(Name = "Label icon")]
+        [StringLength(100, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        public string? LabelIcon { get; set; }
+    }
     public class SuperAdminActivity : BaseEntity
     {
         [Key]
@@ -192,6 +266,7 @@ namespace DomainModel.Admin
         public bool Action1 { get; set; }
         public bool Action2 { get; set; }
         public bool Action3 { get; set; }
+       
     }
     #endregion
 

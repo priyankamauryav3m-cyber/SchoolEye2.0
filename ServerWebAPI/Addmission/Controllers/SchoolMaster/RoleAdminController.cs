@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Common;
 using Microsoft.AspNetCore.Authorization;
+using V3MAdminOnlyAttribute = ServerWebAPI.Authorization.V3MAdminOnlyAttribute;
 
 namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
 {
@@ -23,6 +24,7 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
             _repo = repo;
         }
 
+        [V3MAdminOnly]
         [HttpPost("Add_Role")]
         public async Task<IActionResult> AddRole(SuperAdminDomain Role)
         {
@@ -61,6 +63,7 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
             }
         }
 
+        [V3MAdminOnly]
         [HttpPost("Add_RoleEdit")]
         public async Task<IActionResult> Add_RoleEdit(SuperAdminDomain Role)
         {
@@ -95,6 +98,7 @@ namespace ServerWebAPI.Addmission.Controllers.SchoolMaster
                 );
             }
         }
+        [V3MAdminOnly]
         [HttpPost("Add_RoleDelete")]
         public async Task<IActionResult> Delete([FromBody] int RoleId)
         {

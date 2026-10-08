@@ -1892,6 +1892,7 @@ namespace DomainModel.FinanceMNGT
         public decimal TotalConcession { get; set; }
         public decimal ReceivedAmount { get; set; }
         public int IsTransportRequired { get; set; }
+        public string? Status { get; set; }
 
 
     }
@@ -2270,6 +2271,12 @@ namespace DomainModel.FinanceMNGT
         public long? ReceiptId { get; set; }
         public bool? IsReceiptOnline { get; set; }
         public string? CrDr { get; set; }
+    }
+    public class CancelGeneratedStudentChallanRequest
+    {
+        public int InvoiceId { get; set; }
+        public string? CreatedBy { get; set; } = string.Empty;
+        public string? Narration1 { get; set; } = string.Empty;
     }
 
 

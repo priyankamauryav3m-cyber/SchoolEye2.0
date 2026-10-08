@@ -490,6 +490,29 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
+        public async Task<int> CancelGeneratedStudentChallan(CancelGeneratedStudentChallanRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@InvoiceId", request.InvoiceId);
+                param.Add("@Createdby", request.CreatedBy);
+                param.Add("@Narration1", request.Narration1);
+                param.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+                var result = await con.ExecuteAsync(
+                    "Usp_CancelGeneratedStudentChallan",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
 
 
 

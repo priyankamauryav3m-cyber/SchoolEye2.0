@@ -737,5 +737,58 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
             }
         }
 
+        [HttpPost("CancelGeneratedStudentChallan")]
+        public async Task<IActionResult> CancelGeneratedStudentChallan([FromBody] CancelGeneratedStudentChallanRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0,
+                    Data = null
+                });
+            }
+
+            try
+            {
+                int result = await _service.CancelGeneratedStudentChallan(request);
+
+                if (result  >0)
+                {
+                    return Ok(new ApiResponse<int>
+                    {
+                        Success = true,
+                        Message = "Challan cancelled successfully.",
+                        Code = 1,
+                        Data = result
+                    });
+                }
+                return BadRequest(new ApiResponse<int>
+                {
+                    Success = false,
+                    Message = "Challan could not be cancelled.",
+                    Code = 0,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"Exception in CancelGeneratedStudentChallan: {ex.Message}");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "An error occurred while cancelling the challan.",
+                        Code = -1,
+                        Data = null
+                    });
+            }
+        }
+
     }
 }
