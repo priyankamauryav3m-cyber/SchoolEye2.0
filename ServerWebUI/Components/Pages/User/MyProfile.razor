@@ -1,0 +1,535 @@
+@page "/myprofile"
+@using DomainModel.User
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@rendermode InteractiveServer
+
+<style>
+    .mp {
+        --mp-primary: #2563eb;
+        --mp-primary-soft: #eff6ff;
+        --mp-border: #e8edf3;
+        --mp-text: #1f2937;
+        --mp-muted: #6b7280;
+        --mp-green: #16a34a;
+        --mp-green-soft: #f0fdf4;
+        --mp-amber: #b45309;
+        --mp-amber-soft: #fffbeb;
+        --mp-red: #dc2626;
+        --mp-red-soft: #fef2f2;
+        color: var(--mp-text);
+    }
+
+    /* ---------- hero ---------- */
+    .mp-hero {
+        position: relative;
+        border: 1px solid var(--mp-border);
+        border-radius: 14px;
+        background: #fff;
+        overflow: hidden;
+        animation: mp-in .35s ease both;
+    }
+
+    .mp-cover {
+        height: 96px;
+        background: linear-gradient(120deg, #dbeafe 0%, #eef2ff 45%, #f0f9ff 100%);
+    }
+
+    .mp-hero-body {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        flex-wrap: wrap;
+        padding: 0 24px 20px;
+        margin-top: -44px;
+    }
+
+    .mp-avatar {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        background: linear-gradient(145deg, #3b82f6, #6366f1);
+        color: #fff;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, .25);
+        flex-shrink: 0;
+    }
+
+    .mp-identity {
+        flex: 1 1 260px;
+        min-width: 0;
+        padding-bottom: 4px;
+    }
+
+        .mp-identity h3 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+    .mp-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .mp-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--mp-primary-soft);
+        color: var(--mp-primary);
+    }
+
+        .mp-chip.green {
+            background: var(--mp-green-soft);
+            color: var(--mp-green);
+        }
+
+        .mp-chip.amber {
+            background: var(--mp-amber-soft);
+            color: var(--mp-amber);
+        }
+
+        .mp-chip.red {
+            background: var(--mp-red-soft);
+            color: var(--mp-red);
+        }
+
+        .mp-chip.grey {
+            background: #f3f4f6;
+            color: var(--mp-muted);
+        }
+
+    .mp-since {
+        font-size: 12.5px;
+        color: var(--mp-muted);
+        padding-bottom: 6px;
+        white-space: nowrap;
+    }
+
+    /* ---------- info cards ---------- */
+    .mp-card {
+        height: 100%;
+        border: 1px solid var(--mp-border);
+        border-radius: 14px;
+        background: #fff;
+        padding: 18px 20px 8px;
+        animation: mp-in .35s ease both;
+        transition: box-shadow .2s ease, transform .2s ease;
+    }
+
+        .mp-card:hover {
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
+            transform: translateY(-2px);
+        }
+
+    .mp-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--mp-muted);
+    }
+
+        .mp-card-title .ico {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            background: var(--mp-primary-soft);
+            color: var(--mp-primary);
+        }
+
+    .mp-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px dashed var(--mp-border);
+        font-size: 14px;
+    }
+
+        .mp-row:first-of-type {
+            border-top: 0;
+        }
+
+        .mp-row .lbl {
+            color: var(--mp-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .mp-row .val {
+            font-weight: 600;
+            text-align: right;
+            word-break: break-word;
+            min-width: 0;
+        }
+
+    .mp-eye {
+        margin-left: 6px;
+        width: 26px;
+        height: 26px;
+        border: 1px solid var(--mp-border);
+        border-radius: 50%;
+        background: #fff;
+        color: var(--mp-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        padding: 0;
+        vertical-align: middle;
+        transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+    }
+
+        .mp-eye:hover {
+            background: var(--mp-primary-soft);
+            border-color: #bfdbfe;
+            color: var(--mp-primary);
+        }
+
+    .mp-verified {
+        color: var(--mp-green);
+        font-size: 14px;
+        margin-left: 4px;
+    }
+
+    /* ---------- loading / error ---------- */
+    .mp-skel {
+        border-radius: 8px;
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+        background-size: 400% 100%;
+        animation: mp-shimmer 1.3s ease infinite;
+    }
+
+    .mp-empty {
+        text-align: center;
+        padding: 50px 16px;
+        color: var(--mp-muted);
+    }
+
+    @@keyframes mp-in {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @@keyframes mp-shimmer {
+        0% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0 50%;
+        }
+    }
+
+    @@media (max-width: 575px) {
+        .mp-hero-body {
+            padding: 0 16px 16px;
+        }
+
+        .mp-since {
+            white-space: normal;
+        }
+    }
+</style>
+
+<div class="main-container mp">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="My Profile" />
+        </div>
+
+        @if (IsLoading)
+        {
+            <div class="col-12 p-1">
+                <div class="mp-hero">
+                    <div class="mp-cover"></div>
+                    <div class="mp-hero-body">
+                        <div class="mp-avatar mp-skel" style="border-color:#fff"></div>
+                        <div class="mp-identity">
+                            <div class="mp-skel" style="height:22px;width:220px;margin-bottom:10px"></div>
+                            <div class="mp-skel" style="height:18px;width:160px"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @for (int i = 0; i < 3; i++)
+            {
+                <div class="col-12 col-lg-4 p-1">
+                    <div class="mp-card">
+                        <div class="mp-skel mb-3" style="height:18px;width:140px"></div>
+                        <div class="mp-skel mb-3" style="height:14px"></div>
+                        <div class="mp-skel mb-3" style="height:14px"></div>
+                        <div class="mp-skel mb-3" style="height:14px;width:70%"></div>
+                    </div>
+                </div>
+            }
+        }
+        else if (profile == null)
+        {
+            <div class="col-12 p-1">
+                <div class="mp-card mp-empty">
+                    <div style="font-size:40px"><i class="bi bi-person-x"></i></div>
+                    <h6 class="mt-2">Profile could not be loaded</h6>
+                    <p class="mb-3">@ErrorMessage</p>
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="LoadProfile">
+                        <div class="visible content">Try again</div>
+                        <div class="hidden content"><i class="bi bi-arrow-clockwise"></i></div>
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            @* ---------- Hero ---------- *@
+            <div class="col-12 p-1">
+                <div class="mp-hero">
+                    <div class="mp-cover"></div>
+                    <div class="mp-hero-body">
+                        <div class="mp-avatar">@Initials</div>
+                        <div class="mp-identity">
+                            <h3>@Show(profile.UserName)</h3>
+                            <div class="mp-chips">
+                                <span class="mp-chip"><i class="bi bi-person-badge"></i>@Show(profile.RoleName, "No role assigned")</span>
+                                @if (profile.IsLockedOut)
+                                {
+                                    <span class="mp-chip red"><i class="bi bi-lock-fill"></i>Locked</span>
+                                }
+                                else if (profile.IsValid && !IsExpired)
+                                {
+                                    <span class="mp-chip green"><i class="bi bi-check-circle-fill"></i>Active</span>
+                                }
+                                else
+                                {
+                                    <span class="mp-chip grey"><i class="bi bi-slash-circle"></i>@(IsExpired ? "Expired" : "Inactive")</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(profile.BranchName))
+                                {
+                                    <span class="mp-chip grey"><i class="bi bi-building"></i>@profile.BranchName</span>
+                                }
+                            </div>
+                        </div>
+                        @if (profile.CreatedDate.HasValue)
+                        {
+                            <div class="mp-since"><i class="bi bi-calendar3 me-1"></i>Member since @profile.CreatedDate.Value.ToString("dd MMM yyyy")</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* ---------- Contact ---------- *@
+            <div class="col-12 col-md-6 col-xl-4 p-1">
+                <div class="mp-card" style="animation-delay:.05s">
+                    <div class="mp-card-title"><span class="ico"><i class="bi bi-person-lines-fill"></i></span>Contact</div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-person"></i>Login name</span>
+                        <span class="val">@Show(profile.UserName)</span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-envelope"></i>Email</span>
+                        <span class="val">
+                            @(showEmail ? Show(profile.EmailId) : MaskEmail(profile.EmailId))
+                            @if (profile.EmailConfirmed && !string.IsNullOrWhiteSpace(profile.EmailId))
+                            {
+                                <i class="bi bi-patch-check-fill mp-verified" title="Verified"></i>
+                            }
+                            @EyeButton(showEmail, profile.EmailId, () => showEmail = !showEmail, "email")
+                        </span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-telephone"></i>Mobile</span>
+                        <span class="val">
+                            @(showMobile ? Show(profile.MobileNo) : MaskMobile(profile.MobileNo))
+                            @EyeButton(showMobile, profile.MobileNo, () => showMobile = !showMobile, "mobile")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @* ---------- Organisation ---------- *@
+            <div class="col-12 col-md-6 col-xl-4 p-1">
+                <div class="mp-card" style="animation-delay:.1s">
+                    <div class="mp-card-title"><span class="ico"><i class="bi bi-buildings"></i></span>Organisation</div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-diagram-3"></i>Group</span>
+                        <span class="val">@Show(profile.GroupName, profile.GroupCode)</span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-building"></i>Branch</span>
+                        <span class="val">@Show(profile.BranchName, profile.BranchCode)</span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-person-badge"></i>Role</span>
+                        <span class="val">@Show(profile.RoleName)</span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-speedometer2"></i>Dashboard</span>
+                        <span class="val">@Show(profile.DashboardName)</span>
+                    </div>
+                </div>
+            </div>
+
+            @* ---------- Account & security ---------- *@
+            <div class="col-12 col-xl-4 p-1">
+                <div class="mp-card" style="animation-delay:.15s">
+                    <div class="mp-card-title"><span class="ico"><i class="bi bi-shield-check"></i></span>Account &amp; Security</div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-hash"></i>User ID</span>
+                        <span class="val">
+                            @(showUserId ? profile.UserSid.ToString() : "••••••")
+                            @EyeButton(showUserId, profile.UserSid.ToString(), () => showUserId = !showUserId, "user id")
+                        </span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-calendar-range"></i>Valid</span>
+                        <span class="val">@FormatDate(profile.ValidFrom) &ndash; @FormatDate(profile.ValidTo, "No end date")</span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-phone-vibrate"></i>Two-step login</span>
+                        <span class="val">
+                            @if (profile.RequiresTwoFactor)
+                            {
+                                <span class="mp-chip green"><i class="bi bi-shield-fill-check"></i>On</span>
+                            }
+                            else
+                            {
+                                <span class="mp-chip amber"><i class="bi bi-shield-exclamation"></i>Off</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="mp-row">
+                        <span class="lbl"><i class="bi bi-clock-history"></i>Last verified</span>
+                        <span class="val">@(profile.LastVerifiedDateUtc.HasValue ? profile.LastVerifiedDateUtc.Value.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt") : "—")</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private MyProfileResponse? profile;
+    private bool IsLoading = true;
+    private string ErrorMessage = "Please try again.";
+
+    private bool IsExpired => profile?.ValidTo.HasValue == true && profile.ValidTo.Value.Date < DateTime.Today;
+
+    private string Initials
+    {
+        get
+        {
+            var name = profile?.UserName?.Trim();
+            if (string.IsNullOrEmpty(name))
+                return "?";
+            var parts = name.Split(new[] { ' ', '.', '_', '@' }, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length >= 2
+                ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+                : name.Substring(0, Math.Min(2, name.Length)).ToUpper();
+        }
+    }
+
+    // data comes from the logged-in user's token on the server (api/MyProfile)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await LoadProfile();
+    }
+
+    private async Task LoadProfile()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Get<ApiResponse<MyProfileResponse>>("MyProfile");
+            profile = response != null && response.Success ? response.Data : null;
+            if (profile == null)
+                ErrorMessage = response?.Message ?? "Please try again.";
+        }
+        catch (Exception ex)
+        {
+            profile = null;
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // sensitive values stay hidden until the eye icon is clicked
+    private bool showUserId;
+    private bool showMobile;
+    private bool showEmail;
+
+    private RenderFragment EyeButton(bool visible, string? value, Action toggle, string what) =>
+        @<text>
+            @if (!string.IsNullOrWhiteSpace(value))
+            {
+                <button type="button" class="mp-eye" @onclick="toggle"
+                        title="@(visible ? $"Hide {what}" : $"View {what}")" aria-label="@(visible ? $"Hide {what}" : $"View {what}")">
+                    <i class="bi @(visible ? "bi-eye-slash" : "bi-eye")"></i>
+                </button>
+            }
+        </text>;
+
+    // 9173978939 -> ******8939
+    private static string MaskMobile(string? mobile)
+    {
+        if (string.IsNullOrWhiteSpace(mobile))
+            return "—";
+        var m = mobile.Trim();
+        return m.Length <= 4 ? new string('*', m.Length) : new string('*', m.Length - 4) + m[^4..];
+    }
+
+    // ramesh@gmail.com -> r*****@gmail.com
+    private static string MaskEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return "—";
+        var e = email.Trim();
+        var at = e.IndexOf('@');
+        if (at <= 0)
+            return new string('*', Math.Min(e.Length, 8));
+        return e[0] + new string('*', Math.Max(3, at - 1)) + e[at..];
+    }
+
+    private static string Show(string? value, string? fallback = null) =>
+        !string.IsNullOrWhiteSpace(value) ? value : (!string.IsNullOrWhiteSpace(fallback) ? fallback : "—");
+
+    private static string FormatDate(DateTime? date, string empty = "—") =>
+        date.HasValue ? date.Value.ToString("dd MMM yyyy") : empty;
+}

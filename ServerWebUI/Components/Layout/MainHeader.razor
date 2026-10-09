@@ -476,7 +476,7 @@
                                         <p class="cl-post">@RoleName</p>
 
                                     </div>
-                                    <div class="user-edit px-1">
+                                    <div class="user-edit px-1" style="cursor:pointer" title="My Profile" @onclick="OpenMyProfile">
                                         <i class="bi bi-pencil-square"></i>
                                     </div>
                                 </div>
@@ -499,7 +499,7 @@
                                 </div>
 
                                 <div class="col-4 p-1">
-                                    <div class="bookmark-nav-link profile-link profile-menu-link">
+                                    <div class="bookmark-nav-link profile-link profile-menu-link" style="cursor:pointer" @onclick="OpenMyProfile">
                                         <i class="bi bi-person"></i>
                                         <p>My Profile</p>
                                     </div>
@@ -656,6 +656,10 @@
         ShowAllBookmarksPopup = false;
         StateHasChanged();
     }
+    // header profile dropdown -> My Profile page (url shown encrypted by MainLayout)
+    private void OpenMyProfile() => nav.NavigateTo("/myprofile");
+
+
     private void NavigateToBookmark(string url)
     {
         ShowAllBookmarksPopup = false;

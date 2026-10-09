@@ -23,6 +23,7 @@
 @inject PermissionState permissionState
 @inject BookmarkState BookmarkState
 @inject MenuState MenuState
+@inject SecureUrlService SecureUrl
 <style>
     .right-menu .list-group {
         gap: 5px;
@@ -139,7 +140,7 @@
 
                                         @foreach (var activity in leftMenus)
                                         {
-                                            <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                            <NavLink href="@SecureUrl.ToSecure(activity.URL)" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
                                                 <span class="flex-grow-1">@activity.DisplayName</span>
                                                 <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
                                                    data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
@@ -158,7 +159,7 @@
 
                                             @foreach (var activity in rightMenus)
                                             {
-                                                <NavLink href="@activity.URL" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                                <NavLink href="@SecureUrl.ToSecure(activity.URL)" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
                                                     <span class="flex-grow-1">@activity.DisplayName</span>
                                                     <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill bookmark-active" : "bi-star bookmark-default")"
                                                        data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"

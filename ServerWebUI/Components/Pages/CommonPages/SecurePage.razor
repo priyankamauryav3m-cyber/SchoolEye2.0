@@ -1,0 +1,44 @@
+@page "/p/{Token}"
+@inject SecureUrlService SecureUrl
+@inject MenuState MenuState
+@inject NavigationManager Nav
+
+@* Renders the real page behind an encrypted url (/p/{token}). See SecureUrlService. *@
+
+@if (pageType != null)
+{
+    <DynamicComponent Type="pageType" @key="pageType" />
+}
+else
+{
+    <div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 160px);">
+        <div class="text-center">
+            <div style="font-size:42px;color:#9ca3af"><i class="bi bi-link-45deg"></i></div>
+            <h5 class="mt-2">This link is not valid</h5>
+            <p class="text-muted">The page link is broken or has expired.</p>
+            <button type="button" class="ui fade op-1 animated button form-btn" @onclick="GoToDashboard">
+                <div class="visible content">Go to Dashboard</div>
+                <div class="hidden content"><i class="bi bi-house"></i></div>
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Token { get; set; }
+
+    private Type? pageType;
+
+    protected override void OnParametersSet()
+    {
+        pageType = SecureUrl.TryDecrypt(Token, out var realPath)
+            ? SecureUrl.GetPageType(realPath)
+            : null;
+    }
+
+    private void GoToDashboard()
+    {
+        var url = string.IsNullOrWhiteSpace(MenuState.DashboardUrl) ? "/" : MenuState.DashboardUrl;
+        Nav.NavigateTo(SecureUrl.ToSecure(url));
+    }
+}

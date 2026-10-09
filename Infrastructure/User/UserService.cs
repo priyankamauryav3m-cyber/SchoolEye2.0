@@ -356,6 +356,27 @@ namespace Infrastructure.User
             return await con.ExecuteScalarAsync<int>(sql, new { UserSid = sid, RoleName = roleName }) > 0;
         }
 
+        public async Task<MyProfileResponse?> GetMyProfileAsync(int userSid)
+        {
+            using var con = new SqlConnection(_connectionString);
+            // explicit columns only: password / hash / OTP are never selected
+            const string sql = @"SELECT u.UserSid, u.UserName, u.EmailId, ISNULL(u.EmailConfirmed, 0) AS EmailConfirmed, u.MobileNo,
+                                        r.RoleName, d.DisplayName AS DashboardName,
+                                        u.GroupCode, g.GroupName, u.BranchCode, b.BranchName,
+                                        ISNULL(u.IsValid, 0) AS IsValid, u.ValidFrom, u.ValidTo, u.CreatedDate,
+                                        ISNULL(u.RequiresTwoFactor, 0) AS RequiresTwoFactor,
+                                        u.OtpVerifiedDateUtc AS LastVerifiedDateUtc,
+                                        CAST(CASE WHEN u.LockoutEnd IS NOT NULL AND u.LockoutEnd > GETDATE() THEN 1 ELSE 0 END AS BIT) AS IsLockedOut
+                                 FROM MstUsers u WITH (NOLOCK)
+                                 LEFT JOIN MstRoles r WITH (NOLOCK) ON r.RoleId = u.RoleId
+                                 LEFT JOIN MstDashboard d WITH (NOLOCK) ON d.DashBoardId = r.DashBoardId
+                                 OUTER APPLY (SELECT TOP 1 GroupName FROM MstGroupMaster WITH (NOLOCK) WHERE GroupCode = u.GroupCode) g
+                                 OUTER APPLY (SELECT TOP 1 BranchName FROM MstBranchMaster WITH (NOLOCK)
+                                              WHERE GroupCode = u.GroupCode AND BranchCode = u.BranchCode) b
+                                 WHERE u.UserSid = @UserSid";
+            return await con.QueryFirstOrDefaultAsync<MyProfileResponse>(sql, new { UserSid = userSid });
+        }
+
         public async Task<UserModels?> GetUser(string loginId)
         {
             UserModels response = null;
