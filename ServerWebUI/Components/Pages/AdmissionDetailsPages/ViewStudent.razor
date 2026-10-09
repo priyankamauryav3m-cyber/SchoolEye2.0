@@ -148,14 +148,25 @@
                                     <PropertyColumn Class="text-right" Property="@(x => x.RollNo)" Title="Roll No." Align="Align.Center">
 
                                     </PropertyColumn>
-                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No." Align="Align.Center">
-
+                                    <TemplateColumn Sortable="true" Class="text-center" SortBy="@(GridSort<GetSearchedViewStudentModel>.ByAscending(x => x.ControlNo))" Title="Student No." Align="Align.Center">
+                                        <ChildContent>
+                                            @* Student No. opens the same Student Details popup as the Details button *@
+                                            @if (CanOpenStudentDetails && !string.IsNullOrWhiteSpace(context.ControlNo))
+                                            {
+                                                <a href="javascript:void(0)" class="text-primary text-decoration-underline" title="View student details"
+                                                   @onclick="() => OpenStudentDetails(context.StudentId)" @onclick:stopPropagation="true">@context.ControlNo</a>
+                                            }
+                                            else
+                                            {
+                                                @(string.IsNullOrWhiteSpace(context.ControlNo) ? " " : context.ControlNo)
+                                            }
+                                        </ChildContent>
                                         <ColumnOptions>
                                             <div class="search-box">
                                                 <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student No...." />
                                             </div>
                                         </ColumnOptions>
-                                    </PropertyColumn>
+                                    </TemplateColumn>
                                     <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
 
                                         <ColumnOptions>
@@ -439,14 +450,25 @@
                                         </ChildContent>
                                     </TemplateColumn>
 
-                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No." Align="Align.Center">
-
+                                    <TemplateColumn Sortable="true" Class="text-center" SortBy="@(GridSort<ViewStudentModal>.ByAscending(x => x.ControlNo))" Title="Student No." Align="Align.Center">
+                                        <ChildContent>
+                                            @* Student No. opens the same Student Details popup as the Details button *@
+                                            @if (CanOpenStudentDetails && !string.IsNullOrWhiteSpace(context.ControlNo))
+                                            {
+                                                <a href="javascript:void(0)" class="text-primary text-decoration-underline" title="View student details"
+                                                   @onclick="() => OpenStudentDetails(context.StudentId)" @onclick:stopPropagation="true">@context.ControlNo</a>
+                                            }
+                                            else
+                                            {
+                                                @(string.IsNullOrWhiteSpace(context.ControlNo) ? " " : context.ControlNo)
+                                            }
+                                        </ChildContent>
                                         <ColumnOptions>
                                             <div class="search-box">
                                                 <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student No...." />
                                             </div>
                                         </ColumnOptions>
-                                    </PropertyColumn>
+                                    </TemplateColumn>
                                     <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
 
                                         <ColumnOptions>
@@ -503,6 +525,7 @@
                         <div class="form-box">
                             <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="New" AdmitClicked="AdmitStudentDirect" />
                         </div>
+                        <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Details" AdmitClicked="DetailsPopupOpen" />
                         <div class="form-box">
                             <button class="table-btn" @onclick="OpenStudentVisitorDetails">Visitor</button>
                         </div>
@@ -1761,6 +1784,20 @@ else
         }
         OpenDetail = true;
         IsLoading = false;
+        StateHasChanged();
+    }
+
+    // Student No. link: same rule as the Details button (AdmitChildButton shows it with IsAdd)
+    private bool CanOpenStudentDetails => PermissionState.HasPermission(currentUrl, x => x.IsAdd);
+
+    // Student No. click in the grid (role 4 and role 8) -> Student Details popup for that student
+    private void OpenStudentDetails(long studentId)
+    {
+        if (!CanOpenStudentDetails || studentId <= 0)
+            return;
+
+        SelectedStudentId = studentId;
+        OpenDetail = true;
         StateHasChanged();
     }
     private async Task OpenStudentVisitorDetails()

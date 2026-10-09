@@ -33,7 +33,6 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
             {
 
                 var resultlist = await _service.GetStudentForInvoiceGenerate(requestModel);
-
                 if (resultlist == null || !resultlist.Any())
                 {
                     return Ok(new ApiResponse<IEnumerable<StudentFeeInvoiceResponseModel>>

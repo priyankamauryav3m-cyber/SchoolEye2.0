@@ -1,5 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationManager nav
+@inject SecureUrlService SecureUrl
 @rendermode   InteractiveServer
 
 <div class="page">
@@ -30,8 +32,40 @@
         if (!await UserIsAuthenticated())
         {
             nav.NavigateTo("/", true);   // Login Page
+            return;
+        }
+
+        // logged in: show page names encrypted in the address bar
+        locationChangingRegistration = nav.RegisterLocationChangingHandler(EncryptPageUrl);
+        var current = "/" + nav.ToBaseRelativePath(nav.Uri);
+        if (SecureUrl.IsSecurablePage(current))
+        {
+            // url typed / refreshed in plain text
+            nav.NavigateTo(SecureUrl.ToSecure(current).TrimStart('/'), replace: true);
         }
     }
+
+    private IDisposable? locationChangingRegistration;
+
+    // every in-app navigation (menu, links, bookmarks, NavigateTo) to a plain page url
+    // is swapped for its encrypted url before it happens
+    private ValueTask EncryptPageUrl(LocationChangingContext context)
+    {
+        var target = "/" + nav.ToBaseRelativePath(nav.ToAbsoluteUri(context.TargetLocation).ToString());
+        if (SecureUrl.IsSecurablePage(target))
+        {
+            var secureUrl = SecureUrl.ToSecure(target).TrimStart('/');   // relative to base href
+            context.PreventNavigation();
+            _ = InvokeAsync(async () =>
+            {
+                await Task.Yield();
+                nav.NavigateTo(secureUrl);
+            });
+        }
+        return ValueTask.CompletedTask;
+    }
+
+    public void Dispose() => locationChangingRegistration?.Dispose();
     // private async Task<bool> UserIsAuthenticated()
     // {
     //     var token = await GetSessionToken();

@@ -1,10 +1,14 @@
 ﻿using DomainModel.Admin;
+using ServerWebUI.Components.CommonClass;
 
 namespace ServerWebUI.Components.Common
 {
 
     public class PermissionState
     {
+        private readonly SecureUrlService _secureUrl;
+        public PermissionState(SecureUrlService secureUrl) => _secureUrl = secureUrl;
+
 
         public List<SuperAdminModule> Features { get; set; } = new();
         public event Action? OnChange;
@@ -21,6 +25,8 @@ namespace ServerWebUI.Components.Common
         public string DashboardUrl { get; set; } = "";
         public bool HasPermission(string activityName, Func<RolebaseActivity, bool> selector)
         {
+            // page urls may be encrypted (/p/...) -> compare with the real page path
+            activityName = _secureUrl.ToRealPath(activityName);
             var activity = Activities.FirstOrDefault(x => x.URL != null && activityName.Contains(x.URL.Trim(), StringComparison.OrdinalIgnoreCase));
             return activity != null && selector(activity);
         }
@@ -45,6 +51,7 @@ namespace ServerWebUI.Components.Common
         }
         public List<BreadcrumbItem> GetBreadcrumb(string currentUrl)
         {
+            currentUrl = _secureUrl.ToRealPath(currentUrl);
             var result = new List<BreadcrumbItem>();
 
             result.Add(new BreadcrumbItem

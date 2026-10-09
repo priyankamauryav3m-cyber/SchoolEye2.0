@@ -23,7 +23,9 @@
         min-width: 75px;
     }
 
-
+.grid-box-with-btn{
+height: calc(95vh - 273px);
+}
     .quickgrid tbody tr.selectRow td {
         background-color: #e7f1ff !important;
     }
@@ -283,12 +285,14 @@
                                                 <TemplateColumn Title="" Align="Align.Center">
                                                     <HeaderTemplate>
                                                         <div class="d-flex align-items-center justify-content-center">
-                                                            <input type="checkbox" @bind="IsAllStudentSelected" @bind:after="ToggleAllStudent" @onclick:stopPropagation="true" />
+                                                            <input type="checkbox" @bind="IsAllStudentSelected" @bind:after="ToggleAllStudent" @onclick:stopPropagation="true"
+                                                                   disabled="@IsStudentSelectionDisabled" title="@(IsStudentSelectionDisabled ? "Select only one class to choose students" : null)" />
                                                         </div>
                                                     </HeaderTemplate>
                                                     <ChildContent>
                                                         <div class="d-flex align-items-center justify-content-center">
-                                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true"
+                                                                   disabled="@IsStudentSelectionDisabled" title="@(IsStudentSelectionDisabled ? "Select only one class to choose students" : null)" />
                                                         </div>
                                                     </ChildContent>
                                                 </TemplateColumn>
@@ -340,21 +344,21 @@
                                             <div class="form-box">
                                                 <label for="student-name" class="form-label">Class</label>
                                                 <div class="position-relative">
-                                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                                                         @SelectedText
                                                     </button>
                                                     <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
-                                                        <div class="form-check">
+                                                        @* label wraps checkbox + text: clicking the class name also ticks it *@
+                                                        <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
                                                             <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
-                                                            <span> All</span>
-                                                        </div>
+                                                            <span class="form-check-label" style="cursor:pointer"> All</span>
+                                                        </label>
                                                         @foreach (var item in classlist.Where(x => x.IsValid == true))
                                                         {
-                                                            <div class="form-check">
+                                                            <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
                                                                 <InputCheckbox class="form-check-input  map-checkbox" @bind-Value="item.IsSelected" @bind-Value:after="UpdateSelectAllClass" />
-                                                                <span class="form-check-label">@item.ClassName</span>
-                                                            </div>
-
+                                                                <span class="form-check-label" style="cursor:pointer">@item.ClassName</span>
+                                                            </label>
                                                         }
                                                     </div>
                                                 </div>
@@ -376,30 +380,38 @@
                                             <div class="form-box">
                                                 <label for="period-name" class="form-label">Period</label>
                                                 <div class="position-relative">
-                                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                                                    @* auto-close outside: dropdown stays open while ticking several periods *@
+                                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
                                                         @SelectedPeriodText
                                                     </button>
                                                     <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
-                                                        <div class="form-check">
-                                                            @if (string.IsNullOrEmpty(studentInvoice.PeriodType))
-                                                            {
-                                                                <span> Select Period Type</span>
-                                                             
-                                                            }
-                                                            else
-                                                            {
-                                                                   <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllPeriod" @bind:after="ToggleSelectAllPeriod" />
-                                                            <span> All</span>
-                                                            }
-                                                         
-                                                        </div>
-
-                                                        @foreach (var data in feeCollectionPeriodlist)
+                                                        @if (string.IsNullOrEmpty(studentInvoice.PeriodType))
                                                         {
                                                             <div class="form-check">
-                                                                <InputCheckbox class="form-check-input map-checkbox" @bind-Value="data.IsSelected" @bind-Value:after="UpdateSelectAllPeriod" />
-                                                                <span class="form-check-label">@data.PeriodName</span>
+                                                                <span> Select Period Type</span>
                                                             </div>
+                                                        }
+                                                        else if (!feeCollectionPeriodlist.Any())
+                                                        {
+                                                            <div class="form-check">
+                                                                <span> No Period Found</span>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            @* label wraps checkbox + text: clicking the name also ticks it *@
+                                                            <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
+                                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllPeriod" @bind:after="ToggleSelectAllPeriod" />
+                                                                <span class="form-check-label" style="cursor:pointer"> All</span>
+                                                            </label>
+
+                                                            @foreach (var data in feeCollectionPeriodlist)
+                                                            {
+                                                                <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
+                                                                    <InputCheckbox class="form-check-input map-checkbox" @bind-Value="data.IsSelected" @bind-Value:after="UpdateSelectAllPeriod" />
+                                                                    <span class="form-check-label" style="cursor:pointer">@data.PeriodName</span>
+                                                                </label>
+                                                            }
                                                         }
                                                     </div>
                                                 </div>
@@ -551,6 +563,7 @@ else
         {
 
             SelectedClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+            IsAllStudentSelected = false;   // student list is reloaded -> nothing selected
             if (!string.IsNullOrWhiteSpace(SelectedClassCode))
             {
                 searchAny.GroupCode = groupcode;
@@ -571,9 +584,10 @@ else
             Console.WriteLine(ex.Message);
         }
     }
+    // feeCollectionPeriodlist is already loaded for the popup's period type (OnPeriodTypeChanged)
     private Task ToggleSelectAllPeriod()
     {
-        foreach (var item in feeCollectionPeriodlist.Where(x => string.Equals(x.PeriodType, searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)))
+        foreach (var item in feeCollectionPeriodlist)
         {
             item.IsSelected = SelectAllPeriod;
         }
@@ -581,13 +595,10 @@ else
         StateHasChanged();
         return Task.CompletedTask;
     }
+    // any period unticked -> "All" unticked; every period ticked -> "All" ticked
     private Task UpdateSelectAllPeriod()
     {
-        var periods = feeCollectionPeriodlist
-            .Where(x => string.Equals(x.PeriodType, studentInvoice.PeriodType, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        SelectAllPeriod = periods.Any() && periods.All(x => x.IsSelected);
+        SelectAllPeriod = feeCollectionPeriodlist.Any() && feeCollectionPeriodlist.All(x => x.IsSelected);
 
         StateHasChanged();
         return Task.CompletedTask;
@@ -645,8 +656,14 @@ else
         foreach (var row in moduleQuery)
             row.IsSelected = IsAllSelected;
     }
+    // students can be picked only when exactly one class is selected
+    private bool IsStudentSelectionDisabled => classlist.Count(x => x.IsSelected) > 1;
+
     private void ToggleAllStudent()
     {
+        if (IsStudentSelectionDisabled)
+            return;
+
         foreach (var row in StudentmoduleQuery)
             row.IsSelected = IsAllStudentSelected;
     }
@@ -655,6 +672,7 @@ else
         try
         {
             feeCollectionPeriodlist.Clear();
+            SelectAllPeriod = false;
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
             searchAny.SessionId = CurrentSession;
@@ -789,7 +807,10 @@ else
         studentInvoice.BranchCode = branchcode;
         studentInvoice.CreatedBy = UserName;
         studentInvoice.SessionId = CurrentSession;
-        studentInvoice.StudentId = string.Join(",", Students.Where(x => x.IsSelected).Select(x => x.StudentId));
+        // multiple classes -> students cannot be picked, invoice is for the whole classes
+        studentInvoice.StudentId = IsStudentSelectionDisabled
+            ? string.Empty
+            : string.Join(",", Students.Where(x => x.IsSelected).Select(x => x.StudentId));
         studentInvoice.PeriodId = string.Join(",", feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodId));
         if (string.IsNullOrEmpty(studentInvoice.ClassCode))
         {

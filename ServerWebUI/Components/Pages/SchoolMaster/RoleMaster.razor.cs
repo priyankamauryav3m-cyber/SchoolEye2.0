@@ -522,6 +522,7 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
         {
             try
             {
+                ShowPopupAdmin = false;
                 // Mst_ACMapping stores one row per Activity, so a feature with no activities cannot be saved
                 var emptyFeatures = moduleList.SelectMany(m => m.Features)
                     .Where(f => f.IsSelected && (f.Activites == null || !f.Activites.Any()))
@@ -578,6 +579,7 @@ namespace ServerWebUI.Components.Pages.SchoolMaster
                     if (apiResponse1 == null || !apiResponse1.Success)
                     {
                         await Alert.ShowWarning(apiResponse1?.Message ?? "Access could not be saved.");
+                        ShowPopupAdmin = true;
                         return;
                     }
                 }

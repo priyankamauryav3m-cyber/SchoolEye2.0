@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject MenuState MenuState
 @inject NavigationManager NavigationManager
+@inject SecureUrlService SecureUrl
 @inject CommonMethod EnquiryState
 
 <div class="page-heading d-flex align-items-center justify-content-between">
@@ -123,7 +124,8 @@
     // }
     private void SetPageName()
     {
-        var currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        // url may be encrypted (/p/...) -> real page path
+        var currentUrl = SecureUrl.ToRealPath("/" + NavigationManager.ToBaseRelativePath(NavigationManager.Uri));
         currentUrl = "/" + currentUrl.Split('?')[0].Split('#')[0].Trim('/');
 
         var dashboardUrl = "/" + MenuState.DashboardUrl.Split('?')[0].Split('#')[0].Trim('/');

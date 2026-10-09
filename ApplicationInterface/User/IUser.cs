@@ -10,6 +10,8 @@ namespace ApplicationInterface.User
         Task<UserModels> GetUser(string loginId);
         // true when the (valid) user has the given (valid) role, e.g. "V3MAdmin"
         Task<bool> IsUserInRoleAsync(string userSid, string roleName);
+        // the logged-in user's own profile (safe fields only)
+        Task<MyProfileResponse?> GetMyProfileAsync(int userSid);
         public List<UserDetails> GetUserDetails(string UserTypeId, int HospitalId, int VCID, int IsActive, string LoginName, string GroupCode);
         public Task<int> GenerateAndSendOtpAsync(int userId, string mobileNo);   
         Task<int> VerifyOtpAsync(int userId, string otpCode); 
