@@ -221,9 +221,43 @@
         margin: 10px 0;
     }
 
+    /* header must sit above the cards below so the suggestion list is not hidden behind them */
+    #main-header {
+        position: relative;
+        z-index: 5;
+    }
+
+    /* small input; the suggestion list keeps its full width and opens under the input */
     .student-search-wrap {
         position: relative;
-        min-width: 550px;
+        width: 300px;
+    }
+
+    .student-suggest-box {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 550px;
+        max-width: 92vw;
+        margin-top: 2px;
+        border: 1px solid #d9d9d9;
+        border-radius: 8px;
+        background: #fff;
+        max-height: 400px;
+        overflow-y: auto;
+        box-shadow: 0 8px 20px rgba(0,0,0,.15);
+        z-index: 2000;
+    }
+
+    @@media (max-width: 767px) {
+        .student-search-wrap {
+            width: 100%;
+        }
+
+        .student-suggest-box {
+            left: 0;
+            width: 100%;
+        }
     }
 
 
@@ -270,8 +304,9 @@
         border-bottom: none;
     }
 
-    .student-suggest-item:hover {
-        background: #f8f9fa;
+    .student-suggest-item:hover,
+    .student-suggest-item.active {
+        background: #f7f9fc;
     }
 
     .student-suggest-empty {
@@ -730,10 +765,11 @@
                             }
                             else
                             {
-                                @foreach (var item in filteredSuggestions)
+                                @for (int i = 0; i < filteredSuggestions.Count; i++)
                                 {
-
-                                    <div class="student-suggest-item" @onclick="() => SelectStudent(item)">
+                                    var item = filteredSuggestions[i];
+                                    var index = i;
+                                    <div class="student-suggest-item @(index == activeSuggestion ? "active" : "")" @onclick="() => SelectStudent(item)">
                                         <div class="student-suggest-column">
                                             <span class="student-suggest-label">Student Name</span>
                                             <span class="student-suggest-value">@item.StudentName</span>
@@ -1176,95 +1212,7 @@
     </div>
 }
 
-@if (ShowTransportPopup)
-{
-    <div class="custom-modal row m-0">
-        <div class="col-12 col-xl-11">
-            <div class="modal-content clearfix main-popup">
-                <div class="head-btn">
-                    <h5 class="modal-title">Map student transport</h5>
-                    <button data-access="Close" type="button" @onclick="CloseTransportPopup" class="close"><span aria-hidden="true">&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <div class="fee-module-content">
-                        <p class="fee-head-sub mb-3">Transport charges will apply from the selected month onward.</p>
-
-                        <div class="module-toolbar">
-                            <div class="field"><label>Session</label><select><option>2026-27</option></select></div>
-                            <div class="field"><label>Admission no.</label><input value="0174" /></div>
-                            <div class="field"><label>Student name</label><input value="Mahesh Kumar" /></div>
-                            <div class="field"><label>Class-section</label><input value="I-A" /></div>
-                            <button type="button" class="btn-preview">Search</button>
-                        </div>
-
-                        <div class="module-grid">
-                            <div class="module-panel">
-                                <h3>Route information</h3>
-                                <div class="form-grid">
-                                    <div class="field full">
-                                        <label>Select transport route</label>
-                                        <select>
-                                            <option>Select a route</option>
-                                            <option>Route 04 &middot; City Centre</option>
-                                            <option>Route 08 &middot; Model Town</option>
-                                        </select>
-                                    </div>
-                                    <div class="field">
-                                        <label>Distance slab</label>
-                                        <select>
-                                            <option>Select distance</option>
-                                            <option>0-5 km</option>
-                                            <option>5-10 km</option>
-                                            <option>10-15 km</option>
-                                        </select>
-                                    </div>
-                                    <div class="field"><label>Applied from</label><input type="date" value="2026-04-01" /></div>
-                                </div>
-                            </div>
-                            <div class="module-panel">
-                                <h3>Selection summary</h3>
-                                <div class="receipt-row"><span>Student</span><strong>Mahesh Kumar</strong></div>
-                                <div class="receipt-row"><span>Current route</span><strong>Not mapped</strong></div>
-                                <div class="receipt-row"><span>Selected periods</span><strong>3 months</strong></div>
-                                <div class="receipt-row total"><span>Estimated fee</span><strong>Calculated after route</strong></div>
-                            </div>
-                        </div>
-
-                        <section class="module-section">
-                            <div class="module-section-head"><h3>Applicable periods</h3><span>Select fee months</span></div>
-                            <div class="period-list">
-                                @foreach (var m in transportMonths)
-                                {
-                                    <label class="period-option">
-                                        <input class="check-cell" type="checkbox" checked="@m.IsSelected" />
-                                        <span><strong>@m.MonthName</strong><br /><small>Monthly</small></span>
-                                    </label>
-                                }
-                            </div>
-                        </section>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="form-group btn-gr d-flex">
-                        <SaveUpdateButton ShowSaveButton="false" Text="Close" OnClickCancel="CloseTransportPopup" />
-                        <div class="form-box">
-
-                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" @onclick="CloseTransportPopup">
-                                <div class="visible content justify-content-center">Save transport</div>
-                                <div class="hidden content">
-                                    <i class="bi bi-bus-front"></i>
-                                </div>
-                            </button>
-                        </div>
-
-
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<MapTransportWithStudent IsVisible="@ShowTransportPopup" CurrentSessionData="@CurrentSession" SetStudentMapTransportList="@transportStudentList" CurrectUrl="@currentUrl" OnSaveSuccess="@CloseTransportPopup" OnClose="@CloseTransportPopup" />
 
 @if (ShowConcessionPopup)
 {
@@ -1727,6 +1675,7 @@ else
     private List<StudentDetailsForFee> filteredSuggestions = new();
     private StudentDetailsForFee selectedStudent = new();
     private bool ShowSuggestions = false;
+    private int activeSuggestion = -1;
     private bool IsStudentSelected = false;
     private List<BranchClassModel> classlist = new();
     private List<SectionModel> sectionModellist = new();
@@ -1736,6 +1685,7 @@ else
     PaginationState pagination = new() { ItemsPerPage = 20 };
     private bool ShowLedgerPopup = false;
     private bool ShowTransportPopup = false;
+    private List<TransportStudentDataModel> transportStudentList = new();
     private bool ShowConcessionPopup = false;
     private bool ShowWaivePopup = false;
     private bool ShowAdvancePopup = false;
@@ -1774,8 +1724,62 @@ else
     }
 
 
-    private void OpenTransportPopup() { ShowTransportPopup = true; StateHasChanged(); }
-    private void CloseTransportPopup() { ShowTransportPopup = false; StateHasChanged(); }
+    // Map transport popup = MapTransportWithStudent component (same as MapTransports page, handles its own save)
+    private async Task OpenTransportPopup()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm) || !IsStudentSelected || selectedStudent.StudentId == 0)
+        {
+            await Alert.ShowWarning("Student name or student no. can not be blank.");
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            var transportSearch = new TransportSearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                // SP V3M_Fee_GetTransportStudentData filters @StudentNo against ControlNo (admission no.)
+                StudentNo = selectedStudent.ControlNo
+            };
+            var apiResponse = await httpService.Post<ApiResponse<List<TransportStudentDataModel>>>("MapTransport/GetAllStudentData", transportSearch) ?? new();
+            var student = apiResponse.Success
+                ? apiResponse.Data?.FirstOrDefault(x => x.StudentId == selectedStudent.StudentId)
+                : null;
+
+            // Student not returned by transport search -> open with basic details so transport can be mapped fresh
+            student ??= new TransportStudentDataModel
+            {
+                StudentId = selectedStudent.StudentId,
+                SessionId = CurrentSession,
+                StudentNo = selectedStudent.StudentNo,
+                ControlNo = selectedStudent.ControlNo,
+                StudentName = selectedStudent.StudentName,
+                FatherName = selectedStudent.FatherName,
+                ClassSection = selectedStudent.ClassSection,
+                CurrentAddress = selectedStudent.StudentAddress
+            };
+
+            transportStudentList = new List<TransportStudentDataModel> { student };
+            ShowTransportPopup = true;
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to load student transport details.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+    private void CloseTransportPopup()
+    {
+        ShowTransportPopup = false;
+        transportStudentList = new();
+        StateHasChanged();
+    }
 
     private void OpenConcessionPopup() { ShowConcessionPopup = true; StateHasChanged(); }
     private void CloseConcessionPopup() { ShowConcessionPopup = false; StateHasChanged(); }
@@ -1803,9 +1807,23 @@ else
     }
     private async Task HandleSearchKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        switch (e.Key)
         {
-            await SearchStudent();
+            case "ArrowDown" when ShowSuggestions && filteredSuggestions.Count > 0:
+                activeSuggestion = (activeSuggestion + 1) % filteredSuggestions.Count;
+                break;
+            case "ArrowUp" when ShowSuggestions && filteredSuggestions.Count > 0:
+                activeSuggestion = activeSuggestion <= 0 ? filteredSuggestions.Count - 1 : activeSuggestion - 1;
+                break;
+            case "Escape":
+                ShowSuggestions = false;
+                break;
+            case "Enter":
+                if (ShowSuggestions && activeSuggestion >= 0 && activeSuggestion < filteredSuggestions.Count)
+                    await SelectStudent(filteredSuggestions[activeSuggestion]);
+                else
+                    await SearchStudent();
+                break;
         }
     }
     protected async Task LoadData()
@@ -1861,6 +1879,7 @@ else
         feeCollectionDuelist.Clear();
         ShowSuggestions = false;
         filteredSuggestions = new();
+        activeSuggestion = -1;
         selectedStudent = new();
         SelectedStudentId = 0;
         IsStudentSelected = false;
@@ -2111,6 +2130,7 @@ else
                 else
                 {
                     filteredSuggestions = studentDetailsForFeeList;
+                    activeSuggestion = 0;
                     selectedStudent = new();
                     IsStudentSelected = false;
                     ShowSuggestions = true;
@@ -2121,6 +2141,7 @@ else
             {
                 studentDetailsForFeeList = new();
                 filteredSuggestions = new();
+                activeSuggestion = -1;
                 selectedStudent = new();
                 IsStudentSelected = false;
                 ShowSuggestions = true;

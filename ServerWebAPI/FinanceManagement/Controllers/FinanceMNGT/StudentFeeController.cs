@@ -1,4 +1,5 @@
 ﻿using ApplicationInterface.FinanceMNGT.FeeMNGT;
+using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -275,6 +276,5 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
-
     }
 }

@@ -294,6 +294,31 @@ namespace DomainModel.Admin
     #endregion
 
     #region ------------------------Registration Model-------------- 
+    public class RegistrationDetailsRequest
+    {
+        public string GroupCode { get; set; }
+        public string BranchCode { get; set; }
+        public string RegistrationNo { get; set; } = "";
+        public string StudentName { get; set; } = "";
+        public long SessionId { get; set; }
+    }
+    public class RegistrationDetailsResponse
+    {
+        public long RegistrationId { get; set; }
+        public string RegistrationNo { get; set; }
+        public string StudentName { get; set; }
+        public string ClassCode { get; set; }
+        public string ClassName { get; set; }
+        public string FatherName { get; set; }
+        public string FatherContactNo { get; set; }
+        public bool IsTransportRequired { get; set; }
+        public decimal DistanceFromSchool { get; set; }
+        public string NextToKin { get; set; }
+        public string NextToKinLabel { get; set; }
+        public string NextToKinName { get; set; }
+        public string NextToKinEmail { get; set; }
+        public string NextToKinContactNo { get; set; }
+    }
     public class RegistrationModal
     {
 
