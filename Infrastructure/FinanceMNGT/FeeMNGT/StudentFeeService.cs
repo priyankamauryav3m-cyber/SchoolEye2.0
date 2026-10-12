@@ -1,5 +1,6 @@
 ﻿using ApplicationInterface.FinanceMNGT.FeeMNGT;
 using Dapper;
+using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -213,7 +214,5 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
-
-
     }
 }

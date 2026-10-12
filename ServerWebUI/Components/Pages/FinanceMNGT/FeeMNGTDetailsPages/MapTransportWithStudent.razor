@@ -659,6 +659,13 @@
                 TransportAppliedFrom = student.TransportAppliedFrom,
                 DistanceId = Convert.ToInt32(student.DistanceId)
             };
+
+            // Existing info amount: take it from the distance config (same source as the Distance dropdown)
+            var mappedDistance = distancelist.FirstOrDefault(x => x.DistanceId == transportRequest.DistanceId);
+            if (mappedDistance?.Amount != null)
+            {
+                transportRequest.Amount = mappedDistance.Amount.Value;
+            }
         }
         await GetMapRouteBoardingPoint("pickup");
         await GetMapRouteBoardingPoint("drop");

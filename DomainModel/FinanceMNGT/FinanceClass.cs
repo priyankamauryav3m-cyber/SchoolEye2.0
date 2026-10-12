@@ -2208,7 +2208,7 @@ namespace DomainModel.FinanceMNGT
         public string? CreatedBy { get; set; }
         public string? Narration { get; set; }
     }
-
+    #region---- View Student ladger ------------------------
     public class StudentLedgerRequest
     {
         public string? GroupCode { get; set; }
@@ -2232,7 +2232,8 @@ namespace DomainModel.FinanceMNGT
         public DateTime CreatedDate { get; set; }
         public string TransactionBy { get; set; } = string.Empty;
     }
-
+    #endregion
+    #region---- View Fee Head ladger ------------------------
     public class FeeHeadLedgerRequest
     {
         public string? GroupCode { get; set; }
@@ -2272,6 +2273,8 @@ namespace DomainModel.FinanceMNGT
         public bool? IsReceiptOnline { get; set; }
         public string? CrDr { get; set; }
     }
+    #endregion
+    #region---- Cancel Invoice  ------------------------
     public class CancelGeneratedStudentChallanRequest
     {
         public int InvoiceId { get; set; }
@@ -2279,7 +2282,109 @@ namespace DomainModel.FinanceMNGT
         public string? Narration1 { get; set; } = string.Empty;
     }
 
+    #endregion
+    #region---- Take Admission ------------------------
 
+    public class ClassMapTemplateFeeHeadRequest
+    {
+        public string GroupCode { get; set; }
+        public string BranchCode { get; set; }
+        public string ClassCode { get; set; }
+        public int SessionId { get; set; }
+        public int PeriodId { get; set; }
+    }
+
+    public class ClassMapTemplateFeeHeadResponse
+    {
+        public string ClassCode { get; set; }
+        public long FeeTemplateId { get; set; }
+        public long FeeHeadId { get; set; }
+        public string FeeHeadName { get; set; }
+        public string FeeHeadType { get; set; }
+        public int PeriodId { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Concession { get; set; }
+        public int SessionId { get; set; }
+    }
+
+    #endregion
+
+    public class AdmitChildsRequest
+    {
+        public string? RegistrationId { get; set; }
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? CreatedBy { get; set; }
+        public int RouteDistance { get; set; }
+        public int SocietyId { get; set; } = 0;
+    }
+
+    public class AdmitChildResult
+    {
+        public int ReturnValue { get; set; }
+        public long? StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+    }
+
+    // admit child + receipt no + receipt fee head details in one transaction
+    // V3M_FIN_UspAdmitChild -> V3M_FIN_GeneratedStudentReceiptNo -> V3M_FIN_InsertAdmissionReceiptDetailsBulk
+    public class AdmitChildWithReceiptRequest
+    {
+        // admission
+        public string? RegistrationId { get; set; }
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? CreatedBy { get; set; }
+        public int RouteDistance { get; set; }
+        public int SocietyId { get; set; }
+
+        // receipt
+        public string? ClassCode { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal Concession { get; set; }
+        public decimal Balance { get; set; }
+        public decimal LateFee { get; set; }
+        public decimal PreviousBalance { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? ChequeBank { get; set; }
+        public string? ChequeType { get; set; }
+        public string? Remark { get; set; }
+        public string? PeriodType { get; set; }
+        public int PeriodId { get; set; }
+        public DateTime ReceiptDate { get; set; } = DateTime.Today;
+        public int IsBankProcess { get; set; }
+
+        // receipt details
+        public List<AdmissionReceiptFeeHead> FeeHeads { get; set; } = new();
+    }
+
+    public class AdmitChildWithReceiptResponse
+    {
+        // 1 = success, 0 = admission failed, 2 = receipt not generated
+        public int ReturnValue { get; set; }
+        public long StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentReceiptNo { get; set; }
+        public long ReceiptId { get; set; }
+    }
+
+    // rows of dbo.TVP_AdmissionReceiptFeeHead; paid amount is allocated in RowNo order
+    public class AdmissionReceiptFeeHead
+    {
+        public int RowNo { get; set; }
+        public int FeeHeadId { get; set; }
+        public int MonthNo { get; set; }
+        public decimal PayableAmount { get; set; }
+        public decimal FeeHeadAmount { get; set; }
+        public decimal ConcessionAmt { get; set; }
+    }
 
 
 }

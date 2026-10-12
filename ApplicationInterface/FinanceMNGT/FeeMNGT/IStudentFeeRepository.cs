@@ -1,4 +1,5 @@
-﻿using DomainModel.FinanceMNGT;
+﻿using DomainModel.Admin;
+using DomainModel.FinanceMNGT;
 using MyApp.Common;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,6 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<IEnumerable<StudentLedgerChallanMiniDetailsResponse>> GetStudentLedgerChallanMiniDetails(StudentLedgerChallanMiniDetailsRequest request);
         public Task<IEnumerable<StudentChallanResponse>> GetStudentChallanDetails(StudentChallanRequest request);
         public Task<IEnumerable<StudentReceiptsResponse>> GetStudentReceipts(StudentReceiptsRequest request);
-
 
     }
 }
