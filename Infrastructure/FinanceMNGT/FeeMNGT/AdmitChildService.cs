@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using DomainModel.Admin;
@@ -206,6 +208,36 @@ namespace SchoolEye.Infrastructure.Admin
                 detailParam.Add("@FeeHeads", table.AsTableValuedParameter("dbo.TVP_AdmissionReceiptFeeHead"));
                 await con.ExecuteAsync("V3M_FIN_InsertAdmissionReceiptDetailsBulk", detailParam, tran, commandType: CommandType.StoredProcedure);
 
+                //------------------- 4. Map concession to the student -------------------
+                if (request.ConcessionId > 0)
+                {
+                    // "FeeHeadId|ConcessionType|ConcessionValue~..." — the procedure splits on '|' with PARSENAME,
+                    // so the value is sent without decimals (percentage 10 / amount 1000)
+                    var concessionFeeHead = string.Join("~", (request.ConcessionFeeHeads ?? new())
+                        .Where(x => x.FeeHeadId > 0 && !string.IsNullOrWhiteSpace(x.ConcessionType))
+                        .Select(x => $"{x.FeeHeadId}|{x.ConcessionType!.Trim()}|{decimal.Truncate(x.ConcessionValue).ToString(CultureInfo.InvariantCulture)}"));
+
+                    var concessionParam = new DynamicParameters();
+                    concessionParam.Add("@GroupCode", request.GroupCode);
+                    concessionParam.Add("@BranchCode", request.BranchCode);
+                    concessionParam.Add("@SessionId", request.SessionId);
+                    concessionParam.Add("@ConcessionId", request.ConcessionId);
+                    concessionParam.Add("@StudentId", result.StudentId);
+                    concessionParam.Add("@ClassCode", request.ClassCode);
+                    concessionParam.Add("@CreatedBy", request.CreatedBy);
+                    concessionParam.Add("@ConcessionFeeHead", string.IsNullOrEmpty(concessionFeeHead) ? null : concessionFeeHead);
+                    var concessionResult = await con.QueryFirstOrDefaultAsync<ConcessionMapResult>(
+                        "V3M_FIN_UspMapStudentConcessionWithAdmission", concessionParam, tran, commandType: CommandType.StoredProcedure);
+
+                    if (concessionResult == null || concessionResult.Status != 1)
+                    {
+                        Console.WriteLine($"Concession mapping failed: {concessionResult?.Message}");
+                        RollbackQuietly(tran);
+                        result.ReturnValue = 3;
+                        return result;
+                    }
+                }
+
                 tran.Commit();
                 result.ReturnValue = 1;
                 return result;
@@ -216,6 +248,13 @@ namespace SchoolEye.Infrastructure.Admin
                 RollbackQuietly(tran);
                 throw;
             }
+        }
+
+        // result row of V3M_FIN_UspMapStudentConcessionWithAdmission
+        private sealed class ConcessionMapResult
+        {
+            public int Status { get; set; }
+            public string? Message { get; set; }
         }
 
         // a procedure's own ROLLBACK may already have ended the transaction

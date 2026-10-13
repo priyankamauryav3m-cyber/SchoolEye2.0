@@ -2302,7 +2302,12 @@ namespace DomainModel.FinanceMNGT
         public string FeeHeadName { get; set; }
         public string FeeHeadType { get; set; }
         public int PeriodId { get; set; }
+        // total of all months of the period
         public decimal Amount { get; set; }
+        // one month's amount, null when the months have different amounts
+        public decimal? MonthlyAmount { get; set; }
+        // months of the period with an amount, e.g. "Apr, May, Jun"
+        public string? MonthNames { get; set; }
         public decimal Concession { get; set; }
         public int SessionId { get; set; }
     }
@@ -2362,17 +2367,58 @@ namespace DomainModel.FinanceMNGT
 
         // receipt details
         public List<AdmissionReceiptFeeHead> FeeHeads { get; set; } = new();
+
+        // concession mapped from the popup (0 = no concession)
+        public int ConcessionId { get; set; }
+        public List<AdmissionConcessionFeeHead> ConcessionFeeHeads { get; set; } = new();
+    }
+
+    // fee head of the mapped concession, as configured in the concession master
+    public class AdmissionConcessionFeeHead
+    {
+        public int FeeHeadId { get; set; }
+        // 0 = percentage, 1 = amount
+        public string? ConcessionType { get; set; }
+        // percentage (10) or amount (1000) — not the calculated concession
+        public decimal ConcessionValue { get; set; }
     }
 
     public class AdmitChildWithReceiptResponse
     {
-        // 1 = success, 0 = admission failed, 2 = receipt not generated
+        // 1 = success, 0 = admission failed, 2 = receipt not generated, 3 = concession not mapped
         public int ReturnValue { get; set; }
         public long StudentId { get; set; }
         public string? StudentNo { get; set; }
         public string? ControlNo { get; set; }
         public string? StudentReceiptNo { get; set; }
         public long ReceiptId { get; set; }
+    }
+
+    // admission fee receipt print (school copy + parent copy)
+    public class AdmitChildReceiptPrintModel
+    {
+        public string? ReceiptNo { get; set; }
+        public DateTime ReceiptDate { get; set; }
+        public string? RegistrationNo { get; set; }
+        public string? StudentNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? FatherName { get; set; }
+        public string? ClassName { get; set; }
+        public string? SessionName { get; set; }
+        public string? PeriodName { get; set; }
+        public string? PaymentMode { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal Concession { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal Balance { get; set; }
+        public List<AdmitChildReceiptPrintFeeHead> FeeHeads { get; set; } = new();
+    }
+
+    public class AdmitChildReceiptPrintFeeHead
+    {
+        // fee head name with its months, e.g. "Library Fee (Apr, May, Jun)"
+        public string? FeeHeadName { get; set; }
+        public decimal Amount { get; set; }
     }
 
     // rows of dbo.TVP_AdmissionReceiptFeeHead; paid amount is allocated in RowNo order

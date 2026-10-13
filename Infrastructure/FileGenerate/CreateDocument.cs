@@ -2114,4 +2114,214 @@ namespace Infrastructure.FileGenerate
     }
 
     #endregion
+
+    #region---------------- Print Admit Child Receipt --------------
+    // school copy and parent copy side by side on one A4 page
+    public class AdmitChildReceiptPdfDocument : IDocument
+    {
+        private readonly AdmitChildReceiptPrintModel _receipt;
+
+        public AdmitChildReceiptPdfDocument(AdmitChildReceiptPrintModel receipt)
+        {
+            _receipt = receipt;
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(15);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Black));
+
+                page.Content().Row(row =>
+                {
+                    row.RelativeItem().Element(x => ComposeCopy(x, "SCHOOL COPY"));
+                    row.ConstantItem(12);
+                    row.RelativeItem().Element(x => ComposeCopy(x, "PARENT COPY"));
+                });
+            });
+        }
+
+        private void ComposeCopy(IContainer container, string copyName)
+        {
+            container.Column(col =>
+            {
+                col.Item().AlignCenter().Text($"Receipt ({copyName})").FontSize(8);
+                col.Item().Border(1).Padding(5).Column(c =>
+                {
+                    c.Item().Element(ComposeHeader);
+                    c.Item().PaddingVertical(3).Height(1).Background(Colors.Black);
+                    c.Item().Element(ComposeStudentDetails);
+                });
+                col.Item().PaddingTop(10).Element(ComposeFeeTable);
+                col.Item().Border(1).BorderTop(0).Padding(4).Element(ComposeSummary);
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+
+            container.Row(row =>
+            {
+                if (File.Exists(logo))
+                    row.ConstantItem(35).Height(30).AlignMiddle().Image(logo).FitArea();
+
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().AlignCenter().Text("V3M International School").FontSize(12).Bold();
+                    c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(7);
+                });
+            });
+        }
+
+        private void ComposeStudentDetails(IContainer container)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.ConstantColumn(62);
+                    c.RelativeColumn();
+                    c.ConstantColumn(48);
+                    c.RelativeColumn();
+                });
+
+                void Pair(string label, string? value)
+                {
+                    table.Cell().PaddingVertical(2).Text(label).Bold();
+                    table.Cell().PaddingVertical(2).Text(value ?? "");
+                }
+
+                Pair("Receipt No. :", _receipt.ReceiptNo);
+                Pair("Receipt Date :", _receipt.ReceiptDate.ToString("dd-MM-yyyy"));
+                Pair("Registration No. :", _receipt.RegistrationNo);
+                Pair("Student No. :", _receipt.StudentNo);
+                Pair("Student Name :", _receipt.StudentName);
+                Pair("Father Name :", _receipt.FatherName);
+                Pair("Class :", _receipt.ClassName);
+                Pair("Fee Session :", _receipt.SessionName);
+                Pair("Period :", _receipt.PeriodName);
+                Pair("", "");
+            });
+        }
+
+        private void ComposeFeeTable(IContainer container)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.RelativeColumn(3);
+                    c.RelativeColumn(1);
+                });
+
+                table.Header(header =>
+                {
+                    header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text("Fee Head").FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
+                    header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text("Total").FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
+                });
+
+                foreach (var fee in _receipt.FeeHeads)
+                {
+                    table.Cell().Border(1).Padding(4).Text(fee.FeeHeadName ?? "").FontSize(9);
+                    table.Cell().Border(1).Padding(4).AlignRight().Text(fee.Amount.ToString("N2"));
+                }
+            });
+        }
+
+        private void ComposeSummary(IContainer container)
+        {
+            var payable = _receipt.TotalAmount - _receipt.Concession;
+
+            container.Column(col =>
+            {
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.ConstantColumn(45);
+                        c.RelativeColumn();
+                        c.ConstantColumn(55);
+                        c.RelativeColumn();
+                    });
+
+                    void Pair(string label, string value)
+                    {
+                        table.Cell().PaddingVertical(2).Text(label).Bold();
+                        table.Cell().PaddingVertical(2).Text(value);
+                    }
+
+                    if (_receipt.Concession > 0)
+                    {
+                        Pair("Total :", _receipt.TotalAmount.ToString("N2"));
+                        Pair("Concession :", _receipt.Concession.ToString("N2"));
+                    }
+                    Pair("Payable :", payable.ToString("N2"));
+                    Pair("Paid :", _receipt.PaidAmount.ToString("N2"));
+                    Pair("Balance :", _receipt.Balance.ToString("N2"));
+                    Pair("Pay Mode :", _receipt.PaymentMode ?? "");
+                });
+
+                col.Item().PaddingTop(8).Row(row =>
+                {
+                    row.ConstantItem(45).Text("In Words").Bold();
+                    row.RelativeItem().Text(AmountInWords(_receipt.PaidAmount));
+                });
+
+                col.Item().PaddingTop(4).AlignRight().Text("Accountant").Bold();
+            });
+        }
+
+        // Indian numbering: 71700 -> "Seventy One Thousand Seven Hundred Only"
+        private static string AmountInWords(decimal amount)
+        {
+            var rupees = (long)Math.Floor(amount);
+            var paise = (int)Math.Round((amount - rupees) * 100);
+
+            var words = rupees == 0 ? "Zero" : NumberToWords(rupees);
+            if (paise > 0)
+                words += $" and {NumberToWords(paise)} Paise";
+            return words + " Only";
+        }
+
+        private static string NumberToWords(long number)
+        {
+            string[] ones = { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+                "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+            string[] tens = { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+
+            string BelowHundred(long n) =>
+                n < 20 ? ones[n] : (tens[n / 10] + (n % 10 > 0 ? " " + ones[n % 10] : ""));
+
+            var parts = new List<string>();
+            void Add(long value, string unit)
+            {
+                if (value > 0)
+                    parts.Add(BelowHundred(value) + unit);
+            }
+
+            if (number >= 10000000)
+            {
+                parts.Add(NumberToWords(number / 10000000) + " Crore");
+                number %= 10000000;
+            }
+            Add(number / 100000, " Lakh");
+            number %= 100000;
+            Add(number / 1000, " Thousand");
+            number %= 1000;
+            Add(number / 100, " Hundred");
+            number %= 100;
+            Add(number, "");
+
+            return string.Join(" ", parts);
+        }
+    }
+    #endregion
 }
