@@ -174,8 +174,7 @@ namespace SchoolEye.ServerWebAPI.Addmission.Controllers.Admin
         [HttpPost("AdmitChildWithReceipt")]
         public async Task<IActionResult> AdmitChildWithReceipt([FromBody] AdmitChildWithReceiptRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.RegistrationId) || request.SessionId <= 0
-                || request.PeriodId <= 0 || request.FeeHeads == null || request.FeeHeads.Count == 0)
+            if (request == null || string.IsNullOrWhiteSpace(request.RegistrationId) || request.SessionId <= 0 || request.PeriodId <= 0 || request.FeeHeads == null || request.FeeHeads.Count == 0)
             {
                 return BadRequest(new ApiResponse<object>
                 {
@@ -209,6 +208,13 @@ namespace SchoolEye.ServerWebAPI.Addmission.Controllers.Admin
                     {
                         Success = false,
                         Message = "Receipt could not be generated. Admission was rolled back.",
+                        Code = 0,
+                        Data = null
+                    }),
+                    3 => BadRequest(new ApiResponse<AdmitChildWithReceiptResponse>
+                    {
+                        Success = false,
+                        Message = "Concession could not be mapped. Admission was rolled back.",
                         Code = 0,
                         Data = null
                     }),

@@ -346,6 +346,37 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 Message = "PDF generated successfully"
             });
         }
+        [HttpPost("GenerateAdmitChildReceiptPdf")]
+        public async Task<IActionResult> GenerateAdmitChildReceiptPdf([FromBody] AdmitChildReceiptPrintModel receipt)
+        {
+            if (receipt == null || string.IsNullOrWhiteSpace(receipt.ReceiptNo) || receipt.FeeHeads == null || receipt.FeeHeads.Count == 0)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Receipt data not found."
+                });
+            }
+            try
+            {
+                var pdfBytes = await _generateFile.GenerateAdmitChildReceiptPdf(receipt);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(pdfBytes),
+                    Message = "PDF generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the receipt."
+                });
+            }
+        }
         [HttpPost("GeneratePublishingListExcel")]
         public async Task<IActionResult> GeneratePublishingListExcel([FromBody] List<PublishingListResponse> publishingList)
         {

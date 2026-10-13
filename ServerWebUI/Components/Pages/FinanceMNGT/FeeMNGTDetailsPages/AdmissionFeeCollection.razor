@@ -8,18 +8,24 @@
 @inject ICommonMethod _commonmethod
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
+@inject IJSRuntime JS
 @implements IDisposable
 @rendermode InteractiveServer
 
 <style>
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 90px;
+    }
+
     .grid-box {
         height: calc(85vh - 250px);
         min-height: 250px;
     }
-    .grid-box-with-btn
-    {
+
+    .grid-box-with-btn {
         height: calc(90vh - 273px);
     }
+
     .student-avatar {
         width: 42px;
         height: 42px;
@@ -57,7 +63,7 @@
         background: linear-gradient(135deg, var(--navy), #14557f);
         color: #fff;
         border-radius: 10px;
-        padding: 20px;
+        padding: 15px;
     }
 
     .amount-to-collect-label {
@@ -67,14 +73,14 @@
     }
 
     .amount-to-collect-value {
-        font-size: 30px;
+        font-size: 25px;
         font-weight: 700;
-        margin: 4px 0 12px 0;
+        margin: 3px 0 10px 0;
     }
 
     .amount-divider {
         border-top: 1px solid rgba(255,255,255,.15);
-        margin: 16px 0;
+        margin: 10px 0;
     }
 
     .amount-stat-label {
@@ -109,12 +115,12 @@
 <div class="main-container">
     <div class="row m-0 main-row">
 
-        <div class="col-12 p-1">
+        @* <div class="col-12 p-1">
             <nav class="crumb" aria-label="Breadcrumb">
                 <strong>Finance</strong><span>&rsaquo;</span>
                 <span class="text-muted">Admission Fee</span>
             </nav>
-        </div>
+        </div> *@
 
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="Admission Fee Collection">
@@ -137,7 +143,7 @@
                 </div>
                 <div class="form-box student-search-wrap">
                     <input class="form-input w-100" placeholder="Enter registration no. or student name" maxlength="200" autocomplete="off"
-                           @bind-Value="searchTerm" @bind-Value:event="oninput" @bind-Value:after="ResetAll" @onkeydown="HandleSearchKeyDown" />
+                           @bind="searchTerm" @bind:event="oninput" @bind:after="ResetAll" @onkeydown="HandleSearchKeyDown" />
                 </div>
                 <div class="form-box">
                     <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
@@ -214,7 +220,7 @@
                             <QuickGrid Items="@feeHeadQuery" Pagination="@pagination" Class="table">
                                 <TemplateColumn Title="Feehead" Align="Align.Left">
                                     <ChildContent>
-                                        @context.FeeHeadName
+                                        @context.FeeHeadName@(string.IsNullOrWhiteSpace(context.MonthNames) ? "" : $" ({context.MonthNames})")
                                     </ChildContent>
                                     <ColumnOptions>
                                         <div class="search-box">
@@ -222,9 +228,20 @@
                                         </div>
                                     </ColumnOptions>
                                 </TemplateColumn>
-                                <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount" />
-                                <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Concession)" Title="Concession" />
-                                <PropertyColumn Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Payable" />
+                                @* one month's amount; "-" when the months have different amounts *@
+                                <TemplateColumn Title="Amount" Align="Align.Center" Class="text-right" SortBy="@(GridSort<ClassMapTemplateFeeHeadResponse>.ByAscending(x => x.MonthlyAmount))">
+                                    @(context.MonthlyAmount == null ? "-" : $"₹{context.MonthlyAmount:N2}")
+                                </TemplateColumn>
+                                @* total of the period — read only *@
+                                <TemplateColumn Title="Total" Align="Align.Center" Class="text-right" SortBy="@(GridSort<ClassMapTemplateFeeHeadResponse>.ByAscending(x => x.Amount))">
+                                    <input type="text" class="form-input w-100 text-end" value="@($"₹{context.Amount:N2}")" disabled />
+                                </TemplateColumn>
+                                <TemplateColumn Title="Concession" Align="Align.Center" Class="text-right" SortBy="@(GridSort<ClassMapTemplateFeeHeadResponse>.ByAscending(x => x.Concession))">
+                                    @($"₹{context.Concession:N2}")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Payable" Align="Align.Center" Class="text-right">
+                                    @($"₹{context.Amount - context.Concession:N2}")
+                                </TemplateColumn>
                             </QuickGrid>
                         </div>
                         <div class="footer-pagination mt-3">
@@ -297,7 +314,7 @@
 
                         <div class="col-6">
                             <div class="form-box-group static-label mb-0">
-                                <InputSelect class="form-input w-100" @bind-Value="SelectedPaymentModeId">
+                                <InputSelect class="form-input w-100" @bind-Value="SelectedPaymentModeId" @bind-Value:after="OnPaymentModeChanged">
                                     <option value="0">Select</option>
                                     @foreach (var data in paymentModeList.Where(x => x.IsValid))
                                     {
@@ -307,9 +324,15 @@
                                 <label class="floating-label">Payment Mode</label>
                             </div>
                         </div>
+                            <div class="col-6">
+                            <div class="form-box-group static-label mb-0">
+                                <input type="number" class="form-input w-100" min="0" step="0.01" placeholder=" " @bind="PayingAmount" />
+                                <label class="floating-label">Paying</label>
+                            </div>
+                        </div>
                         <div class="col-6">
                             <div class="form-box-group static-label mb-0">
-                                <InputSelect class="form-input w-100" @bind-Value="SelectedChequeTypeId">
+                                <InputSelect class="form-input w-100" @bind-Value="SelectedChequeTypeId" disabled="@(!IsChequeDetailsEnabled)">
                                     <option value="0">Select</option>
                                     @foreach (var data in chequeTypeList.Where(x => x.IsValid))
                                     {
@@ -322,20 +345,20 @@
 
                         <div class="col-6">
                             <div class="form-box-group static-label mb-0">
-                                <input type="text" class="form-input w-100" maxlength="50" placeholder=" " @bind="ChequeNo" />
+                                <input type="text" class="form-input w-100" maxlength="50" placeholder=" " @bind="ChequeNo" disabled="@(!IsChequeDetailsEnabled)" />
                                 <label class="floating-label">NEFT / Cheque No.</label>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-box-group static-label mb-0">
-                                <InputDate class="form-input w-100" @bind-Value="ChequeDate" />
+                                <InputDate class="form-input w-100" @bind-Value="ChequeDate" disabled="@(!IsChequeDetailsEnabled)" />
                                 <label class="floating-label">NEFT / Cheque Date</label>
                             </div>
                         </div>
 
                         <div class="col-6">
                             <div class="form-box-group static-label mb-0">
-                                <InputSelect class="form-input w-100" @bind-Value="SelectedBankId">
+                                <InputSelect class="form-input w-100" @bind-Value="SelectedBankId" disabled="@(!IsChequeDetailsEnabled)">
                                     <option value="0">Select</option>
                                     @foreach (var data in bankList.Where(x => x.IsValid))
                                     {
@@ -345,15 +368,10 @@
                                 <label class="floating-label">Bank</label>
                             </div>
                         </div>
-                          <div class="col-6">
-                            <div class="form-box-group static-label mb-0">
-                                <input type="number" class="form-input w-100" min="0" step="0.01" placeholder=" " @bind="PayingAmount" />
-                                <label class="floating-label">Paying</label>
-                            </div>
-                        </div>
+                    
                         <div class="col-12">
                             <div class="form-box-group static-label mb-0">
-                                <input type="text" class="form-input w-100" maxlength="100" placeholder=" " @bind="BankBranch" />
+                                <input type="text" class="form-input w-100" maxlength="100" placeholder=" " @bind="BankBranch" disabled="@(!IsChequeDetailsEnabled)" />
                                 <label class="floating-label">Branch</label>
                             </div>
                         </div>
@@ -370,7 +388,7 @@
 
                     <div class="row g-2 mt-3">
                         <div class="col-12">
-                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" disabled="@(!IsStudentSelected || IsLoading)" @onclick="AdmitChild">
+                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" @onclick="AdmitChild">
                                 <div class="visible content justify-content-center">Admit Child</div>
                                 <div class="hidden content">
                                     <i class="bi bi-check-lg"></i>
@@ -434,6 +452,22 @@
                                                             : $"{(context.ConcessionApplicable ?? 0):0.##}%")
                                                     </ChildContent>
                                                 </TemplateColumn>
+                                                <TemplateColumn Title="Feehead Amount" Align="Align.Center" Class="text-right">
+                                                    <ChildContent>
+                                                        @{
+                                                            var feeHead = FindGridFeeHead(context);
+                                                        }
+                                                        @(feeHead == null ? "-" : $"₹{feeHead.Amount:N2}")
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Concession Amount" Align="Align.Center" Class="text-right">
+                                                    <ChildContent>
+                                                        @{
+                                                            var gridFeeHead = FindGridFeeHead(context);
+                                                        }
+                                                        @(gridFeeHead == null ? "-" : $"₹{CalculateConcession(context, gridFeeHead.Amount):N2}")
+                                                    </ChildContent>
+                                                </TemplateColumn>
                                             </QuickGrid>
                                         </div>
                                         <div class="footer-pagination">
@@ -452,8 +486,7 @@
                 <div class="modal-footer">
                     <div class="form-group btn-gr d-flex">
                         <div class="form-box">
-                            @* static for now *@
-                            <button type="button" class="ui fade op-1 animated button form-btn" disabled="@(concessionFeeHeadList.Count == 0)">
+                            <button type="button" class="ui fade op-1 animated button form-btn" disabled="@(concessionFeeHeadList.Count == 0)" @onclick="ApplyConcession">
                                 <div class="visible content">Submit</div>
                                 <div class="hidden content">
                                     <i class="fa fa-save"></i>
@@ -524,6 +557,8 @@
     private List<PaymentModel> paymentModeList = new();
     private List<ChequeTypeModel> chequeTypeList = new();
     private List<BankModel> bankList = new();
+    private const string DefaultPeriodType = "Quarterly";
+    private const string CashPaymentMode = "Cash";
     private string SelectedPeriodType = "";
     private int SelectedPeriodId;
     private int SelectedPaymentModeId;
@@ -543,6 +578,9 @@
     private List<CommonDomain> concessionFeeHeadList = new();
     private PaginationState concessionPagination = new() { ItemsPerPage = 10 };
     private IQueryable<CommonDomain> concessionFeeHeadQuery => concessionFeeHeadList.AsQueryable();
+    // concession applied on the grid, sent with Admit Child
+    private int AppliedConcessionId;
+    private List<AdmissionConcessionFeeHead> AppliedConcessionFeeHeads = new();
 
     private IQueryable<ClassMapTemplateFeeHeadResponse> feeHeadQuery =>
         (string.IsNullOrWhiteSpace(nameFilter)
@@ -552,8 +590,7 @@
 
     private decimal TotalAmount => feeHeadList.Sum(x => x.Amount);
     private decimal TotalConcession => feeHeadList.Sum(x => x.Concession);
-    // payable column shows the fee head amount
-    private decimal TotalPayable => feeHeadList.Sum(x => x.Amount);
+    private decimal TotalPayable => TotalAmount - TotalConcession;
     private decimal Balance => TotalPayable - PayingAmount;
 
     protected override void OnInitialized()
@@ -577,8 +614,17 @@
             paymentModeList = await httpService.Get<List<PaymentModel>>("PaymentMode/GetBankPaymentMode") ?? new();
             chequeTypeList = await httpService.Get<List<ChequeTypeModel>>("ChequeType/GetChecktype") ?? new();
             bankList = await httpService.Get<List<BankModel>>("Finance/GetBank") ?? new();
+            await SetDefaultPeriodType();
+            SelectedPaymentModeId = DefaultPaymentModeId;
             StateHasChanged();
         }
+    }
+
+    // page opens with "Quarterly" period type and its period names loaded
+    private async Task SetDefaultPeriodType()
+    {
+        SelectedPeriodType = PeriodTypeList.FirstOrDefault(x => string.Equals(x.PeriodTypeName, DefaultPeriodType, StringComparison.OrdinalIgnoreCase))?.PeriodTypeName ?? "";
+        await OnPeriodTypeChanged();
     }
 
     // period names depend on the selected period type
@@ -587,7 +633,7 @@
         SelectedPeriodId = 0;
         feeCollectionPeriodlist = new();
         ResetFeeGrid();
-        if (string.IsNullOrEmpty(SelectedPeriodType))
+        if (string.IsNullOrEmpty(SelectedPeriodType) || CurrentSession <= 0)
             return;
 
         try
@@ -654,24 +700,68 @@
         feeHeadList = new();
         nameFilter = null;
         PayingAmount = 0;
+     
+        AppliedConcessionId = 0;
+        AppliedConcessionFeeHeads = new();
     }
 
-    // search text cleared / changed, or session changed -> reset the whole page
     private void ResetAll()
     {
         ClearSelectedStudent();
-        SelectedPeriodType = "";
         SelectedPeriodId = 0;
-        feeCollectionPeriodlist = new();
     }
 
-    // ---------------- Map concession ----------------
+    private async Task ResetPage()
+    {
+        searchTerm = "";
+        ResetAll();
+        ResetPaymentDetails();
+        ReceiptDate = DateTime.Today;
+        await SetDefaultPeriodType();
+    }
+
+    private int DefaultPaymentModeId =>
+        paymentModeList.FirstOrDefault(x => x.IsValid && string.Equals(x.ModeName?.Trim(), CashPaymentMode, StringComparison.OrdinalIgnoreCase))?.PMId ?? 0;
+
+    private void ResetPaymentDetails()
+    {
+        SelectedPaymentModeId = DefaultPaymentModeId;
+        ClearChequeDetails();
+        Remarks = "";
+        PayingAmount = 0;
+    }
+
+    private bool IsChequeDetailsEnabled =>
+        SelectedPaymentModeId > 0 &&
+        !string.Equals(paymentModeList.FirstOrDefault(x => x.PMId == SelectedPaymentModeId)?.ModeName?.Trim(), CashPaymentMode, StringComparison.OrdinalIgnoreCase);
+
+    private void OnPaymentModeChanged()
+    {
+        if (!IsChequeDetailsEnabled)
+            ClearChequeDetails();
+    }
+
+    private void ClearChequeDetails()
+    {
+        SelectedChequeTypeId = 0;
+        ChequeNo = "";
+        ChequeDate = DateTime.Today;
+        SelectedBankId = 0;
+        BankBranch = "";
+    }
+
 
     private async Task OpenConcessionPopup()
     {
         if (!IsStudentSelected)
         {
             await Alert.ShowWarning("Please search and select a student first.");
+            return;
+        }
+
+        if (SelectedPeriodId <= 0 || feeHeadList.Count == 0)
+        {
+            await Alert.ShowWarning("Please select period name to load fee heads first.");
             return;
         }
 
@@ -704,7 +794,6 @@
         concessionFeeHeadList = new();
     }
 
-    // selecting a concession loads its fee heads (no search button)
     private async Task OnConcessionChanged()
     {
         concessionFeeHeadList = new();
@@ -717,7 +806,7 @@
         {
             string apiUri = $"Registration/FeeHeadConcession?groupCode={groupcode}&branchCode={branchcode}&sessionId={CurrentSession}&concessionId={SelectedConcessionId}&isMappedOnly={0}";
             var result = await httpService.Get<List<CommonDomain>>(apiUri) ?? new();
-            // only fee heads that carry a concession value
+       
             concessionFeeHeadList = result.Where(x => (x.ConcessionApplicable ?? 0) > 0).ToList();
         }
         catch (Exception ex)
@@ -731,13 +820,78 @@
         }
     }
 
-    // ConcessionType 1 = amount, 0 = percentage
     private static bool IsAmountConcession(CommonDomain item) =>
         int.TryParse(item.ConcessionType, out var type) && type == 1;
 
-    // ---------------- Search ----------------
+    private ClassMapTemplateFeeHeadResponse? FindGridFeeHead(CommonDomain item) =>
+        long.TryParse(item.FeeHeadId, out var feeHeadId)
+            ? feeHeadList.FirstOrDefault(x => x.FeeHeadId == feeHeadId)
+            : null;
 
-    private void OnSessionChanged() => ResetAll();
+    private static decimal CalculateConcession(CommonDomain item, decimal feeHeadAmount)
+    {
+        var value = item.ConcessionApplicable ?? 0;
+        var concession = IsAmountConcession(item) ? value : Math.Round(feeHeadAmount * value / 100, 2);
+        return Math.Clamp(concession, 0, feeHeadAmount);
+    }
+
+    private async Task ApplyConcession()
+    {
+        if (feeHeadList.Count == 0)
+        {
+            await Alert.ShowWarning("Please select period name to load fee heads first.");
+            return;
+        }
+
+        var matched = concessionFeeHeadList
+            .Select(x => new { Concession = x, FeeHead = FindGridFeeHead(x) })
+            .Where(x => x.FeeHead != null)
+            .ToList();
+        if (matched.Count == 0)
+        {
+            await Alert.ShowWarning("This concession has no fee head of the student's fee particulars.");
+            return;
+        }
+
+        AppliedConcessionId = SelectedConcessionId;
+        AppliedConcessionFeeHeads = concessionFeeHeadList
+            .Where(x => int.TryParse(x.FeeHeadId, out _))
+            .Select(x => new AdmissionConcessionFeeHead
+            {
+                FeeHeadId = int.Parse(x.FeeHeadId!),
+                ConcessionType = x.ConcessionType,
+                ConcessionValue = x.ConcessionApplicable ?? 0
+            })
+            .ToList();
+
+        CloseConcessionPopup();
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+
+            await Task.Delay(300);
+
+            foreach (var feeHead in feeHeadList)
+                feeHead.Concession = 0;
+            foreach (var item in matched)
+                item.FeeHead!.Concession = CalculateConcession(item.Concession, item.FeeHead.Amount);
+
+            PayingAmount = TotalPayable;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task OnSessionChanged()
+    {
+        ResetAll();
+        await OnPeriodTypeChanged();
+    }
 
     private async Task HandleSearchKeyDown(KeyboardEventArgs e)
     {
@@ -771,7 +925,7 @@
                 BranchCode = branchcode ?? "",
                 SessionId = CurrentSession
             };
-            // a term with a digit = registration no., otherwise student name
+            
             if (term.Any(char.IsDigit))
                 request.RegistrationNo = term;
             else
@@ -819,9 +973,19 @@
             return;
         }
         // validate before calling the API
-        if (SelectedPeriodId <= 0 || feeHeadList.Count == 0)
+        if (string.IsNullOrEmpty(SelectedPeriodType))
         {
-            await Alert.ShowWarning("Please select period name to load fee heads.");
+            await Alert.ShowWarning("Please select period type.");
+            return;
+        }
+        if (SelectedPeriodId <= 0)
+        {
+            await Alert.ShowWarning("Please select period name.");
+            return;
+        }
+        if (feeHeadList.Count == 0)
+        {
+            await Alert.ShowWarning("No fee heads found for the selected period.");
             return;
         }
         if (SelectedPaymentModeId <= 0)
@@ -829,11 +993,44 @@
             await Alert.ShowWarning("Please select payment mode.");
             return;
         }
+        // cheque / NEFT details only for a non cash mode (branch is optional)
+        if (IsChequeDetailsEnabled)
+        {
+            if (SelectedChequeTypeId <= 0)
+            {
+                await Alert.ShowWarning("Please select cheque type.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(ChequeNo))
+            {
+                await Alert.ShowWarning("Please enter NEFT / cheque no.");
+                return;
+            }
+            if (ChequeDate == null)
+            {
+                await Alert.ShowWarning("Please select NEFT / cheque date.");
+                return;
+            }
+            if (SelectedBankId <= 0)
+            {
+                await Alert.ShowWarning("Please select bank.");
+                return;
+            }
+        }
         if (PayingAmount < 0 || PayingAmount > TotalAmount - TotalConcession)
         {
             await Alert.ShowWarning("Paying amount can not be more than payable amount.");
             return;
         }
+        if (string.IsNullOrWhiteSpace(Remarks))
+        {
+            await Alert.ShowWarning("Please enter remarks.");
+            return;
+        }
+
+        // No -> nothing changes, the entered details stay as they are
+        if (!await Alert.ShowConfirm("Are you sure, you want to admit child?"))
+            return;
 
         IsLoading = true;
         StateHasChanged();
@@ -877,7 +1074,11 @@
                     PayableAmount = x.Amount - x.Concession,
                     FeeHeadAmount = x.Amount,
                     ConcessionAmt = x.Concession
-                }).ToList()
+                }).ToList(),
+
+                // concession applied from the popup, mapped to the student in the same transaction
+                ConcessionId = AppliedConcessionId,
+                ConcessionFeeHeads = AppliedConcessionFeeHeads
             };
 
             // one call: admit child + receipt no + receipt details in a single transaction
@@ -890,13 +1091,71 @@
 
             IsLoading = false;
             StateHasChanged();
+
+            // Yes -> receipt opens in a new tab, then the success message
+            if (await Alert.ShowConfirm("Are you sure, you want to print receipt?"))
+                await PrintReceipt(response.Data);
+
             await Alert.ShowSuccess($"Child admitted successfully. Receipt No: {response.Data.StudentReceiptNo}");
+
+            // ready for the next student
+            await ResetPage();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             // HttpService throws with the API message on a non-success status
             Console.WriteLine($"Error in admit child: {ex.Message}");
             await StopLoaderAndShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to admit the child. Please try again." : ex.Message);
+        }
+    }
+
+    // receipt PDF is generated by the API (Export/GenerateAdmitChildReceiptPdf) from the page's current data;
+    // a print failure must not look like an admission failure, the child is already admitted
+    private async Task PrintReceipt(AdmitChildWithReceiptResponse admitted)
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var receipt = new AdmitChildReceiptPrintModel
+            {
+                ReceiptNo = admitted.StudentReceiptNo,
+                ReceiptDate = ReceiptDate,
+                RegistrationNo = selectedStudent.RegistrationNo,
+                // "Student No." on the receipt shows the admission control no.
+                StudentNo = admitted.ControlNo,
+                StudentName = selectedStudent.StudentName,
+                FatherName = selectedStudent.FatherName,
+                ClassName = selectedStudent.ClassName,
+                SessionName = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName,
+                PeriodName = feeCollectionPeriodlist.FirstOrDefault(x => x.PeriodId == SelectedPeriodId)?.PeriodName,
+                PaymentMode = paymentModeList.FirstOrDefault(x => x.PMId == SelectedPaymentModeId)?.ModeName,
+                TotalAmount = TotalAmount,
+                Concession = TotalConcession,
+                PaidAmount = PayingAmount,
+                Balance = Balance,
+                FeeHeads = feeHeadList.Select(x => new AdmitChildReceiptPrintFeeHead
+                {
+                    FeeHeadName = string.IsNullOrWhiteSpace(x.MonthNames) ? x.FeeHeadName : $"{x.FeeHeadName} ({x.MonthNames})",
+                    Amount = x.Amount
+                }).ToList()
+            };
+
+            var response = await httpService.Post<ApiResponse<string>>("Export/GenerateAdmitChildReceiptPdf", receipt);
+            IsLoading = false;
+            StateHasChanged();
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+                await JS.InvokeVoidAsync("viewPdf", response.Data);
+            else
+                await Alert.ShowWarning("Child is admitted, but the receipt could not be generated.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing admission receipt: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowWarning("Child is admitted, but the receipt could not be generated.");
         }
     }
 
