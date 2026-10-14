@@ -13,7 +13,9 @@
 @inject ICommonMethod _commonmethod
 @rendermode InteractiveServer
 <style>
-
+    .border-box {
+        height: 36px;
+    }
     .quickgrid thead th:last-child {
         min-width: 75px;
     }
@@ -261,11 +263,11 @@
                                 <div class="border-box d-flex justify-content-center align-items-center gap-3 p-2">
                                     <InputRadioGroup @bind-Value="orderByPreference">
                                         <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("Name")" />
+                                            <InputRadio Value="@("FirstName")" />
                                             <label class="form-label">By Name</label>
                                         </div>
                                         <div class="d-flex align-items-center gap-1">
-                                            <InputRadio Value="@("AdmissionNo")" />
+                                            <InputRadio Value="@("ControlNo")" />
                                             <label class="form-label">By Admission No</label>
                                         </div>
                                     </InputRadioGroup>
@@ -351,7 +353,7 @@ else
     private string selectedClassName = "";
     private string selectedSectionnName = "";
     private string definePreference = "Yes";
-    private string orderByPreference = "AdmissionNo";
+    private string orderByPreference = "FirstName";
 
     private IQueryable<StuSearchedStudentResponse> leftQuery => leftList.AsQueryable();
     private IQueryable<StuSearchedStudentResponse> rightQuery => rightList.AsQueryable();
@@ -695,7 +697,7 @@ else
                 selectedClassName = "";
                 selectedSectionnName = "";
                 Showpopup = false;
-
+                   await SearchRightStudents();
             }
         }
         catch

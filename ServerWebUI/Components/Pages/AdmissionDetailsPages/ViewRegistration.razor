@@ -145,30 +145,12 @@
                                 </TemplateColumn>
                                 <TemplateColumn Class="status-col" Title="Status" Align="Align.Center">
                                     <ChildContent>
-                                        <div class="text-center">
-                                            @if (context.ApplicationStatus == "2")
-                                            {
-                                                <img class="grid-status" src="/images/status-success.png" />
-                                            }
-                                            else
-                                            {
-                                                <img class="grid-status" src="/images/status-false.png" />
-                                            }
-                                        </div>
+                                        <span class="@GetStatusClass(context.ApplicationStatus == "1")">@(context.ApplicationStatus == "1" ? "Complete" : "Pending")</span>
                                     </ChildContent>
 
                                 </TemplateColumn>
                                 <TemplateColumn Class="status-con" Title="EWS" Align="Align.Center">
-                                    <div class="text-center">
-                                        @if (context.IsReservedSeat == 1)
-                                        {
-                                            <img class="grid-status" src="/images/status-success.png" />
-                                        }
-                                        else
-                                        {
-                                            <img class="grid-status" src="/images/status-false.png" />
-                                        }
-                                    </div>
+                                    <span class="@GetStatusClass(context.IsReservedSeat == 1)">@(context.IsReservedSeat == 1 ? "Done" : "Fail")</span>
                                 </TemplateColumn>
                              
                             </QuickGrid>
@@ -213,7 +195,7 @@
                     </div> *@
                     <div class="form-box">
                         <button class="table-btn" @onclick="OpenSMSPopup">
-                            Send SMS
+                            Send Message
                         </button>
                     </div>
                     @* <div class="form-box">
@@ -832,6 +814,9 @@ else
 
 
     }
+    // same status label as the master pages (green / red text)
+    private string GetStatusClass(bool isActive) => isActive ? "activeClr" : "inactiveClr";
+
     private void OpenSearch()
     {
 

@@ -59,7 +59,13 @@
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Title="Roll No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Sortable="true" Title="Roll No" Class="text-center" Align="Align.Center" >
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search Roll no..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
                                         <div class="search-box">
@@ -269,6 +275,7 @@ else
             {
                 result = result.Where(x =>
                     (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                    (x.RollNo != null && x.RollNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
                     (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
             }
             return result;
