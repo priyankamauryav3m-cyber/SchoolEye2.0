@@ -185,7 +185,16 @@
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Title="Roll No" Class="text-center" Align="Align.Center" />
+                                <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="rollNoFilter" @bind:event="oninput" placeholder="Roll No...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Class="text-center" Align="Align.Center" />
@@ -356,7 +365,11 @@ else
     private string orderByPreference = "FirstName";
 
     private IQueryable<StuSearchedStudentResponse> leftQuery => leftList.AsQueryable();
-    private IQueryable<StuSearchedStudentResponse> rightQuery => rightList.AsQueryable();
+    // Roll No. column: search box and sorting by number (2 before 10)
+    private string? rollNoFilter;
+    private GridSort<StuSearchedStudentResponse> RollNoSort = GridSort<StuSearchedStudentResponse>.ByAscending(x => x.RollNo == null ? 0 : x.RollNo.Length).ThenAscending(x => x.RollNo);
+
+    private IQueryable<StuSearchedStudentResponse> rightQuery => rightList.AsQueryable().Where(x => string.IsNullOrWhiteSpace(rollNoFilter) || (x.RollNo != null && x.RollNo.Contains(rollNoFilter.Trim(), StringComparison.CurrentCultureIgnoreCase)));
     private string CurrentSessionName => sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName ?? string.Empty;
     protected override void OnInitialized()
     {

@@ -95,10 +95,15 @@
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
-                                <TemplateColumn Class="text-right" Title="Roll No." Align="Align.Left">
+                                <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-right" Align="Align.Left">
                                     <ChildContent>
                                         @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
                                     </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="rollNoFilter" @bind:event="oninput" placeholder="Roll No...." />
+                                        </div>
+                                    </ColumnOptions>
                                 </TemplateColumn>
                                 <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No">
                                     <ColumnOptions>
@@ -420,6 +425,10 @@ else
         }
     }
 
+    // Roll No. column: search box and sorting by number (2 before 10)
+    private string? rollNoFilter;
+    private GridSort<TransportStudentDataModel> RollNoSort = GridSort<TransportStudentDataModel>.ByAscending(x => x.RollNo == null ? 0 : x.RollNo.Length).ThenAscending(x => x.RollNo);
+
     protected IQueryable<TransportStudentDataModel> moduleQuery
     {
         get
@@ -431,6 +440,9 @@ else
             (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
             }
+            // Roll No. column search
+            if (!string.IsNullOrWhiteSpace(rollNoFilter))
+                result = result.Where(x => x.RollNo != null && x.RollNo.Contains(rollNoFilter.Trim(), StringComparison.CurrentCultureIgnoreCase));
             return result;
         }
     }

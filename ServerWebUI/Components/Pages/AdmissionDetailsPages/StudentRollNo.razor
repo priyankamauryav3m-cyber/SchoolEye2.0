@@ -106,11 +106,16 @@
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <TemplateColumn Title="Roll No." Class="text-center" Align="Align.Center">
+                                <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         <input class="form-input text-right" style="width:100px;" value="@context.RollNo" readonly="@(definePreference != "Yes")"
                                                @onchange="e => context.RollNo = ParseRollNo(e.Value)" />
                                     </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="rollNoFilter" @bind:event="oninput" placeholder="Roll No...." />
+                                        </div>
+                                    </ColumnOptions>
                                 </TemplateColumn>
                             </QuickGrid>
                         </div>
@@ -193,6 +198,10 @@ else
     private string username = string.Empty;
     private string currentUrl = "";
 
+    // Roll No. column: search box and sorting by number (2 before 10)
+    private string? rollNoFilter;
+    private GridSort<AdmSearchedStudentResponse> RollNoSort = GridSort<AdmSearchedStudentResponse>.ByAscending(x => x.RollNo);
+
     protected IQueryable<AdmSearchedStudentResponse> moduleQuery
     {
         get
@@ -204,6 +213,9 @@ else
                     (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
                     (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
             }
+            // Roll No. column search
+            if (!string.IsNullOrWhiteSpace(rollNoFilter))
+                result = result.Where(x => x.RollNo != null && x.RollNo.Value.ToString().Contains(rollNoFilter.Trim()));
             return result;
         }
     }

@@ -59,13 +59,16 @@
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.RollNo) ? " " : x.RollNo)" Sortable="true" Title="Roll No" Class="text-center" Align="Align.Center" >
+                                <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-center" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
+                                    </ChildContent>
                                     <ColumnOptions>
                                         <div class="search-box">
-                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search Roll no..." />
+                                            <input type="search" @bind="rollNoFilter" @bind:event="oninput" placeholder="Roll No...." />
                                         </div>
                                     </ColumnOptions>
-                                </PropertyColumn>
+                                </TemplateColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No" Sortable="true" Align="Align.Left">
                                     <ColumnOptions>
                                         <div class="search-box">
@@ -266,6 +269,10 @@ else
     private string username = string.Empty;
     private string currentUrl = "";
 
+    // Roll No. column: search box and sorting by number (2 before 10)
+    private string? rollNoFilter;
+    private GridSort<GetAbscondedStudentResponse> RollNoSort = GridSort<GetAbscondedStudentResponse>.ByAscending(x => x.RollNo == null ? 0 : x.RollNo.Length).ThenAscending(x => x.RollNo);
+
     protected IQueryable<GetAbscondedStudentResponse> moduleQuery
     {
         get
@@ -278,6 +285,9 @@ else
                     (x.RollNo != null && x.RollNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
                     (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
             }
+            // Roll No. column search
+            if (!string.IsNullOrWhiteSpace(rollNoFilter))
+                result = result.Where(x => x.RollNo != null && x.RollNo.Contains(rollNoFilter.Trim(), StringComparison.CurrentCultureIgnoreCase));
             return result;
         }
     }

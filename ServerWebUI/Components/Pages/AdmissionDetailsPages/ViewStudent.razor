@@ -145,9 +145,16 @@
                                         </ChildContent>
                                     </TemplateColumn>
 
-                                    <PropertyColumn Class="text-right" Property="@(x => x.RollNo)" Title="Roll No." Align="Align.Center">
-
-                                    </PropertyColumn>
+                                    <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-right" Align="Align.Center">
+                                        <ChildContent>
+                                            @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
+                                        </ChildContent>
+                                        <ColumnOptions>
+                                            <div class="search-box">
+                                                <input type="search" @bind="rollNoFilter" @bind:event="oninput" placeholder="Roll No...." />
+                                            </div>
+                                        </ColumnOptions>
+                                    </TemplateColumn>
                                     <TemplateColumn Sortable="true" Class="text-center" SortBy="@(GridSort<GetSearchedViewStudentModel>.ByAscending(x => x.ControlNo))" Title="Student No." Align="Align.Center">
                                         <ChildContent>
                                             @* Student No. opens the same Student Details popup as the Details button *@
@@ -1407,6 +1414,10 @@ else
             return result;
         }
     }
+    // Roll No. column: search box and sorting by number (2 before 10)
+    private string? rollNoFilter;
+    private GridSort<GetSearchedViewStudentModel> RollNoSort = GridSort<GetSearchedViewStudentModel>.ByAscending(x => x.RollNo == null ? 0 : x.RollNo.Length).ThenAscending(x => x.RollNo);
+
     protected IQueryable<GetSearchedViewStudentModel> SearchedstudentmoduleQuery
     {
         get
@@ -1419,6 +1430,9 @@ else
                  (x.RollNo != null && x.RollNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
             }
+            // Roll No. column search
+            if (!string.IsNullOrWhiteSpace(rollNoFilter))
+                result = result.Where(x => x.RollNo != null && x.RollNo.Contains(rollNoFilter.Trim(), StringComparison.CurrentCultureIgnoreCase));
             return result;
         }
     }
