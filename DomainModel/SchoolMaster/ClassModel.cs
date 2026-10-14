@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using DomainModel.Common;
 
 namespace DomainModel.SchoolMaster
 {
@@ -288,14 +289,12 @@ namespace DomainModel.SchoolMaster
 
         [Display(Name = "Contact number")]
         [StringLength(25, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Enter a valid 10-digit contact number")]
+        [ValidMobileNo]
         public string? ContactNo { get; set; }
-
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-
 
         [Display(Name = "Contact email adress")]
         [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
+        [ValidEmail]
         public string? ContactEmailId { get; set; }
 
         [Display(Name = "Contact persion imagepath")]
@@ -307,8 +306,7 @@ namespace DomainModel.SchoolMaster
         [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
         public string? WebSite { get; set; }
 
-        [EmailAddress(ErrorMessage = "Please enter a valid EmailId")]
-
+        [ValidEmail]
         public string? EmailId { get; set; }
         [Display(Name = "Address line1")]
         [StringLength(100, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
@@ -814,13 +812,13 @@ namespace DomainModel.SchoolMaster
 
         [Display(Name = "Contact Number")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [Phone(ErrorMessage = "Please enter a valid contact number.")]
         [StringLength(15, ErrorMessage = "Contact Number cannot exceed 15 characters.")]
+        [ValidMobileNo]
         public string ContactNo { get; set; } = string.Empty;
 
         [Display(Name = "Contact Email")]
-        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [StringLength(100, ErrorMessage = "Contact Email cannot exceed 100 characters.")]
+        [ValidEmail]
         public string? ContactEmailId { get; set; }
 
         public string? LogoPath { get; set; }
@@ -832,8 +830,8 @@ namespace DomainModel.SchoolMaster
         public string? WebSite { get; set; }
 
         [Display(Name = "Branch Email")]
-        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [StringLength(100, ErrorMessage = "Branch Email cannot exceed 100 characters.")]
+        [ValidEmail]
         public string? BranchEmailId { get; set; }
 
         [Display(Name = "Affiliation Details")]
@@ -933,7 +931,7 @@ namespace DomainModel.SchoolMaster
         public DateTime? DateOfBirth { get; set; }
 
         [Required(ErrorMessage = "Email Address is required")]
-        [EmailAddress(ErrorMessage = "Enter a valid email address")]
+        [ValidEmail]
         public string EmailAddress { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Country is required")]

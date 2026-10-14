@@ -349,7 +349,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="branch.ContactNo" />
+                                                        <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="branch.ContactNo" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">
                                                             Contact Number <span class="required">*</span>
                                                         </label>
@@ -358,14 +358,14 @@
                                                 </div>
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.ContactEmailId" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.ContactEmailId" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Contact Email</label>
                                                         <ValidationMessage For="@(() => branch.ContactEmailId)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchEmailId" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.BranchEmailId" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Branch Email</label>
                                                         <ValidationMessage For="@(() => branch.BranchEmailId)" />
                                                     </div>

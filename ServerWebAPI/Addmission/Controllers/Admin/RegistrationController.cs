@@ -170,12 +170,13 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 string result = await _service.RegistrationAdditionalInformation(Cre);
 
+                // the procedure did not save (invalid registration / database error)
                 if (result == "No Record Updated")
                 {
                     return Ok(new ApiResponse<object>
                     {
-                        Success = true,
-                        Message = _localizer["Updated"],
+                        Success = false,
+                        Message = "Points criteria could not be saved. Please try again.",
                         Code = 0
                     });
                 }

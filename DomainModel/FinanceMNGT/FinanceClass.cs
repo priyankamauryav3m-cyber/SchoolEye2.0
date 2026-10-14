@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DomainModel.Common;
 
 namespace DomainModel.FinanceMNGT
 {
@@ -764,7 +765,7 @@ namespace DomainModel.FinanceMNGT
         public string? FatherName { get; set; }
         [Display(Name = "Mobile No.")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Mobile No can contain only numbric.")]
+        [ValidMobileNo]
         public string? MobileNo { get; set; }
         [Display(Name = "Gender")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
@@ -789,7 +790,9 @@ namespace DomainModel.FinanceMNGT
         public string? ClassCode { get; set; }
         public string? MotherName { get; set; } = string.Empty;
         //[RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? Email { get; set; }
+        [ValidMobileNo]
         public string? ContactNo { get; set; }
         public string? SourceOfEnquiry { get; set; }
         [Display(Name = "Address")]
@@ -1430,6 +1433,7 @@ namespace DomainModel.FinanceMNGT
         public string? StudentName { get; set; }
         public DateTime? AdmissionDate { get; set; }
         public string? SiblingID { get; set; }
+        [ValidAadhaarNo]
         public string? AadhaarNo { get; set; }
         public string? ClassSection { get; set; }
         public int IsReservedSeat { get; set; }
@@ -1468,7 +1472,9 @@ namespace DomainModel.FinanceMNGT
         public string? ApaarId { get; set; }
         public string? PENNo { get; set; }
         public string? FamilyId { get; set; }
+        [ValidEmail]
         public string? EmailId { get; set; }
+        [ValidMobileNo]
         public string? MobileNo { get; set; }
         public DateTime? TransportAppliedFrom { get; set; }
         public string? CBSEGamesId { get; set; }
@@ -1489,13 +1495,17 @@ namespace DomainModel.FinanceMNGT
         public string? FatherOccupationOther { get; set; }
         public string? FatherDesignation { get; set; }
         public string? FatherOrganisation { get; set; }
+        [ValidMobileNo]
         public string? FatherOfficeContactNo { get; set; }
         public string? FatherOfficeAddress { get; set; }
+        [ValidEmail]
         public string? FatherEMail { get; set; }
         public decimal? FatherAnnualIncome { get; set; }
+        [ValidMobileNo]
         public string? FatherContactNo { get; set; }
         public string? FatherAchievement { get; set; }
         public string? FatherImagePath { get; set; }
+        [ValidAadhaarNo]
         public string? FatherAadhaarNo { get; set; }
 
         // Mother Details
@@ -1510,17 +1520,21 @@ namespace DomainModel.FinanceMNGT
         public string? MotherOccupationOther { get; set; }
         public string? MotherDesignation { get; set; }
         public string? MotherOrganisation { get; set; }
+        [ValidMobileNo]
         public string? MotherOfficeContactNo { get; set; }
         public string? MotherOfficeAddress { get; set; }
+        [ValidEmail]
         public string? MotherEMail { get; set; }
         public decimal? MotherAnnualIncome { get; set; }
+        [ValidMobileNo]
         public string? MotherContactNo { get; set; }
         public string? MotherAchievement { get; set; }
         public string? MotherImagePath { get; set; }
+        [ValidAadhaarNo]
         public string? MotherAadhaarNo { get; set; }
         [Display(Name = "SMS mobile no")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [RegularExpression("^[0-9]{10}$", ErrorMessage = "Mobile number must be numeric and exactly 10 digits.")]
+        [ValidMobileNo]
         public string? SMSMobileNo { get; set; }
         public string? ContactEmail { get; set; }
         public string? EmergencyPersonName { get; set; }
@@ -1570,6 +1584,7 @@ namespace DomainModel.FinanceMNGT
         public int StateId { get; set; }
         [Display(Name = "Contact number")]
         [StringLength(10, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? ContactNo { get; set; }
         public string? AddressTo { get; set; }
         public string? AddressType { get; set; }
@@ -1589,6 +1604,7 @@ namespace DomainModel.FinanceMNGT
         public string? EmergencyPersonRelationShip { get; set; }
         [Display(Name = "Emergency contact number")]
         [StringLength(10, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? EmergencyPersonContactNo { get; set; }
         public string? EmergencyPersonAddress { get; set; }
     }
@@ -1693,23 +1709,27 @@ namespace DomainModel.FinanceMNGT
         public bool IsVisitor5Allowed { get; set; }
         public string? VisitorFSignImagePath { get; set; }
         public string? VisitorMSignImagePath { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? Visitor1Email { get; set; }
+        [ValidMobileNo]
         public string? Visitor1ContactNo { get; set; }
         public string? Visitor1Remarks { get; set; }
         public string? Visitor1OfficeNo { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? Visitor2Email { get; set; }
+        [ValidMobileNo]
         public string? Visitor2ContactNo { get; set; }
         public string? Visitor2Remarks { get; set; }
         public string? Visitor2OfficeNo { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? Visitor3Email { get; set; }
+        [ValidMobileNo]
         public string? Visitor3ContactNo { get; set; }
         public string? Visitor3Remarks { get; set; }
         public string? Visitor3OfficeNo { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? Visitor4Email { get; set; }
+        [ValidMobileNo]
         public string? Visitor4ContactNo { get; set; }
         public string? Visitor4Remarks { get; set; }
         public string? Visitor4OfficeNo { get; set; }

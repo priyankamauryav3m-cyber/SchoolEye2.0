@@ -268,11 +268,23 @@
                                 <TemplateColumn Align="Align.Center" Title="Action">
                                     @* <ActionButtonGroup  CurrentUrl="@currentUrl" OnEditClick="() => EditEnqiry(context)"  /> *@
                                     <div class="action-btn-group">
-                                        <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditEnqiry(context)">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
+                                        @if (IsRegistered(context))
+                                        {
+                                            @* proceeded to registration: view only (eye), no edit; followup disabled *@
+                                            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="View" @onclick="() => ViewEnquiry(context)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-icon edit-btn custom-tooltip " data-tooltip="Edit" @onclick="() => EditEnqiry(context)">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                        }
 
-                                        <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="Followup" @onclick="() => AddFollowup(context)">
+                                        <button class="btn-icon inactive-btn custom-tooltip " data-tooltip="@(IsRegistered(context) ? "Registration done" : "Followup")"
+                                                disabled="@IsRegistered(context)" style="@(IsRegistered(context) ? "opacity:.4;cursor:not-allowed;" : "")"
+                                                @onclick="() => AddFollowup(context)">
                                             <i class="bi bi-hand-index-thumb"></i>
                                         </button>
                                     </div>
@@ -325,11 +337,12 @@
         <div class="col-sm-12 col-md-10">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
-                    <h5 class="modal-title">@((enquiryModel.EnquiryId == 0) ? "Add New Enquiry" : "Edit Enquiry")</h5>
+                    <h5 class="modal-title">@(IsEnquiryViewOnly ? "View Enquiry" : (enquiryModel.EnquiryId == 0) ? "Add New Enquiry" : "Edit Enquiry")</h5>
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 <EditForm Model="@enquiryModel" OnValidSubmit="OnSaveEnquiry">
                     <DataAnnotationsValidator />
+                    <fieldset disabled="@IsEnquiryViewOnly">
                     <div class="modal-body">
                         <div class="row m-0 form-row">
 
@@ -415,7 +428,7 @@
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.MobileNo" autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10" />
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.MobileNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                     <label class="floating-label">Mobile No. <span class="required">*</span></label>
                                     <ValidationMessage For="@(() => enquiryModel.MobileNo)" />
                                 </div>
@@ -438,13 +451,14 @@
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.ContactNo" autocomplete="off" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10" />
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.ContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                     <label class="floating-label">Alternate No.</label>
+                                    <ValidationMessage For="@(() => enquiryModel.ContactNo)" />
                                 </div>
                             </div>
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.Email" autocomplete="off" />
+                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.Email" autocomplete="off" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
                                     <label class="floating-label">E-Mail Id</label>
                                     <ValidationMessage For="@(() => enquiryModel.Email)" />
                                 </div>
@@ -468,8 +482,11 @@
                             </div>
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                                <div class="form-box-group">
-                                    <InputText class="floating-input" placeholder=" " @bind-Value="enquiryModel.EnquiryType" autocomplete="off" maxlength="100" />
+                                <div class="form-box-group static-label">
+                                    <InputSelect @bind-Value="enquiryModel.EnquiryType" class="floating-input">
+                                        <option value="Registration">Registration</option>
+                                        <option value="Enquiry">Enquiry</option>
+                                    </InputSelect>
                                     <label class="floating-label">Enquiry Type</label>
                                 </div>
                             </div>
@@ -502,10 +519,21 @@
 
                         </div>
                     </div>
+                    </fieldset>
 
                     <div class="modal-footer">
                         <div class="form-group btn-gr">
-                            <SaveUpdateButton Id="enquiryModel.EnquiryId" OnClickCancel="ClosePopup" />
+                            @if (IsEnquiryViewOnly)
+                            {
+                                <button type="button" class="ui fade op-1 animated button btn-cancle" @onclick="ClosePopup">
+                                    <div class="visible content">Close</div>
+                                    <div class="hidden content"><i class="fa fa-close"></i></div>
+                                </button>
+                            }
+                            else
+                            {
+                                <SaveUpdateButton Id="enquiryModel.EnquiryId" OnClickCancel="ClosePopup" />
+                            }
                         </div>
                     </div>
                 </EditForm>
@@ -865,7 +893,7 @@ else
     private bool IsLoading = false;
     private CountryModel country = new();
     private SearchAnyRequestModel searchAnyRequest = new();
-    private EnquiryListResponse enquiryModel = new();
+    private EnquiryListResponse enquiryModel = NewEnquiry();
     private EnquiryListResponse SeletedData = new();
     private AddFollowupRequest addFollowup = new();
     private EnquiryRequestDto requestlist = new();
@@ -1008,6 +1036,9 @@ else
     }
     private async Task OnSaveEnquiry()
     {
+        // an enquiry that has proceeded to registration is read only
+        if (IsEnquiryViewOnly || IsRegistered(enquiryModel))
+            return;
         try
         {
             ShowPopupEnquery = false;
@@ -1060,7 +1091,7 @@ else
             {
                 await Alert.ShowCustomAlert(@Localizer["Admin"]);
             }
-            enquiryModel = new();
+            enquiryModel = NewEnquiry();
             await LoadData();
 
         }
@@ -1224,14 +1255,33 @@ else
         statusFilter = filterValue.ToString();
         StateHasChanged();
     }
+    // a new enquiry starts with "Registration" selected (Enquiry Type: Registration / Enquiry)
+    private static EnquiryListResponse NewEnquiry() => new() { EnquiryType = "Registration" };
+
+    // popup opened only to see an enquiry that has proceeded to registration
+    private bool IsEnquiryViewOnly;
+
+    private static bool IsRegistered(EnquiryListResponse item) =>
+        !string.IsNullOrWhiteSpace(item.RegistrationNo) && item.RegistrationNo != "0";
+
+    private void ViewEnquiry(EnquiryListResponse enquiry)
+    {
+        enquiryModel = enquiry;
+        IsEnquiryViewOnly = true;
+        ShowPopupEnquery = true;
+    }
+
     private void AddEnquiry()
     {
+        IsEnquiryViewOnly = false;
         ShowPopupEnquery = true;
-        enquiryModel = new();
+        enquiryModel = NewEnquiry();
 
     }
     private async Task AddFollowup(EnquiryListResponse enquiry)
     {
+        if (IsRegistered(enquiry))
+            return;
         IsLoading = true;
         enquiryModel = enquiry;
         EnquiryId = enquiry.EnquiryId.ToString();
@@ -1421,6 +1471,12 @@ else
 
     private void EditEnqiry(EnquiryListResponse enquiry)
     {
+        if (IsRegistered(enquiry))
+        {
+            ViewEnquiry(enquiry);
+            return;
+        }
+        IsEnquiryViewOnly = false;
         enquiryModel = enquiry;
         // enquiryModel = new EnquiryListResponse
         // {
@@ -1452,7 +1508,8 @@ else
         ShowPopup = false;
         ShowPopupEnquery = false;
         ShowPopupFollowup = false;
-        enquiryModel = new();
+        IsEnquiryViewOnly = false;
+        enquiryModel = NewEnquiry();
         OpenRegPopup = false;
     }
     private string GetRowClass(EnquiryListResponse item)

@@ -164,6 +164,42 @@ namespace DomainModel.User
 
         public string? SendTo { get; set; } 
     }
+    // ---------------- Forgot password (reset link by email) ----------------
+    public class ForgotPasswordRequest
+    {
+        // one input: username or registered email; the link goes to that user's registered email
+        [Required(ErrorMessage = "Username or email is required")]
+        [StringLength(100, ErrorMessage = "Username or email can not be more than 100 characters")]
+        public string? UsernameOrEmail { get; set; }
+    }
+
+    public class ValidateResetTokenRequest
+    {
+        public string? Token { get; set; }
+    }
+
+    public class ResetPasswordRequest
+    {
+        public string? Token { get; set; }
+
+        // UserPassword column is varchar(50) and stores the encrypted text, so 30 is the safe maximum
+        [Required(ErrorMessage = "New password is required")]
+        [StringLength(30, MinimumLength = 8, ErrorMessage = "Password must be 8 to 30 characters")]
+        public string? NewPassword { get; set; }
+
+        [Required(ErrorMessage = "Confirm password is required")]
+        [Compare(nameof(NewPassword), ErrorMessage = "Password and confirm password do not match")]
+        public string? ConfirmPassword { get; set; }
+    }
+
+    // valid user of an email id (usp_Auth_GetPasswordResetUsers)
+    public class PasswordResetUser
+    {
+        public int UserSid { get; set; }
+        public string? UserName { get; set; }
+        public string? EmailId { get; set; }
+    }
+
     public class TrustedDeviceModel
     {
         public int UserId { get; set; }

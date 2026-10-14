@@ -15,14 +15,14 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.StudentDocument
 {
-    public class StudentDocumentService : IPrintStudentRec
+    public class StudentDocumentService : IPrintStudentRec             
     {
         public async Task<byte[]> GenerateRegistrationExcel(List<RegistrationDto> students)
         {
 
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Students");
-            // ===== HEADER =====
+
             ws.Range("A2:Y2").Merge();
             ws.Cell("A2").Value = "V3M International School";
             ws.Cell("A2").Style.Font.Bold = true;
@@ -45,7 +45,6 @@ namespace Infrastructure.StudentDocument
             ws.Cell("A5").Style.Font.Bold = true;
             ws.Cell("A5").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-            // ===== TABLE HEADER =====
             ws.Cell("A7").Value = "S.No";
             ws.Cell("B7").Value = "Student Name";
             ws.Cell("C7").Value = "Class";
@@ -58,11 +57,10 @@ namespace Infrastructure.StudentDocument
             var headerRange = ws.Range("A7:H7");
             headerRange.Style.Font.Bold = true;
             headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            //   headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+
             headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
 
-            // ===== DATA =====
             int row = 8;
             int sr = 1;
 

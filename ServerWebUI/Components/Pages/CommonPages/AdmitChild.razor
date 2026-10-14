@@ -259,8 +259,9 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.StudentAadharNo" onkeypress="return /^[0-9]$/.test(event.key)" maxlength="12"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.StudentAadharNo" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label">Aadhaar No.</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.StudentAadharNo)" />
                                         </div>
 
                                     </div>
@@ -313,15 +314,17 @@
 
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherContactNo" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label">Contact No.</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.FatherContactNo)" />
                                         </div>
                                     </div>
 
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-5  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.FatherAadharNo"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherAadharNo" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label">Aadhaar No.</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.FatherAadharNo)" />
                                         </div>
                                     </div>
 
@@ -339,7 +342,7 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-8 px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.FatherEmailId" Label="E-MAil Id"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.FatherEmailId" Label="E-MAil Id" maxlength="50" oninput="this.value=this.value.replace(/\s/g,'')" ></InputText>
                                             <label class="floating-label">Email Id</label>
                                             <ValidationMessage For="@(() => studentDirectAdmission.FatherEmailId)" />
                                         </div>
@@ -372,20 +375,22 @@
 
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherContactNo" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label"> Contact No.</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.MotherContactNo)" />
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-5  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.MotherAadharNo"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherAadharNo" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label">Aadhaar No.</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.MotherAadharNo)" />
                                         </div>
 
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-4  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="10" onkeypress="return /^[0-9]$/.test(event.key)" @bind-Value="studentDirectAdmission.SMSContactNo"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.SMSContactNo" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label">SMS Mobile No. <span class="required">*</span> </label>
                                             <ValidationMessage For="@(() => studentDirectAdmission.SMSContactNo)" />
                                         </div>
@@ -406,7 +411,7 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-5 px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" maxlength="50" @bind-Value="studentDirectAdmission.MotherEmailId"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.MotherEmailId" maxlength="50" oninput="this.value=this.value.replace(/\s/g,'')" ></InputText>
                                             <label class="floating-label"> Email Id</label>
                                             <ValidationMessage For="@(() => studentDirectAdmission.MotherEmailId)" />
                                         </div>
@@ -477,8 +482,9 @@
 
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.AddContactNo" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="10"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.AddContactNo" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" ></InputText>
                                             <label class="floating-label">Contact No.</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.AddContactNo)" />
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">

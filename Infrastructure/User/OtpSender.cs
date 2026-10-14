@@ -66,6 +66,45 @@ namespace Infrastructure.User
                 throw new Exception("OTP email send failed. Please try again.");
             }
         }
+
+        public async Task SendPasswordResetLinkAsync(string toEmail, IReadOnlyList<(string UserName, string ResetLink)> links, int validMinutes)
+        {
+            using var client = new SmtpClient(_settings.Host, _settings.Port)
+            {
+                Credentials = new NetworkCredential(_settings.Username, _settings.Password),
+                EnableSsl = _settings.EnableSsl
+            };
+
+            var body = new StringBuilder();
+            body.Append("<p>We received a request to reset the password of your SchoolEye account.</p>");
+            // only the link — the username is not written in the mail
+            foreach (var (_, resetLink) in links)
+            {
+                body.Append("<p><a href=\"").Append(WebUtility.HtmlEncode(resetLink)).Append("\">Reset your password</a></p>");
+            }
+            body.Append($"<p>This link is valid for {validMinutes} minutes and can be used only once.</p>")
+                .Append("<p>If you did not request this, please ignore this email. Your password will not change.</p>");
+
+            var mail = new MailMessage
+            {
+                From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
+                Subject = "Reset your SchoolEye password",
+                Body = body.ToString(),
+                IsBodyHtml = true
+            };
+            mail.To.Add(toEmail);
+            try
+            {
+                await client.SendMailAsync(mail);
+                // the link is a credential — never logged
+                _logger.LogInformation("Password reset email sent to {Email}", toEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password reset email to {Email}", toEmail);
+                throw new Exception("Password reset email send failed. Please try again.");
+            }
+        }
     }
 
 

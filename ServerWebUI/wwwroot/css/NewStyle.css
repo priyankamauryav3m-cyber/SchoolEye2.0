@@ -3791,3 +3791,51 @@ a, .primary-link {
 .text-muted {
     font-weight: 500;
 }
+
+/* Font Awesome solid icons are drawn only at weight 900; .text-muted must not change it */
+.fas.text-muted,
+.fa-solid.text-muted {
+    font-weight: 900;
+}
+/* radio option: clicking the text also checks the radio */
+label.radio-option {
+    cursor: pointer;
+}
+
+    label.radio-option:has(input:disabled) {
+        cursor: not-allowed;
+        opacity: .6;
+    }
+
+/* big popups: the popup stays inside the screen (same gap at top and bottom);
+   only the content inside the popup scrolls, the overlay itself does not */
+@media (min-width: 768px) {
+    .custom-modal {
+        padding: 20px;
+    }
+
+        .custom-modal .main-popup {
+            max-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+
+            .custom-modal .main-popup > form {
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 auto;
+                min-height: 0;
+            }
+
+            .custom-modal .main-popup .modal-body {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                scrollbar-width: thin;
+            }
+
+            .custom-modal .main-popup .modal-footer,
+            .custom-modal .main-popup .head-btn {
+                flex-shrink: 0;
+            }
+}

@@ -241,8 +241,9 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AadhaarNo" maxlength="12" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Aadhaar No</label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.AadhaarNo)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
@@ -393,14 +394,16 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.EmailId" maxlength="50" autocomplete="off" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.EmailId" autocomplete="off" maxlength="50" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Student Email</label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.EmailId)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.MobileNo" maxlength="10" autocomplete="off" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.MobileNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Student Mobile No.</label>
+                                                        <ValidationMessage For="@(() => viewchildDetails.MobileNo)" />
                                                     </div>
                                                 </div>
 
@@ -604,6 +607,7 @@
 
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "parents-details" ? "show active" : "")" id="parents-details">
                                     <EditForm Model="@parentsDetails" OnValidSubmit="ParentsDetails">
+                                        <DataAnnotationsValidator />
                                         <fieldset disabled="@_parentsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px);">
                                             <div class=" row m-0 form-row">
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1 ">
@@ -636,14 +640,16 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="13" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">SMS Mobile <span class="required">*</span></label>
+                                                                <ValidationMessage For="@(() => parentsDetails.SMSMobileNo)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherEMail" autocomplete="off" maxlength="150" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherEMail" autocomplete="off" maxlength="150" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                                 <label class="floating-label">Email Id</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.FatherEMail)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
@@ -654,8 +660,9 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAadhaarNo" onkeypress="return  /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">Aadhaar No.</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.FatherAadhaarNo)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
@@ -711,8 +718,9 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">Office Contact No.</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.FatherOfficeContactNo)" />
                                                             </div>
                                                         </div>
 
@@ -732,8 +740,9 @@
 
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">Contact No.</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.FatherContactNo)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
@@ -837,8 +846,9 @@
 
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAadhaarNo" onkeypress="return  /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">Aadhaar No.</label>
+                                                                <ValidationMessage For="@(() => parentsDetails.MotherAadhaarNo)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
@@ -899,7 +909,7 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">Office Contact No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherOfficeContactNo)" />
                                                             </div>
@@ -921,14 +931,14 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherEMail" autocomplete="off" maxlength="100" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherEMail" autocomplete="off" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                                 <label class="floating-label">Email Id</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherEMail)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                                 <label class="floating-label">Contact No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherContactNo)" />
                                                             </div>
@@ -1073,7 +1083,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact No.</label>
                                                         <ValidationMessage For="@(() => addressDetails.EmergencyPersonContactNo)" />
                                                     </div>
@@ -1125,7 +1135,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.ContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.ContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact No.</label>
                                                         <ValidationMessage For="@(() => addressDetails.ContactNo)" />
                                                     </div>
@@ -1221,7 +1231,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.ContactNo" disabled="@IsSameAsCurrent" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.ContactNo" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact</label>
                                                         <ValidationMessage For="@(() => addressPermanent.ContactNo)" />
                                                     </div>
@@ -2365,6 +2375,12 @@
     {
         try
         {
+            // permanent address is not the form model, so the form submit does not check its contact no.
+            if (!IsSameAsCurrent && !new DomainModel.Common.ValidMobileNoAttribute().IsValid(addressPermanent.ContactNo))
+            {
+                await Alert.ShowWarning("Permanent address: Enter valid 10 digit mobile number");
+                return;
+            }
             if ((IsEdited(addressDetails, _originaladdress)) || (IsEdited(addressPermanent, _originaladdress)))
             {
                 addressDetails.StudentId = StudentId;
