@@ -101,7 +101,16 @@ height: calc(95vh - 273px);
                         <div class="grid-box-with-btn">
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
 
-                                <PropertyColumn Class="text-right" Property="@(x => x.RollNo)" Title="Roll No." Align="Align.Center" />
+                                <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-right" Align="Align.Center">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.RollNo) ? " " : context.RollNo)
+                                    </ChildContent>
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="rollNoFilter" @bind:event="oninput" placeholder="Roll No...." />
+                                        </div>
+                                    </ColumnOptions>
+                                </TemplateColumn>
 
                                 <PropertyColumn Sortable="true" Class="text-center" Property="@(x => x.ControlNo)" Title="Student No." Align="Align.Center">
                                     <ColumnOptions>
@@ -752,6 +761,10 @@ else
             StateHasChanged();
         }
     }
+    // Roll No. column: search box and sorting by number (2 before 10)
+    private string? rollNoFilter;
+    private GridSort<StudentFeeInvoiceResponseModel> RollNoSort = GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.RollNo == null ? 0 : x.RollNo.Length).ThenAscending(x => x.RollNo);
+
     protected IQueryable<StudentFeeInvoiceResponseModel> moduleQuery
     {
         get
@@ -763,6 +776,9 @@ else
             (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
             }
+            // Roll No. column search
+            if (!string.IsNullOrWhiteSpace(rollNoFilter))
+                result = result.Where(x => x.RollNo != null && x.RollNo.Contains(rollNoFilter.Trim(), StringComparison.CurrentCultureIgnoreCase));
             return result;
         }
     }
