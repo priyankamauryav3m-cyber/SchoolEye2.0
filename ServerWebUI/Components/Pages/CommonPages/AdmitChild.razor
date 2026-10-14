@@ -84,10 +84,12 @@
                                     </div>
 
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2 ">
-                                        <div class="form-box-group">
+                                        <div class="form-box-group static-label">
                                             <InputText class="floating-input"
                                                        placeholder=" "
-                                                       @bind-Value="studentDirectAdmission.stuManualAdmNo" />
+                                                       @bind-Value="studentDirectAdmission.stuManualAdmNo"
+                                                       readonly
+                                                       disabled />
 
                                             <label class="floating-label">
                                                 Admission No. <span class="required">*</span>
@@ -968,6 +970,7 @@
             await GetData();
             // sessionvalue = await _commonmethod.SetCurrentSession();
             CurrentSession = await _commonmethod.SetCurrentSessionData();
+            await GetAdmissionNoConfiguration();
             StateHasChanged();
         }
         studentDirectAdmission.BranchCode = branchcode;
@@ -1301,10 +1304,26 @@
         $"&AddressType=C";
         getRegistration = await httpService.Get<GetRegistrationModel>(url) ?? new();
         getdatamodepass();
+        await GetAdmissionNoConfiguration();
         GetSectionData();
         // currentClassCode = getRegistration.ClassCode;
 
     }
+    // Admission No. comes from the KeyValue of the 'AdmissionNo' Generation Id Configuration
+    private async Task GetAdmissionNoConfiguration()
+    {
+        long sessionId = SessionId > 0 ? SessionId : CurrentSession;
+        if (string.IsNullOrWhiteSpace(groupcode) || string.IsNullOrWhiteSpace(branchcode) || sessionId <= 0)
+            return;
+
+        string apiUri = $"Registration/GetAdmissionNoConfiguration?groupCode={groupcode}&branchCode={branchcode}&sessionId={sessionId}";
+        var apiResponse = await httpService.Get<ApiResponse<long>>(apiUri);
+        if (apiResponse?.Success == true)
+        {
+            studentDirectAdmission.stuManualAdmNo = apiResponse.Data.ToString();
+        }
+    }
+
     private void getdatamodepass()
     {
 

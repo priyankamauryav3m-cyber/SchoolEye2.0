@@ -498,9 +498,16 @@
                             </div>
                             <div class="col-12 col-sm-6 col-md-4 col-lg-8">
                                 <div class="form-box-group">
-                                    <InputText class="floating-input" @bind-Value="enquiryModel.Address" autocomplete="off"></InputText>
+                                    <InputText class="floating-input" @bind-Value="enquiryModel.Address" @oninput="OnAddressInput" autocomplete="off" maxlength="@AddressMaxLength"></InputText>
                                     <label class="floating-label">Address <span class="required">*</span></label>
-                                    <ValidationMessage For="@(() => enquiryModel.Address)" />
+                                    @if (!string.IsNullOrEmpty(enquiryModel.Address))
+                                    {
+                                        <div class="validation-message" style="left: auto; right: 2px; color: #6c757d;">Character &nbsp; @enquiryModel.Address.Length/@AddressMaxLength</div>
+                                    }
+                                    else
+                                    {
+                                        <ValidationMessage For="@(() => enquiryModel.Address)" />
+                                    }
                                 </div>
                             </div>
                             <div class="col-12 col-sm-6 col-md-4 col-lg-6">
@@ -894,6 +901,7 @@ else
     private CountryModel country = new();
     private SearchAnyRequestModel searchAnyRequest = new();
     private EnquiryListResponse enquiryModel = NewEnquiry();
+    private const int AddressMaxLength = 100;
     private EnquiryListResponse SeletedData = new();
     private AddFollowupRequest addFollowup = new();
     private EnquiryRequestDto requestlist = new();
@@ -950,6 +958,11 @@ else
                     .Where(x => x.IsSelected)
                     .Select(x => x.SourceName));
     }
+    private void OnAddressInput(ChangeEventArgs e)
+    {
+        enquiryModel.Address = e.Value?.ToString();
+    }
+
     private void OpenPopup()
     {
         OpenRegPopup = true;

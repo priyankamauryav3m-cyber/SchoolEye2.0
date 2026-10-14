@@ -47,6 +47,7 @@ namespace ApplicationInterface.SuperAdmin
 
         public Task<IEnumerable<ClassRegistrationDocumentsResponse>> GetClassRegistrationDocumentsAsync(ClassRegistrationDocumentsRequest request);
         public Task<IEnumerable<RegistrationStatusResponse>> GetRegistrationStatusData(RegistrationRequest request);
+        public Task<long?> GetAdmissionNoConfiguration(string groupCode, string branchCode, long sessionId);
 
 
     }

@@ -9,6 +9,8 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
     [ApiExplorerSettings(GroupName = "Admission")]
     [Route("api/[controller]")]
     [ApiController]
+  
+
     public class EnquiryController : ControllerBase
     {
         private readonly IEnquiryRepository _repo;

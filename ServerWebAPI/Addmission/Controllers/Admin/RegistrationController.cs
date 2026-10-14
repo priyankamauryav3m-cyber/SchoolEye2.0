@@ -958,6 +958,47 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                     });
             }
         }
+        [HttpGet("GetAdmissionNoConfiguration")]
+        public async Task<IActionResult> GetAdmissionNoConfiguration(string groupCode, string branchCode, long sessionId)
+        {
+            if (string.IsNullOrWhiteSpace(groupCode) || string.IsNullOrWhiteSpace(branchCode) || sessionId <= 0)
+            {
+                return BadRequest(ApiResponse<object>.Fail("GroupCode, BranchCode and SessionId are required."));
+            }
+            try
+            {
+                var keyValue = await _service.GetAdmissionNoConfiguration(groupCode, branchCode, sessionId);
+                if (keyValue == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Admission no configuration was not found.",
+                        Code = 0,
+                        Data = null
+                    });
+                }
+                return Ok(new ApiResponse<long>
+                {
+                    Success = true,
+                    Message = "Admission no configuration retrieved successfully.",
+                    Code = 1,
+                    Data = keyValue.Value
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetAdmissionNoConfiguration Error: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching admission no configuration.",
+                    Code = 0,
+                    Data = null
+                });
+            }
+        }
+
         [HttpPost("GetRegistrationStatus")]
         public async Task<IActionResult> GetRegistrationStatusData([FromBody] RegistrationRequest request)
         {

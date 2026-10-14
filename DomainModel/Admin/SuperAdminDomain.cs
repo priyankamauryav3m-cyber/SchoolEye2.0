@@ -3041,23 +3041,32 @@ namespace DomainModel.Admin
         public string AdmissionPercentage { get; set; } = "0%";
         public string InteractionPercentage { get; set; } = "0%";
     }
-    //public class AdmissionDashboardModel
-    //{
+    public class AdmissionNoConfigurationRequest
+    {
+        public string GroupCode { get; set; }
+        public string BranchCode { get; set; }
+        public long SessionId { get; set; }
+    }
 
-    //    public int TotalEnquiry { get; set; }
-
-    //    public int Application { get; set; }
-    //    public int Registration { get; set; }
-
-
-    //    public int TotalAdmission { get; set; }
-
-    //    public string? EnquiryPercentage { get; set; }
-
-    //    public string? ApplicationPercentage { get; set; }
-    //    public string? RegistrationPercentage { get; set; }
-
-    //    public string? AdmissionPercentage { get; set; }
-
-    //}
+    public class AdmissionNoConfigurationResponse
+    {
+        public long Sid { get; set; }
+        public string GroupCode { get; set; }
+        public string BranchCode { get; set; }
+        public int? BTCID { get; set; }
+        public bool? BranchCodeRequired { get; set; }
+        public bool? BTCRequired { get; set; }
+        public bool? SessionRequired { get; set; }
+        public string PatternFor { get; set; }
+        public string KeyWord { get; set; }
+        public string PreFix { get; set; }
+        public string KeyValue { get; set; }
+        public int? KeyValueLength { get; set; }
+        public bool? ResetFlag { get; set; }
+        public string ClassGroup { get; set; }
+        public string CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public bool? IsValid { get; set; }
+        public long? SessionId { get; set; }
+    }
 }

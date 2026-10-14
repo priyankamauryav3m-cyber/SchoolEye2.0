@@ -1215,6 +1215,29 @@ namespace Infrastructure.SuperAdmin
             }
         }
 
+        // KeyValue of the 'AdmissionNo' row in Generation Id Configuration (MstIdGeneration)
+        public async Task<long?> GetAdmissionNoConfiguration(string groupCode, string branchCode, long sessionId)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                string sql = @"SELECT TOP 1 KeyValue
+                       FROM MstIdGeneration
+                       WHERE KeyWord = 'AdmissionNo'
+                         AND GroupCode = @GroupCode
+                         AND BranchCode = @BranchCode
+                         AND SessionId = @SessionId
+                         AND IsValid = 1
+                       ORDER BY Sid DESC";
+                return await con.QueryFirstOrDefaultAsync<long?>(sql, new { GroupCode = groupCode, BranchCode = branchCode, SessionId = sessionId });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 
 }
