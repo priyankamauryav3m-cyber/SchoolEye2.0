@@ -3,6 +3,7 @@ using Dapper;
 using DomainModel.User;
 using Infrastructure.Configuration;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
@@ -245,6 +246,77 @@ namespace Infrastructure.User
                 },
                 commandType: CommandType.StoredProcedure);
         }
+
+        // ===================== Forgot password (reset link by email) =====================
+
+        // a link for the one user found by username or email, sent to that user's registered email;
+        // nothing is returned so the caller can not tell whether the user / email exists
+        public async Task SendPasswordResetLinkAsync(string usernameOrEmail)
+        {
+            var resetPageUrl = _configuration["PasswordReset:ResetPageUrl"];
+            if (string.IsNullOrWhiteSpace(resetPageUrl))
+                throw new InvalidOperationException("PasswordReset:ResetPageUrl is missing in appsettings.json.");
+            var validMinutes = _configuration.GetValue<int?>("PasswordReset:LinkValidMinutes") ?? 15;
+
+            using var connection = new SqlConnection(_connectionString);
+            var user = await connection.QueryFirstOrDefaultAsync<PasswordResetUser>(
+                "usp_Auth_GetPasswordResetUsers",
+                new { Login = usernameOrEmail },
+                commandType: CommandType.StoredProcedure);
+            if (user == null || string.IsNullOrWhiteSpace(user.EmailId))
+                return;
+
+            // the link carries the token, the database keeps only its hash
+            var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserSid", user.UserSid);
+            parameters.Add("@TokenHash", HashResetToken(token));
+            parameters.Add("@ExpiryUtc", DateTime.UtcNow.AddMinutes(validMinutes));
+            parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+            await connection.ExecuteAsync("usp_Auth_CreatePasswordResetToken", parameters, commandType: CommandType.StoredProcedure);
+
+            // 2 = a link was already sent in the last minute
+            if (parameters.Get<int>("@ReturnValue") != 1)
+                return;
+
+            var links = new List<(string UserName, string ResetLink)>
+            {
+                (user.UserName ?? "", $"{resetPageUrl}?token={Uri.EscapeDataString(token)}")
+            };
+            await _otpSender.SendPasswordResetLinkAsync(user.EmailId, links, validMinutes);
+        }
+
+        // 1 = ok, 2 = not found, 3 = expired, 4 = used / closed, 5 = user not valid
+        public async Task<int> ValidatePasswordResetTokenAsync(string token)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@TokenHash", HashResetToken(token));
+            parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+            await connection.ExecuteAsync("usp_Auth_ValidatePasswordResetToken", parameters, commandType: CommandType.StoredProcedure);
+            return parameters.Get<int>("@ReturnValue");
+        }
+
+        // same return codes as validate; 6 = password too long for the stored format
+        public async Task<int> ResetPasswordWithTokenAsync(string token, string newPassword)
+        {
+            // same encryption as login, so SP_AuthenticateUserLogin matches the new password
+            var encrypted = HashPassword(newPassword);
+            if (encrypted.Length > 50)
+                return 6;
+
+            using var connection = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@TokenHash", HashResetToken(token));
+            parameters.Add("@UserPassword", encrypted);
+            parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+            await connection.ExecuteAsync("usp_Auth_ResetPasswordWithToken", parameters, commandType: CommandType.StoredProcedure);
+            return parameters.Get<int>("@ReturnValue");
+        }
+
+        // hex SHA-256 (64 chars) of the token
+        private static string HashResetToken(string token) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
         // ===================== EXISTING helper =====================
 

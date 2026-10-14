@@ -10,5 +10,8 @@ namespace ApplicationInterface.User
     {
         Task SendAsync(string email, string otpCode);
 
+        // one mail with a reset link per user of that email id
+        Task SendPasswordResetLinkAsync(string email, IReadOnlyList<(string UserName, string ResetLink)> links, int validMinutes);
+
     }
 }

@@ -320,7 +320,7 @@
 
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " onkeypress="return /^[0-9]$/.test(event.key)" maxlength="10" autocomplete="off" @bind-Value="group.ContactNo" />
+                                                        <InputText class="floating-input" placeholder=" " autocomplete="off" @bind-Value="group.ContactNo" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact Number</label>
                                                         <ValidationMessage For="@(() => group.ContactNo)" />
                                                     </div>
@@ -328,7 +328,7 @@
 
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactEmailId" maxlength="50" autocomplete="off" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.ContactEmailId" autocomplete="off" maxlength="50" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Contact Email</label>
                                                         <ValidationMessage For="@(() => group.ContactEmailId)" />
                                                     </div>
@@ -336,7 +336,7 @@
 
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.EmailId" maxlength="50" autocomplete="off" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="group.EmailId" autocomplete="off" maxlength="50" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Group Email</label>
                                                         <ValidationMessage For="@(() => group.EmailId)" />
                                                     </div>

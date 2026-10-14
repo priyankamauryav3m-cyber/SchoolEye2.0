@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using DomainModel.FinanceMNGT;
+using DomainModel.Common;
 
 namespace DomainModel.Admin
 {
@@ -377,9 +378,10 @@ namespace DomainModel.Admin
 
         [Display(Name = "Mother contect number")]
         [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? MotherContactNo { get; set; }
 
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? MotherEmailId { get; set; }
 
         [Display(Name = "Father title")]
@@ -394,17 +396,18 @@ namespace DomainModel.Admin
 
         [Display(Name = "Father contect number")]
         [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? FatherContactNo { get; set; }
 
         [Display(Name = "Father email address")]
         [StringLength(100, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? FatherEmailId { get; set; }
         [Display(Name = "SMS mobile")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
 
-        [RegularExpression(@"^[6-9]\d{9}$", ErrorMessage = "SMS Mobile No must be 10 digits")]
         [StringLength(13, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? SMSMobileNo { get; set; }
         public int StudentCategory { get; set; }
 
@@ -426,6 +429,7 @@ namespace DomainModel.Admin
 
         [Display(Name = "Contect number")]
         [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? ContactNo { get; set; }
         public int EWS { get; set; }
         public int Sibling { get; set; }
@@ -723,6 +727,7 @@ namespace DomainModel.Admin
         public DateTime? VisaExpiryDate { get; set; } = null;
         public int IsDisability { get; set; } = 0;
         public string? CBSERollNo { get; set; } = "";
+        [ValidAadhaarNo]
         public string? AadhaarNo { get; set; } = "";
 
         [Range(0, 1)]
@@ -780,6 +785,7 @@ namespace DomainModel.Admin
         public string? FatherName { get; set; }
         public string? FatherMiddleName { get; set; }
         public string? FatherLName { get; set; }
+        [ValidAadhaarNo]
         public string? FatherAadharNo { get; set; }
         public int FatherQualification { get; set; } = 0;
         public int? FatherOccupation { get; set; }
@@ -787,13 +793,16 @@ namespace DomainModel.Admin
         public string? FatherDesignation { get; set; }
         public string? FatherOrganisation { get; set; }
         public string? FatherOfficeAddress { get; set; }
+        [ValidMobileNo]
         public string? FatherOfficeContactNo { get; set; }
         public DateTime? FatherDOB { get; set; }
         public int? FatherNationality { get; set; }
+        [ValidEmail]
         public string? FatherEMail { get; set; }
 
         public decimal FatherAnnualIncome { get; set; }
 
+        [ValidMobileNo]
         public string? FatherContactNo { get; set; }
         public string? FatherAchievement { get; set; }
         public string? FatherMotherTongue { get; set; }
@@ -812,6 +821,7 @@ namespace DomainModel.Admin
 
         public string? MotherLName { get; set; }
         public string? MotherMaidenSurname { get; set; }
+        [ValidAadhaarNo]
         public string? MotherAadharNo { get; set; }
         public int MotherQualification { get; set; } = 0;
         public int? MotherOccupation { get; set; }
@@ -819,11 +829,14 @@ namespace DomainModel.Admin
         public string? MotherDesignation { get; set; }
         public string? MotherOrganisation { get; set; }
         public string? MotherOfficeAddress { get; set; }
+        [ValidMobileNo]
         public string? MotherOfficeContactNo { get; set; }
         public DateTime? MotherDOB { get; set; }
         public int? MotherNationality { get; set; }
+        [ValidEmail]
         public string? MotherEMail { get; set; }
         public decimal MotherAnnualIncome { get; set; }
+        [ValidMobileNo]
         public string? MotherContactNo { get; set; }
         public string? MotherAchievement { get; set; }
         public string? MotherMotherTongue { get; set; }
@@ -832,10 +845,11 @@ namespace DomainModel.Admin
         public string? MotherSchool { get; set; }
 
         // ===== COMMON =====
-        [EmailAddress(ErrorMessage = "Invalid email address")]
+        [ValidEmail]
         public string? ContactEmailId { get; set; }
         [Display(Name = "SMS mobile no")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
+        [ValidMobileNo]
         public string? SMSMobileNo { get; set; }
     }
     #endregion
@@ -886,6 +900,11 @@ namespace DomainModel.Admin
         public string? SingleParentComment { get; set; }
         [MaxLength(30)]
         public string? ChildCustody { get; set; }
+        // Widow / Widower / Guardian / Other (only with a custody of child)
+        [MaxLength(20)]
+        public string? SingleParentDetail { get; set; }
+        // availing day care facility after school hours
+        public bool IsDayCareRequired { get; set; } = false;
         public List<GbsrCommonmdl> gbsrmdl { get; set; } = new();
     }
     #endregion
@@ -913,6 +932,7 @@ namespace DomainModel.Admin
 
         [Display(Name = "Contact number")]
         [StringLength(10, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
         public string? ContactNo { get; set; }
 
         [Display(Name = "Address to")]
@@ -1147,9 +1167,9 @@ namespace DomainModel.Admin
 
         public string? FatherLastName { get; set; }
 
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Invalid Father Contact No")]
+        [ValidMobileNo]
         public string? FatherContactNo { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? FatherEmailId { get; set; }
         public int FatherOccupation { get; set; }
         public string? FatherOccupationOther { get; set; }
@@ -1160,16 +1180,16 @@ namespace DomainModel.Admin
         public string? MotherMiddleName { get; set; }
         public string? MotherLastName { get; set; }
 
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Invalid Mother Contact No")]
+        [ValidMobileNo]
         public string? MotherContactNo { get; set; }
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$", ErrorMessage = "Please enter a valid email ")]
+        [ValidEmail]
         public string? MotherEmailId { get; set; }
         public int MotherOccupation { get; set; }
         public string? MotherOccupationOther { get; set; }
 
         [Display(Name = "SMS mobile no.")]
         [Required(ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "RequiredField")]
-        [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Invalid SMS Contact")]
+        [ValidMobileNo]
         public string? SMSContactNo { get; set; }
         public string? AddressLine1 { get; set; }
         public string? AddressLine2 { get; set; }
@@ -1180,16 +1200,17 @@ namespace DomainModel.Admin
         public string? PreviousBranchCode { get; set; }
         public int SocietyId { get; set; }
 
-        [RegularExpression(@"^[0-9]{12}$", ErrorMessage = "Student Aadhar must be 12 digits")]
+        [ValidAadhaarNo]
         public string? StudentAadharNo { get; set; }
 
-        [RegularExpression(@"^[0-9]{12}$", ErrorMessage = "Father Aadhar must be 12 digits")]
+        [ValidAadhaarNo]
         public string? FatherAadharNo { get; set; }
 
-        [RegularExpression(@"^[0-9]{12}$", ErrorMessage = "Mother Aadhar must be 12 digits")]
+        [ValidAadhaarNo]
         public string? MotherAadharNo { get; set; }
         public long RegId { get; set; }
         public int FeeTemplateId { get; set; }
+        [ValidMobileNo]
         public string? AddContactNo { get; set; }
         public string? AddressTo { get; set; } = "Student";
         [Display(Name = "Admission no.")]
@@ -1404,11 +1425,11 @@ namespace DomainModel.Admin
         public string? FatherQualification { get; set; }
 
         [Required(ErrorMessage = "Father Mobile is required")]
-        [RegularExpression(@"^[6-9]\d{9}$", ErrorMessage = "Invalid Mobile Number")]
+        [ValidMobileNo]
         public string? FatherMobile { get; set; }
 
         [Required(ErrorMessage = "Father Email is required")]
-        [EmailAddress]
+        [ValidEmail]
         public string? FatherEmailId { get; set; }
 
         [Required(ErrorMessage = "Mother First Name is required")]
@@ -1425,11 +1446,11 @@ namespace DomainModel.Admin
         public string? MotherQualification { get; set; }
 
         [Required(ErrorMessage = "Mother Mobile is required")]
-        [RegularExpression(@"^[6-9][0-9]{9}$", ErrorMessage = "Invalid Mobile Number")]
+        [ValidMobileNo]
         public string? MotherMobile { get; set; }
 
         [Required(ErrorMessage = "Mother Email is required")]
-        [EmailAddress]
+        [ValidEmail]
         public string? MotherEmailId { get; set; }
 
         [Required(ErrorMessage = "Previous school board is required")]
@@ -1481,15 +1502,15 @@ namespace DomainModel.Admin
         public string? FatherOtherQualification { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Child Aadhar Number is required")]
-        [RegularExpression(@"^\d{12}$", ErrorMessage = "Invalid Aadhar Number")]
+        [ValidAadhaarNo]
         public string? ChildAadharNo { get; set; }
 
         [Required(ErrorMessage = "Father Aadhar Number is required")]
-        [RegularExpression(@"^\d{12}$", ErrorMessage = "Invalid Aadhar Number")]
+        [ValidAadhaarNo]
         public string? FatherAadharNo { get; set; }
 
         [Required(ErrorMessage = "Mother Aadhar Number is required")]
-        [RegularExpression(@"^\d{12}$", ErrorMessage = "Invalid Aadhar Number")]
+        [ValidAadhaarNo]
         public string? MotherAadharNo { get; set; }
         //[Required(ErrorMessage = "Address is required")]
         public string? StudentAddress { get; set; } = string.Empty;
@@ -2223,7 +2244,7 @@ namespace DomainModel.Admin
 
         public string FatherContactNo { get; set; } = string.Empty;
 
-        [EmailAddress(ErrorMessage = "Please enter a valid Father Email.")]
+        [ValidEmail]
         public string FatherEmailId { get; set; } = string.Empty;
 
         public int FatherOccupation { get; set; }
@@ -2246,7 +2267,7 @@ namespace DomainModel.Admin
 
         public string MotherContactNo { get; set; } = string.Empty;
 
-        [EmailAddress(ErrorMessage = "Please enter a valid Mother Email.")]
+        [ValidEmail]
         public string MotherEmailId { get; set; } = string.Empty;
 
         public int MotherOccupation { get; set; }

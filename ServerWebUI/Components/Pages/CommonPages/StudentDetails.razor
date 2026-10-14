@@ -92,7 +92,7 @@
                                     <EditForm Model="childDetails" OnValidSubmit="Childsdetails" FormName="ChildForm">
                                         <DataAnnotationsValidator />
 
-                                        <fieldset disabled="@_childFormDisabled" class="overflow-auto  min-h-400" style="height: calc(95vh - 215px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_childFormDisabled" class="overflow-auto  min-h-400" style="height: calc(95vh - 255px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
@@ -260,7 +260,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="childDetails.AadhaarNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="childDetails.AadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Aadhaar No</label>
                                                         <ValidationMessage For="@(() => childDetails.AadhaarNo)" />
                                                     </div>
@@ -272,18 +272,18 @@
 
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="childhave">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -563,7 +563,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "parents-details" ? "show active" : "")" id="parents-details">
                                     <EditForm Model="parentsDetails" OnValidSubmit="Parentsdetails" FormName="ParentFom">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_parentsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_parentsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1">
                                                     <div class="divider-box d-flex justify-content-between align-items-center gap-2">
@@ -596,7 +596,7 @@
                                       
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAadharNo" onkeypress="return  /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAadharNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Aadhaar No.</label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherAadharNo)" />
                                                     </div>
@@ -652,7 +652,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Office Contact No.</label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherOfficeContactNo)" />
                                                     </div>
@@ -704,14 +704,14 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherEMail" autocomplete="off" maxlength="150" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherEMail" autocomplete="off" maxlength="150" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Email Id</label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherEMail)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact No.</label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherContactNo)" />
                                                     </div>
@@ -737,14 +737,14 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">SMS Mobile  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => parentsDetails.SMSMobileNo)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.ContactEmailId" autocomplete="off" maxlength="100" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.ContactEmailId" autocomplete="off" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Contact Email</label>
                                                         <ValidationMessage For="@(() => parentsDetails.ContactEmailId)" />
                                                     </div>
@@ -802,7 +802,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAadharNo" onkeypress="return  /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAadharNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Aadhaar No.</label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherAadharNo)" />
                                                     </div>
@@ -860,7 +860,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Office Contact No.</label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherOfficeContactNo)" />
                                                     </div>
@@ -911,14 +911,14 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherEMail" autocomplete="off" maxlength="100" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherEMail" autocomplete="off" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                         <label class="floating-label">Email Id</label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherEMail)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact No.</label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherContactNo)" />
                                                     </div>
@@ -997,7 +997,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "points-criteria" ? "show active" : "")" id="points-criteria">
                                     <EditForm Model="pointsCriteria" OnValidSubmit="Pointscriteria" FormName="PointForm">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_pointsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_pointsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
 
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 col-xl-7 px-1">
@@ -1021,18 +1021,18 @@
                                                         <label for="sibling" class="floating-label">Does the child have any special need?</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.IsFirstBornChild">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1043,30 +1043,30 @@
                                                         <label for="sibling" class="floating-label">Does the child have any special need?</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.CoreCategory">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(1)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Religious / Linguistic Minority
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(2)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Economically Weaker Section
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(3)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Socially Disadvantaged Section
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(4)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Other
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1082,18 +1082,18 @@
                                                                     <label class="d-flex align-items-center form-label">
                                                                         Father :
                                                                     </label>
-                                                                    <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                         <InputRadio Value="@(true)" />
-                                                                        <label class="d-flex align-items-center form-label">
+                                                                        <span class="d-flex align-items-center form-label">
                                                                             Yes
-                                                                        </label>
-                                                                    </div>
-                                                                    <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                        </span>
+                                                                    </label>
+                                                                    <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                         <InputRadio Value="@(false)" />
-                                                                        <label class="d-flex align-items-center form-label">
+                                                                        <span class="d-flex align-items-center form-label">
                                                                             No
-                                                                        </label>
-                                                                    </div>
+                                                                        </span>
+                                                                    </label>
                                                                 </div>
                                                             </InputRadioGroup>
                                                             <label class="d-flex align-items-center form-label">
@@ -1104,18 +1104,18 @@
                                                                     <label class="d-flex align-items-center form-label">
                                                                         Mother :
                                                                     </label>
-                                                                    <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                         <InputRadio Value="@(true)" />
-                                                                        <label class="d-flex align-items-center form-label">
+                                                                        <span class="d-flex align-items-center form-label">
                                                                             Yes
-                                                                        </label>
-                                                                    </div>
-                                                                    <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                        </span>
+                                                                    </label>
+                                                                    <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                         <InputRadio Value="@(false)" />
-                                                                        <label class="d-flex align-items-center form-label">
+                                                                        <span class="d-flex align-items-center form-label">
                                                                             No
-                                                                        </label>
-                                                                    </div>
+                                                                        </span>
+                                                                    </label>
                                                                 </div>
                                                             </InputRadioGroup>
                                                         </div>
@@ -1135,18 +1135,18 @@
                                                         <label for="sibling" class="floating-label">Whether Defence / Police Personnel</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.DefencePerson">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1172,18 +1172,18 @@
                                                         <label for="sibling" class="floating-label">Is Alumni</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.IsFatherAlumni">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1233,18 +1233,18 @@
                                                         <label for="sibling" class="floating-label">Is Alumni</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.IsMotherAlumni">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1293,27 +1293,29 @@
                                                     <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
                                                         <label for="sibling" class="floating-label">Is Single Parent</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
-                                                            <InputRadioGroup @bind-Value="pointsCriteria.SingleParent">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                            <InputRadioGroup @bind-Value="pointsCriteria.SingleParent" @bind-Value:after="OnSingleParentChanged">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                                    <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="pointsCriteria.ChildCustody">
+                                                    @* enabled only when "Is Single Parent" = Yes *@
+                                                    <div class="form-box-group static-label @(_pointsFormDisabled == true || !pointsCriteria.SingleParent ? "disabled" : "")">
+                                                        <InputSelect class="floating-input" placeholder=" " @bind-Value="pointsCriteria.ChildCustody" @bind-Value:after="OnChildCustodyChanged"
+                                                                     disabled="@(!pointsCriteria.SingleParent)">
                                                         <option value="0" selected>--Select --</option>
                                                         <option value="Father">Father</option>
                                                         <option value="Mother">Mother</option>
@@ -1324,58 +1326,59 @@
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-1">
-                                                    <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
+                                                    @* Widow: custody Mother, Widower: custody Father, Guardian: custody Guardian, Other: any custody *@
+                                                    <div class="form-box-group static-label @(_pointsFormDisabled == true || !HasChildCustody ? "disabled" : "")">
                                                         <label for="sibling" class="floating-label">Details of single parent : (Tick whichever, if applicable</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
-                                                            <InputRadioGroup @bind-Value="SelectedGender">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@(1)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                            <InputRadioGroup @bind-Value="pointsCriteria.SingleParentDetail" @bind-Value:after="OnSingleParentDetailChanged">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
+                                                                    <InputRadio Value="@("Widow")" disabled="@(!IsSingleParentDetailAllowed("Widow"))" />
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Widow
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@(2)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
+                                                                    <InputRadio Value="@("Widower")" disabled="@(!IsSingleParentDetailAllowed("Widower"))" />
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Widower
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@(3)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
+                                                                    <InputRadio Value="@("Guardian")" disabled="@(!IsSingleParentDetailAllowed("Guardian"))" />
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Guardian
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@(4)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
+                                                                    <InputRadio Value="@("Other")" disabled="@(!IsSingleParentDetailAllowed("Other"))" />
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Other
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                                    <div class="form-box-group @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.SingleFatherName" autocomplete="off" maxlength="50" />
+                                                    <div class="form-box-group @(_pointsFormDisabled == true || !CanEnterSingleFatherName ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.SingleFatherName" autocomplete="off" maxlength="50" disabled="@(!CanEnterSingleFatherName)" />
                                                         <label class="floating-label">Father Name</label>
                                                         <ValidationMessage For="@(() => pointsCriteria.SingleFatherName)" />
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                                    <div class="form-box-group @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.SingleMotherName" autocomplete="off" maxlength="50" />
+                                                    <div class="form-box-group @(_pointsFormDisabled == true || !CanEnterSingleMotherName ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.SingleMotherName" autocomplete="off" maxlength="50" disabled="@(!CanEnterSingleMotherName)" />
                                                         <label class="floating-label">Mother Name</label>
                                                         <ValidationMessage For="@(() => pointsCriteria.SingleMotherName)" />
                                                     </div>
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-1">
-                                                    <div class="form-box-group @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.SingleParentComment" autocomplete="off" maxlength="100" />
+                                                    <div class="form-box-group @(_pointsFormDisabled == true || !CanEnterSingleParentComment ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.SingleParentComment" autocomplete="off" maxlength="100" disabled="@(!CanEnterSingleParentComment)" />
                                                         <label class="floating-label">Comment</label>
                                                         <ValidationMessage For="@(() => pointsCriteria.SingleParentComment)" />
                                                     </div>
@@ -1383,21 +1386,21 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <label for="sibling" class="floating-label">Have Legal Document</label>
+                                                        <label for="sibling" class="floating-label">Adopted Child</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
-                                                            <InputRadioGroup @bind-Value="pointsCriteria.IsLegalDocumentHave">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                            <InputRadioGroup @bind-Value="pointsCriteria.IsAdoptedChild">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1408,18 +1411,18 @@
                                                         <label for="sibling" class="floating-label">Staff Ward</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.IsStaffWard">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1430,18 +1433,18 @@
                                                         <label for="sibling" class="floating-label">Child Below Age</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.IsChildBelowAge">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1452,18 +1455,18 @@
                                                         <label for="sibling" class="floating-label">Twins Child</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.IsTwinChild">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1471,21 +1474,21 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <label for="sibling" class="floating-label">Adopted Child</label>
+                                                        <label for="sibling" class="floating-label">Have Legal Document</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
-                                                            <InputRadioGroup @bind-Value="pointsCriteria.IsAdoptedChild">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                            <InputRadioGroup @bind-Value="pointsCriteria.IsLegalDocumentHave">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1495,19 +1498,19 @@
                                                     <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
                                                         <label for="sibling" class="floating-label">Availing day care facility after school hours</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
-                                                            <InputRadioGroup @bind-Value="SelectedGender">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                            <InputRadioGroup @bind-Value="pointsCriteria.IsDayCareRequired">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1518,18 +1521,18 @@
                                                         <label for="sibling" class="floating-label">Sibling if studying in the same school (Real Brother / Sister only)</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="pointsCriteria.Sibling">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Yes
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(false)" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         No
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1589,7 +1592,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "address-details" ? "show active" : "")" id="address-details">
                                     <EditForm Model="addressDetails" OnValidSubmit="Addressdetails" FormName="AddressForm">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_AddressFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_AddressFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1">
                                                     <div class="divider-box d-flex justify-content-between align-items-center gap-2">
@@ -1604,24 +1607,24 @@
                                                         <label for="sibling" class="floating-label">Address To</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="addressDetails.AddressTo">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("Student")" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Student
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("Father")" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Father
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("Mother")" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Mother
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
 
@@ -1630,7 +1633,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.ContactNo" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="50" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.ContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact</label>
                                                         <ValidationMessage For="@(() => addressDetails.ContactNo)" />
                                                     </div>
@@ -1683,24 +1686,24 @@
                                                         <label for="sibling" class="floating-label">Address To</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="addressPermanent.AddressTo" disabled="@IsSameAsCurrent">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("Student")" disabled="@IsSameAsCurrent" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Student
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("Father")" disabled="@IsSameAsCurrent" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Father
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("Mother")" disabled="@IsSameAsCurrent" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Mother
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1708,7 +1711,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.ContactNo" disabled="@IsSameAsCurrent" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="100" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.ContactNo" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                         <label class="floating-label">Contact</label>
                                                         <ValidationMessage For="@(() => addressPermanent.ContactNo)" />
                                                     </div>
@@ -1748,24 +1751,24 @@
                                                         <label for="sibling" class="floating-label"> Details of contact person in case of emergency</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="SelectedGender">
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("1")" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Use Father's Info
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("2")" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Use Mother's Info
-                                                                    </label>
-                                                                </div>
-                                                                <div class="d-flex justify-content-center align-items-center gap-1">
+                                                                    </span>
+                                                                </label>
+                                                                <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@("2")" />
-                                                                    <label class="d-flex align-items-center form-label">
+                                                                    <span class="d-flex align-items-center form-label">
                                                                         Use Other
-                                                                    </label>
-                                                                </div>
+                                                                    </span>
+                                                                </label>
                                                             </InputRadioGroup>
                                                         </div>
                                                     </div>
@@ -1834,7 +1837,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "family-details" ? "show active" : "")" id="family-details">
                                     <EditForm Model="@familyWrapper" OnValidSubmit="Familydetails" FormName="FaimilyForm">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_faimilyFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 215px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_faimilyFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
 
                                             @for (int i = 0; i < familyWrapper.Families.Count; i++)
                                             {
@@ -1968,6 +1971,48 @@
     private bool IsLoading = false;
     private bool childhave = false;
     public string? SelectedGender { get; set; }
+    // points criteria: "Details of single parent" is enabled only when a custody of child is selected
+    private bool HasChildCustody => pointsCriteria.SingleParent
+        && !string.IsNullOrWhiteSpace(pointsCriteria.ChildCustody) && pointsCriteria.ChildCustody != "0";
+
+    // custody Mother: Widow + Mother Name, custody Father: Widower + Father Name,
+    // custody Guardian: Guardian, any custody: Other (+ Comment when Other is ticked)
+    private bool IsSingleParentDetailAllowed(string detail) => HasChildCustody && detail switch
+    {
+        "Widow" => pointsCriteria.ChildCustody == "Mother",
+        "Widower" => pointsCriteria.ChildCustody == "Father",
+        "Guardian" => pointsCriteria.ChildCustody == "Guardian",
+        "Other" => true,
+        _ => false
+    };
+    private bool CanEnterSingleFatherName => HasChildCustody && pointsCriteria.ChildCustody == "Father";
+    private bool CanEnterSingleMotherName => HasChildCustody && pointsCriteria.ChildCustody == "Mother";
+    private bool CanEnterSingleParentComment => HasChildCustody && pointsCriteria.SingleParentDetail == "Other";
+
+    // "Is Single Parent" = No: everything below it is disabled, so it is cleared
+    private void OnSingleParentChanged()
+    {
+        if (!pointsCriteria.SingleParent)
+            pointsCriteria.ChildCustody = "0";
+        ClearDisabledSingleParentFields();
+    }
+
+    private void OnChildCustodyChanged() => ClearDisabledSingleParentFields();
+
+    private void OnSingleParentDetailChanged() => ClearDisabledSingleParentFields();
+
+    // a value is kept only while its field is enabled
+    private void ClearDisabledSingleParentFields()
+    {
+        if (pointsCriteria.SingleParentDetail != null && !IsSingleParentDetailAllowed(pointsCriteria.SingleParentDetail))
+            pointsCriteria.SingleParentDetail = null;
+        if (!CanEnterSingleFatherName)
+            pointsCriteria.SingleFatherName = null;
+        if (!CanEnterSingleMotherName)
+            pointsCriteria.SingleMotherName = null;
+        if (!CanEnterSingleParentComment)
+            pointsCriteria.SingleParentComment = null;
+    }
     private string? datecalulate = "";
     bool _childFormDisabled = true;
     bool _parentsFormDisabled = true;
@@ -2296,7 +2341,7 @@
         }
         catch (Exception ex)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            await customAlert.ShowCustomAlert($"{@Localizer["Error"]}: {ex.Message}", false);
         }
         finally
         {
@@ -2332,7 +2377,7 @@
         }
         catch (Exception ex)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            await customAlert.ShowCustomAlert($"{@Localizer["Error"]}: {ex.Message}", false);
         }
         finally
         {
@@ -2357,6 +2402,13 @@
                 pointsCriteria.IsGirlChildOnly = IsGirl;
                 string apiUrl = "Registration/registrationInformation";
                 var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, pointsCriteria);
+                if (apiResponse == null || !apiResponse.Success)
+                {
+                    // not saved: stay on the tab with the entered values
+                    await customAlert.ShowCustomAlert(apiResponse?.Message ?? "Points criteria could not be saved. Please try again.", false);
+                    return;
+                }
+                _originaloints = CreateSnapshot(pointsCriteria);
 
                 ShowSuccess = true;
                 StateHasChanged();
@@ -2371,7 +2423,7 @@
         }
         catch (Exception ex)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            await customAlert.ShowCustomAlert($"{@Localizer["Error"]}: {ex.Message}", false);
         }
         finally
         {
@@ -2387,6 +2439,12 @@
     {
         try
         {
+            // permanent address is not the form model, so the form submit does not check its contact no.
+            if (!IsSameAsCurrent && !new DomainModel.Common.ValidMobileNoAttribute().IsValid(addressPermanent.ContactNo))
+            {
+                await customAlert.ShowCustomAlert("Permanent address: Enter valid 10 digit mobile number", false);
+                return;
+            }
             if ((IsEdited(addressDetails, _originaladdress)) || (IsEdited(addressPermanent, _originaladdress)))
             {
                 addressDetails.RegistrationId = RegId;
@@ -2453,7 +2511,7 @@
         }
         catch (Exception ex)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            await customAlert.ShowCustomAlert($"{@Localizer["Error"]}: {ex.Message}", false);
         }
         finally
         {
@@ -2480,7 +2538,7 @@
         }
         catch (Exception ex)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            await customAlert.ShowCustomAlert($"{@Localizer["Error"]}: {ex.Message}", false);
             return null;
         }
         finally
@@ -2551,32 +2609,24 @@
     private async Task Familydetails()
     {
 
+        // every missing required field, with the tab it is on; the first such tab is opened
+        var missing = new List<(string Field, string TabId, string TabName)>();
         if (childDetails.Nationality == 0)
+            missing.Add(("Nationality", "childs-details", "Child's Details"));
+        if (childDetails.SocialCategory == 0)
+            missing.Add(("Category", "childs-details", "Child's Details"));
+        if (string.IsNullOrEmpty(parentsDetails.SMSMobileNo))
+            missing.Add(("SMS mobile number", "parents-details", "Parents Details"));
+        if (string.IsNullOrEmpty(addressDetails.Line1))
+            missing.Add(("Current address line 1", "address-details", "Address Details"));
+        if (string.IsNullOrEmpty(addressDetails.PermanentLine1))
+            missing.Add(("Permanent address line 1", "address-details", "Address Details"));
+
+        if (missing.Count > 0)
         {
-            await customAlert.ShowCustomAlert("Nationality is required.", false);
-            StateHasChanged();
-            return;
-        }
-        else if (childDetails.SocialCategory == 0)
-        {
-            await customAlert.ShowCustomAlert("Category is required.", false);
-            StateHasChanged();
-            return;
-        }
-        else if (string.IsNullOrEmpty(addressDetails.Line1))
-        {
-            await customAlert.ShowCustomAlert("Address line 1 is required.", false);
-            return;
-        }
-        else if (string.IsNullOrEmpty(addressDetails.PermanentLine1))
-        {
-            await customAlert.ShowCustomAlert("Address line 1 is required.", false);
-            StateHasChanged();
-            return;
-        }
-        else if (string.IsNullOrEmpty(parentsDetails.SMSMobileNo))
-        {
-            await customAlert.ShowCustomAlert("SMS mobile number is required.", false);
+            var message = string.Join("\n", missing.Select(m => $"{m.Field} is required ({m.TabName} tab)"));
+            await SetTab(missing[0].TabId);
+            await customAlert.ShowCustomAlert(message, false);
             StateHasChanged();
             return;
         }
@@ -2668,7 +2718,7 @@
         }
         catch (Exception ex)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            await customAlert.ShowCustomAlert($"{@Localizer["Error"]}: {ex.Message}", false);
 
         }
         finally

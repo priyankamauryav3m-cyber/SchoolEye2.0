@@ -120,6 +120,27 @@ window.viewPdf = function (base64Pdf) {
 
     window.open(url, "_blank");
 };
+// forgot password: the tab that sent the mail closes (or goes to sign in) once the
+// password is reset from the mail link in another tab of the same browser
+window.passwordReset = {
+    channelName: "schooleye-password-reset",
+    closeOnReset: function () {
+        if (!("BroadcastChannel" in window)) return;
+        const channel = new BroadcastChannel(this.channelName);
+        channel.onmessage = function () {
+            channel.close();
+            window.close();
+            // a tab the user opened can not be closed by script -> show sign in instead
+            setTimeout(function () { window.location.href = "/"; }, 300);
+        };
+    },
+    notifyDone: function () {
+        if (!("BroadcastChannel" in window)) return;
+        const channel = new BroadcastChannel(this.channelName);
+        channel.postMessage("done");
+        channel.close();
+    }
+};
 window.openDatePickerFromWrapper = (wrapper) => {
     if (!wrapper) return;
 

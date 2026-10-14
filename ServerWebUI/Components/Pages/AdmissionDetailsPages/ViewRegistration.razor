@@ -101,7 +101,13 @@
                                     </ChildContent>
                                 </TemplateColumn>
 
-                                <PropertyColumn Property="@(x => x.RegistrationNo)" Sortable="true" Title="Reg No." />
+                                <TemplateColumn Title="Reg No." Sortable="true" SortBy="GridSort<RegistrationDto>.ByAscending(x => x.RegistrationNo)">
+                                    @* click the Reg No. to open Registration Details (same as select + Enter Details) *@
+                                    <a href="javascript:void(0)" class="text-primary fw-semibold text-decoration-underline"
+                                       title="Enter Details" @onclick='() => SaveStudentDetails(context, "Enter")' @onclick:stopPropagation="true">
+                                        @context.RegistrationNo
+                                    </a>
+                                </TemplateColumn>
 
                                 <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
                                         <ColumnOptions>

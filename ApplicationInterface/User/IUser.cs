@@ -21,5 +21,10 @@ namespace ApplicationInterface.User
          public Task<bool> IsTrustedDeviceAsync(int userId, Guid deviceToken);
 
         Task RemoveTrustedDeviceAsync(int userId, Guid deviceToken);
+
+        // forgot password: reset link by email
+        Task SendPasswordResetLinkAsync(string usernameOrEmail);
+        Task<int> ValidatePasswordResetTokenAsync(string token);
+        Task<int> ResetPasswordWithTokenAsync(string token, string newPassword);
     }
 }

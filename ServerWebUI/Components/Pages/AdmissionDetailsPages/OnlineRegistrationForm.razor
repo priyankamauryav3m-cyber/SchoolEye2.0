@@ -100,7 +100,7 @@
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.ChildAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.ChildAadharNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                 <label class="floating-label">Aadhar No. <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.ChildAadharNo)" />
                                             </div>
@@ -448,7 +448,7 @@
                                         </div> *@
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherAadharNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                 <label class="floating-label">Aadhar No. <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.MotherAadharNo)" />
                                             </div>
@@ -504,14 +504,14 @@
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherMobile" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="13" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherMobile" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                 <label class="floating-label">Mobile No. <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.MotherMobile)" />
                                             </div>
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherEmailId" autocomplete="off" maxlength="150" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.MotherEmailId" autocomplete="off" maxlength="150" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                 <label class="floating-label">Email Id <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.MotherEmailId)" />
                                             </div>
@@ -547,7 +547,7 @@
                                         </div> *@
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherAadharNo" autocomplete="off" onkeypress="return  /^[0-9]$/.test(event.key)" maxlength="20" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherAadharNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                 <label class="floating-label">Aadhar No. <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.FatherAadharNo)" />
                                             </div>
@@ -603,14 +603,14 @@
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherMobile" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="13" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherMobile" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
                                                 <label class="floating-label">Mobile No. <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.FatherMobile)" />
                                             </div>
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherEmailId" autocomplete="off" maxlength="150" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.FatherEmailId" autocomplete="off" maxlength="150" oninput="this.value=this.value.replace(/\s/g,'')" />
                                                 <label class="floating-label">Email Id <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.FatherEmailId)" />
                                             </div>

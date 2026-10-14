@@ -180,7 +180,7 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@GroupCode", dto.GroupCode);
                 parameters.Add("@BranchCode", dto.BranchCode);
                 parameters.Add("@SessionId", dto.SessionId);
-                parameters.Add("@RegistrationNo", dto.RegistrationId);
+                parameters.Add("@RegistrationId", dto.RegistrationId);
 
                 // ===== OTHER INFO =====
 
@@ -189,6 +189,7 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@IsReservedSeat", dto.IsReservedSeat);
                 parameters.Add("@FatherTransferableJob", dto.FatherTransferableJob);
                 parameters.Add("@MoterTransferableJob", dto.MotherTransferableJob);
+                parameters.Add("@TransferCity", dto.TransferCity);
                 parameters.Add("@GirlChildOnly", dto.IsGirlChildOnly);
                 parameters.Add("@DefencePerson", dto.DefencePerson);
                 parameters.Add("@DefenceDetail", dto.DefenceDetail);
@@ -197,7 +198,9 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@SingleFatherName", dto.SingleFatherName);
                 parameters.Add("@SingleMotherName", dto.SingleMotherName);
                 parameters.Add("@SingleParentComment", dto.SingleParentComment);
+                parameters.Add("@SingleParentDetail", dto.SingleParentDetail);
                 parameters.Add("@IsLegalDocumentHave", dto.IsLegalDocumentHave);
+                parameters.Add("@IsDayCareRequired", dto.IsDayCareRequired);
                 // ===== ALUMNI =====
 
                 parameters.Add("@isFatherAlumni", dto.IsFatherAlumni);
@@ -219,11 +222,12 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@FatherAlumniClass", dto.FatherAlumniClass);
                 parameters.Add("@MotherAlumniClass", dto.MotherAlumniClass);
                 parameters.Add("@CreatedBy", dto.CreatedBy);
-                int rows = await connection.ExecuteAsync(
+                // Result: 1 saved, -1 invalid registration / session, 0 error (logged in Det_ExceptionDetails)
+                int result = await connection.ExecuteScalarAsync<int>(
                     "ADM_UpdateOtherInformation",
                     parameters,
                     commandType: CommandType.StoredProcedure);
-                return rows > 0 ? "Saved Successfully" : "No Record Updated";
+                return result == 1 ? "Saved Successfully" : "No Record Updated";
             }
             catch (Exception ex)
             {

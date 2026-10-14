@@ -72,6 +72,12 @@
                     </div>
                 </div>
 
+                @* one message for a wrong username or a wrong password, so it never tells which one *@
+                @if (!string.IsNullOrEmpty(LoginError))
+                {
+                    <div class="login-error"><i class="fa-solid fa-circle-exclamation me-1"></i>@LoginError</div>
+                }
+
                 <button class="btn-signin" type="submit" disabled="@IsLoading">
                     @if (IsLoading)
                     {
@@ -97,10 +103,11 @@
             </div>
 
             <div class="social-row">
-                <button type="button" class="social-btn" @onclick="GoogleLogin">
+                @* no social login while a sign in is in progress *@
+                <button type="button" class="social-btn" @onclick="GoogleLogin" disabled="@IsLoading">
                     <i class="fa-brands fa-google"></i> Google
                 </button>
-                <button type="button" class="social-btn" @onclick="LoginWithFacebook">
+                <button type="button" class="social-btn" @onclick="LoginWithFacebook" disabled="@IsLoading">
                     <i class="fa-brands fa-facebook" style="color:#1877f2"></i> Facebook
                 </button>
             </div>
@@ -400,6 +407,19 @@
             background: #f8fafc
         }
 
+    .login-error {
+        color: #dc2626;
+        font-size: 13px;
+        font-weight: 600;
+        margin: 2px 0 6px
+    }
+
+        .social-btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+            background: #fff
+        }
+
     .help-text {
         text-align: center;
         margin-top: 22px;
@@ -576,6 +596,8 @@
     private ElementReference captchaInput;
     private bool IsLoading;
     private bool ShowPassword = false;
+    private const string IncorrectLoginMessage = "Incorrect username or password.";
+    private string? LoginError;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "name")]
@@ -656,6 +678,7 @@
         try
         {
             IsLoading = true;
+            LoginError = null;
             if (string.IsNullOrWhiteSpace(loginModel.Username) || string.IsNullOrWhiteSpace(loginModel.Password))
             {
                 await sessionStorage.SetAsync("alertMessage", "Please fill out all required fields.");
@@ -685,16 +708,11 @@
                     {
                         switch (user.Result)
                         {
+                            // wrong username or wrong password -> the same red message under the form
                             case "-1":
-                                await customAlert.ShowCustomAlert("Incorrect login details.", false);
-                                return;
-
                             case "-2":
-                                await customAlert.ShowCustomAlert("Incorrect Password.", false);
-                                return;
-
                             case "-3":
-                                await customAlert.ShowCustomAlert("User does not exist.", false);
+                                LoginError = IncorrectLoginMessage;
                                 return;
 
                             default:
@@ -759,11 +777,13 @@
 
     private void GoogleLogin()
     {
+        if (IsLoading) return;
         NavigationManager.NavigateTo("/login?provider=Google", true);
     }
 
     private void LoginWithFacebook()
     {
+        if (IsLoading) return;
         NavigationManager.NavigateTo("/login?provider=Facebook", true);
     }
 }
