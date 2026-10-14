@@ -1356,7 +1356,6 @@ input[type="checkbox"] {
     border: 1px solid #dcdcdc;
     box-shadow: 0px 0px 8px 0px #0000000f;
     padding: 7px 10px;
-    height: 54px;
 }
 
 .page-name {
@@ -1529,24 +1528,26 @@ select.form-input {
     background-color: #fff;
 }
 
-.grid-box-with-btn{
-   
+.grid-box-with-btn {
     border: 1px solid #ddd;
     border-radius: 10px;
     margin-bottom: 10px;
 }
+
 .quickgrid thead {
     border-bottom: 1px solid #c7c7c7;
     z-index: 1;
 }
+
 .grid-box-with-btn table {
-/*    height: calc(100vh - 273px);*/
+    /*    height: calc(100vh - 273px);*/
     overflow: auto;
     scrollbar-width: thin;
-/*    min-height: 300px;*/
+    /*    min-height: 300px;*/
     border-radius: 10px;
     margin-bottom: 10px;
 }
+
 .grid-box table {
     overflow: auto;
     scrollbar-width: thin;
@@ -1793,8 +1794,8 @@ select.form-input {
 
 .summary-pane {
     flex: 1 1 auto;
-    min-width: 210px;
     min-width: 0;
+    min-width: 210px; /* FIX: order swapped so the 210px minimum actually applies */
     overflow: hidden;
     transition: flex .22s ease, opacity .18s ease, min-width .22s ease;
 }
@@ -2133,7 +2134,7 @@ select.form-input {
     position: relative;
     overflow: hidden;
     color: #fff;
-     padding: 40px 44px; 
+    padding: 40px 44px;
     display: flex;
     flex-direction: column;
     isolation: isolate;
@@ -2454,11 +2455,10 @@ select.form-input {
     .illustration-wrapper {
         max-width: 220px;
     }
-
-
 }
 
 .status {
+    display: inline-flex; /* FIX: needed for align-items / gap to work */
     align-items: center;
     gap: 6px;
     padding: 3px 8px;
@@ -3137,7 +3137,6 @@ html.dark-mode .side-menu a,
    ========================================================================= */
 .form-input, .form-control, .form-select, .border-box, .ad-search {
     border-radius: 3px !important;
-
 }
 
 .form-box:focus-within .form-label, .form-box:hover .form-label {
@@ -3280,6 +3279,18 @@ a, .primary-link {
     --radius: 14px;
     --se-navy-950: #071d33;
     --se-navy-900: #0b2948;
+}
+
+/* FIX: --text and --border were used (login / OTP page) but never defined,
+   which made those colour and border declarations invalid */
+:root {
+    --text: var(--ink);
+    --border: var(--line);
+}
+
+html.dark-mode {
+    --text: var(--text-primary);
+    --border: var(--border-color);
 }
 
 /* ---- Sidebar: navy gradient (top-to-bottom depth) instead of flat fill ---- */
@@ -3429,8 +3440,9 @@ a, .primary-link {
     border-color: var(--se-blue-600) !important;
     box-shadow: 0 0 0 3px rgba(23, 105, 170, .15);
 }
+
 .sign-data {
-    text-align:center;
+    text-align: center;
 }
 
 .sign-data1 {
@@ -3443,7 +3455,7 @@ a, .primary-link {
     font-size: 12px;
     margin: 15px 0 15px;
     position: relative;
-    font-weight:500;
+    font-weight: 500;
 }
 
     .or:before,
@@ -3509,7 +3521,7 @@ a, .primary-link {
     justify-content: center;
 }
 
- 
+
     .stat-icon.orange {
         background-color: #f1e0c5;
         color: #f97316;
@@ -3664,15 +3676,16 @@ a, .primary-link {
     background: #ecfdf5;
     color: #16a34a;
 }
-.full-screen .nav-item:hover .right-shift 
-{
+
+.full-screen .nav-item:hover .right-shift {
     background: #0a2540;
     white-space: nowrap;
 }
-.full-screen .sidebar-menu .dw-ul:after 
-{
+
+.full-screen .sidebar-menu .dw-ul:after {
     background: #0a2540;
 }
+
 .metric-box {
     border: 1px solid transparent;
     border-radius: 8px;
@@ -3838,4 +3851,24 @@ label.radio-option {
             .custom-modal .main-popup .head-btn {
                 flex-shrink: 0;
             }
+}
+
+@media (max-width: 600px) {
+
+    #main-header .page-heading .d-flex.align-items-center.gap-2 {
+        display: grid !important;
+        grid-template-columns: repeat(1, 1fr) !important;
+        gap: 15px;
+        width: 100%;
+    }
+/*        #main-header .page-heading .d-flex.align-items-center.gap-2 > .form-box:nth-child(1) {
+            grid-column: span 1 !important;
+        }
+        #main-header .page-heading .d-flex.align-items-center.gap-2 > .form-box:nth-child(2) {
+            grid-column: span 1 !important;
+        }*/
+    #main-header .page-heading .icon-btn 
+    {
+        display:none;
+    }
 }
