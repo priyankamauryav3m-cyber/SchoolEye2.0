@@ -33,7 +33,7 @@
                     </div>
                 }
                 <div class="tab-pane tab-pane-form fade show active overflow-auto min-h-650" style="height: calc(125vh - 285px); border-radius: 10px;" ;>
-                    <EditForm Model="@studentDirectAdmission" OnValidSubmit="@(() => OnSave("Admission"))">
+                    <EditForm EditContext="@editContext" OnValidSubmit="@(() => OnSave("Admission"))">
                         <DataAnnotationsValidator />
                         <div class="modal-body">
                             <div class="tab-content form-tab-count">
@@ -734,19 +734,34 @@
 
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="form-box">
-                                                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick='@(() => OnSave(""))'>
-                                                            <div class="visible content">Map Concession</div>
+                                                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick='@(() => OnSave(""))'
+                                                                disabled="@(concessionTempList.Count == 0)">
+                                                            <div class="visible content">Submit Map Concession</div>
                                                             <div class="hidden content">
                                                                 <i class="fa fa-save"></i>
                                                             </div>
                                                         </button>
 
                                                     </div>
+                                                    @* after Reset (nothing left to map) only Close is shown *@
+                                                    @if (concessionTempList.Count > 0)
+                                                    {
+                                                        <div class="form-box">
+                                                            <button type="button" class="ui fade op-1 animated button btn-cancle"
+                                                                    @onclick="OnClickReset">
+
+                                                                <div class="visible content">Reset</div>
+                                                                <div class="hidden content">
+                                                                    <i class="fa fa-refresh"></i>
+                                                                </div>
+                                                            </button>
+                                                        </div>
+                                                    }
                                                     <div class="form-box">
                                                         <button type="button" class="ui fade op-1 animated button btn-cancle"
-                                                                @onclick="OnClickReset">
+                                                                @onclick="CloseConcessionDetails">
 
-                                                            <div class="visible content">Reset</div>
+                                                            <div class="visible content">Close</div>
                                                             <div class="hidden content">
                                                                 <i class="fa fa-close"></i>
                                                             </div>
@@ -959,8 +974,22 @@
     }
     protected override void OnInitialized()
     {
+        NewAdmissionForm();
+    }
+
+    // the form, its required messages and the custom messages (messageStore) use one EditContext;
+    // a new model needs a new EditContext
+    private void NewAdmissionForm()
+    {
+        studentDirectAdmission = new();
         editContext = new EditContext(studentDirectAdmission);
         messageStore = new ValidationMessageStore(editContext);
+        // a custom "... is required" message goes away once that field is changed
+        editContext.OnFieldChanged += (_, e) =>
+        {
+            messageStore.Clear(e.FieldIdentifier);
+            editContext.NotifyValidationStateChanged();
+        };
     }
     private async Task UnMapConcession(string feeHeadId)
     {
@@ -1097,22 +1126,26 @@
         StateHasChanged();
     }
 
-    private async void OpenConcessionPopup()
+    // Close the Map Concession section; the concessions not yet submitted are dropped
+    private void CloseConcessionDetails()
     {
-        if (!string.IsNullOrEmpty(studentDirectAdmission.FirstName) && !string.IsNullOrEmpty(studentDirectAdmission.ClassCode) && !string.IsNullOrEmpty(studentDirectAdmission.stuManualAdmNo) && studentDirectAdmission.SectionId != 0 && !string.IsNullOrEmpty(studentDirectAdmission.Gender) && studentDirectAdmission.DateOfBirth != null && studentDirectAdmission.AdmissionDate != null && !string.IsNullOrEmpty(studentDirectAdmission.FatherFirstName) && !string.IsNullOrEmpty(studentDirectAdmission.MotherFirstName) && !string.IsNullOrEmpty(studentDirectAdmission.SMSContactNo))
-        {
-            feeHeadlist.Clear();
-            OpenConcession = true;
-            await Task.Delay(100);
-            await JS.InvokeVoidAsync("scrollToElement", "section2");
-            StateHasChanged();
-        }
-        else
-        {
-            await customAlert.ShowCustomAlert("Please fill the required field.", false);
+        concessionTempList.Clear();
+        OpenConcessionDetails = false;
+        StateHasChanged();
+    }
 
-        }
+    // Add Concession: the same red "required" messages under the fields as Submit, then the concession section
+    private async Task OpenConcessionPopup()
+    {
+        messageStore.Clear();
+        if (!editContext.Validate())
+            return;
 
+        feeHeadlist.Clear();
+        OpenConcession = true;
+        StateHasChanged();
+        await Task.Delay(100);
+        await JS.InvokeVoidAsync("scrollToElement", "section2");
     }
     private async Task SaveConcession()
     {
@@ -1444,7 +1477,7 @@
                 opensibling = false;
                 OpenConcession = false;
                 getRegistration = new GetRegistrationModel();
-                studentDirectAdmission = new();
+                NewAdmissionForm();
                 concessionTempList.Clear();
                 OpenConcessionDetails = false;
                 siblingDetail = new();
@@ -1495,7 +1528,7 @@
         IsSibllingAttach = false;
         concessionTempList.Clear();
         getRegistration = new GetRegistrationModel();
-        studentDirectAdmission = new();
+        NewAdmissionForm();
         siblingDetail = new();
         if (OnClose.HasDelegate)
             await OnClose.InvokeAsync();
