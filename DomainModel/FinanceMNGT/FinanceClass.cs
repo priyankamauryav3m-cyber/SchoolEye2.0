@@ -2236,6 +2236,8 @@ namespace DomainModel.FinanceMNGT
         public string? BranchCode { get; set; }
         public long SessionId { get; set; }
         public long StudentId { get; set; }
+        public string? StudentNo { get; set; } = string.Empty;
+        public string? StudentName { get; set; } = string.Empty;
     }
     public class StudentLedgerResponse
     {

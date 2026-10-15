@@ -158,8 +158,8 @@
                                             <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student  name...." />
                                         </div>
                                     </ColumnOptions>
-                                        </PropertyColumn>
-                                            <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" />
+                                    </PropertyColumn>
+                                     <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" />
                                     <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.TransactionBy) ? " " : x.TransactionBy)" Title="Transaction By" />
                                     <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.Amount)" Title="Amount (₹)" Align="Align.Right" />
                                     <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.RunningBalance)" Title="Balance (₹)" Align="Align.Right" />
@@ -308,7 +308,7 @@
             {
                 await Alert.ShowWarning("Student record was not found.");
             }
-            else if (studentMatchList.Count == 1)
+            else if (studentMatchList.Count > 0)
             {
                 selectedStudent = studentMatchList[0];
                 await LoadStudentLedger(selectedStudent);
@@ -333,6 +333,8 @@
             GroupCode = groupcode,
             BranchCode = branchcode,
             SessionId = CurrentSession,
+            StudentNo=searchModel.ControlNo?.Trim() ?? "",
+            StudentName=searchModel.StudentName?.Trim() ?? ""
         };
         var apiResponse = await httpService.Post<ApiResponse<List<StudentLedgerResponse>>>("StudentFeeInvoice/GetStudentLedgerNew", ledgerRequest);
         if (apiResponse != null && apiResponse.Success)

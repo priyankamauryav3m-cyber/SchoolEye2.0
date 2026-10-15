@@ -453,6 +453,8 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 param.Add("@GroupCode", request.GroupCode);
                 param.Add("@BranchCode", request.BranchCode);
                 param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentNo", request.StudentNo);
+                param.Add("@StudentName", request.StudentName);
                 return await con.QueryAsync<StudentLedgerResponse>(
                     "V3M_FIN_UspGetStudentLedger",
                     param,
