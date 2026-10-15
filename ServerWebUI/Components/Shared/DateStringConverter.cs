@@ -6,10 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace ServerWebUI.Shared
 {
-    // A date the API sends as a string (2026-10-01, 2026-10-01T00:00:00, 2026/10/01, 10/01/2026 12:00:00 AM ...)
-    // is shown in AppConfigurationSettings:DateFormat, so pages need no ToString for it.
-    // Such a date going back to the API is sent as yyyy-MM-dd, which SQL Server reads the same way on every server.
-    // Only the date is kept, a time part is dropped.
+    
     public class DateStringConverter : JsonConverter<string>
     {
         // year first: 2026-10-01, 2026/10/01, with optional time and zone
