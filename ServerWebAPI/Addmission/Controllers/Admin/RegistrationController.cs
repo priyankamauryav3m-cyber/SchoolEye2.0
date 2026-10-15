@@ -57,7 +57,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 return BadRequest(new ApiResponse<object>
                 {
-                    Success = true,
+                    Success = false,
                     Message = _localizer["InvalidData", "registration"]
                 });
             }
@@ -68,7 +68,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 {
                     return Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = "Registration failed.",
                         Code = 0
                     });
@@ -99,7 +99,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 return BadRequest(new ApiResponse<object>
                 {
-                    Success = true,
+                    Success = false,
                     Message = _localizer["InvalidData", "Child"]
                 });
             }
@@ -112,7 +112,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 {
                     return Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = result,
                         Code = 0
                     });
@@ -141,7 +141,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         {
             try
             {
-                if (registrationId==0)
+                if (registrationId <= 0)
                     return BadRequest(new { message = _localizer["RequiredField", "RegistrationNo"] });
 
                 var data = await _service.GetRegistrationParentsChildById(groupCode, branchCode, sessionId,  registrationId);
@@ -162,7 +162,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 return BadRequest(new ApiResponse<object>
                 {
-                    Success = true,
+                    Success = false,
                     Message = _localizer["InvalidData", "information"]
                 });
             }
@@ -203,7 +203,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         {
             try
             {
-                if (registrationId==0)
+                if (registrationId <= 0)
                     return BadRequest(new { message = _localizer["RequiredField", "RegistrationNo"] });
                 var data = await _service.GetRegistrationChildotherInformation(groupCode, branchCode, sessionId, registrationId);
                 if (data == null)
@@ -226,7 +226,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 return BadRequest(new ApiResponse<object>
                 {
-                    Success = true,
+                    Success = false,
                     Message = _localizer["InvalidData", "information"]
                 });
             }
@@ -238,7 +238,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 {
                     return Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = result,
                         Code = 0
                     });
@@ -266,14 +266,14 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         {
             try
             {
-                if (registrationId==0)
+                if (registrationId <= 0)
                     return BadRequest(new { message = _localizer["RequiredField", "RegistrationNo"] });
                 var data = await _service.GetRegistrationChildAddressInformation(groupCode, branchCode, sessionId, registrationId, AddressType);
                 if (data == null)
                 {
                     return NotFound(new ApiResponse<AddressDetails>
                     {
-                        Success = true,
+                        Success = false,
                         Message = _localizer["RecordNotFound", "Record"],
                         Data = null
                     });
@@ -300,7 +300,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         {
             try
             {
-                if (registrationId==0)
+                if (registrationId <= 0)
                     return BadRequest(new { message = _localizer["RequiredField", "RegistrationNo"] });
                 var data = await _service.GetRegistrationChildData(groupCode, branchCode, sessionId, registrationId);
                 if (data == null)
@@ -321,7 +321,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 return BadRequest(new ApiResponse<object>
                 {
-                    Success = true,
+                    Success = false,
                     Message = _localizer["InvalidData", "registration"]
 
                 });
@@ -333,7 +333,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 {
                     return Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = "failed.",
                         Code = 0
                     });
@@ -380,7 +380,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         {
             try
             {
-                if (registrationId==0)
+                if (registrationId <= 0)
                     return BadRequest(new { message = _localizer["RequiredField", "RegistrationNo"] });
                 var data = await _service.GetRegistrationFamilyDetails(groupCode, branchCode, sessionId, registrationId);
                 if (data == null)
@@ -413,7 +413,12 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while processing admission."
+                });
             }
         }
 
@@ -424,10 +429,18 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             {
                 return BadRequest("GroupCode and BranchCode are required.");
             }
-            var data = await _service.GetStudentDetailsData(groupCode, branchCode, SessionId, RegistrationId, AddressType);
-            if (data == null)
-                return NotFound(_localizer["RecordNotFound", "student"]);
-            return Ok(data);
+            try
+            {
+                var data = await _service.GetStudentDetailsData(groupCode, branchCode, SessionId, RegistrationId, AddressType);
+                if (data == null)
+                    return NotFound(_localizer["RecordNotFound", "student"]);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new { message = _localizer["Error"] });
+            }
         }
 
         [HttpPost("StudentList")]
@@ -447,10 +460,11 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 var response = new ApiResponse<object>
                 {
                     Success = false,
-                    Message = ex.Message,
+                    Message = "An error occurred while fetching the student list.",
                     Data = null
                 };
 
@@ -505,7 +519,9 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 return StatusCode(500, "An error occurred while processing your request.");
             }
         }
+
         [AllowAnonymous]
+        [EnableRateLimiting("V3MAPI_Call_Limit")]
         [HttpPost("OnlineRegistration")]
         public async Task<IActionResult> OnlineRegistrationData([FromBody] OnlineRegistration online)
         {
@@ -514,6 +530,16 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 if (online == null)
                     return BadRequest("Invalid request");
                 var result = await _service.InsertOnlineRegistration(online);
+                // blank @RegistrationNo means the procedure did not create the registration
+                if (string.IsNullOrWhiteSpace(result))
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Registration could not be saved. Please try again.",
+                        Code = 0
+                    });
+                }
                 return StatusCode(StatusCodes.Status201Created, new ApiResponse<object>
                 {
                     Success = true,
@@ -525,7 +551,12 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = _localizer["Error"]
+                });
             }
         }
         [HttpPost("RegistrationCancel")]
@@ -539,13 +570,14 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                     return BadRequest("Invalid request");
                 }
                 var result = await _service.RegistrationCancel(online);
-                if (result != null && !string.IsNullOrEmpty(result))
+                // service returns rows affected; "0" means nothing was cancelled
+                if (int.TryParse(result, out var rows) && rows > 0)
                 {
                     count = 1;
                 }
                 return StatusCode(StatusCodes.Status200OK, new ApiResponse<object>
                 {
-                    Success = true,
+                    Success = count == 1,
                     Message = "",
                     Code = count,
                     Data = result
@@ -553,10 +585,15 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while cancelling the registration.",
+                    Code = -1
+                });
             }
         }
         [HttpPost("RegistratioFormateType")]
@@ -590,10 +627,15 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 });
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching registration formats.",
+                    Code = -1
+                });
             }
         }
         [HttpPost("AddOrUpdateFormateType")]
@@ -608,14 +650,14 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 {
                     "-1" => Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = "Regformate type already exists",
                         Code = -1
 
                     }),
                     "-2" => Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = "This class is already assigned to another format",
                         Code = -2
                     }),
@@ -638,9 +680,15 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                     })
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while saving the registration format.",
+                    Code = 0
+                });
             }
         }
 
@@ -653,7 +701,10 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                     return BadRequest(
                         ApiResponse<string>.Fail("Invalid ID"));
 
-                await _service.RFM_Active(countryId);
+                var rows = await _service.RFM_Active(countryId);
+                if (rows <= 0)
+                    return NotFound(
+                        ApiResponse<string>.Fail("Formate type not found."));
 
                 return Ok(
                     ApiResponse<string>.Ok("Formate type status changed"));
@@ -717,7 +768,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                     return Ok(new ApiResponse<object>
                     {
                         Success = true,
-                        Message = "registration detail fetched successfully.",
+                        Message = "Registration status updated successfully.",
                         Code = 2
                     });
                 }

@@ -404,22 +404,23 @@
             string apiurl = "Registration/AddOrUpdateFormateType";
 
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiurl, commonData);
+            // duplicate / conflict codes are returned with Success = false
+            if (apiResponse.Code == -1)
+            {
+                await Alert.ShowWarning("Reg Formate" + Localizer["Already"]);
+                ShowPopup = true;
+                return;
+
+            }
+            else if (apiResponse.Code == -2)
+            {
+                await Alert.ShowWarning("This class is already assigned to another format");
+                ShowPopup = true;
+                return;
+            }
             if (apiResponse.Success)
             {
-                if (apiResponse.Code == -1)
-                {
-                    await Alert.ShowWarning("Reg Formate" + Localizer["Already"]);
-                    ShowPopup = true;
-                    return;
-
-                }
-                else if (apiResponse.Code == -2)
-                {
-                    await Alert.ShowWarning("This class is already assigned to another format");
-                    ShowPopup = true;
-                    return;
-                }
-                else if (apiResponse.Code == 1)
+                if (apiResponse.Code == 1)
                 {
                     await Alert.ShowSuccess("Reg Formate" + Localizer["Inserted"]);
                 }

@@ -588,7 +588,8 @@
             string apiUrl = "Registration/AddRegistration";
             var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, registration);
 
-            if (apiResponse.Success)
+            // Code 0 (not saved) is returned with Success = false
+            if (apiResponse.Success || apiResponse.Code == 0)
             {
                 var responseCode = apiResponse.Code;
                 var regNo = apiResponse.Data;
