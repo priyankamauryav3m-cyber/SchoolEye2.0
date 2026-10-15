@@ -334,6 +334,7 @@ namespace DomainModel.SchoolMaster
         [Display(Name = "Pincode")]
         [StringLength(20, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "StringLengthExceeded")]
 
+        [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter valid 6 digit pincode")]
         public string? PinCode { get; set; }
 
 
@@ -871,6 +872,7 @@ namespace DomainModel.SchoolMaster
 
         [Display(Name = "Pin Code")]
         [StringLength(10, ErrorMessage = "Pin Code cannot exceed 10 characters.")]
+        [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter valid 6 digit pincode")]
         public string? PinCode { get; set; }
 
         [Display(Name = "Start Time")]

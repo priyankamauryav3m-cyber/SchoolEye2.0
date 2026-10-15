@@ -40,25 +40,60 @@
                         </InputSelect>
                     </div>
                     <div class="form-box">
+                        <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
+                            @SelectedText
+                        </button>
+                        <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
 
-                        <div class="position-relative">
-                            <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
-                                @SelectedText
-                            </button>
-                            <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center;">
-                                <div class="form-check">
-                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
-                                    <span> All</span>
-                                </div>
-                                @foreach (var item in classlist.Where(x => x.IsValid == true))
-                                {
-                                    <div class="form-check">
-                                        <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" />
-                                        <span>@item.ClassName</span>
-                                    </div>
+                            <div class="form-check">
+                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
 
-                                }
+                                <span>All</span>
                             </div>
+
+                            @foreach (var item in classlist.Where(x => x.IsValid == true))
+                            {
+                                <div class="form-check">
+
+                                    <input class="form-check-input map-checkbox" type="checkbox" @bind="item.IsSelected" @bind:after="GetSectionData" />
+                                    <span>@item.ClassName</span>
+
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+
+                    @* sections of the checked classes *@
+                    <div class="form-box">
+
+                        <button class="form-input" type="button" data-bs-toggle="dropdown">
+                            @SelectedSectionText
+                        </button>
+
+                        <div class="dropdown-menu" style="max-height:350px; overflow-y:auto;">
+
+                            <div class="form-check">
+
+                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllSection" @bind:after="ToggleSelectAllSection" />
+
+                                <span>All</span>
+
+                            </div>
+
+                            @foreach (var item in sectionModellist)
+                            {
+                                <div class="form-check">
+
+                                    <input class="form-check-input map-checkbox"
+                                           type="checkbox"
+                                           @bind="item.IsSelected" @bind:after="UpdateSelectAllSection" />
+
+                                    <span>@item.SectionName</span>
+
+                                </div>
+                            }
+
                         </div>
                     </div>
 
@@ -70,7 +105,7 @@
                         </div>
                     </div>
                     <div class="form-box">
-                        <button class="ui fade op-1 animated button form-btn" @onclick='() => SearchByStudent("Today")' tabindex="0">
+                        <button class="ui fade op-1 animated button form-btn" @onclick='() => SearchByStudent("Search")' tabindex="0">
                             <div class="visible content">Search</div>
                             <div class="hidden content">
                                 <i class="bi bi-search"></i>
@@ -237,7 +272,7 @@
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 <div class="modal-body">
-                    <EditForm Model="@request" OnSubmit='() => SearchByStudent("Today")'>
+                    <EditForm Model="@request" OnSubmit='() => SearchByStudent("Search")'>
                         <div class="row gap-10-0">
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -252,18 +287,6 @@
                                     <label class="floating-label">Gender</label>
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-
-                                <div class="form-box-group static-label">
-                                    <InputSelect class="floating-input" placeholder=" " autocomplete="off" @bind-Value="request.SectionId" maxlength="10" required>
-                                        <option value="0">All</option>
-                                    </InputSelect>
-                                    <label class="floating-label">Section</label>
-                                </div>
-
-
-                            </div>
-
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                                 <div class="form-box-group">
                                     <InputText class="floating-input" placeholder=" " type="text" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'')" @bind-Value="request.StudentName" name="" id="" />
@@ -293,8 +316,8 @@
 
                                 <div class="form-box-group static-label">
                                     <InputSelect class="floating-input" placeholder=" " @bind-Value="request.ValidStatus">
-                                        <option value="0" selected>-- Select Status --</option>
-                                        <option value="1">All</option>
+                                        @* empty = all students (NULL to Sp_GetStudentList) *@
+                                        <option value="">All</option>
                                         <option value="1">Active</option>
                                         <option value="0">Deactive</option>
                                     </InputSelect>
@@ -359,7 +382,7 @@
                     </EditForm>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick='() => SearchByStudent("Today")' tabindex="0">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick='() => SearchByStudent("Search")' tabindex="0">
                         <div class="visible content">Search</div>
                         <div class="hidden content">
                             <i class="bi bi-search"></i>
@@ -407,6 +430,8 @@ else
     private StudentListRequest request = new();
     private List<StudentListResponse> listResponses = new();
     private List<ClassSectionModal> classsectionslist = new();
+    private List<SectionModel> sectionModellist = new();
+    private bool SelectAllSection = true;
     private bool ShowPopup = false;
     private bool addstudent { get; set; }
     PaginationState pagination = new() { ItemsPerPage = 15 };
@@ -425,13 +450,65 @@ else
         foreach (var row in listResponses)   // Items = your table data
             row.IsSelected = IsAllSelected;
     }
-    private void ToggleSelectAll()
+    private async Task ToggleSelectAll()
     {
         foreach (var item in classlist)
         {
             item.IsSelected = SelectAll;
         }
+        await GetSectionData();
     }
+    // sections are listed only when one class is checked (same as View Student);
+    // all classes or more than one class means all sections
+    private async Task GetSectionData()
+    {
+        try
+        {
+            var selectedClasses = classlist.Where(x => x.IsSelected).ToList();
+            SelectAll = selectedClasses.Count == classlist.Count;
+            sectionModellist = new();
+            SelectAllSection = true;
+            if (selectedClasses.Count == 1)
+            {
+                var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>("ClassSection/GetClassWithSection",
+                    new DomainModel.FinanceMNGT.SearchAnyRequestModel { GroupCode = groupcode, BranchCode = branchcode, RequestName = selectedClasses[0].ClassCode });
+                if (apiResponse != null && apiResponse.Success && apiResponse.Data != null)
+                    sectionModellist = apiResponse.Data;
+                foreach (var item in sectionModellist)
+                    item.IsSelected = true;
+            }
+        }
+        catch
+        {
+            sectionModellist.Clear();
+            SelectAllSection = true;
+        }
+        StateHasChanged();
+    }
+    private void ToggleSelectAllSection()
+    {
+        foreach (var item in sectionModellist)
+            item.IsSelected = SelectAllSection;
+    }
+    private void UpdateSelectAllSection()
+    {
+        SelectAllSection = sectionModellist.Count > 0 && sectionModellist.All(x => x.IsSelected);
+    }
+    private string SelectedSectionText
+    {
+        get
+        {
+            if (SelectAllSection || sectionModellist.Count == 0)
+                return "All Section Selected";
+            var selected = sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionName).ToList();
+            return selected.Any() ? string.Join(", ", selected) : "Select Section";
+        }
+    }
+    // NULL = no section filter (all sections), otherwise the checked SectionIds as "1,2,3"
+    private string? SelectedSectionIds =>
+        SelectAllSection || sectionModellist.Count == 0
+            ? null
+            : string.Join(",", sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionId));
     private void UpdateSelectAll()
     {
         SelectAll = classlist.All(x => x.IsSelected);
@@ -483,10 +560,16 @@ else
             {
                 item.IsSelected = true;
             }
-            DashboardValue = EnquiryState.DashboardValue;
+            await GetSectionData();
+            // from dashboard: its filter (Admission / Today / ThisWeek / ThisMonth / ThisYear), otherwise today's admissions
+            DashboardValue = EnquiryState.DashboardValue ?? "";
             if (!string.IsNullOrWhiteSpace(DashboardValue))
             {
                 await SearchByStudent(DashboardValue);
+            }
+            else
+            {
+                await SearchByStudent("Today");
             }
             //  await SearchByStudent();
             StateHasChanged();
@@ -508,12 +591,13 @@ else
     }
     protected override async Task OnInitializedAsync()
     {
+        IsLoading = true;
         PermissionState.OnChange += StateHasChanged;
         currentUrl = Nav.Uri;
         StateHasChanged();
         request.StudentStatus = "-1";
         request.OrderBy = "1";
-
+        IsLoading = false;
     }
     private async Task PrintBonafideCertificate()
     {
@@ -526,20 +610,27 @@ else
                 return;
             }
             selectedRow = data[0];
+            IsLoading = true;
+            StateHasChanged();
             var response = await httpService.Post<ApiResponse<object>>("Export/GenerateBonafideLetter", selectedRow);
-            if (response.Success)
+            if (response != null && response.Success)
             {
                 var pdfBytes = response.Data;
                 await JS.InvokeVoidAsync("viewPdf", pdfBytes);
                 //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
             }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
         }
         catch
         {
-            return;
+            await Alert.ShowError(@Localizer["Error"]);
         }
         finally
         {
+            IsLoading = false;
             selectedRow = null;
             StateHasChanged();
         }
@@ -554,20 +645,27 @@ else
                 await JS.InvokeVoidAsync("showSelectRecordAlert");
                 return;
             }
+            IsLoading = true;
+            StateHasChanged();
             var response = await httpService.Post<ApiResponse<object>>("Export/GenerateSlip", data);
-            if (response.Success)
+            if (response != null && response.Success)
             {
                 var pdfBytes = response.Data;
                 await JS.InvokeVoidAsync("viewPdf", pdfBytes);
                 // await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
             }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
         }
         catch
         {
-            return;
+            await Alert.ShowError(@Localizer["Error"]);
         }
         finally
         {
+            IsLoading = false;
             selectedRow = null;
             StateHasChanged();
         }
@@ -603,32 +701,69 @@ else
             await JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
-        var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAdmissionForms", data);
-        if (response.Success)
+        try
         {
-            var pdfBytes = response.Data;
-            await JS.InvokeVoidAsync("viewPdf", pdfBytes);
-            //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+            IsLoading = true;
+            StateHasChanged();
+            var response = await httpService.Post<ApiResponse<object>>("Export/GenerateAdmissionForms", data);
+            if (response != null && response.Success)
+            {
+                var pdfBytes = response.Data;
+                await JS.InvokeVoidAsync("viewPdf", pdfBytes);
+                //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
         }
-        StateHasChanged();
+        catch
+        {
+            await Alert.ShowError(@Localizer["Error"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
     private async Task ExportExcel()
     {
+        // export selected rows, otherwise the whole searched list
         var data = moduleQuery.Where(x => x.IsSelected).ToList();
         if (data.Count == 0)
+            data = moduleQuery.ToList();
+        if (data.Count == 0)
         {
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            await Alert.ShowWarning("No data found.");
             return;
         }
-        var response = await httpService.Post<ApiResponse<object>>("Export/ExportStudentReport", data);
-        if (response.Success)
+        try
         {
-            var pdfBytes = response.Data;
-            await JS.InvokeVoidAsync("downloadExcel", pdfBytes, "Student.xlsx");
-            //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+            IsLoading = true;
+            StateHasChanged();
+            var response = await httpService.Post<ApiResponse<object>>("Export/ExportStudentReport", data);
+            if (response != null && response.Success)
+            {
+                var pdfBytes = response.Data;
+                await JS.InvokeVoidAsync("downloadExcel", pdfBytes, "Student.xlsx");
+                //  await JS.InvokeVoidAsync("downloadPdf", base64, "Student.pdf");
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(@Localizer["Admin"]);
+            }
         }
-        IsSelected = false;
-        StateHasChanged();
+        catch
+        {
+            await Alert.ShowError(@Localizer["Error"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            IsSelected = false;
+            StateHasChanged();
+        }
     }
     private async Task SearchByStudent(string value)
     {
@@ -637,10 +772,23 @@ else
         request.BranchCode = branchcode;
         request.SessionId = CurrentSession;
         request.ClassCode = SelectedClassCodes;
-        //if (request.AdmFromDate.HasValue && request.AdmToDate.HasValue && request.AdmFromDate.Value.Date > request.AdmToDate.Value.Date)
+        request.SectionId = SelectedSectionIds;
+        if (request.SectionId == "")
+        {
+            IsLoading = false;
+            await Alert.ShowWarning("Please select a section.");
+            StateHasChanged();
+            return;
+        }
+        request.ClassCode = string.IsNullOrWhiteSpace(request.ClassCode) ? null : request.ClassCode;
+        request.Gender = string.IsNullOrWhiteSpace(request.Gender) || request.Gender == "0" ? null : request.Gender;
+        request.StudentName = string.IsNullOrWhiteSpace(request.StudentName) ? null : request.StudentName.Trim();
+        request.StudentNo = string.IsNullOrWhiteSpace(request.StudentNo) ? null : request.StudentNo.Trim();
+        request.ValidStatus = string.IsNullOrWhiteSpace(request.ValidStatus) ? null : request.ValidStatus;
         if (request.AdmFromDate.HasValue && request.AdmToDate.HasValue && request.AdmFromDate.Value.Date > request.AdmToDate.Value.Date)
         {
             IsLoading = false;
+            await Alert.ShowWarning("Adm. Date From can not be after Adm. Date To.");
             StateHasChanged();
             return;
         }

@@ -558,12 +558,18 @@ else
 
 
     }
-    private async Task OnPrintClick()
+    // print selected rows, otherwise the whole searched list
+    private List<RegistrationDto> GetPrintData()
     {
         var data = moduleQuery.Where(x => x.IsSelected).ToList();
+        return data.Count > 0 ? data : moduleQuery.ToList();
+    }
+    private async Task OnPrintClick()
+    {
+        var data = GetPrintData();
         if (data.Count == 0)
         {
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            await Alert.ShowWarning("No data found.");
             return;
         }
         var result = await JS.InvokeAsync<JsonElement>("showPrintConfirm");
@@ -587,7 +593,7 @@ else
         try
         {
 
-            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            var data = GetPrintData();
 
             var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentPdf", data);
             if (response != null && response.Success)
@@ -617,7 +623,7 @@ else
     {
         try
         {
-            var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            var data = GetPrintData();
             var response = await httpService.Post<ApiResponse<object>>("Export/GenerateStudentListExcel", data);
             if (response != null && response.Success)
             {

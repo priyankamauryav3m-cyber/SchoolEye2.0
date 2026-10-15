@@ -1577,6 +1577,7 @@ namespace DomainModel.FinanceMNGT
         [StringLength(150, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
         public string? PermanentLine1 { get; set; }
         public string? Line2 { get; set; }
+        [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter valid 6 digit pincode")]
         public string? PinCode { get; set; }
         public string? FatherName { get; set; }
         public string? MotherName { get; set; }

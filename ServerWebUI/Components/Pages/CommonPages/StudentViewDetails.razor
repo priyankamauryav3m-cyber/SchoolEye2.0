@@ -1142,7 +1142,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" maxlength="6" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
                                                         <label class="floating-label">PinCode</label>
                                                         <ValidationMessage For="@(() => addressDetails.PinCode)" />
                                                     </div>
@@ -1238,7 +1238,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="6" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.PinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /^[0-9]$/.test(event.key)" disabled="@IsSameAsCurrent" autocomplete="off" />
                                                         <label class="floating-label">Pincode</label>
                                                         <ValidationMessage For="@(() => addressPermanent.PinCode)" />
                                                     </div>

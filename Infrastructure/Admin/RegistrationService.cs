@@ -253,6 +253,10 @@ namespace Infrastructure.SuperAdmin
                 parameters.Add("@AddressTo", add.AddressTo);
                 parameters.Add("@AddressType", add.AddressType);
                 parameters.Add("@CreatedBy", add.CreatedBy);
+                // emergency contact goes to ADM_Registration; the procedure uses it only for the current address
+                parameters.Add("@EmergencyPersonName", add.EmergencyPersonName);
+                parameters.Add("@EmergencyPersonRelationShip", add.EmergencyPersonRelationShip);
+                parameters.Add("@EmergencyPersonContactNo", add.EmergencyPersonContactNo);
                 int rows = await connection.ExecuteAsync(
                     "ADM_AddUpdateRegNoAddressInfo",
                     parameters,

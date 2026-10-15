@@ -168,7 +168,7 @@
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StuResidentialAddPinCode" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StuResidentialAddPinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" />
                                                 <label class="floating-label">Pincode <span class="required">*</span></label>
                                                 <ValidationMessage For="@(() => registration.StuResidentialAddPinCode)" />
                                             </div>
@@ -194,8 +194,9 @@
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
                                             <div class="form-box-group">
-                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StuPermanentAddPinCode" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" maxlength="10" />
+                                                <InputText class="floating-input" placeholder=" " @bind-Value="registration.StuPermanentAddPinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /[0-9]/.test(event.key)" autocomplete="off" />
                                                 <label class="floating-label">Pincode</label>
+                                                <ValidationMessage For="@(() => registration.StuPermanentAddPinCode)" />
                                             </div>
                                         </div>
                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
