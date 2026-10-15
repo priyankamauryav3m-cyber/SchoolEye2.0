@@ -3,9 +3,11 @@ using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Common;
+using ServerWebAPI.Authorization;
 
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
+    [Authorize]
     [ApiExplorerSettings(GroupName = "Admission")]
     [Route("api/[controller]")]
     [ApiController]
@@ -32,7 +34,8 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             try
             {
                 var returnValue = await _repo.SubmitEnquiryData(model);
-                if (!string.IsNullOrEmpty(returnValue) && returnValue != "-2" && returnValue != "2" && returnValue != "0")
+                // returnValue is the new EnquiryNo; negative values are failure codes, never an enquiry number
+                if (!string.IsNullOrEmpty(returnValue) && !returnValue.StartsWith("-") && returnValue != "2" && returnValue != "0")
                 {
                     return Ok(new ApiResponse<object>
                     {
@@ -46,7 +49,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                 {
                     return Ok(new ApiResponse<object>
                     {
-                        Success = true,
+                        Success = false,
                         Message = "Enquiry Data Not Found",
                         Code = -2
                     });
@@ -69,10 +72,11 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Message = ex.Message
+                    Message = "An error occurred while saving the enquiry."
                 });
             }
         }
@@ -93,10 +97,11 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
-                return BadRequest(new
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Message = ex.Message
+                    Message = "An error occurred while fetching the enquiry list."
                 });
             }
         }
@@ -122,10 +127,11 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 return StatusCode(500, new ApiResponse<string>
                 {
                     Success = false,
-                    Message = ex.Message
+                    Message = "An error occurred while fetching followup details."
                 });
             }
 
@@ -175,15 +181,16 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 return StatusCode(500, new ApiResponse<string>
                 {
                     Success = false,
-                    Message = ex.Message
+                    Message = "An error occurred while saving the followup."
                 });
             }
 
         }
-   
+
         [HttpPost("GetEnquirySummaryData")]
         public async Task<IActionResult> GetEnquirySummaryData([FromBody] EnquirySummaryTableRequest request)
         {

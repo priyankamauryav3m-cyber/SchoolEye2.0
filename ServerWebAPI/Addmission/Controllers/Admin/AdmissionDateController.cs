@@ -43,7 +43,6 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                         Code = 1
                     });
                 }
-
                 return BadRequest(new ApiResponse<string>
                 {
                     Success = false,
@@ -53,16 +52,16 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new ApiResponse<string>
                     {
                         Success = false,
-                        Message = ex.Message,
+                        Message = "An error occurred while updating the admission date.",
                         Data = null
                     });
             }
         }
-
 
         [HttpPost("GetSearchedStudent")]
         public async Task<IActionResult> GetSearchedStudent([FromBody] StuSearchedStudentRequest request)
@@ -156,14 +155,22 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
-
-
         [HttpPost("GetClassSectionDetail")]
         public async Task<IActionResult> GetClassSectionDetail([FromBody] StuSearchedStudentRequest request)
         {
             try
             {
                 var result = await _service.GetClassSectionDetail(request);
+                if (result == null)
+                {
+                    return Ok(new ApiResponse<ClassSectionDetailResponse>
+                    {
+                        Success = false,
+                        Message = "Class section detail not found.",
+                        Code = 0,
+                        Data = null
+                    });
+                }
 
                 return Ok(
                     new ApiResponse<ClassSectionDetailResponse>
@@ -176,12 +183,13 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Exception: {ex.Message}");
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
                     new ApiResponse<object>
                     {
                         Success = false,
-                        Message = ex.Message,
+                        Message = "An error occurred while fetching the class section detail.",
                         Data = null
                     }
                 );
