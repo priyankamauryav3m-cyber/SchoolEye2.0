@@ -38,7 +38,7 @@
                     </InputSelect>
                 </div>
                 <div class="form-box">
-                    <InputText class="form-input" placeholder="Enter Reg.No " @bind-Value="searchRequest.RegistrationNo" />
+                    <InputText class="form-input" placeholder="Enter Reg.No " @bind-Value="searchRequest.RegistrationNo" @bind-Value:after="TrimRegistrationNo" />
                 </div>
                 <div class="form-box">
                     <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchApplicationStatus">
@@ -69,29 +69,86 @@
                                         {
                                             <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
                                         } *@
-                                        <div class="text-center">
-                                            @if (context.IsDone == 1)
-                                            {
-                                                <span class="badge rounded-pill bg-success">
-                                                    <i class="bi bi-check-circle-fill me-1"></i>
-                                                    Success
-                                                </span>
-                                            }
-                                            else if (context.StatusName == "Registration")
-                                            {
-                                                <span class="badge rounded-pill bg-primary">
-                                                    <i class="bi bi-check-circle-fill me-1"></i>
-                                                    Done
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge rounded-pill bg-warning text-dark">
-                                                    <i class="bi bi-clock-fill me-1"></i>
-                                                    Pending..
-                                                </span>
-                                            }
-                                        </div>
+                                       <div class="text-center">
+                                                    @if (context.ApplicationStatus == 0 && context.IsDone == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                                             Done
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 1 && context.IsDone == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-primary">
+                                                            <i class="bi bi-clock-fill me-1"></i>
+                                                             Pending
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 1 && context.IsDone == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                                          Completed
+                                                        </span>
+                                                    }
+                                                 
+                                                    else if (context.ApplicationStatus == 2 && context.IsDone == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                                             Completed
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 2 && context.IsDone == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-info text-dark">
+                                                            <i class="bi bi-pencil-square me-1"></i>
+                                                             Pending
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 3 && context.IsDone == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                                             Done
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 3 && context.IsDone == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-warning text-dark">
+                                                            <i class="bi bi-clock-fill me-1"></i>
+                                                             Pending
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 4 && context.IsDone == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                                            Admission Approved
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 4 && context.IsDone == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-warning text-dark">
+                                                            <i class="bi bi-hourglass-split me-1"></i>
+                                                            Approval Pending
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 5 && context.IsDone == 1)
+                                                    {
+                                                        <span class="badge rounded-pill bg-success">
+                                                            <i class="bi bi-mortarboard-fill me-1"></i>
+                                                            Admitted
+                                                        </span>
+                                                    }
+                                                    else if (context.ApplicationStatus == 5 && context.IsDone == 0)
+                                                    {
+                                                        <span class="badge rounded-pill bg-warning text-dark">
+                                                            <i class="bi bi-clock-fill me-1"></i>
+                                                            Admission Pending
+                                                        </span>
+                                                    }
+                                                </div>
                                     </ChildContent>
                                 </TemplateColumn>
                             </QuickGrid>
@@ -153,7 +210,10 @@ else
         PermissionState.OnChange += StateHasChanged;
         currentUrl = Nav.Uri;
     }
-
+    private void TrimRegistrationNo()
+    {
+        searchRequest.RegistrationNo = searchRequest.RegistrationNo?.Trim();
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
