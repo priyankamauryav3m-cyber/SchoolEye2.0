@@ -17,5 +17,9 @@ namespace DomainModel.Common
         public string AppFlavorSubscript { get; set; } = default!;
         public string Company { get; set; } = default!;
         public string Copyright { get; set; } = default!;
+        // UI: every date the API sends as a string is shown in this format
+        public string DateFormat { get; set; } = "dd-MM-yyyy";
+        // UI: order of a slash date from the API (10/01/2026) when both parts are 12 or less
+        public string ApiSlashDateFormat { get; set; } = "MM/dd/yyyy";
     }
 }

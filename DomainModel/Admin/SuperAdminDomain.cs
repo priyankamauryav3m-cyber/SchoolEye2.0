@@ -425,6 +425,7 @@ namespace DomainModel.Admin
 
         [Display(Name = "Pincode")]
         [StringLength(10, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter valid 6 digit pincode")]
         public string? Pincode { get; set; }
 
         [Display(Name = "Contect number")]
@@ -928,6 +929,8 @@ namespace DomainModel.Admin
         [StringLength(150, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
         public string? Line2 { get; set; }
 
+        [Display(Name = "Pincode")]
+        [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter valid 6 digit pincode")]
         public string? PinCode { get; set; }
 
         [Display(Name = "Contact number")]
@@ -942,6 +945,22 @@ namespace DomainModel.Admin
         [Display(Name = "Address type")]
         [StringLength(1, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
         public string? AddressType { get; set; }
+
+        // contact person in case of emergency, saved in ADM_Registration with the current address
+        [Display(Name = "Emergency person name")]
+        [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Emergency person can contain only letters")]
+        public string? EmergencyPersonName { get; set; }
+
+        [Display(Name = "Relationship")]
+        [StringLength(50, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [RegularExpression(@"^[a-zA-Z\s]+$", ErrorMessage = "Relationship name can contain only letters")]
+        public string? EmergencyPersonRelationShip { get; set; }
+
+        [Display(Name = "Emergency contact number")]
+        [StringLength(10, ErrorMessageResourceType = typeof(Resource), ErrorMessageResourceName = "MaxLengthExceeded")]
+        [ValidMobileNo]
+        public string? EmergencyPersonContactNo { get; set; }
         //[MaxLength(50)]
         //public string? Area { get; set; }
         public List<GbsrCommonmdl> gbsrmdl { get; set; } = new();
@@ -1409,6 +1428,7 @@ namespace DomainModel.Admin
 
         public string? StudentPermanentAdd { get; set; } = string.Empty;
 
+        [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter valid 6 digit pincode")]
         public string? StuPermanentAddPinCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Father First Name is required")]

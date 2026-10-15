@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using DomainModel.Common;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.JSInterop;
 using MyApp.Common;
@@ -26,11 +28,15 @@ namespace ServerWebUI.Shared
         private readonly ProtectedSessionStorage _sessionStorages;
         //private IConfiguration _configuration;
         private HttpClient _httpClient;
-        public HttpService(HttpClient httpClient, NavigationManager navigationManager, ProtectedSessionStorage sessionStorages = null)
+        // dates sent by the API as strings are formatted by AppConfigurationSettings:DateFormat
+        private readonly JsonSerializerOptions _jsonOptions;
+        public HttpService(HttpClient httpClient, NavigationManager navigationManager, IOptions<ApplicationConfiguration> settings, ProtectedSessionStorage sessionStorages = null)
         {
             _httpClient = httpClient;
             _navigationManager = navigationManager;
             _sessionStorages = sessionStorages;
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _jsonOptions.Converters.Add(new DateStringConverter(settings.Value));
         }
         public async Task<T> Get<T>(string uri)
         {
@@ -81,7 +87,7 @@ namespace ServerWebUI.Shared
                 {
                     // Normal JSON request
                     request.Content = new StringContent(
-                        JsonSerializer.Serialize(value),
+                        JsonSerializer.Serialize(value, value.GetType(), _jsonOptions),
                         Encoding.UTF8,
                         "application/json");
                 }
@@ -148,12 +154,7 @@ namespace ServerWebUI.Shared
                     throw new Exception(error?.Message ?? "Server error");
                 }
 
-                return JsonSerializer.Deserialize<T>(
-                    json,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    })!;
+                return JsonSerializer.Deserialize<T>(json, _jsonOptions)!;
             }
             catch (Exception ex)
             {

@@ -460,7 +460,7 @@
 
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-4 px-2">
                                                     <div class="form-box-group">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.PinCode" />
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="branch.PinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" />
                                                         <label class="floating-label">Pin Code</label>
                                                         <ValidationMessage For="@(() => branch.PinCode)" />
                                                     </div>

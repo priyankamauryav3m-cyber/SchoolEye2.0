@@ -463,8 +463,9 @@
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-3  px-2   ">
                                         <div class="form-box-group">
-                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.PinCode" onkeypress="return /^[0-9]$/.test(event.key)" MaxLength="6"></InputText>
+                                            <InputText class="floating-input" autocomplete="off" @bind-Value="studentDirectAdmission.PinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /^[0-9]$/.test(event.key)"></InputText>
                                             <label class="floating-label">Pincode</label>
+                                            <ValidationMessage For="@(() => studentDirectAdmission.PinCode)" />
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-2   ">

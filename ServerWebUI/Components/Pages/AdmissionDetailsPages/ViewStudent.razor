@@ -1534,11 +1534,14 @@ else
         IsLoading = true;
         if (roleId == "8")
         {
+            // export selected rows, otherwise the whole searched list
             var data = moduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+                data = moduleQuery.ToList();
             if (data.Count == 0)
             {
                 IsLoading = false;
-                await Alert.ShowWarning("Please select record");
+                await Alert.ShowWarning("No data found.");
                 StateHasChanged();
 
                 return;
@@ -1553,11 +1556,14 @@ else
         }
         else
         {
+            // export selected rows, otherwise the whole searched list
             var data = SearchedstudentmoduleQuery.Where(x => x.IsSelected).ToList();
+            if (data.Count == 0)
+                data = SearchedstudentmoduleQuery.ToList();
             if (data.Count == 0)
             {
                 IsLoading = false;
-                await Alert.ShowWarning("Please select record");
+                await Alert.ShowWarning("No data found.");
                 StateHasChanged();
 
                 return;
