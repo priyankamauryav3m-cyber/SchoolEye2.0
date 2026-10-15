@@ -1,8 +1,8 @@
 -- ADM_UspStudentDirectAdmission : AdmissionNo from Generation Id Configuration (MstIdGeneration, KeyWord = 'AdmissionNo')
--- @stuManualAdmNo = KeyValue shown on the Admit Child page (API Registration/GetAdmissionNoConfiguration).
--- Same KeyValue still current  -> that number is used (e.g. 1 -> ADM0001).
--- Someone admitted in between  -> the latest KeyValue is used (e.g. sent 1, latest 3 -> ADM0003).
--- AdmissionNo is saved in StudentMaster and StudentMasterHistory, then the AdmissionNo KeyValue is increased by 1.
+-- @stuManualAdmNo = AdmissionNo shown on the Admit Child page (e.g. ADM0001, API Registration/GetAdmissionNoConfiguration).
+-- Same as the latest AdmissionNo      -> that AdmissionNo is used.
+-- Someone admitted in between         -> the latest AdmissionNo is used (e.g. sent ADM0001, latest ADM0003).
+-- AdmissionNo goes into StudentMaster and StudentMasterHistory, then the AdmissionNo KeyValue is increased by 1.
 -- Rollback : ADM_UspStudentDirectAdmission_Rollback.sql
 GO
 ALTER PROC [dbo].[ADM_UspStudentDirectAdmission] @GroupCode VARCHAR(10), @BranchCode VARCHAR(10),@SessionId bigint,
@@ -41,7 +41,30 @@ BEGIN
    EXEC UspGenerateID @GroupCode, @BranchCode,@SocietyId, @SessionId,'StudentControlNo', @ControlNo output   
   -- EXEC UspGenerateID @GroupCode,@BranchCode,@SessionName,@StudentNo output, @ControlNo output,@SocietyId,@ClassCode        
   end    
-    
+  --==========================================ADMISSION NO====================================================================
+   -- @stuManualAdmNo = AdmissionNo shown on Admit Child page (e.g. ADM0001, API Registration/GetAdmissionNoConfiguration)
+   declare @AdmissionNo varchar(50) = ''
+   if(isnull(@stuManualAdmNo, '') <> '')
+   begin
+    -- lock MstIdGeneration till COMMIT, so no other admission can take the same AdmissionNo in between
+    declare @AdmKeyValue bigint
+    select @AdmKeyValue = KeyValue from MstIdGeneration with (TABLOCKX, HOLDLOCK)
+    where GroupCode = @GroupCode and BranchCode = @BranchCode and SessionId = @SessionId and KeyWord = 'AdmissionNo'
+
+    -- latest AdmissionNo, same way as StudentNo
+    EXEC UspGenerateID @GroupCode, @BranchCode, '', @SessionId, 'AdmissionNo', @AdmissionNo output
+
+    if(@AdmissionNo IS NULL OR @AdmissionNo = '')
+     RAISERROR('AdmissionNo could not be generated.', 16, 1)
+
+    -- same as sent -> that AdmissionNo is used, otherwise (someone admitted in between) the latest one is used
+    if(@stuManualAdmNo = @AdmissionNo)
+     print 'AdmissionNo : same ' + @AdmissionNo + ' used'
+    else
+     print 'AdmissionNo : ' + @stuManualAdmNo + ' already used, latest ' + @AdmissionNo + ' used'
+
+    Exec Usp_UpdateStudentKeyValues @GroupCode, @BranchCode, @SessionId, 'AdmissionNo'
+   end
   --==========================================LOGIN ID ====================================================================        
           
   declare @PeriodType varchar(15) = 'Quarterly'        
@@ -133,7 +156,7 @@ BEGIN
 	   Nationality, SocialCategory, Religion, Background, MotherTongue, HouseNo, IsTransportRequired, IsHostelRequired, IsNRI, RouteDistance,         
 	   AdmissionDate, TransportAppliedFrom, IsValid, CreatedBy, CreatedDate, PreviousBranch, PeriodType, StudentStatus, SocietyId,SiblingID,LoginName        
 	   ,IsSMSRequired,IsEmailRequired,AdmSession,AdmClass,SectionId, AadhaarNo,ApaarId,PenNo,Caste) OUTPUT INSERTED.StudentId INTO @InsertedStudent   --skg IsReservedSeat  , JoiningDate        
-	   values(@GroupCode, @BranchCode, case when @RegId = 0 or @RegId IS NULL then @StudentId else @RegId end, @StudentNo, @ControlNo,@ControlNo, 0, @SessionId, @FirstName, @MiddleName, @LastName, @Gender, @DateOfBirth, @ClassCode,        
+	   values(@GroupCode, @BranchCode, case when @RegId = 0 or @RegId IS NULL then @StudentId else @RegId end, @StudentNo, @ControlNo,@AdmissionNo, 0, @SessionId, @FirstName, @MiddleName, @LastName, @Gender, @DateOfBirth, @ClassCode,        
 	   @NationalityId, @SocialCategoryId, @Religion, 0, 0, 0, 0, 0, 0, @RouteDistance,@AdmissionDate, cast(@TptAppliedFrom as date), 1, @CreatedBy, GETDATE(), --(case @IsUsingTpt when 0 then 3 else @IsUsingTpt end) for IsTransportRequired        
 	   @PreviousBranchCode, @PeriodType, @StudentStatus, @SocietyId,@SiblingID,@LoginId,1,1,@SessionId,@ClassCode,@SectionId, @StudentAadharNo,@ApaarId,@PenNo,@Caste)  --skg @isEWS  , @JoiningDate        
 		SELECT @StudentId = StudentId FROM @InsertedStudent
@@ -260,35 +283,7 @@ insert into StudentParentHistory(ParentID, GroupCode, BranchCode,StudentId,Fathe
    End        
       Exec Usp_UpdateStudentKeyValues @GroupCode, @BranchCode, @SessionId,'StudentNo'
 
-   --==========================================ADMISSION NO====================================================================
-   -- MstIdGeneration is now locked (TABLOCKX in Usp_UpdateStudentKeyValues, held till COMMIT),
-   -- so no other admission can take the same AdmissionNo before this one is saved.
-   if(@StudentId > 0)
-   begin
-    declare @AdmissionNo varchar(50) = '', @CurrentAdmKeyValue bigint
-
-    select @CurrentAdmKeyValue = KeyValue from MstIdGeneration
-    where GroupCode = @GroupCode and BranchCode = @BranchCode and SessionId = @SessionId and KeyWord = 'AdmissionNo'
-
-    if(TRY_CAST(@stuManualAdmNo as bigint) = @CurrentAdmKeyValue)
-     print 'AdmissionNo : same KeyValue ' + @stuManualAdmNo + ' used'
-    else
-     print 'AdmissionNo : KeyValue ' + isnull(@stuManualAdmNo, '') + ' already used, latest KeyValue ' + isnull(cast(@CurrentAdmKeyValue as varchar(20)), '1') + ' used'
-
-    -- generated from the current (latest) KeyValue, same way as StudentNo
-    EXEC UspGenerateID @GroupCode, @BranchCode, '', @SessionId, 'AdmissionNo', @AdmissionNo output
-
-    if(@AdmissionNo IS NULL OR @AdmissionNo = '')
-     RAISERROR('AdmissionNo could not be generated.', 16, 1)
-
-    update StudentMaster set AdmissionNo = @AdmissionNo
-    where GroupCode = @GroupCode and BranchCode = @BranchCode and StudentId = @StudentId
-
-    update StudentMasterHistory set AdmissionNo = @AdmissionNo
-    where GroupCode = @GroupCode and BranchCode = @BranchCode and StudentId = @StudentId and SessionId = @SessionId
-
-    Exec Usp_UpdateStudentKeyValues @GroupCode, @BranchCode, @SessionId, 'AdmissionNo'
-   end
+ 
   --update MstIdGeneration set KeyValue = KeyValue +1 where GroupCode = @GroupCode and BranchCode = @BranchCode and SessionName = @SessionName and KeyWord = 'StudentNo'         
    print '@isClassWiseControlno' + cast(@isClassWiseControlno as varchar)        
    --SKG ClassWiseControlNo        
@@ -409,5 +404,6 @@ END
 --    @LoginId AS LoginId;
 
 	-- Select StudentId,* from StudentJourney where SessionId=1043 And StudentId=40046
+
 
 GO

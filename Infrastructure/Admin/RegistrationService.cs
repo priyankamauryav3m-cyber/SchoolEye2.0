@@ -1215,21 +1215,22 @@ namespace Infrastructure.SuperAdmin
             }
         }
 
-        // KeyValue of the 'AdmissionNo' row in Generation Id Configuration (MstIdGeneration)
-        public async Task<long?> GetAdmissionNoConfiguration(string groupCode, string branchCode, long sessionId)
+        // Next AdmissionNo (e.g. ADM0001) from Generation Id Configuration, built by UspGenerateID
+        // the same way ADM_UspStudentDirectAdmission builds it
+        public async Task<string?> GetAdmissionNoConfiguration(string groupCode, string branchCode, long sessionId)
         {
             try
             {
                 using var con = new SqlConnection(_connectionString);
-                string sql = @"SELECT TOP 1 KeyValue
-                       FROM MstIdGeneration
-                       WHERE KeyWord = 'AdmissionNo'
-                         AND GroupCode = @GroupCode
-                         AND BranchCode = @BranchCode
-                         AND SessionId = @SessionId
-                         AND IsValid = 1
-                       ORDER BY Sid DESC";
-                return await con.QueryFirstOrDefaultAsync<long?>(sql, new { GroupCode = groupCode, BranchCode = branchCode, SessionId = sessionId });
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", groupCode, DbType.String);
+                param.Add("@BranchCode", branchCode, DbType.String);
+                param.Add("@BTCID", string.Empty, DbType.String);
+                param.Add("@SessionId", sessionId);
+                param.Add("@IdType", "AdmissionNo", DbType.String);
+                param.Add("@GeneratedId", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                await con.ExecuteAsync("UspGenerateID", param, commandType: CommandType.StoredProcedure);
+                return param.Get<string?>("@GeneratedId");
             }
             catch (Exception ex)
             {

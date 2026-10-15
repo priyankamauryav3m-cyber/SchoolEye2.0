@@ -139,9 +139,21 @@
             return;
         }
 
+        // Dashboard click ke baad pehla page yaad rakho; menu se kisi dusre page par gaye to flag reset
+        if (EnquiryState.CameFromDashboard)
+        {
+            if (EnquiryState.DashboardLandingUrl == null)
+            {
+                EnquiryState.DashboardLandingUrl = currentUrl;
+            }
+            else if (!string.Equals(EnquiryState.DashboardLandingUrl, currentUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                EnquiryState.CameFromDashboard = false;
+            }
+        }
+
         // Sirf ye flag decide karega back-button — filtering wali DashboardValue se koi lena-dena nahi
         ShowBackButton = EnquiryState.CameFromDashboard;
-        // EnquiryState.CameFromDashboard = false;  
 
         if (!ShowBackButton)
         {

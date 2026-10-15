@@ -17,7 +17,19 @@ namespace ServerWebUI.Components.CommonClass
         private readonly IJSRuntime JS;
         private readonly IHttpService _http;
         public string? DashboardValue { get; set; }
-        public bool CameFromDashboard { get; set; }
+        private bool _cameFromDashboard;
+        // Dashboard se navigate karte waqt true hota hai; landing url reset ho jata hai
+        public bool CameFromDashboard
+        {
+            get => _cameFromDashboard;
+            set
+            {
+                _cameFromDashboard = value;
+                DashboardLandingUrl = null;
+            }
+        }
+        // Dashboard click ke baad jo pehla page khula uska url (breadcrumb sirf isi page par dikhega)
+        public string? DashboardLandingUrl { get; set; }
 
         private List<SessionModel> sessionlist = new();
         public string sessionvalue { get; set; }
