@@ -939,6 +939,7 @@
     private List<Qualification> qulifationlist = new();
     SearchAnyRequestModel searchAny = new();
     [Parameter] public bool IsVisible { get; set; }
+    private bool wasVisible;
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public long RegId { get; set; }
     [Parameter] public long SessionId { get; set; }
@@ -1317,10 +1318,10 @@
             return;
 
         string apiUri = $"Registration/GetAdmissionNoConfiguration?groupCode={groupcode}&branchCode={branchcode}&sessionId={sessionId}";
-        var apiResponse = await httpService.Get<ApiResponse<long>>(apiUri);
-        if (apiResponse?.Success == true)
+        var apiResponse = await httpService.Get<ApiResponse<string>>(apiUri);
+        if (apiResponse?.Success == true && !string.IsNullOrWhiteSpace(apiResponse.Data))
         {
-            studentDirectAdmission.stuManualAdmNo = apiResponse.Data.ToString();
+            studentDirectAdmission.stuManualAdmNo = apiResponse.Data;
         }
     }
 
@@ -1531,6 +1532,12 @@
 
 
         }
+        // the form is reset on close, so fill the Admission No. again every time the popup opens
+        else if (IsVisible && !wasVisible)
+        {
+            await GetAdmissionNoConfiguration();
+        }
+        wasVisible = IsVisible;
 
     }
     private void CloseSibling()

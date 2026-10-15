@@ -967,8 +967,8 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
             }
             try
             {
-                var keyValue = await _service.GetAdmissionNoConfiguration(groupCode, branchCode, sessionId);
-                if (keyValue == null)
+                var admissionNo = await _service.GetAdmissionNoConfiguration(groupCode, branchCode, sessionId);
+                if (string.IsNullOrWhiteSpace(admissionNo))
                 {
                     return NotFound(new ApiResponse<object>
                     {
@@ -978,12 +978,12 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                         Data = null
                     });
                 }
-                return Ok(new ApiResponse<long>
+                return Ok(new ApiResponse<string>
                 {
                     Success = true,
                     Message = "Admission no configuration retrieved successfully.",
                     Code = 1,
-                    Data = keyValue.Value
+                    Data = admissionNo
                 });
             }
             catch (Exception ex)
