@@ -111,11 +111,9 @@ namespace SchoolEye.Infrastructure.Admin
             var result = new AdmitChildWithReceiptResponse();
             await using var con = new SqlConnection(_connectionString);
             await con.OpenAsync();
-            // all three procedures run in this transaction; their own BEGIN/COMMIT TRAN only nest inside it
             using var tran = con.BeginTransaction();
             try
             {
-                //------------------- 1. Admit child -------------------
                 var admitParam = new DynamicParameters();
                 admitParam.Add("@RegistrationId", request.RegistrationId);
                 admitParam.Add("@GroupCode", request.GroupCode);
@@ -140,7 +138,6 @@ namespace SchoolEye.Infrastructure.Admin
                     return result;
                 }
 
-                //------------------- 2. Generate receipt no -------------------
                 var receiptParam = new DynamicParameters();
                 receiptParam.Add("@StudentId", result.StudentId.ToString());
                 receiptParam.Add("@GroupCode", request.GroupCode);
@@ -179,8 +176,6 @@ namespace SchoolEye.Infrastructure.Admin
                     return result;
                 }
 
-                //------------------- 3. Receipt fee head details -------------------
-                // column order must match dbo.TVP_AdmissionReceiptFeeHead
                 var table = new DataTable();
                 table.Columns.Add("RowNo", typeof(int));
                 table.Columns.Add("FeeHeadId", typeof(int));
@@ -208,11 +203,8 @@ namespace SchoolEye.Infrastructure.Admin
                 detailParam.Add("@FeeHeads", table.AsTableValuedParameter("dbo.TVP_AdmissionReceiptFeeHead"));
                 await con.ExecuteAsync("V3M_FIN_InsertAdmissionReceiptDetailsBulk", detailParam, tran, commandType: CommandType.StoredProcedure);
 
-                //------------------- 4. Map concession to the student -------------------
                 if (request.ConcessionId > 0)
                 {
-                    // "FeeHeadId|ConcessionType|ConcessionValue~..." — the procedure splits on '|' with PARSENAME,
-                    // so the value is sent without decimals (percentage 10 / amount 1000)
                     var concessionFeeHead = string.Join("~", (request.ConcessionFeeHeads ?? new())
                         .Where(x => x.FeeHeadId > 0 && !string.IsNullOrWhiteSpace(x.ConcessionType))
                         .Select(x => $"{x.FeeHeadId}|{x.ConcessionType!.Trim()}|{decimal.Truncate(x.ConcessionValue).ToString(CultureInfo.InvariantCulture)}"));

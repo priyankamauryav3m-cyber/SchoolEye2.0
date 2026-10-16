@@ -1037,7 +1037,6 @@
         try
         {
             var periodMonth = feeCollectionPeriodlist.FirstOrDefault(x => x.PeriodId == SelectedPeriodId)?.DueFrom?.Month ?? DateTime.Today.Month;
-            var rowNo = 1;
             var request = new AdmitChildWithReceiptRequest
             {
                 // admission
@@ -1065,16 +1064,8 @@
                 PeriodId = SelectedPeriodId,
                 ReceiptDate = ReceiptDate,
 
-                // receipt details
-                FeeHeads = feeHeadList.Select(x => new AdmissionReceiptFeeHead
-                {
-                    RowNo = rowNo++,
-                    FeeHeadId = (int)x.FeeHeadId,
-                    MonthNo = periodMonth,
-                    PayableAmount = x.Amount - x.Concession,
-                    FeeHeadAmount = x.Amount,
-                    ConcessionAmt = x.Concession
-                }).ToList(),
+                // receipt details - one row per fee head per month, e.g. "Apr, May, Jun" -> 4, 5, 6
+                FeeHeads = BuildReceiptFeeHeads(periodMonth),
 
                 // concession applied from the popup, mapped to the student in the same transaction
                 ConcessionId = AppliedConcessionId,
@@ -1157,6 +1148,44 @@
             StateHasChanged();
             await Alert.ShowWarning("Child is admitted, but the receipt could not be generated.");
         }
+    }
+
+    // fee head ledger needs one row per month: the fee head's MonthNames ("Apr, May, Jun") give the month nos;
+    // amount and concession are split equally per month, the last month takes the rounding difference
+    private List<AdmissionReceiptFeeHead> BuildReceiptFeeHeads(int periodMonth)
+    {
+        var rows = new List<AdmissionReceiptFeeHead>();
+        var rowNo = 1;
+        foreach (var x in feeHeadList)
+        {
+            var months = (x.MonthNames ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(m => DateTime.TryParseExact(m, "MMM", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var d) ? d.Month : 0)
+                .Where(m => m > 0)
+                .ToList();
+            if (months.Count == 0)
+                months.Add(periodMonth);
+
+            var monthAmount = Math.Round(x.Amount / months.Count, 2);
+            var monthConcession = Math.Round(x.Concession / months.Count, 2);
+            for (var i = 0; i < months.Count; i++)
+            {
+                var isLast = i == months.Count - 1;
+                var amount = isLast ? x.Amount - monthAmount * (months.Count - 1) : monthAmount;
+                var concession = isLast ? x.Concession - monthConcession * (months.Count - 1) : monthConcession;
+                rows.Add(new AdmissionReceiptFeeHead
+                {
+                    RowNo = rowNo++,
+                    FeeHeadId = (int)x.FeeHeadId,
+                    MonthNo = months[i],
+                    PayableAmount = amount - concession,
+                    FeeHeadAmount = amount,
+                    ConcessionAmt = concession
+                });
+            }
+        }
+        return rows;
     }
 
     private async Task StopLoaderAndShowError(string message)
