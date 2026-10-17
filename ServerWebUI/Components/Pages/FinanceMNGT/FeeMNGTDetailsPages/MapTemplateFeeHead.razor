@@ -305,7 +305,7 @@
                     <div class="row gap-10-0">
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputSelect @bind-Value=gridRequest.FeeHeadType" class="form-input">
+                                <InputSelect @bind-Value=gridRequest.FeeHeadType" class="floating-input">
                                 <option value="0" selected>All</option>
                                 @foreach (var cs in feeHeadlist.Where(x => x.IsValid == true))
                                 {
@@ -318,7 +318,7 @@
 
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
-                                <InputSelect @bind-Value=gridRequest.TemplateId" class="form-input">
+                                <InputSelect @bind-Value=gridRequest.TemplateId" class="floating-input">
                                 <option value="0" selected>All</option>
                                 @foreach (var cs in feeTemplatelist.Where(x => x.IsValid == true))
                                 {
@@ -329,8 +329,8 @@
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                            <div class="form-box">
-                                <label for="status" class="form-label">Status</label>
+                            <div class="form-box-group static-label">
+                             
                                 <div class="border-box d-flex justify-content-center align-items-center gap-3">
                                     <InputRadioGroup @bind-Value="gridRequest.Status">
                                         <div class="d-flex align-items-center gap-1">
@@ -354,6 +354,7 @@
                                     </InputRadioGroup>
 
                                 </div>
+                                   <label for="status" class="floating-label">Status</label>
                             </div>
                         </div>
                     </div>

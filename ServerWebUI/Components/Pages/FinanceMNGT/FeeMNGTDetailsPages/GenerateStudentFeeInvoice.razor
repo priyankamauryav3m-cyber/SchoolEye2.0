@@ -309,14 +309,14 @@ height: calc(95vh - 273px);
                                                 <PropertyColumn Class="text-center" Property="@(x => x.ControlNo)" Title="Student No." Align="Align.Center">
                                                     <ColumnOptions>
                                                         <div class="search-box">
-                                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo...." />
+                                                            <input type="search" @bind="studentnameFilter" @bind:event="oninput" placeholder="StudentNo...." />
                                                         </div>
                                                     </ColumnOptions>
                                                 </PropertyColumn>
                                                 <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
                                                     <ColumnOptions>
                                                         <div class="search-box">
-                                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="StudentNo...." />
+                                                            <input type="search" @bind="studentnameFilter" @bind:event="oninput" placeholder="StudentNo...." />
                                                         </div>
                                                     </ColumnOptions>
                                                 </PropertyColumn>
@@ -557,10 +557,10 @@ else
         get
         {
             var result = Students.AsQueryable();
-            if (!string.IsNullOrWhiteSpace(nameFilter))
+            if (!string.IsNullOrWhiteSpace(studentnameFilter))
             {
-                result = result.Where(x => x.StudentName.Contains(nameFilter, StringComparison.OrdinalIgnoreCase)
-                  || x.ControlNo.Contains(nameFilter, StringComparison.OrdinalIgnoreCase)
+                result = result.Where(x => x.StudentName.Contains(studentnameFilter, StringComparison.OrdinalIgnoreCase)
+                  || x.ControlNo.Contains(studentnameFilter, StringComparison.OrdinalIgnoreCase)
                 );
             }
             return result;
@@ -622,6 +622,7 @@ else
     private bool SelectAll = true;
     private bool SelectAllPeriod = false;
     private string searchText = "";
+    private string studentnameFilter = "";
     private string? SelectedStudentId;
     private string? SelectedClassCode;
     private string? SelectedPeriodId;

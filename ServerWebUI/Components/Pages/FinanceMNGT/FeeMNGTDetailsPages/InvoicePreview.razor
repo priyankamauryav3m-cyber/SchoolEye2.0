@@ -1,0 +1,255 @@
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject IStringLocalizer<Resource> Localizer
+<style>
+    .profile-photo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #e5e7eb;
+        background: #fff;
+    }
+
+    .field-title {
+        font-weight: 500;
+        color: #1f2937;
+    }
+
+    .field-value {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .border-column {
+        border-right: 2px solid #ccc;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        padding-left: 40px;
+    }
+</style>
+
+@if (ShowInvoicePreview)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Invoice Preview</h5>
+                    <button data-access="Close" type="button" @onclick="CloseInvoicePreview" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row gap-10-0">
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-3 mt-2">
+                            <div class="divider-box d-flex justify-content-between align-items-center gap-2">
+                                <p class="total-text-with-bg ">
+                                    Invoice Preview
+                                </p>
+                                <hr class="m-0 w-webkit text-light-gray op-1">
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Invoice No. :</label>
+                                <label class="form-label">@InvoiceMaster.InvoiceNo</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Fee Period :</label>
+                                <label class="form-label"> @InvoiceMaster.PeriodName</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Invoice Date :</label>
+                                <label class="form-label">@InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Due Date :</label>
+                                <label class="form-label">@InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0 p-3">
+                                <div class="row align-items-center">
+                                    <div class="col-md-2 text-center">
+                                        <img src="@StudentImagePreview" class="profile-photo mb-2" />
+                                    </div>
+                                    <div class="col-md-10">
+                                        <div class="row g-2">
+                                            <div class="col-md-12 ">
+                                                <span class="fw-bold text-primary">@InvoiceMaster.StudentName</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <span class="field-title">Admission No.:</span>
+                                                <span class="field-value">@InvoiceMaster.ControlNo</span>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <span class="field-title">Roll No.:</span>
+                                                <span class="field-value">@InvoiceMaster.ControlNo</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <span class="field-title">Class / Section:</span>
+                                                <span class="field-value">@InvoiceMaster.ClassSection</span>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <span class="field-title">Fee Structure:</span>
+                                                <span class="field-value">@SelectTemplate</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body table-card p-0">
+                                    <div class="quick-main">
+                                        <div class="grid-box scrollbar-thin" style="max-height: 250px; min-height:100px;">
+                                            <QuickGrid Items="@FeeHeadList.AsQueryable()" Class="table">
+                                                <TemplateColumn Title="Fee Head" Align="Align.Left" Sortable="true" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadName)">
+                                                    <ChildContent>
+                                                        @(string.IsNullOrEmpty(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Amount (₹)" Sortable="true" Class="text-right" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadAmount)" Align="Align.Right">
+                                                    <ChildContent>
+                                                        @(context.FeeHeadAmount)
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Concession (₹)" Class="text-right" Sortable="true" Align="Align.Right">
+                                                    <ChildContent>
+                                                        <div>
+                                                            @(context.Concession)
+                                                        </div>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Waiver (₹)" Class="text-right" Sortable="true" Align="Align.Right">
+                                                    <ChildContent>
+                                                        <div>
+                                                            @(context.WaiveOff)
+                                                        </div>
+                                                    </ChildContent>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Net Amount (₹)" Class="text-right" Align="Align.Right">
+                                                    <span>@context.Payable.ToString("N0")</span>
+                                                </TemplateColumn>
+                                            </QuickGrid>
+                                        </div>
+                                        <table class="table table-bordered mb-0">
+                                            <tfoot>
+                                                <tr class="table-primary fw-bold">
+                                                    <td style="width:15%">Total</td>
+                                                    <td class="text-end" style="width:15%">@StudentTotalAmount.ToString("N2")</td>
+                                                    <td class="text-end" style="width:15%">@StudentTotalConcession.ToString("N2")</td>
+                                                    <td class="text-end" style="width:15%">@TotalWaiver.ToString("N2")</td>
+                                                    <td class="text-end" style="width:15%">@TotalNetAmount.ToString("N2")</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    // Same pattern as EditInvoice: the calling page passes the selected invoice
+    // (InvoiceId, TemplateName, ImagePath) and shows/hides this component.
+    //   StudentInvoiceGeneration -> "Invoice Preview" button
+    //   ViewStudentReceipt       -> click on Invoice No in the invoice grid
+    [Parameter] public SearchStudentBalanceDto SelectedStudent { get; set; } = new();
+    [Parameter] public string? BranchCode { get; set; }
+    [Parameter] public string? GroupCode { get; set; }
+    [Parameter] public bool ShowInvoicePreview { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool IsLoading;
+    private string? SelectTemplate;
+    private string StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+
+    private SearchAnyRequestModel searchAny = new();
+    private InvoiceMasterModel InvoiceMaster = new();
+    private List<InvoiceFeeHeadModel> FeeHeadList = new();
+
+    private decimal StudentTotalAmount => FeeHeadList.Sum(x => x.FeeHeadAmount);
+    private decimal StudentTotalConcession => FeeHeadList.Sum(x => x.Concession);
+    private decimal TotalWaiver => FeeHeadList.Sum(x => x.WaiveOff);
+    private decimal TotalNetAmount => FeeHeadList.Sum(x => x.Payable);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInvoicePreview();
+    }
+
+    private async Task LoadInvoicePreview()
+    {
+        try
+        {
+            IsLoading = true;
+            searchAny.GroupCode = GroupCode;
+            searchAny.BranchCode = BranchCode;
+            searchAny.RequestName = SelectedStudent.InvoiceId.ToString();
+            searchAny.IsActive = true;
+            var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
+            if (response != null && response.Success && response.Data != null && response.Data.Count != 0)
+            {
+                var invoice = response.Data.FirstOrDefault() ?? new();
+                InvoiceMaster = invoice.InvoiceMaster?.FirstOrDefault() ?? new();
+                FeeHeadList = invoice.FeeHeadList ?? new();
+                SelectTemplate = SelectedStudent.TemplateName;
+                StudentImagePreview = string.IsNullOrWhiteSpace(SelectedStudent.ImagePath) ?
+                "https://demo.schooleye.in/Images/NoPhoto.gif" : SelectedStudent.ImagePath;
+            }
+            else
+            {
+                InvoiceMaster = new();
+                FeeHeadList = new();
+                SelectTemplate = string.Empty;
+                StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowCustomAlert(@Localizer["Admin"]);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseInvoicePreview()
+    {
+        searchAny = new();
+        await OnClose.InvokeAsync();
+    }
+}

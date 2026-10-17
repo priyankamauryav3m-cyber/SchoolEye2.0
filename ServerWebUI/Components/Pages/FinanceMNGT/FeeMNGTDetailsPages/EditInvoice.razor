@@ -4,16 +4,7 @@
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
 @inject IStringLocalizer<Resource> Localizer
-<style>
-        .profile-photo {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 3px solid #e5e7eb;
-        background: #fff;
-    }
-</style>
+
 @if (IsEditInvoiceOpen)
 {
 <div class="custom-modal row m-0 align-items-center">
@@ -37,14 +28,9 @@
                                 </div>
                             </div>
                             <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-3 mt-2">
+                                @* read only: invoice type of the selected invoice (not used for search) *@
                                 <div class="form-box-group static-label">
-                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="@SelectInvtypeId" >
-                                        <option value="0" selected>--Select--</option>
-                                        @foreach (var data in InvoiceTypelist)
-                                        {
-                                            <option value="@data.InvoiceTypeId"> @data.InvoiceTypeName </option>
-                                        }
-                                    </InputSelect>
+                                    <input class="floating-input" placeholder=" " type="text" value="@SelectedInvoiceTypeName" readonly disabled />
                                     <label class="floating-label">Invoice Type</label>
                                 </div>
                             </div>
@@ -383,10 +369,11 @@
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
                                         <div class="form-box">
                                             <div class="sef-month-grid">
+                                                @* months already mapped for transport come ticked + disabled; only new months can be selected *@
                                                 @foreach (var month in MonthList)
                                                 {
                                                     <label class="sef-month-pill">
-                                                        <input type="checkbox" @bind="month.IsSelected" />
+                                                        <input type="checkbox" @bind="month.IsSelected" disabled="@month.IsDisabled" />
                                                         <span>@month.MonthName</span>
                                                     </label>
                                                 }
@@ -676,8 +663,8 @@
     private bool IsTransport;
     private bool DataChanged;
 
-    private int SelectInvtypeId;
-    private int _lastLoadedInvoiceTypeId;
+    private string SelectedInvoiceTypeName =>
+        InvoiceTypelist.FirstOrDefault(x => x.InvoiceTypeId == SelectedStudent.InvType)?.InvoiceTypeName ?? string.Empty;
     private int SelectedFeeHeadId;
     private decimal SelectedFeeHeadAmount;
     private decimal? SelectedDistanceAmount;
@@ -809,11 +796,8 @@
 
     private async Task GetInvoivetype()
     {
+        // only used to show the selected invoice's type name
         InvoiceTypelist = await httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList") ?? new();
-        if (InvoiceTypelist.Count > 0)
-        {
-            SelectInvtypeId = InvoiceTypelist[0].InvoiceTypeId;
-        }
     }
 
     private async Task LoadInvoiceForEdit()
@@ -826,10 +810,6 @@
             searchAny.RequestName = SelectedStudent.InvoiceId.ToString();
             searchAny.IsActive = true;
             searchAny.RequestName2 = "EditInvoice";
-            if (SelectInvtypeId != 0)
-            {
-                searchAny.RequestId = SelectInvtypeId;
-            }
             var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
             if (response.Data.Count != 0 && response.Success)
             {
@@ -840,26 +820,20 @@
                 SelectTemplate = SelectedStudent.TemplateName;
                 StudentImagePreview = string.IsNullOrWhiteSpace(SelectedStudent.ImagePath) ?
                 "https://demo.schooleye.in/Images/NoPhoto.gif" : SelectedStudent.ImagePath;
-                _lastLoadedInvoiceTypeId = SelectInvtypeId;
                 StateHasChanged();
             }
             else
             {
-                // Keep the previously loaded invoice data; only inform the user
-                // and restore the dropdown to the invoice type that is still shown.
-                if (InvoiceList.Count != 0)
+                // Keep the previously loaded invoice data (e.g. on a reload after an update);
+                // only inform the user.
+                if (InvoiceList.Count == 0)
                 {
-                    SelectInvtypeId = _lastLoadedInvoiceTypeId;
-                }
-                else
-                {
-                    InvoiceList = new();
                     InvoiceMaster = new();
                     FeeHeadList = new();
                     SelectTemplate = string.Empty;
                     StudentImagePreview = "https://demo.schooleye.in/Images/NoPhoto.gif";
                 }
-                await ShowInfoAlert("No invoice found for the selected invoice type.");
+                await ShowInfoAlert("No invoice found.");
                 StateHasChanged();
                 return;
             }
@@ -882,7 +856,6 @@
         removeStudentConcessionFromInvoice = new();
         studentConcessionOnChallanRequest = new();
         searchAny = new();
-        SelectInvtypeId = 0;
         await OnClose.InvokeAsync(DataChanged);
     }
 
@@ -936,6 +909,8 @@
                     month.IsDisabled = false;
                     month.IsSelected = false;
                 }
+                // months already mapped for transport come ticked + disabled;
+                // only the remaining (unticked) months can be selected
                 foreach (var item in transportSelectMonthlist)
                 {
                     var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
@@ -1334,7 +1309,22 @@
             feeHeadToStudent.CreatedBy = UserName;
             feeHeadToStudent.Narration1 = studentConcessionOnChallanRequest.Narration;
             feeHeadToStudent.MonthNo = MonthList.Where(x => x.IsSelected && !x.IsDisabled).Select(x => x.MonthNo).ToList();
-            if (feeHeadToStudent.HeadId == 0)
+            // Transport: there is no fee head dropdown, so check the distance and months instead.
+            // Not transport: the fee head must be selected.
+            if (IsTransport)
+            {
+                if (InvoiceMaster.RouteDistance <= 0 || string.IsNullOrWhiteSpace(InvoiceMaster.DistanceName))
+                {
+                    await ShowInfoAlert("Please select distance name !");
+                    return;
+                }
+                if (feeHeadToStudent.MonthNo.Count == 0)
+                {
+                    await ShowInfoAlert("Please select atleast one month !");
+                    return;
+                }
+            }
+            else if (feeHeadToStudent.HeadId == 0)
             {
                 await ShowInfoAlert("Please select fee head name !");
                 return;
