@@ -284,7 +284,6 @@
                 </div>
             </div>
         </div>
-
         @* ---------- Fees & balances (menu page: left half next to Invoice Details; popup: full width) ---------- *@
         <div class="@FeesCardColClass p-1">
             <div class="dashboard-card @(IsPopup ? "" : "h-100")">
@@ -353,16 +352,36 @@
                         {
                             <div class="grid-box">
                                 <QuickGrid Items="@studentinvoicemoduleQuery" Pagination="@studentinvoivepagination" Class="table">
+                                    @* menu page: edit icon opens the invoice directly; popup: checkbox + Fee Collection's footer "Edit Invoice" *@
                                     <TemplateColumn Title="" class="text-center" Align="Align.Center">
                                         <ChildContent>
                                             <div>
-                                                <input type="checkbox" checked="@context.IsSelected" @onchange="e => OnInvoiceCheckChanged(context, e)" @onclick:stopPropagation="true" />
+                                                @if (IsPopup)
+                                                {
+                                                    <input type="checkbox" checked="@context.IsSelected" @onchange="e => OnInvoiceCheckChanged(context, e)" @onclick:stopPropagation="true" />
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-nowrap d-inline-flex align-items-center gap-1" title="Edit Invoice" @onclick="() => OpenEditInvoiceFor(context)" @onclick:stopPropagation="true">
+                                                        <i class="bi bi-pencil-square"></i><span class="small">Edit Invoice</span>
+                                                    </button>
+                                                }
                                             </div>
                                         </ChildContent>
                                     </TemplateColumn>
                                     <TemplateColumn Title="Invoice No" class="text-center" Align="Align.Center">
                                         <ChildContent>
-                                            @(string.IsNullOrWhiteSpace(context.InvoiceNo) ? " " : context.InvoiceNo)
+                                            @if (string.IsNullOrWhiteSpace(context.InvoiceNo))
+                                            {
+                                                @(" ")
+                                            }
+                                            else
+                                            {
+                                                @* click on Invoice No -> Invoice Preview popup *@
+                                                <button type="button" class="btn btn-link p-0" title="Invoice Preview" @onclick="() => OpenInvoicePreviewFor(context)" @onclick:stopPropagation="true">
+                                                    @context.InvoiceNo
+                                                </button>
+                                            }
                                         </ChildContent>
                                         <ColumnOptions>
                                             <div class="search-box">
@@ -449,82 +468,27 @@
             </div>
         </div>
 
-        @* ---------- Bank receipts ---------- *@
+        @* ---------- Bank receipts (not built yet: empty state only) ---------- *@
         <div class="@GridCardColClass p-1">
             <div class="card h-100">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
                         <div class="module-section-head">
                             <h6>Bank receipts</h6>
-                            <span>@(studentReceiptllist.Any() ? $"{studentReceiptllist.Count} receipts" : "No receipts")</span>
+                            <span>No receipts</span>
                         </div>
-                        @if (studentReceiptllist.Count > 0)
-                        {
-                            <div class="grid-box">
-                                <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
-                                    <TemplateColumn Title="Feehead" Align="Align.Left">
-                                        <ChildContent>
-                                            @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
-                                        </ChildContent>
-                                        <ColumnOptions>
-                                            <div class="search-box">
-                                                <input type="search" @bind="feeHeadFilter" @bind:event="oninput" placeholder="Feehead name..." />
-                                            </div>
-                                        </ColumnOptions>
-                                    </TemplateColumn>
-                                    <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.MonthDisplay)" Title="Month" />
-                                    <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.Amount)" Title="Amount" />
-                                    <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.Concession)" Title="Concession" />
-                                    <PropertyColumn Property="@(x => x.WaiveOff)" Title="Waive Off" Align="Align.Center" class="text-right" />
-                                    <PropertyColumn Title="Payable" Property="@(x => x.Payable)" Align="Align.Center" class="text-right" />
-                                    <PropertyColumn Title="Paying" Property="@(x => x.Payable)" Align="Align.Center" class="text-right" />
-                                    <TemplateColumn Title="Status" Align="Align.Center">
-                                        <ChildContent>
-                                            <div class="text-center">
-                                                <button type="button" class="btn btn-link text-danger p-0" title="Delete">
-                                                    <i class="bi bi-trash-fill"></i>
-                                                </button>
-                                            </div>
-                                        </ChildContent>
-                                    </TemplateColumn>
-                                </QuickGrid>
+                        <div class="empty-state">
+                            <div>
+                                <div class="empty-icon"><i class="bi bi-bank"></i></div>
+                                <strong>No bank receipts</strong>
+                                <div>Verified bank payments will appear here.</div>
                             </div>
-                            <div class="footer-pagination mt-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="welcome-text w-100">
-                                        <Paginator State="@pagination" />
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="empty-state">
-                                <div>
-                                    <div class="empty-icon"><i class="bi bi-bank"></i></div>
-                                    <strong>No bank receipts</strong>
-                                    <div>Verified bank payments will appear here.</div>
-                                </div>
-                            </div>
-                        }
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        @* ---------- Bottom buttons (menu page only; in the popup they sit in the caller's modal-footer) ---------- *@
-        @if (!IsPopup)
-        {
-            <div class="col-12 p-1">
-                <div class="modal-footer">
-                    <div class="form-group btn-gr d-flex">
-                        <div class="form-box">
-                            <button type="button" class="table-btn" @onclick="OpenEditInvoice">Edit Invoice</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
     </div>
 </section>
 
@@ -540,6 +504,15 @@
                  OnClose="CloseEditInvoice" />
 }
 
+@if (ShowInvoicePreview)
+{
+    <InvoicePreview ShowInvoicePreview="@ShowInvoicePreview"
+                    SelectedStudent="@PreviewInvoiceStudent"
+                    BranchCode="@branchcode"
+                    GroupCode="@groupcode"
+                    OnClose="CloseInvoicePreview" />
+}
+
 <CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
@@ -549,7 +522,7 @@
     [Parameter] public string? classs { get; set; } = "main-container";
     [Parameter] public string? SearchTerm { get; set; }                     // student no. / name to open with
     [Parameter] public long SessionId { get; set; }                         // session to open with
-    [Parameter] public List<FeeCollectionDuesNew>? FeeDues { get; set; }    // Fee Collection passes its dues list
+    [Parameter] public List<FeeCollectionDuesNew>? FeeDues { get; set; }    // Fee Collection passes its dues list (not used until Bank receipts is built)
     [Parameter] public EventCallback OnClose { get; set; }
 
     private bool IsPopup => string.IsNullOrEmpty(classs);
@@ -580,19 +553,20 @@
     private bool IsStudentSelected => selectedStudent != null;
     private List<StudentChallanResponse> studentChallanlist = new();
     private List<StudentReceiptsResponse> studentReceiptllist = new();
-    private List<FeeCollectionDuesNew> feeDueslist = new();
 
     // grids
     private string invoiceFilter = string.Empty;
     private string receiptFilter = string.Empty;
-    private string feeHeadFilter = string.Empty;
-    PaginationState pagination = new() { ItemsPerPage = 20 };
     PaginationState studentinvoivepagination = new() { ItemsPerPage = 10 };
     PaginationState Studentreceiptpagination = new() { ItemsPerPage = 10 };
 
     // edit invoice
     private bool ShowEditInvoice;
     private SearchStudentBalanceDto EditInvoiceStudent = new();
+
+    // invoice preview
+    private bool ShowInvoicePreview;
+    private SearchStudentBalanceDto PreviewInvoiceStudent = new();
 
     private decimal TotalfeeAmount => studentChallanlist.Sum(x => x.TotalAmount);
     private decimal TotalWaiveOff => studentChallanlist.Sum(x => x.TotalWaiveOff);
@@ -755,7 +729,6 @@
         selectedStudent = null;
         studentChallanlist = new();
         studentReceiptllist = new();
-        feeDueslist = new();
     }
 
     private async Task SelectStudent(StudentLedgerChallanMiniDetailsResponse item)
@@ -777,7 +750,6 @@
         studentReceiptllist = new();
         await GetStudentInvoiceDetails();
         await GetSearchStudentreceipt();
-        await GetStudentFeeDues();
         StateHasChanged();
     }
 
@@ -823,32 +795,6 @@
         }
     }
 
-    // Opened from the menu there is no Fee Collection dues list, so load it for the selected student
-    private async Task GetStudentFeeDues()
-    {
-        feeDueslist = new();
-        if (FeeDues != null) return;
-        try
-        {
-            var request = new GetStudentFeeHeadDuesForAdjustmentRequest
-            {
-                GroupCode = groupcode ?? "",
-                BranchCode = branchcode ?? "",
-                SessionId = CurrentSession,
-                StudentId = selectedStudent!.StudentId,
-                BankAccountId = "0",
-                TillDate = ""
-            };
-            var response = await httpService.Post<ApiResponse<List<FeeCollectionDuesNew>>>("StudentFee/GetStudentFeeCollectionDues", request);
-            if (response != null && response.Success && response.Data != null)
-                feeDueslist = response.Data;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching student fee dues: {ex.Message}");
-        }
-    }
-
     // ---------------- Grids ----------------
 
     protected IQueryable<StudentChallanResponse> studentinvoicemoduleQuery
@@ -878,20 +824,6 @@
         }
     }
 
-    // Bank receipts grid: Fee Collection's dues (popup) or the student's dues (menu page)
-    protected IQueryable<FeeCollectionDuesNew> moduleQuery
-    {
-        get
-        {
-            var result = (FeeDues ?? feeDueslist).AsQueryable();
-            if (!string.IsNullOrEmpty(feeHeadFilter))
-            {
-                result = result.Where(x => x.FeeHeadName != null && x.FeeHeadName.Contains(feeHeadFilter, StringComparison.CurrentCultureIgnoreCase));
-            }
-            return result;
-        }
-    }
-
     // one invoice at a time can be selected for edit
     private void OnInvoiceCheckChanged(StudentChallanResponse item, ChangeEventArgs e)
     {
@@ -916,20 +848,44 @@
             await customAlert.ShowCustomAlert("Please select a invoice first.", false);
             return;
         }
-        EditInvoiceStudent = new SearchStudentBalanceDto
-        {
-            StudentId = selectedStudent?.StudentId ?? 0,
-            InvoiceId = (int)selected.InvoiceId,
-            ControlNo = selectedStudent?.ControlNo,
-            StudentName = selectedStudent?.StudentName,
-            ClassCode = selectedStudent?.ClassCode,
-            TemplateName = selected.TemplateName,
-            ImagePath = selected.ImagePath,
-            ClassSection = selectedStudent?.ClassSection
-        };
+        OpenEditInvoiceFor(selected);
+    }
+
+    // menu page: edit icon in the invoice grid opens that invoice
+    private void OpenEditInvoiceFor(StudentChallanResponse selected)
+    {
+        EditInvoiceStudent = ToInvoiceStudent(selected);
         ShowEditInvoice = true;
         StateHasChanged();
     }
+
+    // click on Invoice No in the invoice grid opens the Invoice Preview popup
+    private void OpenInvoicePreviewFor(StudentChallanResponse selected)
+    {
+        PreviewInvoiceStudent = ToInvoiceStudent(selected);
+        ShowInvoicePreview = true;
+        StateHasChanged();
+    }
+
+    private void CloseInvoicePreview()
+    {
+        ShowInvoicePreview = false;
+        PreviewInvoiceStudent = new();
+        StateHasChanged();
+    }
+
+    // selected student + clicked invoice, in the shape EditInvoice / InvoicePreview expect
+    private SearchStudentBalanceDto ToInvoiceStudent(StudentChallanResponse selected) => new()
+    {
+        StudentId = selectedStudent?.StudentId ?? 0,
+        InvoiceId = (int)selected.InvoiceId,
+        ControlNo = selectedStudent?.ControlNo,
+        StudentName = selectedStudent?.StudentName,
+        ClassCode = selectedStudent?.ClassCode,
+        TemplateName = selected.TemplateName,
+        ImagePath = selected.ImagePath,
+        ClassSection = selectedStudent?.ClassSection
+    };
 
     private async Task CloseEditInvoice(bool refresh)
     {
