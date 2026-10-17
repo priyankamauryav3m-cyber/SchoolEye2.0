@@ -12,6 +12,16 @@
 @implements IDisposable
 @rendermode InteractiveServer
 <style>
+    .grid-box{
+        height: calc(70vh - 207px);
+    }
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
+
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
     .student-avatar {
         width: 42px;
         height: 42px;
@@ -275,16 +285,17 @@
             </div>
         </div>
 
-        <div class="col-12 p-1">
-            <div class="dashboard-card">
+        @* ---------- Fees & balances (menu page: left half next to Invoice Details; popup: full width) ---------- *@
+        <div class="@FeesCardColClass p-1">
+            <div class="dashboard-card @(IsPopup ? "" : "h-100")">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title-custom mb-0">
                         <span class="status-badge me-2">02</span>Fees &amp; balances
                     </h5>
                     <span class="text-muted small">All amounts in INR</span>
                 </div>
-                @* 10 boxes: 5 in one row, 5 in the next *@
-                <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-xl-5">
+                @* 10 boxes: menu page 3 in each row; popup 5 in one row, 5 in the next *@
+                <div class="row g-3 @FeesBoxRowClass">
                     <div class="col">
                         <div class="text-muted small mb-1">Total fee due</div>
                         <div class="metric-box metric-blue"><span>&#8377;</span><strong>@TotalfeeAmount.ToString("N2")</strong></div>
@@ -330,7 +341,7 @@
         </div>
 
         @* ---------- Invoice Details ---------- *@
-        <div class="col-12 col-lg-4 p-1">
+        <div class="@GridCardColClass p-1">
             <div class="card h-100">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
@@ -388,7 +399,7 @@
         </div>
 
         @* ---------- Student receipts ---------- *@
-        <div class="col-12 col-lg-4 p-1">
+        <div class="@GridCardColClass p-1">
             <div class="card h-100">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
@@ -439,7 +450,7 @@
         </div>
 
         @* ---------- Bank receipts ---------- *@
-        <div class="col-12 col-lg-4 p-1">
+        <div class="@GridCardColClass p-1">
             <div class="card h-100">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
@@ -543,6 +554,12 @@
 
     private bool IsPopup => string.IsNullOrEmpty(classs);
 
+    // layout: menu page -> Fees & Invoice side by side (6/6), receipts 6/6, 3 boxes per row
+    //         popup     -> old layout: Fees full width (5 boxes per row), 3 grids of 4 each
+    private string FeesCardColClass => IsPopup ? "col-12" : "col-12 col-lg-6";
+    private string GridCardColClass => IsPopup ? "col-12 col-lg-4" : "col-12 col-lg-6";
+    private string FeesBoxRowClass => IsPopup ? "row-cols-2 row-cols-md-3 row-cols-xl-5" : "row-cols-3";
+
     private CustomAlert customAlert = default!;
     private string? groupcode;
     private string? branchcode;
@@ -582,8 +599,12 @@
     private decimal TotalStudentConcession => studentChallanlist.Sum(x => x.TotalConcession);
     private decimal TotalReceivedAmount => studentReceiptllist.Sum(x => x.ReceiptAmount);
     private decimal TotalLateFee => studentReceiptllist.Sum(x => x.LateFee);
-    private decimal BalanceAmount => TotalfeeAmount - TotalReceivedAmount;
+   // Payable = Total fee - Concession - Waive off
+    private decimal NetPayableAmount => TotalfeeAmount - TotalStudentConcession - TotalWaiveOff;
 
+    // Balance = Payable - Received (negative nahi jayega)
+    private decimal BalanceAmount => Math.Max(0, NetPayableAmount - TotalReceivedAmount);
+     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
