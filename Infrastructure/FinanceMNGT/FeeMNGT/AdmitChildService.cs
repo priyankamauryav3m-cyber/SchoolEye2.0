@@ -201,7 +201,7 @@ namespace SchoolEye.Infrastructure.Admin
                 detailParam.Add("@TotalPaidAmount", request.PaidAmount);
                 detailParam.Add("@CreatedBy", request.CreatedBy);
                 detailParam.Add("@FeeHeads", table.AsTableValuedParameter("dbo.TVP_AdmissionReceiptFeeHead"));
-                await con.ExecuteAsync("V3M_FIN_InsertAdmissionReceiptDetailsBulk", detailParam, tran, commandType: CommandType.StoredProcedure);
+                await con.ExecuteAsync("V3M_FIN_InsertAdmissionReceiptDetails", detailParam, tran, commandType: CommandType.StoredProcedure);
 
                 if (request.ConcessionId > 0)
                 {
