@@ -33,15 +33,6 @@
     }
 
 
-    .border-column {
-        border-right: 2px solid #ccc;
-        min-height: 40px;
-        display: flex;
-        align-items: center;
-        padding-left: 40px;
-    }
-
- 
     #splitter {
         width: 8px;
         cursor: col-resize;
@@ -125,6 +116,17 @@
 
                                             </ChildContent>
                                         </TemplateColumn>
+                                        <TemplateColumn Title="Invoice No" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.InvoiceNo)">
+                                            <ColumnOptions>
+                                                <div class="search-box">
+                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Invoice No...." />
+                                                </div>
+                                            </ColumnOptions>
+                                            <ChildContent>
+                                                @(string.IsNullOrEmpty(context.InvoiceNo) ? " " : context.InvoiceNo)
+
+                                            </ChildContent>
+                                        </TemplateColumn>
                                         <TemplateColumn Title="Student Name" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.StudentName)" Align="Align.Left">
                                             <ColumnOptions>
                                                 <div class="search-box">
@@ -143,10 +145,10 @@
                                                 </div>
                                             </ChildContent>
                                         </TemplateColumn>
-                                        <TemplateColumn Title="Fee Structure" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.TemplateName)" Align="Align.Left">
+                                        <TemplateColumn Title="Period Name" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.PeriodName)" Align="Align.Left">
                                             <ChildContent>
                                                 <div>
-                                                    @(string.IsNullOrEmpty(context.TemplateName) ? " " : context.TemplateName)
+                                                    @(string.IsNullOrEmpty(context.PeriodName) ? " " : context.PeriodName)
                                                 </div>
                                             </ChildContent>
                                         </TemplateColumn>
@@ -235,7 +237,7 @@
 {
     <div class="custom-modal row m-0">
         <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
-            <div class="modal-content clearfix main-popup ">
+          <div class="modal-content clearfix main-popup overflow-visible">
                 <div class="head-btn">
                     <h5 class="modal-title">Generate Student Fee Invoice</h5>
                     <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
@@ -249,12 +251,12 @@
                                     <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown">
                                         @SelectedText
                                     </button>
-                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
+                                       <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
 
                                         <div class="form-check">
                                             <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="OnClassAllChanged" />
 
-                                            <span>All</span>
+                                            <span class="form-check-label" style="cursor:pointer"> All</span>
                                         </div>
 
                                         @foreach (var item in classlist)

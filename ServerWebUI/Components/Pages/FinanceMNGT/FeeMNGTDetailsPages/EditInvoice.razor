@@ -4,7 +4,34 @@
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
 @inject IStringLocalizer<Resource> Localizer
+<style>
+    .profile-photo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #e5e7eb;
+        background: #fff;
+    }
 
+    .field-title {
+        font-weight: 500;
+        color: #1f2937;
+    }
+
+    .field-value {
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .border-column {
+      border-right: 2px solid #ccc;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    padding-left: 40px;
+    }
+</style>
 @if (IsEditInvoiceOpen)
 {
 <div class="custom-modal row m-0 align-items-center">
@@ -27,45 +54,32 @@
                                     <hr class="m-0 w-webkit text-light-gray op-1">
                                 </div>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-3 mt-2">
-                                @* read only: invoice type of the selected invoice (not used for search) *@
-                                <div class="form-box-group static-label">
-                                    <input class="floating-input" placeholder=" " type="text" value="@SelectedInvoiceTypeName" readonly disabled />
-                                    <label class="floating-label">Invoice Type</label>
-                                </div>
+                             <div class="col-12 col-sm-6 col-md-4 col-lg-3 mt-3">
+                            <div class="form-box">
+                                <label class="form-label text-primary">Invoice Type : @SelectedInvoiceTypeName</label>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                         </div>
 
-                                <div class="form-box">
-                                    <label for="first-name" class="form-label">Invoice No. :</label>
-                                    <label for="first-name" class="form-label">@InvoiceMaster.InvoiceNo</label>
-
-                                </div>
+                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Invoice No. : @InvoiceMaster.InvoiceNo</label>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
-
-                                <div class="form-box">
-                                    <label for="first-name" class="form-label">Fee Period :</label>
-                                    <label for="first-name" class="form-label"> @InvoiceMaster.PeriodName</label>
-
-                                </div>
+                         </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Fee Period : @InvoiceMaster.PeriodName</label>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
-
-                                <div class="form-box">
-                                    <label for="first-name" class="form-label">Invoice Date :</label>
-                                    <label for="first-name" class="form-label">@InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
-
-                                </div>
+                         </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                            <div class="form-box">
+                                <label class="form-label">Invoice Date : @InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
                             </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column border-0">
-
-                                <div class="form-box">
-                                    <label for="first-name" class="form-label">Due Date :</label>
-                                    <label for="first-name" class="form-label">@InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
-
-                                </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 ">
+                            <div class="form-box">
+                                <label class="form-label">Due Date : @InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
                             </div>
+                        </div>
                             <div class="col-12">
                                 <div class="card shadow-sm border-0 p-3">
 
@@ -232,10 +246,9 @@
                                     <label class="floating-label text-primary">Balance</label>
                                 </div>
                             </div>
-
-                            <div class="col-12 mt-2">
-                                <div class="form-box-group">
-                                    <InputTextArea class="floating-input sms-aria" @bind-Value="studentConcessionOnChallanRequest.Narration" placeholder=" "></InputTextArea>
+                            <div class="col-12">
+                                <div class="form-box-group static-lable">
+                                    <InputTextArea class="floating-input" @bind-Value="studentConcessionOnChallanRequest.Narration" style="height: 40px;" placeholder=" "></InputTextArea>
                                     <label class="floating-label text-primary">Narration</label>
                                 </div>
                             </div>
@@ -369,7 +382,6 @@
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
                                         <div class="form-box">
                                             <div class="sef-month-grid">
-                                                @* months already mapped for transport come ticked + disabled; only new months can be selected *@
                                                 @foreach (var month in MonthList)
                                                 {
                                                     <label class="sef-month-pill">
@@ -419,9 +431,8 @@
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2 ">
-                                        <div class="form-box-group">
-                                            <input class="floating-input" placeholder=" " type="text" value="@SelectedFeeHeadAmount" readonly disabled />
-                                            <label class="floating-label">Fee Head Amount<span class="required">*</span></label>
+                                        <div class="form-box-group static-label">
+                                          <input class="floating-input text-end" placeholder=" " type="text" value="@SelectedFeeHeadAmount.ToString("C0", new System.Globalization.CultureInfo("hi-IN"))" readonly disabled />                                            <label class="floating-label">Fee Head Amount<span class="required">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
@@ -666,6 +677,7 @@
     private string SelectedInvoiceTypeName =>
         InvoiceTypelist.FirstOrDefault(x => x.InvoiceTypeId == SelectedStudent.InvType)?.InvoiceTypeName ?? string.Empty;
     private int SelectedFeeHeadId;
+    private int TransportFeeHeadId;
     private decimal SelectedFeeHeadAmount;
     private decimal? SelectedDistanceAmount;
     private int? MaxNewMonths;
@@ -681,7 +693,6 @@
     private List<InvoiceFeeheadMonthNoResponse> monthNoResponseslist = new();
     private List<TransportFeeConfig> transportFeelist = new();
     private List<FeeHeadDropdownModel> feeHeadDropdownlist = new();
-    private List<TransportSelectMonthModel> transportSelectMonthlist = new();
     private List<StudentMappedConcessionDto> mappedConcessionlist = new();
     private ChallanDueDateModal challanDueDate = new();
     private FeeHeadToStudentChallan feeHeadToStudent = new();
@@ -808,7 +819,7 @@
             searchAny.GroupCode = GroupCode;
             searchAny.BranchCode = BranchCode;
             searchAny.RequestName = SelectedStudent.InvoiceId.ToString();
-            searchAny.IsActive = true;
+            // searchAny.IsActive = true;
             searchAny.RequestName2 = "EditInvoice";
             var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
             if (response.Data.Count != 0 && response.Success)
@@ -824,8 +835,7 @@
             }
             else
             {
-                // Keep the previously loaded invoice data (e.g. on a reload after an update);
-                // only inform the user.
+     
                 if (InvoiceList.Count == 0)
                 {
                     InvoiceMaster = new();
@@ -880,7 +890,7 @@
 
     private async Task CloseFeeheadPopup()
     {
-        transportSelectMonthlist.Clear();
+        TransportFeeHeadId = 0;
         feeHeadDropdownlist.Clear();
         ShowPopupAddFeehead = false;
         StateHasChanged();
@@ -890,9 +900,7 @@
     {
         if (IsTransport == true)
         {
-            // Read straight off the loaded invoice instead of the caller-supplied
-            // SelectedStudent so this works regardless of which page opened the
-            // popup (not every caller has a transport flag to pass in).
+
             if (InvoiceMaster.ISTRANSPORTREQUIRED)
             {
                 var trans = transportFeelist.FirstOrDefault(x => x.DistanceId == InvoiceMaster.RouteDistance);
@@ -904,22 +912,10 @@
                 {
                     SelectedDistanceAmount = 0;
                 }
-                foreach (var month in MonthList)
-                {
-                    month.IsDisabled = false;
-                    month.IsSelected = false;
-                }
-                // months already mapped for transport come ticked + disabled;
-                // only the remaining (unticked) months can be selected
-                foreach (var item in transportSelectMonthlist)
-                {
-                    var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
-                    if (month != null)
-                    {
-                        month.IsSelected = true;
-                        month.IsDisabled = true;
-                    }
-                }
+                MaxNewMonths = null;
+                // Same as fee head: months already invoiced for transport come ticked + disabled,
+                // all other months stay enabled.
+                await MarkInvoicedMonths(TransportFeeHeadId);
                 SelectedFeeHeadId = 0;
                 SelectedFeeHeadAmount = 0;
             }
@@ -955,40 +951,8 @@
         }
         var feeHead = feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId);
         SelectedFeeHeadAmount = feeHead?.Amount ?? 0;
-        var request = new InvoiceFeeheadMonthNoRequest
-        {
-            BranchCode = BranchCode,
-            GroupCode = GroupCode,
-            StudentId = SelectedStudent.StudentId,
-            SessionId = SessionId,
-            FeeHeadId = SelectedFeeHeadId
-        };
-        var response = await httpService.Post<ApiResponse<List<InvoiceFeeheadMonthNoResponse>>>("StudentFeeInvoice/GetInvoiceFeeheadMonthNo", request);
-        if (response.Success && response.Data != null)
-        {
-            monthNoResponseslist = response.Data ?? new();
-        }
-        foreach (var month in MonthList)
-        {
-            month.IsDisabled = false;
-            month.IsSelected = false;
-        }
         MaxNewMonths = null;
-        var feeHeadItems = monthNoResponseslist.Where(x => x.FeeHeadId == SelectedFeeHeadId).ToList();
-        if (feeHeadItems.Any())
-        {
-            foreach (var item in feeHeadItems)
-            {
-                var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
-                if (month != null)
-                {
-                    month.IsSelected = true;
-                    month.IsDisabled = true;
-                }
-            }
-
-        }
-
+        await MarkInvoicedMonths(SelectedFeeHeadId);
         var applicableType = feeHeadDropdownlist.FirstOrDefault(x => x.FeeHeadId == SelectedFeeHeadId)?.FeeApplicableType;
         if (string.Equals(applicableType, "Quarterly", StringComparison.OrdinalIgnoreCase))
         {
@@ -996,6 +960,43 @@
         }
 
         StateHasChanged();
+    }
+
+    // Resets the month list, then ticks + disables the months already invoiced for the given fee head
+    // in this session. Every other month stays enabled for selection.
+    private async Task MarkInvoicedMonths(int feeHeadId)
+    {
+        monthNoResponseslist = new();
+        if (feeHeadId > 0)
+        {
+            var request = new InvoiceFeeheadMonthNoRequest
+            {
+                BranchCode = BranchCode,
+                GroupCode = GroupCode,
+                StudentId = SelectedStudent.StudentId,
+                SessionId = SessionId,
+                FeeHeadId = feeHeadId
+            };
+            var response = await httpService.Post<ApiResponse<List<InvoiceFeeheadMonthNoResponse>>>("StudentFeeInvoice/GetInvoiceFeeheadMonthNo", request);
+            if (response.Success && response.Data != null)
+            {
+                monthNoResponseslist = response.Data ?? new();
+            }
+        }
+        foreach (var month in MonthList)
+        {
+            month.IsDisabled = false;
+            month.IsSelected = false;
+        }
+        foreach (var item in monthNoResponseslist.Where(x => x.FeeHeadId == feeHeadId))
+        {
+            var month = MonthList.FirstOrDefault(x => x.MonthNo == item.MonthNo);
+            if (month != null)
+            {
+                month.IsSelected = true;
+                month.IsDisabled = true;
+            }
+        }
     }
 
     // Quarterly: each selected month represents one quarter (3 months in session order).
@@ -1337,7 +1338,14 @@
                 DataChanged = true;
                 await LoadInvoiceForEdit();
                 studentConcessionOnChallanRequest.Narration = "";
-                await OnFeeHeadChanged();
+                if (IsTransport)
+                {
+                    await OnTransportChanged();
+                }
+                else
+                {
+                    await OnFeeHeadChanged();
+                }
                 StateHasChanged();
                 feeHeadToStudent = new();
             }
@@ -1365,7 +1373,7 @@
             {
                 await ShowSweetAlert(() => Alert.ShowWarning("Please select a student"));
                 StateHasChanged();
-                return;
+                return; 
             }
             searchAny.RequestId = SelectedStudent.TemplateId;
             MaxNewMonths = null;
@@ -1377,19 +1385,18 @@
                              && !string.Equals(x.FeeApplicableType, "Annual", StringComparison.OrdinalIgnoreCase)
                              && !string.Equals(x.FeeHeadType, "Transport", StringComparison.OrdinalIgnoreCase))
                     .ToList();
+                // Transport head is hidden from the dropdown but its id is needed to find the invoiced transport months.
+                TransportFeeHeadId = (int)(response.Data
+                    .FirstOrDefault(x => string.Equals(x.FeeHeadType, "Transport", StringComparison.OrdinalIgnoreCase))?.FeeHeadId ?? 0);
             }
             else
             {
                 feeHeadDropdownlist = new();
                 return;
             }
-            searchAny.StudentId = SelectedStudent.StudentId;
-            searchAny.SessionId = SessionId;
-            var apiResponse = await httpService.Post<ApiResponse<List<TransportSelectMonthModel>>>("StudentFeeInvoice/GetTransportMonthWithStudent", searchAny);
-            if (apiResponse.Data.Count != 0 && apiResponse.Success)
+            if (IsTransport)
             {
-                transportSelectMonthlist = apiResponse.Data ?? new();
-                StateHasChanged();
+                await OnTransportChanged();
             }
 
             ShowPopupAddFeehead = true;

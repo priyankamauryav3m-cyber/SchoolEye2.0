@@ -1897,6 +1897,8 @@ namespace DomainModel.FinanceMNGT
         public string? ControlNo { get; set; }
         public string? ClassSection { get; set; }
         public string? AdmissionNo { get; set; }
+        public string? PeriodName { get; set; }
+        public string? InvoiceNo { get; set; }
         public string? ClassCode { get; set; }
         public int TemplateId { get; set; }
         public int PeriodId { get; set; }
@@ -2159,6 +2161,9 @@ namespace DomainModel.FinanceMNGT
         public string? ClassSection { get; set; }
         public string? ImagePath { get; set; }
         public string? TemplateName { get; set; }
+        public int TemplateId { get; set; }
+        public int InvType { get; set; }
+
         public long InvoiceId { get; set; }
         public bool IsSelected { get; set; }
     }

@@ -25,11 +25,11 @@
     }
 
     .border-column {
-        border-right: 2px solid #ccc;
-        min-height: 40px;
-        display: flex;
-        align-items: center;
-        padding-left: 40px;
+      border-right: 2px solid #ccc;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    padding-left: 40px;
     }
 </style>
 
@@ -44,7 +44,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="row gap-10-0">
-                        <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-3 mt-2">
+                        <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-3 mt-2">
                             <div class="divider-box d-flex justify-content-between align-items-center gap-2">
                                 <p class="total-text-with-bg ">
                                     Invoice Preview
@@ -54,26 +54,22 @@
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
                             <div class="form-box">
-                                <label class="form-label">Invoice No. :</label>
-                                <label class="form-label">@InvoiceMaster.InvoiceNo</label>
+                                <label class="form-label">Invoice No. : @InvoiceMaster.InvoiceNo</label>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
                             <div class="form-box">
-                                <label class="form-label">Fee Period :</label>
-                                <label class="form-label"> @InvoiceMaster.PeriodName</label>
+                                <label class="form-label">Fee Period : @InvoiceMaster.PeriodName</label>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
                             <div class="form-box">
-                                <label class="form-label">Invoice Date :</label>
-                                <label class="form-label">@InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
+                                <label class="form-label">Invoice Date : @InvoiceMaster.CreatedDate.ToString("dd-MM-yyyy")</label>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 border-column">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3 ">
                             <div class="form-box">
-                                <label class="form-label">Due Date :</label>
-                                <label class="form-label">@InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
+                                <label class="form-label">Due Date : @InvoiceMaster.DueDate.ToString("dd-MM-yyyy")</label>
                             </div>
                         </div>
                         <div class="col-12">
@@ -217,7 +213,7 @@
             searchAny.GroupCode = GroupCode;
             searchAny.BranchCode = BranchCode;
             searchAny.RequestName = SelectedStudent.InvoiceId.ToString();
-            searchAny.IsActive = true;
+            ///searchAny.IsActive = true;
             var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
             if (response != null && response.Success && response.Data != null && response.Data.Count != 0)
             {

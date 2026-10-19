@@ -115,12 +115,12 @@
                                         </div>
                                     </HeaderTemplate>
                                     <ChildContent>
-                                        <div class="@(context.ApplicationStatus == "5" ? "disabled-row" : "")">
-                                            <input type="checkbox"
-                                                   @bind="context.IsSelected"
-                                                   disabled="@(context.ApplicationStatus == "5")"
-                                                   @onclick:stopPropagation="true" />
-                                        </div>
+                                  <div class="@(context.ApplicationStatus == "4" || context.ApplicationStatus == "5" ? "disabled-row" : "")">
+                                        <input type="checkbox"
+                                               @bind="context.IsSelected"
+                                               disabled="@(context.ApplicationStatus == "4" || context.ApplicationStatus == "5")"
+                                               @onclick:stopPropagation="true" />
+                                    </div>
                                     </ChildContent>
                                 </TemplateColumn>
 
