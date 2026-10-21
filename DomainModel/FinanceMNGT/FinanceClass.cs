@@ -1822,7 +1822,6 @@ namespace DomainModel.FinanceMNGT
         public DateTime DueDate { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal TotalConcession { get; set; }
-        public decimal ArrearAmount { get; set; }
         public decimal ReceivedAmount { get; set; }
         public int SocietyId { get; set; }
         public string PeriodType { get; set; } = string.Empty;
@@ -1834,7 +1833,6 @@ namespace DomainModel.FinanceMNGT
         public decimal PreviousBalance { get; set; }
         public decimal InvoicePreBalance { get; set; }
         public decimal StudentLateFee { get; set; }
-        public decimal LateCharges { get; set; }
         public decimal PreviousAdvance { get; set; }
         public decimal AdjustmentApproved { get; set; }
         public string PeriodList { get; set; } = string.Empty;
@@ -1910,7 +1908,6 @@ namespace DomainModel.FinanceMNGT
         public string? PeriodType { get; set; }
         public string? DueDate { get; set; }
         public string? InvoiceDate { get; set; }
-        public decimal ArrearAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal TotalConcession { get; set; }
         public decimal ReceivedAmount { get; set; }

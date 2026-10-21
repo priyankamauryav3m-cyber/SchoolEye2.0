@@ -189,10 +189,6 @@
                             <div class="summary-line-label"><i class="fa-solid fa-percent text-green"></i><span class="fw-bold">Total Concession</span></div>
                             <div class="summary-line-value text-green">₹ @TotalConcession.ToString("N2")</div>
                         </div>
-                        <div class="summary-line">
-                            <div class="summary-line-label"><i class="fa-solid fa-clock-rotate-left text-orange"></i><span class="fw-bold">Total Arrear</span></div>
-                            <div class="summary-line-value text-orange">₹ @TotalArrearAmount.ToString("N2")</div>
-                        </div>
                         <div class="summary-received">
                             <span class="lab">Total Received</span>
                             <span class="val">₹ @TotalReceivedAmount.ToString("N2")</span>
@@ -456,7 +452,6 @@ else
     }
     private decimal TotalAmount => moduleQuery.Sum(x => x.TotalAmount);
     private decimal TotalConcession => moduleQuery.Sum(x => x.TotalConcession);
-    private decimal TotalArrearAmount => moduleQuery.Sum(x => x.ArrearAmount);
     private decimal TotalReceivedAmount => moduleQuery.Sum(x => x.ReceivedAmount);
     private bool SelectAll = true;
     private bool ShowInvoicePreview;

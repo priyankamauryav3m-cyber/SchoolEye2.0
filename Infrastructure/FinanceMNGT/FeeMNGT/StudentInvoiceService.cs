@@ -85,7 +85,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
             try
             {
                 using var con = new SqlConnection(_connectionString);
-                string query = @" SELECT InvoiceTypeId, InvoiceTypeName, IsValid, CreatedDate FROM V3M_FIN_MstInvoicetype";
+                string query = @" SELECT InvoiceTypeId, InvoiceTypeName, IsValid, CreatedDate FROM V3M_FIN_MstInvoicetype WHERE IsValid = 1 AND InvoiceTypeId NOT IN (4, 5, 6);";
                 var result = await con.QueryAsync<InvoiceTypeModel>(query);
                 return result.ToList();
             }
@@ -267,7 +267,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 string sql = @"SELECT * FROM TPT_FeeMonthConfig WHERE StudentId = @StudentId AND SessionId = @SessionId AND IsValid = 1";
                 return await con.QueryAsync<TransportSelectMonthModel>(sql, new
                 {
-                    searchAnyRequest.StudentId,
+                    searchAnyRequest.StudentId, 
                     searchAnyRequest.SessionId
                 });
             }
@@ -289,7 +289,6 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 parameters.Add("@StudentId", request.StudentId);
                 parameters.Add("@InvoiceId", request.InvoiceId);
                 parameters.Add("@HeadId", request.HeadId);
-               // parameters.Add("@MonthNo", request.MonthNo);
                 parameters.Add("@HeadAmount", request.HeadAmount);
                 parameters.Add("@CreatedBy", request.CreatedBy);
                 parameters.Add("@Narration1", request.Narration1);
