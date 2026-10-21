@@ -1121,9 +1121,6 @@ namespace Infrastructure.FileGenerate
                 table.Cell().Border(1).Padding(2).Text("Fine / Late Fee").SemiBold();
                 table.Cell().ColumnSpan(2).Border(1);
                 table.Cell().Border(1).Padding(2).AlignRight().Text(lateFee > 0 ? lateFee.ToString("N2") : "").SemiBold();
-                table.Cell().Border(1).Padding(2).Text("Arrear").SemiBold();
-                table.Cell().ColumnSpan(2).Border(1);
-                table.Cell().Border(1).Padding(2).AlignRight().Text(master?.ArrearAmount > 0 ? master.ArrearAmount.ToString("N2") : "").SemiBold();
                 table.Cell().Border(1).Padding(2).Background(Colors.Grey.Lighten2).Text("Total Payable").Bold();
                 table.Cell().ColumnSpan(2).Border(1).Background(Colors.Grey.Lighten2);
                 table.Cell().Border(1).Padding(2).Background(Colors.Grey.Lighten2).AlignRight().Text(grandTotal.ToString("N2")).Bold();
