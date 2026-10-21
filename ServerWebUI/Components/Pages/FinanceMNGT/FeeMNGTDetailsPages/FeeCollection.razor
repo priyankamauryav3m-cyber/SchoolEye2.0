@@ -987,7 +987,7 @@
         <div class="col-12 col-lg-4 p-1">
             <div class="amount-to-collect-card mb-2">
                 <div class="amount-to-collect-label">AMOUNT TO COLLECT</div>
-                <div class="amount-to-collect-value">&#8377;@TotalPayable.ToString("N2")</div>
+                <div class="amount-to-collect-value">&#8377;@(SelectedPaymentMode == "Cash" ? CashPaymentAmount.ToString("N2") : TotalPayable.ToString("N2"))</div>
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span>Remaining balance &#8377;52,850</span>
                     <span class="balance-badge">Partial payment</span>
@@ -1039,7 +1039,8 @@
                                    min="0.01"
                                    step="0.01"
                                    @bind="@CashPaymentAmount"
-                                   @oninput="ValidateCashPaymentAmount"
+                                   @bind:event="oninput"
+                                   @onchange="ValidateCashPaymentAmount"
                                    placeholder="Optional for cash payment" />
                             <label class="floating-label">Paying</label>
                         </div>
@@ -1697,7 +1698,7 @@ else
 
     private void ValidateCashPaymentAmount(ChangeEventArgs e)
     {
-        if (CashPaymentAmount <= 0 || CashPaymentAmount > TotalPayable)
+        if (CashPaymentAmount <= 0)
         {
             CashPaymentAmount = TotalPayable;
         }
@@ -2019,6 +2020,7 @@ else
             return;
         }
         ApplyTillMonthFilter();
+        CashPaymentAmount = TotalPayable;
         StateHasChanged();
     }
 
