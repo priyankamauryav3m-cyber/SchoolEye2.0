@@ -2031,6 +2031,7 @@ namespace DomainModel.FinanceMNGT
         public string NextToKinName { get; set; } = "";
         public string NextToKinEmail { get; set; } = "";
         public string NextToKinContactNo { get; set; } = "";
+        public string RegistrationNo { get; set; } = "";
     }
 
     public class FeeCollectionDuesNew
@@ -2437,6 +2438,8 @@ namespace DomainModel.FinanceMNGT
         public decimal PaidAmount { get; set; }
         public decimal Balance { get; set; }
         public List<AdmitChildReceiptPrintFeeHead> FeeHeads { get; set; } = new();
+        // title of the amount column: admission receipt "Total", fee collection receipt "Payable"
+        public string AmountHeader { get; set; } = "Total";
     }
 
     public class AdmitChildReceiptPrintFeeHead

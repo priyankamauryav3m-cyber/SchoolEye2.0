@@ -25,7 +25,9 @@
     .grid-box-with-btn {
         height: calc(90vh - 273px);
     }
-
+    .border-box{
+       height: 36px;
+    }
     .student-avatar {
         width: 42px;
         height: 42px;
@@ -155,7 +157,7 @@
                 </div>
             </PageHeading>
         </div>
-        <div class="col-12 p-1">
+        @* <div class="col-12 p-1">
             <div class="card">
                 <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-2">
@@ -178,7 +180,22 @@
                             </div>
                         </div>
                     </div>
-
+                     <div class="d-flex align-items-center gap-2">
+                        <div class="form-box">
+                         <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="checkbox" class="form-input" />
+                                <label class="form-label">Transport Required</label>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                        <div class="d-flex align-items-center gap-2">
+                        <div class="form-box">
+                            <label class="form-label">RECEIPT DATE</label>
+                            <InputDate @bind-Value="ReceiptDate" class="form-input" />
+                        </div>
+                    </div>
                     <div class="d-flex align-items-center gap-2">
                         <div class="form-box">
                             <label class="form-label">RECEIPT DATE</label>
@@ -187,17 +204,78 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> *@
+        <div class="col-12 p-1">
+    <div class="card">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
 
+            <div class="d-flex align-items-center gap-2">
+                <div class="student-avatar">
+                    @GetInitials(IsStudentSelected ? selectedStudent.StudentName : null)
+                </div>
+                <div>
+                    <div class="student-name">
+                        @(IsStudentSelected ? selectedStudent.StudentName : "No student selected")
+                    </div>
+                    <div class="student-sub">
+                        @if (IsStudentSelected)
+                        {
+                            @:Registration no. @selectedStudent.RegistrationNo &nbsp;·&nbsp; Class @selectedStudent.ClassName &nbsp;·&nbsp; Father Name: @selectedStudent.FatherName &nbsp;·&nbsp; Mobile No: @selectedStudent.FatherContactNo
+                        }
+                        else
+                        {
+                            @:Search and select a student to view fee details.
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                         
+                <div class="form-box">
+                      <label class="form-label">&nbsp;</label>
+                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="checkbox"
+                                   class="form-input"
+                                   @bind="@IsUsingTransport" />
+                            <label class="form-label">Transport Required</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-box">
+                    <label class="form-label">Route Distance</label>
+
+                        <InputSelect disabled="@(!IsUsingTransport)"
+                                     class="form-input"
+                                     autocomplete="off"
+                                     @bind-Value="@RouteDistance">
+                            <option value="0">--Select--</option>
+                            @foreach (var cs in distancelist)
+                            {
+                                <option value="@cs.DistanceId">@cs.DistanceName</option>
+                            }
+                        </InputSelect>
+                   
+                </div>
+
+                <div class="form-box">
+                    <label class="form-label">Receipt Date</label>
+                    <InputDate @bind-Value="ReceiptDate" class="form-input" />
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
         @* action buttons — static for now *@
         <div class="col-12 p-1">
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <div class="form-box">
                     <button type="button" class="table-btn active">Collect fee</button>
                 </div>
-                <div class="form-box">
-                    <button type="button" class="table-btn">Map transport</button>
-                </div>
+          
                 <div class="form-box">
                     <button type="button" class="table-btn">Add feehead</button>
                 </div>
@@ -529,8 +607,9 @@
         </div>
     </div>
 }
-
+@* <MapTransportWithStudent IsVisible="@OpenMapTransportStudent" CurrentSessionData="@CurrentSession" SetStudentMapTransportList="@SelectStudentMapTransport"  CurrectUrl="@currentUrl" OnClose="@ClosePopup" /> *@
 @code {
+    private bool OpenMapTransportStudent = false;
     private string? groupcode;
     private string? branchcode;
     private long CurrentSession;
@@ -538,13 +617,13 @@
     private List<SocietyModel> societyModellist = new();
     private int SelectedSocietyId;
     private string? username;
-
+    private List<TransportStudentDataModel> SelectStudentMapTransport = new();
     // search
     private string? searchTerm;
     private RegistrationDetailsResponse selectedStudent = new();
     private bool IsStudentSelected;
     private bool IsLoading;
-
+    private bool IsUsingTransport = false;
     // fee heads of the student's class for the selected period
     private List<ClassMapTemplateFeeHeadResponse> feeHeadList = new();
     private string? nameFilter;
@@ -569,11 +648,13 @@
     private string BankBranch = "";
     private string Remarks = "";
     private decimal PayingAmount;
-
+    private string currentUrl = "";
+    private int RouteDistance;
     // map concession popup
     private bool ShowConcessionPopup;
     private bool IsConcessionLoading;
     private int SelectedConcessionId;
+    private List<MstDistance> distancelist = new();
     private List<ConcessionModel> concessionList = new();
     private List<CommonDomain> concessionFeeHeadList = new();
     private PaginationState concessionPagination = new() { ItemsPerPage = 10 };
@@ -596,6 +677,7 @@
     protected override void OnInitialized()
     {
         PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -614,12 +696,25 @@
             paymentModeList = await httpService.Get<List<PaymentModel>>("PaymentMode/GetBankPaymentMode") ?? new();
             chequeTypeList = await httpService.Get<List<ChequeTypeModel>>("ChequeType/GetChecktype") ?? new();
             bankList = await httpService.Get<List<BankModel>>("Finance/GetBank") ?? new();
+            distancelist = await httpService.Get<List<MstDistance>>("ClassSection/GetDistance") ?? new();
             await SetDefaultPeriodType();
             SelectedPaymentModeId = DefaultPaymentModeId;
             StateHasChanged();
         }
     }
+    private async Task StudentMapWithTransport()
+    {
+        // var selectedData = moduleQuery.Where(x => x.IsSelected).ToList();
 
+        // if (selectedData.Count == 0)
+        // {
+        //     await JS.InvokeVoidAsync("showSelectRecordAlert");
+        //     return;
+        // }
+        // SelectStudentMapTransport = selectedData;
+        // OpenMapTransportStudent = true;
+        // StateHasChanged();
+    }
     // page opens with "Quarterly" period type and its period names loaded
     private async Task SetDefaultPeriodType()
     {
@@ -700,7 +795,7 @@
         feeHeadList = new();
         nameFilter = null;
         PayingAmount = 0;
-     
+
         AppliedConcessionId = 0;
         AppliedConcessionFeeHeads = new();
     }
@@ -806,7 +901,7 @@
         {
             string apiUri = $"Registration/FeeHeadConcession?groupCode={groupcode}&branchCode={branchcode}&sessionId={CurrentSession}&concessionId={SelectedConcessionId}&isMappedOnly={0}";
             var result = await httpService.Get<List<CommonDomain>>(apiUri) ?? new();
-       
+
             concessionFeeHeadList = result.Where(x => (x.ConcessionApplicable ?? 0) > 0).ToList();
         }
         catch (Exception ex)
@@ -925,7 +1020,7 @@
                 BranchCode = branchcode ?? "",
                 SessionId = CurrentSession
             };
-            
+
             if (term.Any(char.IsDigit))
                 request.RegistrationNo = term;
             else
@@ -970,6 +1065,11 @@
         if (selectedStudent.RegistrationId <= 0)
         {
             await Alert.ShowWarning("Registration id not found for this student.");
+            return;
+        }
+        if (IsUsingTransport && RouteDistance == 0)
+        {
+            await Alert.ShowWarning("Please select route distance.");
             return;
         }
         // validate before calling the API
@@ -1045,9 +1145,9 @@
                 BranchCode = branchcode ?? "",
                 SessionId = CurrentSession,
                 CreatedBy = username ?? "",
-                RouteDistance = (int)selectedStudent.DistanceFromSchool,
+                //RouteDistance = (int)selectedStudent.DistanceFromSchool,
                 SocietyId = SelectedSocietyId,
-
+                RouteDistance=RouteDistance,
                 // receipt
                 ClassCode = selectedStudent.ClassCode,
                 TotalAmount = TotalAmount,
@@ -1200,6 +1300,7 @@
         // a new student -> start again from period selection
         ResetAll();
         selectedStudent = item;
+        IsUsingTransport = selectedStudent.IsTransportRequired;
         IsStudentSelected = true;
     }
 
@@ -1207,6 +1308,8 @@
     {
         selectedStudent = new();
         IsStudentSelected = false;
+        IsUsingTransport = false;
+        RouteDistance = 0;
         ResetFeeGrid();
     }
 
@@ -1225,5 +1328,14 @@
     public void Dispose()
     {
         PermissionState.OnChange -= StateHasChanged;
+    }
+    private void ClosePopup()
+    {
+
+       
+    
+        OpenMapTransportStudent = false;
+       
+        StateHasChanged();
     }
 }

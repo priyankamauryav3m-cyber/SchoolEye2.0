@@ -2222,7 +2222,7 @@ namespace Infrastructure.FileGenerate
                 table.Header(header =>
                 {
                     header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text("Fee Head").FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
-                    header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text("Total").FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
+                    header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text(string.IsNullOrWhiteSpace(_receipt.AmountHeader) ? "Total" : _receipt.AmountHeader).FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
                 });
 
                 foreach (var fee in _receipt.FeeHeads)

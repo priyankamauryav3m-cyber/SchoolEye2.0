@@ -52,120 +52,182 @@
         </div>
 
         <div class="col-12 p-1">
-            <div class="card">
-                <div class="card-body table-card p-0">
-                    <div class="quick-main">
-                        <div class="grid-box" style="height: calc(100vh - 220px);">
-                            <QuickGrid Items="@statusQuery" Class="table" Pagination="@pagination">
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StatusName) ? " " : x.StatusName)" Title="Status Name" Sortable="true" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StatusDate) ? " " : x.StatusDate)" Title="Status Date" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
-                                    <ChildContent>
-                                        @* @if (context.IsDone == 1)
-                                        {
-                                            <i class="bi bi-check-circle-fill" style="color:#28a745; font-size:18px;"></i>
-                                        }
-                                        else
-                                        {
-                                            <i class="bi bi-x-circle-fill" style="color:#dc3545; font-size:18px;"></i>
-                                        } *@
-                                       <div class="text-center">
-                                                    @if (context.ApplicationStatus == 0 && context.IsDone == 0)
-                                                    {
-                                                        <span class="badge rounded-pill bg-success">
-                                                            <i class="bi bi-check-circle-fill me-1"></i>
-                                                             Done
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 1 && context.IsDone == 0)
-                                                    {
-                                                        <span class="badge rounded-pill bg-primary">
-                                                            <i class="bi bi-clock-fill me-1"></i>
-                                                             Pending
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 1 && context.IsDone == 1)
-                                                    {
-                                                        <span class="badge rounded-pill bg-success">
-                                                            <i class="bi bi-check-circle-fill me-1"></i>
-                                                          Completed
-                                                        </span>
-                                                    }
-                                                 
-                                                    else if (context.ApplicationStatus == 2 && context.IsDone == 1)
-                                                    {
-                                                        <span class="badge rounded-pill bg-success">
-                                                            <i class="bi bi-check-circle-fill me-1"></i>
-                                                             Completed
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 2 && context.IsDone == 0)
-                                                    {
-                                                        <span class="badge rounded-pill bg-info text-dark">
-                                                            <i class="bi bi-pencil-square me-1"></i>
-                                                             Pending
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 3 && context.IsDone == 1)
-                                                    {
-                                                        <span class="badge rounded-pill bg-success">
-                                                            <i class="bi bi-check-circle-fill me-1"></i>
-                                                             Done
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 3 && context.IsDone == 0)
-                                                    {
-                                                        <span class="badge rounded-pill bg-warning text-dark">
-                                                            <i class="bi bi-clock-fill me-1"></i>
-                                                             Pending
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 4 && context.IsDone == 1)
-                                                    {
-                                                        <span class="badge rounded-pill bg-success">
-                                                            <i class="bi bi-check-circle-fill me-1"></i>
-                                                            Admission Approved
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 4 && context.IsDone == 0)
-                                                    {
-                                                        <span class="badge rounded-pill bg-warning text-dark">
-                                                            <i class="bi bi-hourglass-split me-1"></i>
-                                                            Approval Pending
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 5 && context.IsDone == 1)
-                                                    {
-                                                        <span class="badge rounded-pill bg-success">
-                                                            <i class="bi bi-mortarboard-fill me-1"></i>
-                                                            Admitted
-                                                        </span>
-                                                    }
-                                                    else if (context.ApplicationStatus == 5 && context.IsDone == 0)
-                                                    {
-                                                        <span class="badge rounded-pill bg-warning text-dark">
-                                                            <i class="bi bi-clock-fill me-1"></i>
-                                                            Admission Pending
-                                                        </span>
-                                                    }
-                                                </div>
-                                    </ChildContent>
-                                </TemplateColumn>
-                            </QuickGrid>
+            @if (statuslist.Count > 0)
+            {
+                <div class="app-status-card">
+                    <div class="app-status-head">
+                        <div>
+                            <div class="app-status-label">Registration No.</div>
+                            <div class="app-status-regno">@searchedRegistrationNo</div>
                         </div>
-                        <div class="footer-pagination">
-                            <div class="d-flex align-items-center">
-                                <div class="welcome-text w-100">
-                                    <Paginator State="@pagination" />
-                                </div>
-                            </div>
+                        @* progress ring: completed steps / all steps *@
+                        <div class="app-status-ring" style="--pct:@ProgressPercent">
+                            <span>@ProgressPercent%</span>
                         </div>
                     </div>
+
+                    <ul class="app-status-steps">
+                        @foreach (var step in statuslist)
+                        {
+                            var state = GetStepState(step);
+                            <li class="app-status-step @state">
+                                <span class="app-status-icon">
+                                    <i class="bi @(state == "pending" ? "bi-hourglass-split" : "bi-check-lg")"></i>
+                                </span>
+                                <div class="app-status-text">
+                                    <div class="app-status-name">@(string.IsNullOrWhiteSpace(step.StatusName) ? "—" : step.StatusName)</div>
+                                    <div class="app-status-date">@(string.IsNullOrWhiteSpace(step.StatusDate) ? "—" : step.StatusDate)</div>
+                                </div>
+                                <span class="app-status-badge">@GetStepLabel(state)</span>
+                            </li>
+                        }
+                    </ul>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </div>
+
+<style>
+    .app-status-card {
+        max-width: 100%;
+        background: #fff;
+        border: 1px solid #e9edf3;
+        border-radius: 14px;
+        padding: 22px 26px 18px;
+        box-shadow: 0 2px 10px rgba(16, 24, 40, .04);
+        height: 600px
+    }
+
+    .app-status-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .app-status-label {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .app-status-regno {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        letter-spacing: .3px;
+    }
+
+    .app-status-ring {
+        --pct: 0;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: conic-gradient(#20a090 calc(var(--pct) * 1%), #e5e7eb 0);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .app-status-ring span {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+    .app-status-steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .app-status-step {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 9px 0;
+    }
+
+        /* vertical line between the icons */
+        .app-status-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            left: 19px;
+            top: 48px;
+            bottom: -10px;
+            width: 2px;
+            background: #e5e7eb;
+        }
+
+    .app-status-icon {
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        box-shadow: 0 0 0 4px var(--ring);
+        background: var(--fill);
+        z-index: 1;
+    }
+
+    .app-status-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .app-status-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .app-status-date {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .app-status-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 8px;
+        color: var(--badge-text);
+        background: var(--badge-bg);
+    }
+
+    .app-status-step.done {
+        --fill: #1f6fb5;
+        --ring: #dbe8f6;
+        --badge-text: #1f6fb5;
+        --badge-bg: #e8f1fb;
+    }
+
+    .app-status-step.success {
+        --fill: #22a447;
+        --ring: #d9f3e1;
+        --badge-text: #16803a;
+        --badge-bg: #e8f8ee;
+    }
+
+    .app-status-step.pending {
+        --fill: #f29d12;
+        --ring: #fdeccf;
+        --badge-text: #c2570c;
+        --badge-bg: #fff4e5;
+    }
+</style>
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
@@ -196,14 +258,32 @@ else
     private bool IsLoading = false;
     private RegistrationRequest searchRequest = new();
 
-    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    // registration no. shown on the status card (the one that was searched)
+    private string searchedRegistrationNo = "";
 
     private string? branchcode;
     private string? groupcode;
     private string currentUrl = "";
     private string username = "";
 
-    private IQueryable<RegistrationStatusResponse> statusQuery => statuslist.AsQueryable();
+    // step state: registration step = done (blue), finished step = success (green), else pending (orange)
+    private static string GetStepState(RegistrationStatusResponse step)
+    {
+        if (step.ApplicationStatus == 0)
+            return "done";
+        return step.IsDone == 1 ? "success" : "pending";
+    }
+
+    private static string GetStepLabel(string state) => state switch
+    {
+        "done" => "Done",
+        "success" => "Success",
+        _ => "Pending"
+    };
+
+    private int ProgressPercent => statuslist.Count == 0
+        ? 0
+        : (int)Math.Round(100.0 * statuslist.Count(x => GetStepState(x) != "pending") / statuslist.Count);
 
     protected override void OnInitialized()
     {
@@ -282,6 +362,7 @@ else
             statuslist = (apiResponse != null && apiResponse.Success)
                 ? (apiResponse.Data ?? new())
                 : new();
+            searchedRegistrationNo = searchRequest.RegistrationNo ?? "";
 
             if (apiResponse != null && !apiResponse.Success)
             {

@@ -987,7 +987,7 @@
         <div class="col-12 col-lg-4 p-1">
             <div class="amount-to-collect-card mb-2">
                 <div class="amount-to-collect-label">AMOUNT TO COLLECT</div>
-                <div class="amount-to-collect-value">&#8377;@(SelectedPaymentMode == "Cash" ? CashPaymentAmount.ToString("N2") : TotalPayable.ToString("N2"))</div>
+                <div class="amount-to-collect-value">&#8377;@(SelectedPaymentMode == "Cash" ? CashPaymentAmount.ToString("N2") : TotalWithLateFee.ToString("N2"))</div>
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span>Remaining balance &#8377;52,850</span>
                     <span class="balance-badge">Partial payment</span>
@@ -996,7 +996,7 @@
                 <div class="row g-2">
                     <div class="col-6">
                         <div class="amount-stat-label">TOTAL FEE</div>
-                        <div class="amount-stat-value">&#8377;@TotalAmount.ToString("N2")</div>
+                        <div class="amount-stat-value">&#8377;@((TotalAmount + ApplicableLateFee).ToString("N2"))</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">PREVIOUS ADVANCE</div>
@@ -1007,8 +1007,13 @@
                         <div class="amount-stat-value">&#8377;@TotalConcession.ToString("N2")</div>
                     </div>
                     <div class="col-6">
-                        <div class="amount-stat-label">LATE FEE INCLUDED</div>
+                        @* late fee is always shown; it is added to the total only when collecting up to the last month *@
+                        <div class="amount-stat-label">LATE FEE</div>
                         <div class="amount-stat-value">&#8377;@(IsStudentSelected ? selectedStudent.LateFee.ToString("N2") : "-")</div>
+                        @if (IsStudentSelected && selectedStudent.LateFee > 0 && ApplicableLateFee == 0)
+                        {
+                            <div class="fee-head-sub" style="font-size:11px;">Added when collecting up to the last month</div>
+                        }
                     </div>
                 </div>
             </div>
@@ -1145,7 +1150,7 @@
                         <div class="receipt-preview-divider"></div>
                         <div class="receipt-preview-row">
                             <span class="student-suggest-label" style="font-size:14px;">Amount</span>
-                            <span class="student-suggest-value" style="font-size:18px;">&#8377;@TotalPayable.ToString("N2")</span>
+                            <span class="student-suggest-value" style="font-size:18px;">&#8377;@TotalWithLateFee.ToString("N2")</span>
                         </div>
                     </div>
                 </div>
@@ -1700,7 +1705,7 @@ else
     {
         if (CashPaymentAmount <= 0)
         {
-            CashPaymentAmount = TotalPayable;
+            CashPaymentAmount = TotalWithLateFee;
         }
     }
     // Ledger details popup = ViewStudentReceipt component (it runs its own search/session/data)
@@ -1868,6 +1873,12 @@ else
     private decimal TotalConcession => feeCollectionDuelist.Sum(x => x.Concession);
     private decimal TotalPayable => feeCollectionDuelist.Sum(x => x.Payable);
 
+    // Late fee is charged by the save SP (V3M_FIN_InsertLateFeeForReceipt) only when the receipt clears every due
+    // invoice, i.e. "Collect up to" is on the last month of the dues; then it is part of the total and the paying amount.
+    private bool IsLastInvoiceSelected => distinctMonths.Count > 0 && SelectedTillMonth == distinctMonths[^1].MonthNo;
+    private decimal ApplicableLateFee => IsStudentSelected && IsLastInvoiceSelected ? selectedStudent.LateFee : 0;
+    private decimal TotalWithLateFee => TotalPayable + ApplicableLateFee;
+
     private DateTime ComputeTillDate(int monthNo)
     {
         int year = monthNo >= 4 ? academicStartYear : academicStartYear + 1;
@@ -1884,6 +1895,27 @@ else
         selectedStudent = new();
         SelectedStudentId = 0;
         IsStudentSelected = false;
+        StateHasChanged();
+    }
+
+    // clears the student, dues, amounts (late fee comes from the selected student) and remark
+    private void ResetFeeCollection()
+    {
+        searchTerm = "";
+        searchInputKey = Guid.NewGuid().ToString();
+        ShowSuggestions = false;
+        filteredSuggestions = new();
+        activeSuggestion = -1;
+        studentDetailsForFeeList = new();
+        selectedStudent = new();
+        SelectedStudentId = 0;
+        IsStudentSelected = false;
+        allFeeCollectionDues = new();
+        feeCollectionDuelist = new();
+        distinctMonths = new();
+        SelectedTillMonth = 4;
+        CashPaymentAmount = 0;
+        adjustStudentFeeHeadWise = new();
         StateHasChanged();
     }
 
@@ -1904,15 +1936,16 @@ else
         StateHasChanged();
     }
 
+    // counter receipt is saved as cash (same value goes on the printed receipt)
+    private const string CounterPaymentMode = "Cash";
+
     private async Task OnSaveFeeCollection()
     {
         try
         {
-            IsLoading = true;
             if (string.IsNullOrWhiteSpace(searchTerm))
             {
                 await Alert.ShowWarning("Please enter student name or student no to search.");
-                IsLoading = false;
                 StateHasChanged();
                 return;
             }
@@ -1934,7 +1967,24 @@ else
                 StateHasChanged();
                 return;
             }
+            if (feeCollectionDuelist.Count == 0)
+            {
+                await Alert.ShowWarning("No fee dues found to collect.");
+                StateHasChanged();
+                return;
+            }
 
+            // No -> nothing changes, the entered details stay as they are
+            if (!await Alert.ShowConfirm("Are you sure, you want to submit student fee?"))
+                return;
+
+            IsLoading = true;
+            StateHasChanged();
+
+            // late fee is added to the receipt by the save SP itself, so PaidAmount stays the dues total
+            var lateFee = ApplicableLateFee;
+            // receipt data is taken now, the dues are reloaded after saving
+            var receipt = BuildFeeReceipt(lateFee);
 
             adjustStudentFeeHeadWise.GroupCode = groupcode;
             adjustStudentFeeHeadWise.BranchCode = branchcode;
@@ -1944,12 +1994,12 @@ else
             adjustStudentFeeHeadWise.SectionId = selectedStudent.SectionId;
             adjustStudentFeeHeadWise.PaidAmount = TotalPayable;
             adjustStudentFeeHeadWise.Balance = selectedStudent.StudentBalance;
-            adjustStudentFeeHeadWise.PaymentMode = "Cash";
+            adjustStudentFeeHeadWise.PaymentMode = CounterPaymentMode;
             adjustStudentFeeHeadWise.ChequeNo = "";
             adjustStudentFeeHeadWise.ChequeDate = null;
             adjustStudentFeeHeadWise.ChequeBank = "";
             adjustStudentFeeHeadWise.ChequeType = "";
-            adjustStudentFeeHeadWise.LateFee = selectedStudent.LateFee;
+            adjustStudentFeeHeadWise.LateFee = lateFee;
             adjustStudentFeeHeadWise.PreviousBalance = selectedStudent.PreviousBalance;
             adjustStudentFeeHeadWise.SocietyId = 0;
             adjustStudentFeeHeadWise.CreatedBy = UserName;
@@ -1977,10 +2027,17 @@ else
 
             if (response != null && response.Success && response.Data != null)
             {
+                IsLoading = false;
+                StateHasChanged();
 
-                await customAlert.ShowCustomAlert($"Fee adjusted successfully. Receipt No: {response.Data.StudentReceiptNo}", false);
-                await GetStudentFeeDetails();
+                // Yes -> receipt opens in a new tab, then the success message
+                receipt.ReceiptNo = response.Data.StudentReceiptNo;
+                if (await Alert.ShowConfirm("Do you want to print receipt?"))
+                    await PrintFeeReceipt(receipt);
+
+                await Alert.ShowSuccess($"Fee collected successfully. Receipt No: {response.Data.StudentReceiptNo}");
                 adjustStudentFeeHeadWise = new();
+                await GetStudentFeeDetails();
                 StateHasChanged();
             }
             else
@@ -1995,12 +2052,80 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching student details: {ex.Message}");
+            Console.WriteLine($"Error collecting student fee: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to collect the fee. Please try again.");
         }
         finally
         {
             IsLoading = false;
             StateHasChanged();
+        }
+    }
+
+    // receipt print data, same layout as the admission receipt (Export/GenerateAdmitChildReceiptPdf):
+    // one row per fee head with its months, e.g. "Tuition fee (May,Jun,Jul)", plus the late fee when charged
+    private AdmitChildReceiptPrintModel BuildFeeReceipt(decimal lateFee)
+    {
+        var dues = feeCollectionDuelist.OrderBy(x => GetSessionMonthOrder(x.MonthNo)).ToList();
+        var months = dues.Select(x => x.MonthDisplay).Distinct().ToList();
+
+        var feeHeads = dues
+            .GroupBy(x => x.FeeHeadName)
+            .Select(g => new AdmitChildReceiptPrintFeeHead
+            {
+                FeeHeadName = $"{g.Key} ({string.Join(",", g.Select(x => x.MonthDisplay).Distinct())})",
+                Amount = g.Sum(x => x.Payable)
+            })
+            .ToList();
+        if (lateFee > 0)
+            feeHeads.Add(new AdmitChildReceiptPrintFeeHead { FeeHeadName = "Late Fee", Amount = lateFee });
+
+        var paid = TotalPayable + lateFee;
+        return new AdmitChildReceiptPrintModel
+        {
+            ReceiptDate = studentDetailsForFeeRequest.ReceiptDate,
+            RegistrationNo = selectedStudent.RegistrationNo,
+            // "Student No." on the receipt shows the admission control no. (same as the admission receipt)
+            StudentNo = selectedStudent.ControlNo,
+            StudentName = selectedStudent.StudentName,
+            FatherName = selectedStudent.FatherName,
+            ClassName = selectedStudent.ClassName,
+            SessionName = selectedStudent.SessionName,
+            PeriodName = months.Count switch { 0 => "", 1 => months[0], _ => $"{months[0]} To {months[^1]}" },
+            PaymentMode = CounterPaymentMode,
+            TotalAmount = paid,
+            Concession = 0,
+            PaidAmount = paid,
+            // dues of the months that were not collected in this receipt
+            Balance = allFeeCollectionDues.Sum(x => x.Payable) - TotalPayable,
+            FeeHeads = feeHeads,
+            AmountHeader = "Payable"
+        };
+    }
+
+    // a print failure must not look like a collection failure, the fee is already saved
+    private async Task PrintFeeReceipt(AdmitChildReceiptPrintModel receipt)
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<string>>("Export/GenerateAdmitChildReceiptPdf", receipt);
+            IsLoading = false;
+            StateHasChanged();
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+                await JS.InvokeVoidAsync("viewPdf", response.Data);
+            else
+                await Alert.ShowWarning("Fee is collected, but the receipt could not be generated.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing fee receipt: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowWarning("Fee is collected, but the receipt could not be generated.");
         }
     }
 
@@ -2020,15 +2145,24 @@ else
             return;
         }
         ApplyTillMonthFilter();
-        CashPaymentAmount = TotalPayable;
+        CashPaymentAmount = TotalWithLateFee;
         StateHasChanged();
     }
 
     private void ApplyTillMonthFilter()
     {
+        var tillMonthOrder = GetSessionMonthOrder(SelectedTillMonth);
         feeCollectionDuelist = allFeeCollectionDues
-            .Where(x => x.MonthNo <= SelectedTillMonth)
+            .Where(x => GetSessionMonthOrder(x.MonthNo) <= tillMonthOrder)
             .ToList();
+    }
+
+    // Academic session runs April -> March, so April = 0 ... March = 11
+    private const int SessionStartMonth = 4;
+
+    private static int GetSessionMonthOrder(int monthNo)
+    {
+        return (monthNo - SessionStartMonth + 12) % 12;
     }
 
 
@@ -2051,13 +2185,13 @@ else
                 distinctMonths = allFeeCollectionDues
                     .GroupBy(x => x.MonthNo)
                     .Select(g => g.First())
-                    .OrderBy(x => x.MonthNo)
+                    .OrderBy(x => GetSessionMonthOrder(x.MonthNo))
                     .ToList();
 
-                SelectedTillMonth = distinctMonths.FirstOrDefault()?.MonthNo ?? SelectedTillMonth;
+                SelectedTillMonth = distinctMonths.LastOrDefault()?.MonthNo ?? SelectedTillMonth;
 
                 ApplyTillMonthFilter();
-                CashPaymentAmount = TotalPayable;
+                CashPaymentAmount = TotalWithLateFee;
             }
             else
             {
@@ -2065,6 +2199,8 @@ else
                 feeCollectionDuelist = new();
                 distinctMonths = new();
                 await customAlert.ShowCustomAlert("Either challan is not genereated of this student or fee is already paid.", false);
+                // nothing left to collect (e.g. fully paid) -> page back to a fresh search
+                ResetFeeCollection();
             }
 
             StateHasChanged();
@@ -2220,11 +2356,11 @@ else
         StateHasChanged();
     }
 
-    private Task ConfirmPayment()
+    // "Confirm payment" in the preview = same as the Collect fee button (confirm -> save -> print receipt)
+    private async Task ConfirmPayment()
     {
-        // TODO: no collect-payment endpoint specified yet - wire this once provided.
         ShowReceiptPreview = false;
         StateHasChanged();
-        return Task.CompletedTask;
+        await OnSaveFeeCollection();
     }
 }

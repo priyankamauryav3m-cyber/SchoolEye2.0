@@ -35,48 +35,69 @@
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>
                                 }
-                                <ul id="form-tab-ul" class="form-tab-ul nav nav-tab-5">
-                                    <li>
-                                        <a href="javascript:void(0)"
-                                           class="tab-link @(ActiveTab == "childs-details" ? "active" : "")"
-                                           @onclick='() => SetTab("childs-details")'>
-                                            Child's Details
-                                        </a>
-
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)"
-                                           class="tab-link @(ActiveTab == "parents-details" ? "active" : "")"
-                                           @onclick='() => SetTab("parents-details")'>
-                                            Parents Details
-                                        </a>
-
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)"
-                                           class="tab-link @(ActiveTab == "points-criteria" ? "active" : "")"
-                                           @onclick='() => SetTab("points-criteria")'>
-                                            Points Criteria
-                                        </a>
-
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)"
-                                           class="tab-link @(ActiveTab == "address-details" ? "active" : "")"
-                                           @onclick='() => SetTab("address-details")'>
-                                            Address Details
-                                        </a>
-
-                                    </li>
-                                    <li>
-                                        <a href="javascript:void(0)"
-                                           class="tab-link @(ActiveTab == "family-details" ? "active" : "")"
-                                           @onclick='() => SetTab("family-details")'>
-                                            Family Details
-                                        </a>
-
-                                    </li>
-
+                                @* tab state: complete = green tick, active = blue number, incomplete = orange ! (left without saving required fields) *@
+                                @* <ul id="form-tab-ul" class="form-tab-ul step-tabs nav nav-tab-5">
+                                    @for (var i = 0; i < Tabs.Count; i++)
+                                    {
+                                        var tab = Tabs[i];
+                                        var state = GetTabState(tab);
+                                        var tabNo = i + 1;
+                                        <li>
+                                            <a href="javascript:void(0)"
+                                               class="tab-link step-tab @state"
+                                               title="@GetTabHint(state)"
+                                               @onclick="() => SetTab(tab)">
+                                                <span class="step-badge">
+                                                    @if (state == "complete")
+                                                    {
+                                                        <i class="bi bi-check-lg"></i>
+                                                    }
+                                                    else if (state == "incomplete")
+                                                    {
+                                                        <i class="bi bi-exclamation-lg"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        @tabNo
+                                                    }
+                                                </span>
+                                                <i class="bi @TabInfo[tab].Icon step-icon"></i>
+                                                <span class="step-title">@TabInfo[tab].Title</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul> *@
+                                
+                                <ul class="wizard-steps">
+                                    @for (var i = 0; i < Tabs.Count; i++)
+                                    {
+                                        var tab = Tabs[i];
+                                        var state = GetTabState(tab);
+                                        var tabNo = i + 1;
+                                        <li>
+                                            <a href="javascript:void(0)"
+                                               class="wizard-step @state"
+                                               title="@GetTabHint(state)"
+                                               @onclick="() => SetTab(tab)">
+                                                <span class="wizard-badge">
+                                                    @if (state == "complete")
+                                                    {
+                                                        <i class="bi bi-check-lg"></i>
+                                                    }
+                                                    else if (state == "incomplete")
+                                                    {
+                                                        <i class="bi bi-exclamation-lg"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        @tabNo
+                                                    }
+                                                </span>
+                                                <i class="bi @TabInfo[tab].Icon wizard-icon"></i>
+                                                <span class="wizard-title">@TabInfo[tab].Title</span>
+                                            </a>
+                                        </li>
+                                    }
                                 </ul>
                             </div>
                         </div>
@@ -92,7 +113,7 @@
                                     <EditForm Model="childDetails" OnValidSubmit="Childsdetails" FormName="ChildForm">
                                         <DataAnnotationsValidator />
 
-                                        <fieldset disabled="@_childFormDisabled" class="overflow-auto  min-h-400" style="height: calc(95vh - 255px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_childFormDisabled" class="overflow-auto  min-h-400" style="height: calc(100vh - 290px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
@@ -328,7 +349,6 @@
                                                             </div>
                                                         </div>
                                                     </div>
-
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
@@ -563,7 +583,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "parents-details" ? "show active" : "")" id="parents-details">
                                     <EditForm Model="parentsDetails" OnValidSubmit="Parentsdetails" FormName="ParentFom">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_parentsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_parentsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 290px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1">
                                                     <div class="divider-box d-flex justify-content-between align-items-center gap-2">
@@ -997,7 +1017,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "points-criteria" ? "show active" : "")" id="points-criteria">
                                     <EditForm Model="pointsCriteria" OnValidSubmit="Pointscriteria" FormName="PointForm">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_pointsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_pointsFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 290px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
 
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 col-xl-7 px-1">
@@ -1592,7 +1612,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "address-details" ? "show active" : "")" id="address-details">
                                     <EditForm Model="addressDetails" OnValidSubmit="Addressdetails" FormName="AddressForm">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_AddressFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_AddressFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 290px); scrollbar-width: thin !important;">
                                             <div class="row m-0 form-row">
                                                 <div class="col-12 col-sm-12 col-md-12 col-lg-12 px-1">
                                                     <div class="divider-box d-flex justify-content-between align-items-center gap-2">
@@ -1841,7 +1861,7 @@
                                 <div class="tab-pane tab-pane-form fade @(ActiveTab == "family-details" ? "show active" : "")" id="family-details">
                                     <EditForm Model="@familyWrapper" OnValidSubmit="Familydetails" FormName="FaimilyForm">
                                         <DataAnnotationsValidator />
-                                        <fieldset disabled="@_faimilyFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 255px); scrollbar-width: thin !important;">
+                                        <fieldset disabled="@_faimilyFormDisabled" class="overflow-auto min-h-400" style="height: calc(100vh - 290px); scrollbar-width: thin !important;">
 
                                             @for (int i = 0; i < familyWrapper.Families.Count; i++)
                                             {
@@ -2050,6 +2070,40 @@
     string ActiveTab => Tabs[CurrentTabIndex];
 
     string buttontitle => ActiveTab == "family-details" ? "Submit" : "Continue";
+
+    // ---- tab header status ----
+    // complete   = required fields saved with Continue/Submit (green tick)
+    // incomplete = tab was left without saving its required fields (orange !)
+    private readonly Dictionary<string, (string Title, string Icon)> TabInfo = new()
+    {
+        ["childs-details"] = ("Child's Details", "bi-person"),
+        ["parents-details"] = ("Parents Details", "bi-people"),
+        ["points-criteria"] = ("Points Criteria", "bi-award"),
+        ["address-details"] = ("Address Details", "bi-house"),
+        ["family-details"] = ("Family Details", "bi-diagram-3")
+    };
+    private readonly HashSet<string> CompletedTabs = new();
+    private readonly HashSet<string> IncompleteTabs = new();
+    private long _tabStatusRegId;
+
+    private string GetTabState(string tab) =>
+        tab == ActiveTab ? "active"
+        : CompletedTabs.Contains(tab) ? "complete"
+        : IncompleteTabs.Contains(tab) ? "incomplete"
+        : "";
+
+    private static string GetTabHint(string state) => state switch
+    {
+        "complete" => "Required details saved",
+        "incomplete" => "Required details are not saved yet",
+        _ => ""
+    };
+
+    private void ClearTabStatus()
+    {
+        CompletedTabs.Clear();
+        IncompleteTabs.Clear();
+    }
     private ChildDetails childDetails = new();
     private ParentsDetails parentsDetails = new();
     private PointsCriteria pointsCriteria = new();
@@ -2156,6 +2210,7 @@
         pointsCriteria = new();
         addressDetails = new();
         familyWrapper = new();
+        ClearTabStatus();
     }
 
 
@@ -2167,6 +2222,10 @@
 
             if (index < 0 || index == CurrentTabIndex)
                 return;
+
+            // leaving a tab whose required details were not saved -> show it as incomplete
+            if (!CompletedTabs.Contains(ActiveTab))
+                IncompleteTabs.Add(ActiveTab);
 
             CurrentTabIndex = index;
             await TabnextPreviuos();
@@ -2196,10 +2255,13 @@
                  $"&registrationId={RegId}";
         return url + urldata;
     }
+    // called only after the tab's form was valid and saved -> the tab is complete
     private async Task SaveByActiveTab()
     {
         try
         {
+            CompletedTabs.Add(ActiveTab);
+            IncompleteTabs.Remove(ActiveTab);
 
             if (CurrentTabIndex < Tabs.Count - 1)
             {
@@ -2291,6 +2353,12 @@
     {
         if (RegId != 0)
         {
+            // another registration opened -> tab status starts again
+            if (_tabStatusRegId != RegId)
+            {
+                ClearTabStatus();
+                _tabStatusRegId = RegId;
+            }
             await LoadData(RegId, SessionId);
            await OnDOBChanged();
            // await TabnextPreviuos();
@@ -2336,6 +2404,12 @@
 
                 string apiUrl = "Registration/registrationchildupdate";
                 var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, childDetails);
+                // not saved -> stay on this tab (no tick)
+                if (apiResponse == null || !apiResponse.Success)
+                {
+                    await customAlert.ShowCustomAlert(apiResponse?.Message ?? "Details could not be saved. Please try again.", false);
+                    return;
+                }
                 ShowSuccess = true;
                 StateHasChanged();
                 await Task.Delay(3000);
@@ -2370,6 +2444,12 @@
                 parentsDetails.SessionId = SessionId;
                 string apiUrl = "Registration/registration-parent-detail";
                 var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, parentsDetails);
+                // not saved -> stay on this tab (no tick)
+                if (apiResponse == null || !apiResponse.Success)
+                {
+                    await customAlert.ShowCustomAlert(apiResponse?.Message ?? "Details could not be saved. Please try again.", false);
+                    return;
+                }
 
                 ShowSuccess = true;
                 StateHasChanged();
@@ -2509,6 +2589,12 @@
                 foreach (var item in list)
                 {
                     var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, item);
+                    // not saved -> stay on this tab (no tick)
+                    if (apiResponse == null || !apiResponse.Success)
+                    {
+                        await customAlert.ShowCustomAlert(apiResponse?.Message ?? "Address could not be saved. Please try again.", false);
+                        return;
+                    }
                 }
                 // child save sends the same ADM_Registration emergency columns, keep them in step
                 childDetails.EmergencyPersonName = addressDetails.EmergencyPersonName ?? string.Empty;
@@ -2735,7 +2821,13 @@
                 item.GroupCode = groupcode;
                 item.CreatedBy = username;
                 item.SessionId = SessionId;
-                await httpService.Post<ApiResponse<object>>(apiUrl, item);
+                var apiResponse = await httpService.Post<ApiResponse<object>>(apiUrl, item);
+                // not saved -> stay on this tab (no tick)
+                if (apiResponse == null || !apiResponse.Success)
+                {
+                    await customAlert.ShowCustomAlert(apiResponse?.Message ?? "Family details could not be saved. Please try again.", false);
+                    return;
+                }
             }
 
             ShowSuccess = true;
