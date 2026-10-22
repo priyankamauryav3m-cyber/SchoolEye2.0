@@ -25,41 +25,7 @@ namespace SchoolEye.Infrastructure.Admin
                 ?? throw new ArgumentNullException("DatabaseSettings1:ConnectionString");
         }
 
-        public async Task<AdmitChildResult> AdmitChild(AdmitChildsRequest request)
-        {
-            try
-            {
-                using var con = new SqlConnection(_connectionString);
-                var param = new DynamicParameters();
-                param.Add("@RegistrationId", request.RegistrationId);
-                param.Add("@GroupCode", request.GroupCode);
-                param.Add("@BranchCode", request.BranchCode);
-                param.Add("@SessionId", request.SessionId);
-                param.Add("@CreatedBy", request.CreatedBy);
-                param.Add("@RouteDistance", request.RouteDistance);
-                param.Add("@SocietyId", request.SocietyId);
-                param.Add("@StudentNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
-                param.Add("@ControlNo", dbType: DbType.String, size: 20, direction: ParameterDirection.Output);
-                param.Add("@StudentId", dbType: DbType.Int64, direction: ParameterDirection.Output);
-                param.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
-                await con.ExecuteAsync(
-                    "V3M_FIN_UspAdmitChild",
-                    param,
-                    commandType: CommandType.StoredProcedure);
-                return new AdmitChildResult
-                {
-                    ReturnValue = param.Get<int>("@ReturnValue"),
-                    StudentId = param.Get<long?>("@StudentId"),
-                    StudentNo = param.Get<string>("@StudentNo"),
-                    ControlNo = param.Get<string>("@ControlNo")
-                };
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception: {ex.Message}");
-                throw;
-            }
-        }
+       
         public async Task<RegistrationDetailsResponse> GetRegistrationDetails(RegistrationDetailsRequest request)
         {
             try
@@ -162,6 +128,7 @@ namespace SchoolEye.Infrastructure.Admin
                 receiptParam.Add("@SocietyId", request.SocietyId);
                 receiptParam.Add("@ChequeType", request.ChequeType ?? "");
                 receiptParam.Add("@CreatedBy", request.CreatedBy);
+                receiptParam.Add("@RouteDistance", request.RouteDistance);
                 receiptParam.Add("@ReceiptDate", request.ReceiptDate, DbType.Date);
                 receiptParam.Add("@StudentReceiptNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
                 receiptParam.Add("@ReceiptId", dbType: DbType.Int64, direction: ParameterDirection.Output);

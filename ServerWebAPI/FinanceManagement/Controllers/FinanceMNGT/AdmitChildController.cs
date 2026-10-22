@@ -26,57 +26,7 @@ namespace SchoolEye.ServerWebAPI.Addmission.Controllers.Admin
             _service = service;
         }
 
-        [HttpPost("AdmitChildData")]
-        public async Task<IActionResult> AdmitChild([FromBody] AdmitChildsRequest request)
-        {
-            if (request == null)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Data not found.",
-                    Code = 0
-                });
-            }
-            try
-            {
-                var result = await _service.AdmitChild(request);
-                return result.ReturnValue switch
-                {
-                    1 => Ok(new ApiResponse<AdmitChildResult>
-                    {
-                        Success = true,
-                        Message = "Child admitted successfully.",
-                        Code = 1,
-                        Data = result
-                    }),
-                    0 => BadRequest(new ApiResponse<AdmitChildResult>
-                    {
-                        Success = false,
-                        Message = "Student could not be admitted. No student number was generated.",
-                        Code = 0,
-                        Data = null
-                    }),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<AdmitChildResult>
-                    {
-                        Success = false,
-                        Message = "Admission failed and was rolled back.",
-                        Code = -1,
-                        Data = null
-                    })
-                };
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Exception: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "An error occurred while admitting the child.",
-                    Code = -1
-                });
-            }
-        }
+        
         [HttpPost("GetRegistrationDetails")]
         public async Task<IActionResult> GetRegistrationDetails([FromBody] RegistrationDetailsRequest request)
         {
