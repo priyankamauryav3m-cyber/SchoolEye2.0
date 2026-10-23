@@ -32,7 +32,8 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
         public async Task<IActionResult> SearchRegistrationData([FromBody] RegistrationSearchDto search)
         {
             try
-            {   
+            {
+               
                 var data = await _service.SearchAsync(search);
                 return Ok(new ApiResponse<IEnumerable<RegistrationDto>>
                 {
