@@ -61,7 +61,7 @@
     .student-suggest-box-popup {
         position: absolute;
         top: 100%;
-        right: 0;
+        right: -70px;
         width: 550px;
         max-width: 92vw;
         margin-top: 2px;
@@ -119,6 +119,33 @@
         padding: 14px;
         color: #6c757d;
         font-size: 13px;
+    }
+
+    /* "Loading" text with a small spinning circle after it (student search list) */
+    .ledger-inline-loader {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 24px 13px;
+        color: #68778a;
+        font-weight: 600;
+    }
+
+    .ledger-inline-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #cbd8e5;
+        border-top-color: #118c91;
+        border-radius: 50%;
+        display: inline-block;
+        animation: ledger-inline-spin .7s linear infinite;
+    }
+
+    @@keyframes ledger-inline-spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .module-section-head {
@@ -241,7 +268,15 @@
                             @if (ShowSuggestions)
                             {
                                 <div class="student-suggest-box-popup">
-                                    @if (suggestions.Count == 0)
+                                    @* search running -> "Loading" with the small spinner, then the students to select *@
+                                    @if (IsSearchingStudents)
+                                    {
+                                        <div class="ledger-inline-loader">
+                                            <span>Loading students</span>
+                                            <span class="ledger-inline-spinner" role="status" aria-hidden="true"></span>
+                                        </div>
+                                    }
+                                    else if (suggestions.Count == 0)
                                     {
                                         <div class="student-suggest-empty">No matching student found.</div>
                                     }
@@ -544,6 +579,7 @@
     private string? searchText;
     private string searchInputKey = Guid.NewGuid().ToString();
     private bool ShowSuggestions;
+    private bool IsSearchingStudents;
     private int activeSuggestion = -1;
     private List<StudentLedgerChallanMiniDetailsResponse> suggestions = new();
     private CancellationTokenSource? typingCts;
@@ -593,7 +629,8 @@
         {
             searchText = SearchTerm.Trim();
             searchInputKey = Guid.NewGuid().ToString();
-            await SearchStudent();
+            // student already selected on Fee Collection -> open straight away, no search loader
+            await SearchStudentCore(showLoader: false);
         }
         StateHasChanged();
     }
@@ -654,7 +691,11 @@
         }
     }
 
-    private async Task SearchStudent()
+    // Search button / Enter: loader in the student list
+    private Task SearchStudent() => SearchStudentCore(showLoader: true);
+
+    // showLoader = false when the popup opens with the student already chosen on Fee Collection
+    private async Task SearchStudentCore(bool showLoader)
     {
         typingCts?.Cancel();
         var term = searchText?.Trim();
@@ -671,9 +712,30 @@
 
         try
         {
-            var results = await FetchStudents(term);
+            List<StudentLedgerChallanMiniDetailsResponse> results;
+            if (showLoader)
+            {
+                // loader shows inside the student list for 5 seconds (API runs alongside)
+                ClearSelectedStudent();
+                suggestions = new();
+                activeSuggestion = -1;
+                IsSearchingStudents = true;
+                ShowSuggestions = true;
+                StateHasChanged();
+
+                var loaderDelay = Task.Delay(5000);
+                results = await FetchStudents(term);
+                await loaderDelay;
+                IsSearchingStudents = false;
+            }
+            else
+            {
+                results = await FetchStudents(term);
+            }
+
             if (results.Count == 1)
             {
+                ShowSuggestions = false;
                 await SelectStudent(results[0]);
             }
             else
@@ -690,6 +752,12 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching student ledger details: {ex.Message}");
+            ShowSuggestions = false;
+        }
+        finally
+        {
+            IsSearchingStudents = false;
+            StateHasChanged();
         }
     }
 

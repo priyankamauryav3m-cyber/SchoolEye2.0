@@ -5,6 +5,10 @@
 @inject SweetAlertService Alert
 @inject IStringLocalizer<Resource> Localizer
 <style>
+  
+
+
+
     .profile-photo {
         width: 100px;
         height: 100px;
@@ -31,6 +35,60 @@
     align-items: center;
     padding-left: 40px;
     }
+
+    /* small coloured amount cards next to the fee head grid */
+    .invoice-amount-tile {
+        border-radius: 10px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        height: 100%;
+    }
+
+        .invoice-amount-tile span {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            opacity: .85;
+        }
+
+        .invoice-amount-tile strong {
+            display: block;
+            text-align: right;
+            font-size: 17px;
+            margin-top: 4px;
+        }
+
+        .invoice-amount-tile.tile-blue {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .invoice-amount-tile.tile-green {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #15803d;
+        }
+
+        .invoice-amount-tile.tile-teal {
+            background: #f0fdfa;
+            border-color: #99f6e4;
+            color: #0f766e;
+        }
+
+        .invoice-amount-tile.tile-amber {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+
+        .invoice-amount-tile.tile-navy {
+            background: linear-gradient(135deg, #0b2948, #14577d);
+            color: #fff;
+        }
+
 </style>
 @if (IsEditInvoiceOpen)
 {
@@ -38,7 +96,7 @@
     <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
         <div class="modal-content clearfix main-popup">
             <div class="head-btn">
-                <h5 class="modal-title">Invoice Preview</h5>
+                <h5 class="modal-title">Edit Invoice</h5>
                 <button data-access="Close" type="button" @onclick="CloseEditInvoice" class="close"><span aria-hidden="true">×</span></button>
             </div>
             <div class="tab-pane tab-pane-form fade show active overflow-auto min-h-650" style="height: calc(112vh - 270px)" ;>
@@ -49,7 +107,7 @@
                             <div class="col-12 col-sm-12 col-md-12 col-lg-9 px-3 mt-2">
                                 <div class="divider-box d-flex justify-content-between align-items-center gap-2">
                                     <p class="total-text-with-bg ">
-                                        Invoice Preview
+                                      Edit  Invoice
                                     </p>
                                     <hr class="m-0 w-webkit text-light-gray op-1">
                                 </div>
@@ -119,8 +177,8 @@
 
                                 </div>
                             </div>
-                            <div class="col-12">
-                                <div class="card">
+                            <div class="col-12 col-lg-7">
+                                <div class="card h-100">
                                     <div class="card-body table-card p-0">
                                         <div class="quick-main">
                                             <div class="grid-box scrollbar-thin" style="max-height: 250px; min-height:100px;">
@@ -182,63 +240,49 @@
 
                             </div>
 
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
-                                <div class="form-box-group">
-                                    <input type="text"
-                                           class="floating-input form-control text-end"
-                                           placeholder=" "
-                                           value="@InvoiceMaster.TotalAmount.ToString("N2")"
-                                           readonly />
-                                    <label class="floating-label">Total Amount</label>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
-                                <div class="form-box-group">
-                                    <input type="text"
-                                           class="floating-input form-control text-end"
-                                           placeholder=" "
-                                           value="@InvoiceMaster.TotalConcession.ToString("N2")"
-                                           readonly />
-                                    <label class="floating-label">Total Concession</label>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
-                                <div class="form-box-group">
-                                    <input type="text"
-                                           class="floating-input form-control text-end"
-                                           placeholder=" "
-                                           value="@InvoiceMaster.ReceivedAmount.ToString("N2")"
-                                           readonly />
-                                    <label class="floating-label">Received</label>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
-                                <div class="form-box-group">
-                                    <input type="text"
-                                           class="floating-input form-control text-end fw-bold"
-                                           placeholder=" "
-                                           value="@InvoiceMaster.StudentLateFee.ToString("N2")"
-                                           readonly />
-                                    <label class="floating-label">Late Charges</label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-2 mt-2">
-                                <div class="form-box-group">
-                                    <input type="text"
-                                           class="floating-input form-control text-end fw-bold text-primary"
-                                           placeholder=" "
-                                           value="@InvoiceMaster.TotalAmount.ToString("N2")"
-                                           readonly />
-                                    <label class="floating-label text-primary">Balance</label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-box-group static-lable">
-                                    <InputTextArea class="floating-input" @bind-Value="studentConcessionOnChallanRequest.Narration" style="height: 40px;" placeholder=" "></InputTextArea>
-                                    <label class="floating-label text-primary">Narration</label>
+                            @* amounts as small coloured cards (2 + 2, balance below) and the narration *@
+                            <div class="col-12 col-lg-5">
+                                <div class="card h-100">
+                                    <div class="card-body p-3">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="invoice-amount-tile tile-blue">
+                                                    <span>Total Amount</span>
+                                                    <strong>₹ @InvoiceMaster.TotalAmount.ToString("N2")</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="invoice-amount-tile tile-green">
+                                                    <span>Total Concession</span>
+                                                    <strong>₹ @InvoiceMaster.TotalConcession.ToString("N2")</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="invoice-amount-tile tile-teal">
+                                                    <span>Received</span>
+                                                    <strong>₹ @InvoiceMaster.ReceivedAmount.ToString("N2")</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="invoice-amount-tile tile-amber">
+                                                    <span>Late Charges</span>
+                                                    <strong>₹ @InvoiceMaster.StudentLateFee.ToString("N2")</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="invoice-amount-tile tile-navy">
+                                                    <span>Balance</span>
+                                                    <strong>₹ @InvoiceMaster.TotalAmount.ToString("N2")</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 mt-2">
+                                                <div class="form-box">
+                                                    <label class="form-label">Narration</label>
+                                                    <InputTextArea class="form-input" @bind-Value="studentConcessionOnChallanRequest.Narration" rows="3" placeholder="Enter narration"></InputTextArea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
