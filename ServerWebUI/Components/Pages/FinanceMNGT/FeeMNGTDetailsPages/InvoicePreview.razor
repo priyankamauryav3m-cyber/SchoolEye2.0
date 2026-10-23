@@ -31,6 +31,53 @@
     align-items: center;
     padding-left: 40px;
     }
+
+    /* small coloured total cards next to the fee head grid (same look as Edit Invoice) */
+    .invoice-amount-tile {
+        border-radius: 10px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        height: 100%;
+    }
+
+        .invoice-amount-tile span {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            opacity: .85;
+        }
+
+        .invoice-amount-tile strong {
+            display: block;
+            text-align: right;
+            font-size: 17px;
+            margin-top: 4px;
+        }
+
+        .invoice-amount-tile.tile-blue {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .invoice-amount-tile.tile-green {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #15803d;
+        }
+
+        .invoice-amount-tile.tile-amber {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+
+        .invoice-amount-tile.tile-navy {
+            background: linear-gradient(135deg, #0b2948, #14577d);
+            color: #fff;
+        }
 </style>
 
 @if (ShowInvoicePreview)
@@ -104,15 +151,16 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="card">
+                        <div class="col-12 col-lg-9">
+                            <div class="card h-100">
                                 <div class="card-body table-card p-0">
                                     <div class="quick-main">
-                                        <div class="grid-box scrollbar-thin" style="max-height: 250px; min-height:100px;">
+                                        <div class="grid-box scrollbar-thin" style="max-height: 300px; min-height:100px;">
                                             <QuickGrid Items="@FeeHeadList.AsQueryable()" Class="table">
+                                                @* fee head with its months, e.g. "Tuition Fee (Apr, May, Jun)" *@
                                                 <TemplateColumn Title="Fee Head" Align="Align.Left" Sortable="true" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadName)">
                                                     <ChildContent>
-                                                        @(string.IsNullOrEmpty(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                                        @GetFeeHeadWithMonths(context)
                                                     </ChildContent>
                                                 </TemplateColumn>
                                                 <TemplateColumn Title="Amount (₹)" Sortable="true" Class="text-right" SortBy="GridSort<InvoiceFeeHeadModel>.ByAscending(x => x.FeeHeadAmount)" Align="Align.Right">
@@ -139,17 +187,39 @@
                                                 </TemplateColumn>
                                             </QuickGrid>
                                         </div>
-                                        <table class="table table-bordered mb-0">
-                                            <tfoot>
-                                                <tr class="table-primary fw-bold">
-                                                    <td style="width:15%">Total</td>
-                                                    <td class="text-end" style="width:15%">@StudentTotalAmount.ToString("N2")</td>
-                                                    <td class="text-end" style="width:15%">@StudentTotalConcession.ToString("N2")</td>
-                                                    <td class="text-end" style="width:15%">@TotalWaiver.ToString("N2")</td>
-                                                    <td class="text-end" style="width:15%">@TotalNetAmount.ToString("N2")</td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @* totals as small coloured cards (2 + 2) next to the grid *@
+                        <div class="col-12 col-lg-3">
+                            <div class="card h-100">
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <div class="invoice-amount-tile tile-blue">
+                                                <span>Total Amount</span>
+                                                <strong>₹ @StudentTotalAmount.ToString("N2")</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="invoice-amount-tile tile-green">
+                                                <span>Total Concession</span>
+                                                <strong>₹ @StudentTotalConcession.ToString("N2")</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="invoice-amount-tile tile-amber">
+                                                <span>Total Waiver</span>
+                                                <strong>₹ @TotalWaiver.ToString("N2")</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="invoice-amount-tile tile-navy">
+                                                <span>Net Amount</span>
+                                                <strong>₹ @TotalNetAmount.ToString("N2")</strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -220,6 +290,7 @@
                 var invoice = response.Data.FirstOrDefault() ?? new();
                 InvoiceMaster = invoice.InvoiceMaster?.FirstOrDefault() ?? new();
                 FeeHeadList = invoice.FeeHeadList ?? new();
+                await LoadFeeHeadMonths();
                 SelectTemplate = SelectedStudent.TemplateName;
                 StudentImagePreview = string.IsNullOrWhiteSpace(SelectedStudent.ImagePath) ?
                 "https://demo.schooleye.in/Images/NoPhoto.gif" : SelectedStudent.ImagePath;
@@ -241,6 +312,50 @@
             IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    // months of each fee head in this invoice, e.g. FeeHeadId 5 -> "Apr, May, Jun"
+    private Dictionary<int, string> feeHeadMonths = new();
+
+    // the preview rows are totals per fee head; the month-wise rows of the same invoice
+    // (same API, Edit Invoice mode) give the months shown in brackets
+    private async Task LoadFeeHeadMonths()
+    {
+        feeHeadMonths = new();
+        try
+        {
+            var monthRequest = new SearchAnyRequestModel
+            {
+                GroupCode = GroupCode,
+                BranchCode = BranchCode,
+                RequestName = SelectedStudent.InvoiceId.ToString(),
+                RequestName2 = "EditInvoice"
+            };
+            var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", monthRequest);
+            var monthRows = response?.Data?.FirstOrDefault()?.FeeHeadList ?? new();
+            feeHeadMonths = monthRows
+                .Where(x => x.MonthNo > 0 && !string.IsNullOrWhiteSpace(x.MonthName))
+                .GroupBy(x => x.FeeHeadId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => string.Join(", ", g
+                        .GroupBy(x => x.MonthNo)
+                        .OrderBy(m => (m.Key - 4 + 12) % 12) // session order: April first
+                        .Select(m => m.First().MonthName.Length > 3 ? m.First().MonthName[..3] : m.First().MonthName)));
+        }
+        catch (Exception)
+        {
+            // months are only extra text; the preview still shows without them
+            feeHeadMonths = new();
+        }
+    }
+
+    private string GetFeeHeadWithMonths(InvoiceFeeHeadModel feeHead)
+    {
+        var name = string.IsNullOrEmpty(feeHead.FeeHeadName) ? " " : feeHead.FeeHeadName;
+        return feeHeadMonths.TryGetValue(feeHead.FeeHeadId, out var months) && !string.IsNullOrEmpty(months)
+            ? $"{name} ({months})"
+            : name;
     }
 
     private async Task CloseInvoicePreview()

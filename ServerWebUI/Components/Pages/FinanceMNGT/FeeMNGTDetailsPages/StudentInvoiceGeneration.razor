@@ -16,7 +16,13 @@
 @inject IJSRuntime JS
 
 <style>
+         .quickgrid thead th:last-child {
+           min-width: 90px;
+    }
 
+    .quickgrid thead th:nth-last-child(2) {
+        min-width: 75px;
+    }
      .sms-aria {
         height: 100px;
     }
@@ -43,6 +49,14 @@
         #splitter:hover {
             background: #2563eb;
         }
+
+    /* invoice no. in the grid opens Edit Invoice */
+    .invoice-no-link {
+        color: #2563eb;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+    }
 
 </style>
 
@@ -91,7 +105,7 @@
                     <div class="card">
                         <div class="card-body table-card p-0">
                             <div class="quick-main">
-                                <div class="grid-box-with-btn ">
+                                <div class="grid-box">
                                     <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
                                         <TemplateColumn Title="" class="text-center" Align="Align.Center">
                                             <HeaderTemplate>
@@ -105,6 +119,26 @@
                                                </div>
                                             </ChildContent>
                                         </TemplateColumn>
+                                        <TemplateColumn Title="Invoice No" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.InvoiceNo)">
+                                            <ColumnOptions>
+                                                <div class="search-box">
+                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Invoice No...." />
+                                                </div>
+                                            </ColumnOptions>
+                                            <ChildContent>
+                                                @* invoice no. click -> Edit Invoice of this invoice *@
+                                                @if (string.IsNullOrEmpty(context.InvoiceNo))
+                                                {
+                                                    @(" ")
+                                                }
+                                                else
+                                                {
+                                                    <a href="javascript:void(0)" class="invoice-no-link" title="Edit invoice" @onclick="() => OpenEditInvoiceFor(context)" @onclick:stopPropagation="true">
+                                                        @context.InvoiceNo
+                                                    </a>
+                                                }
+                                            </ChildContent>
+                                        </TemplateColumn>
                                         <TemplateColumn Title="Admission No" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.AdmissionNo)">
                                             <ColumnOptions>
                                                 <div class="search-box">
@@ -113,17 +147,6 @@
                                             </ColumnOptions>
                                             <ChildContent>
                                                 @(string.IsNullOrEmpty(context.AdmissionNo) ? " " : context.AdmissionNo)
-
-                                            </ChildContent>
-                                        </TemplateColumn>
-                                        <TemplateColumn Title="Invoice No" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => x.InvoiceNo)">
-                                            <ColumnOptions>
-                                                <div class="search-box">
-                                                    <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Invoice No...." />
-                                                </div>
-                                            </ColumnOptions>
-                                            <ChildContent>
-                                                @(string.IsNullOrEmpty(context.InvoiceNo) ? " " : context.InvoiceNo)
 
                                             </ChildContent>
                                         </TemplateColumn>
@@ -154,6 +177,16 @@
                                         </TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="text-right" Align="Align.Center">
                                             <span>₹ @context.TotalAmount.ToString("N0")</span>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Action" Align="Align.Center">
+                                            <div class="action-btn-group">
+                                                <button type="button" class="btn-icon edit-btn custom-tooltip" data-tooltip="Preview" @onclick="() => OpenInvoicePreviewFor(context)" @onclick:stopPropagation="true">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn-icon inactive-btn custom-tooltip" data-tooltip="Cancel invoice" @onclick="() => OpenCancelInvoiceFor(context)" @onclick:stopPropagation="true">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </div>
                                         </TemplateColumn>
 
                                     </QuickGrid>
@@ -202,7 +235,7 @@
             </div>
         </div>
 
-        <div class="col-12 p-1">
+        @* <div class="col-12 p-1">
             <div class="page-heading d-flex align-items-center justify-content-end">
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
@@ -222,7 +255,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> *@
 
     </div>
 
@@ -731,7 +764,13 @@ else
             await JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
-        EditInvoiceStudent = data[0];
+        OpenEditInvoiceFor(data[0]);
+    }
+
+    // grid: invoice no. click -> Edit Invoice of that row
+    private void OpenEditInvoiceFor(SearchStudentBalanceDto row)
+    {
+        EditInvoiceStudent = row;
         ShowEditInvoice = true;
         StateHasChanged();
     }
@@ -757,12 +796,18 @@ else
             await JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
-        if (data[0].InvoiceId <= 0)
+        await OpenCancelInvoiceFor(data[0]);
+    }
+
+    // grid: cancel icon -> Cancel Invoice popup of that row
+    private async Task OpenCancelInvoiceFor(SearchStudentBalanceDto row)
+    {
+        if (row.InvoiceId <= 0)
         {
             await Alert.ShowWarning("Selected student has no generated invoice.");
             return;
         }
-        CancelInvoiceStudent = data[0];
+        CancelInvoiceStudent = row;
         CancelReason = string.Empty;
         ShowCancelInvoice = true;
         StateHasChanged();
@@ -831,7 +876,13 @@ else
             await JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
-        PreviewInvoiceStudent = data[0];
+        OpenInvoicePreviewFor(data[0]);
+    }
+
+    // grid: eye icon -> Invoice Preview of that row
+    private void OpenInvoicePreviewFor(SearchStudentBalanceDto row)
+    {
+        PreviewInvoiceStudent = row;
         ShowInvoicePreview = true;
         StateHasChanged();
     }
