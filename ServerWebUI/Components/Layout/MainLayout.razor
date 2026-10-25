@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager nav
 @inject SecureUrlService SecureUrl
+@inject PageLoadingState PageLoading
 @rendermode   InteractiveServer
 
 <div class="page">
@@ -17,10 +18,39 @@
             @Body
         </article>
     </main>
+
+    @* Page-open loader: shown on every page navigation until the page's first API data is bound.
+       Hidden by CSS while the page shows its own loader, so two overlays never stack. *@
+    @if (PageLoading.IsVisible)
+    {
+        <div class="grid-loader-overlay page-open-loader">
+            <div class="loader-card">
+                <div class="loader-ring">
+                    <div class="loader-arc"></div>
+                    <div class="loader-core">
+                        <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                    </div>
+                </div>
+                <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+            </div>
+        </div>
+    }
 </div>
 
 
 @code{
+    protected override void OnInitialized()
+    {
+        PageLoading.OnChange += OnPageLoadingChanged;
+        nav.LocationChanged += OnLocationChanged;
+        // first page after login / refresh
+        PageLoading.StartPageLoad();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => PageLoading.StartPageLoad();
+
+    private void OnPageLoadingChanged() => _ = InvokeAsync(StateHasChanged);
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -65,7 +95,12 @@
         return ValueTask.CompletedTask;
     }
 
-    public void Dispose() => locationChangingRegistration?.Dispose();
+    public void Dispose()
+    {
+        locationChangingRegistration?.Dispose();
+        nav.LocationChanged -= OnLocationChanged;
+        PageLoading.OnChange -= OnPageLoadingChanged;
+    }
     // private async Task<bool> UserIsAuthenticated()
     // {
     //     var token = await GetSessionToken();

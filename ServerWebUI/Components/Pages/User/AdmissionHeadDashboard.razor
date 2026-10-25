@@ -22,6 +22,7 @@
 @inject IStringLocalizer<Resource> Localizer
 @inject IJSRuntime JS
 @inject CommonMethod EnquiryState
+@implements IDisposable
 <style>
     .stat-icon.blue {
         background-color: #c8dcf6;
@@ -74,287 +75,292 @@
                 </div>
             </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white h-100 d-flex flex-column justify-content-center" style="cursor:pointer;" @onclick="AdmitStudentDirect">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon blue"><i class="fas fa-plus"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">New Admission</div>
-                                        <div class="stat-value fw-bold fs-6">Add a new student</div>
+            @if (dashAnimator.IsVisible)
+            {
+                <div class="dash-animated">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.05s">
+                            <div class="stat-card p-3 bg-white h-100 d-flex flex-column justify-content-center" style="cursor:pointer;" @onclick="AdmitStudentDirect">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon blue"><i class="fas fa-plus"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">New Admission</div>
+                                                <div class="stat-value fw-bold fs-6">Add a new student</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change" style="visibility:hidden;">
+                                            <i class="fas fa-arrow-up"></i> spacer
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="stat-change" style="visibility:hidden;">
-                                    <i class="fas fa-arrow-up"></i> spacer
-                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon blue"><i class="fas fa-comment-dots"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Enquiry</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalEnquiry</div>
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.13s">
+                            <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon blue"><i class="fas fa-comment-dots"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Enquiry</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.TotalEnquiry)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.EnquiryPercentage)</div>
                                     </div>
                                 </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.EnquiryPercentage</div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
-                                    <div class="stat-icon orange"><i class="fas fa-file-alt"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Registration</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalRegistration</div>
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.21s">
+                            <div class="stat-card p-3 bg-white">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
+                                            <div class="stat-icon orange"><i class="fas fa-file-alt"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Registration</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.TotalRegistration)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.RegistrationPercentage)</div>
                                     </div>
                                 </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.RegistrationPercentage</div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon red"><i class="fas fa-user-graduate"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Admission</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalAdmission</div>
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.29s">
+                            <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon red"><i class="fas fa-user-graduate"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Admission</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.TotalAdmission)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.AdmissionPercentage)</div>
                                     </div>
                                 </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.AdmissionPercentage</div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-lg-6">
-                    <div class="dashboard-card card-custom-mn-hg">
-                        <div class="card-header-custom">
-                            <div class="card-title-custom">Admission Pipeline</div>
-                            <i class="fas fa-info-circle" style="color:#94a3b8; cursor:pointer;"
-                               title="Track admission conversion"></i>
-                        </div>
-                        <div class="pipeline">
-                            <div class="stage">
-                                <div class="stage-icon c1"><i class="fas fa-comment-dots"></i></div>
-                                <div>
-                                    <div class="stage-name">Enquiry</div>
-                                    <div class="stage-count">@admissionDashboardpipeline.TotalEnquiry</div>
-                                    <div class="stage-pct">@admissionDashboardpipeline.EnquiryPercentage</div>
-                                    <div class="stage-bar b1"><span style="width:@(admissionDashboardpipeline.EnquiryPercentage)"></span></div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-lg-6 dash-animate" style="--d:0.37s">
+                            <div class="dashboard-card card-custom-mn-hg">
+                                <div class="card-header-custom">
+                                    <div class="card-title-custom">Admission Pipeline</div>
+                                    <i class="fas fa-info-circle" style="color:#94a3b8; cursor:pointer;"
+                                       title="Track admission conversion"></i>
                                 </div>
-                            </div>
-                            <div class="stage">
-                                <div class="stage-icon c2"><i class="fas fa-file-alt"></i></div>
-                                <div>
-                                    <div class="stage-name">Registration</div>
-                                    <div class="stage-count">@admissionDashboardpipeline.TotalRegistration</div>
-                                    <div class="stage-pct">@admissionDashboardpipeline.RegistrationPercentage</div>
-                                    <div class="stage-bar b2"> <span style="width:@admissionDashboardpipeline.RegistrationPercentage;"></span></div>
-                                </div>
-                            </div>
+                                <div class="pipeline">
+                                    <div class="stage">
+                                        <div class="stage-icon c1"><i class="fas fa-comment-dots"></i></div>
+                                        <div>
+                                            <div class="stage-name">Enquiry</div>
+                                            <div class="stage-count">@dashAnimator.Count(admissionDashboardpipeline.TotalEnquiry)</div>
+                                            <div class="stage-pct">@dashAnimator.Percent(admissionDashboardpipeline.EnquiryPercentage)</div>
+                                            <div class="stage-bar b1"><span style="width:@dashAnimator.Percent(admissionDashboardpipeline.EnquiryPercentage)"></span></div>
+                                        </div>
+                                    </div>
+                                    <div class="stage">
+                                        <div class="stage-icon c2"><i class="fas fa-file-alt"></i></div>
+                                        <div>
+                                            <div class="stage-name">Registration</div>
+                                            <div class="stage-count">@dashAnimator.Count(admissionDashboardpipeline.TotalRegistration)</div>
+                                            <div class="stage-pct">@dashAnimator.Percent(admissionDashboardpipeline.RegistrationPercentage)</div>
+                                            <div class="stage-bar b2"> <span style="width:@dashAnimator.Percent(admissionDashboardpipeline.RegistrationPercentage);"></span></div>
+                                        </div>
+                                    </div>
 
-                            <div class="stage">
-                                <div class="stage-icon c4"><i class="fas fa-user"></i></div>
-                                <div>
-                                    <div class="stage-name">Interactions</div>
-                                    <div class="stage-count">@admissionDashboardpipeline.InteractionsDone</div>
-                                    <div class="stage-pct">@admissionDashboardpipeline.InteractionPercentage</div>
-                                    <div class="stage-bar b4"><span data-w="width:@(admissionDashboardpipeline.InteractionPercentage)"></span></div>
+                                    <div class="stage">
+                                        <div class="stage-icon c4"><i class="fas fa-user"></i></div>
+                                        <div>
+                                            <div class="stage-name">Interactions</div>
+                                            <div class="stage-count">@dashAnimator.Count(admissionDashboardpipeline.InteractionsDone)</div>
+                                            <div class="stage-pct">@dashAnimator.Percent(admissionDashboardpipeline.InteractionPercentage)</div>
+                                            <div class="stage-bar b4"><span style="width:@dashAnimator.Percent(admissionDashboardpipeline.InteractionPercentage)"></span></div>
+                                        </div>
+                                    </div>
+                                    <div class="stage">
+                                        <div class="stage-icon c5"><i class="fas fa-shield-alt"></i></div>
+                                        <div>
+                                            <div class="stage-name">Confirmed Admission</div>
+                                            <div class="stage-count">@dashAnimator.Count(admissionDashboardpipeline.TotalAdmission)</div>
+                                            <div class="stage-pct">@dashAnimator.Percent(admissionDashboardpipeline.AdmissionPercentage)</div>
+                                            <div class="stage-bar b5">  <span style="width:@dashAnimator.Percent(admissionDashboardpipeline.AdmissionPercentage)"></span></div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="stage">
-                                <div class="stage-icon c5"><i class="fas fa-shield-alt"></i></div>
-                                <div>
-                                    <div class="stage-name">Confirmed Admission</div>
-                                    <div class="stage-count">@admissionDashboardpipeline.TotalAdmission</div>
-                                    <div class="stage-pct">@admissionDashboardpipeline.AdmissionPercentage</div>
-                                    <div class="stage-bar b5">  <span style="width:@(admissionDashboardpipeline.AdmissionPercentage)"></span></div>
+                                <div class="info-strip">
+                                    <div class="txt">
+                                        <i class="fas fa-info-circle"></i> <strong>@dashAnimator.Percent("20.1%")</strong> of enquiries have been
+                                        converted into confirmed admissions.
+                                    </div>
+                                    <a href="#">View full pipeline →</a>
                                 </div>
                             </div>
                         </div>
-                        <div class="info-strip">
-                            <div class="txt">
-                                <i class="fas fa-info-circle"></i> <strong>20.1%</strong> of enquiries have been
-                                converted into confirmed admissions.
+                        <div class="col-12 col-lg-6 dash-animate" style="--d:0.45s">
+                            <div class="dashboard-card h-100">
+                                <h6 class="card-title-custom mb-3">Attendance & Movement</h6>
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="mini-stat-card mini-stat-blue d-flex align-items-center">
+                                            <div class="stat-icon blue me-2"><i class="fas fa-clipboard-user"></i></div>
+                                            <span class="text-muted small d-block">Total Attendance</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(1724)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mini-stat-card mini-stat-green d-flex align-items-center">
+                                            <div class="stat-icon green me-2"><i class="fas fa-handshake"></i></div>
+                                            <span class="text-muted small d-block">Interactions Done</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(admissionDashboardpipeline.InteractionsDone)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
+                                            <div class="stat-icon orange me-2"><i class="fas fa-arrow-down"></i></div>
+                                            <span class="text-muted small">Withdrawals</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(2)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
+                                            <div class="stat-icon purple me-2"><i class="fas fa-file-export"></i></div>
+                                            <span class="text-muted small">Transfer Certificates</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(3)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
+                                            <div class="stat-icon orange me-2"><i class="fas fa-arrow-down"></i></div>
+                                            <span class="text-muted small">Withdrawals</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(2)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
+                                            <div class="stat-icon purple me-2"><i class="fas fa-file-export"></i></div>
+                                            <span class="text-muted small">Transfer Certificates</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(3)</h5>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <a href="#">View full pipeline →</a>
                         </div>
+
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-lg-7 dash-animate" style="--d:0.53s">
+                            <div class="dashboard-card h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h6 class="card-title-custom mb-0">Student Strength & Movement</h6>
+                                        <span class="text-muted small">Class-group overview for the current session</span>
+                                    </div>
+                                    <h4 class="fw-bold mb-0">@dashAnimator.Count(1660)</h4>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless custom-table mb-0">
+                                        <thead>
+                                            <tr class="text-muted small">
+                                                <th>Class Group</th>
+                                                <th>Active</th>
+                                                <th>New Admissions</th>
+                                                <th>Withdrawals</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Pre-Primary</td>
+                                                <td>248</td>
+                                                <td class="text-success">+21</td>
+                                                <td class="text-danger">-7</td>
+                                                <td><span class="status-badge">On track</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Primary (I–V)</td>
+                                                <td>684</td>
+                                                <td class="text-success">+54</td>
+                                                <td class="text-danger">-13</td>
+                                                <td><span class="status-badge">On track</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Middle (VI–VIII)</td>
+                                                <td>432</td>
+                                                <td class="text-success">+31</td>
+                                                <td class="text-danger">-9</td>
+                                                <td><span class="status-badge">On track</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Senior (IX–XII)</td>
+                                                <td>296</td>
+                                                <td class="text-success">+18</td>
+                                                <td class="text-danger">-6</td>
+                                                <td><span class="status-badge">On track</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-5 dash-animate" style="--d:0.61s">
+                            <div class="dashboard-card h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-title-custom mb-0">Student Status</h6>
+                                    <span class="text-muted small">Current student distribution</span>
+                                </div>
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-6 text-center">
+                                        @{
+                                            var statusChartKey = string.Join("|", studentStatusList.Select(x => $"{x.StatusName}:{x.Count}"));
+                                        }
+                                        <div class="donut-container" @key="statusChartKey">
+                                            @if (studentStatusList.Any())
+                                            {
+                                                var statusColorOptions = GetDonutOptions<StudentStatusModel>(
+                                                    studentStatusList.Select(x => GetStatusColor(x.StatusName)).ToList());
+
+                                                <ApexChart TItem="StudentStatusModel"
+                                                           Options="statusColorOptions">
+                                                    <ApexPointSeries TItem="StudentStatusModel"
+                                                                     Items="studentStatusList"
+                                                                     Name="Status"
+                                                                     SeriesType="SeriesType.Donut"
+                                                                     XValue="x => x.StatusName"
+                                                                     YValue="x => (decimal)x.Count" />
+                                                </ApexChart>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 mt-3 mt-md-0">
+                                        <ul class="status-legend">
+                                            @foreach (var item in studentStatusList)
+                                            {
+                                                <li>
+                                                    <span class="legend-dot" style="background:@GetStatusColor(item.StatusName)"></span>
+                                                    @item.StatusName
+                                                    <strong class="ms-auto">@dashAnimator.Count(item.Count)</strong>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
-                <div class="col-12 col-lg-6">
-                    <div class="dashboard-card h-100">
-                        <h6 class="card-title-custom mb-3">Attendance & Movement</h6>
-                        <div class="row g-3">
-                            <div class="col-6">
-                                <div class="mini-stat-card mini-stat-blue d-flex align-items-center">
-                                    <div class="stat-icon blue me-2"><i class="fas fa-clipboard-user"></i></div>
-                                    <span class="text-muted small d-block">Total Attendance</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">1,724</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="mini-stat-card mini-stat-green d-flex align-items-center">
-                                    <div class="stat-icon green me-2"><i class="fas fa-handshake"></i></div>
-                                    <span class="text-muted small d-block">Interactions Done</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@admissionDashboardpipeline.InteractionsDone</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
-                                    <div class="stat-icon orange me-2"><i class="fas fa-arrow-down"></i></div>
-                                    <span class="text-muted small">Withdrawals</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">2</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
-                                    <div class="stat-icon purple me-2"><i class="fas fa-file-export"></i></div>
-                                    <span class="text-muted small">Transfer Certificates</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">3</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
-                                    <div class="stat-icon orange me-2"><i class="fas fa-arrow-down"></i></div>
-                                    <span class="text-muted small">Withdrawals</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">2</h5>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
-                                    <div class="stat-icon purple me-2"><i class="fas fa-file-export"></i></div>
-                                    <span class="text-muted small">Transfer Certificates</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">3</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-lg-7">
-                    <div class="dashboard-card h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 class="card-title-custom mb-0">Student Strength & Movement</h6>
-                                <span class="text-muted small">Class-group overview for the current session</span>
-                            </div>
-                            <h4 class="fw-bold mb-0">1,660</h4>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-borderless custom-table mb-0">
-                                <thead>
-                                    <tr class="text-muted small">
-                                        <th>Class Group</th>
-                                        <th>Active</th>
-                                        <th>New Admissions</th>
-                                        <th>Withdrawals</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Pre-Primary</td>
-                                        <td>248</td>
-                                        <td class="text-success">+21</td>
-                                        <td class="text-danger">-7</td>
-                                        <td><span class="status-badge">On track</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Primary (I–V)</td>
-                                        <td>684</td>
-                                        <td class="text-success">+54</td>
-                                        <td class="text-danger">-13</td>
-                                        <td><span class="status-badge">On track</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Middle (VI–VIII)</td>
-                                        <td>432</td>
-                                        <td class="text-success">+31</td>
-                                        <td class="text-danger">-9</td>
-                                        <td><span class="status-badge">On track</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Senior (IX–XII)</td>
-                                        <td>296</td>
-                                        <td class="text-success">+18</td>
-                                        <td class="text-danger">-6</td>
-                                        <td><span class="status-badge">On track</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-lg-5">
-                    <div class="dashboard-card h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="card-title-custom mb-0">Student Status</h6>
-                            <span class="text-muted small">Current student distribution</span>
-                        </div>
-                        <div class="row align-items-center">
-                            <div class="col-12 col-md-6 text-center">
-                                @{
-                                    var statusChartKey = string.Join("|", studentStatusList.Select(x => $"{x.StatusName}:{x.Count}"));
-                                }
-                                <div class="donut-container" @key="statusChartKey">
-                                    @if (studentStatusList.Any())
-                                    {
-                                        var statusColorOptions = GetDonutOptions<StudentStatusModel>(
-                                            studentStatusList.Select(x => GetStatusColor(x.StatusName)).ToList());
-
-                                        <ApexChart TItem="StudentStatusModel"
-                                                   Options="statusColorOptions">
-                                            <ApexPointSeries TItem="StudentStatusModel"
-                                                             Items="studentStatusList"
-                                                             Name="Status"
-                                                             SeriesType="SeriesType.Donut"
-                                                             XValue="x => x.StatusName"
-                                                             YValue="x => (decimal)x.Count" />
-                                        </ApexChart>
-                                    }
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6 mt-3 mt-md-0">
-                                <ul class="status-legend">
-                                    @foreach (var item in studentStatusList)
-                                    {
-                                        <li>
-                                            <span class="legend-dot" style="background:@GetStatusColor(item.StatusName)"></span>
-                                            @item.StatusName
-                                            <strong class="ms-auto">@item.Count</strong>
-                                        </li>
-                                    }
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+            }
 
         </div>
     </div>
@@ -386,7 +392,12 @@ else
     private DateTime fromDate = DateTime.Now;
     private DateTime toDate = DateTime.Now;
     private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
-    private bool IsLoading = false;
+    // Loader is visible from the first render until the dashboard data (and menu/session values) are ready
+    private bool IsLoading = true;
+    private const int FirstLoadMinLoaderMs = 900;
+    // Cards entrance + number count-up animation (shared with other dashboards)
+    private readonly DashboardCountAnimator dashAnimator = new();
+    public void Dispose() => dashAnimator.Dispose();
     string fromDateString = "", toDateString = "";
     private string nameFilter = "";
     private string branchcode = "";
@@ -446,6 +457,7 @@ else
 
         await GetAdmissionPipelineConfirmetion();
         StateHasChanged();
+        await dashAnimator.PlayAsync(() => InvokeAsync(StateHasChanged));
     }
     private List<StudentStatusModel> studentStatusList => new()
     {
@@ -539,13 +551,22 @@ else
     private async Task GetAdmissionPipelineConfirmetion()
     {
         IsLoading = true;
-        searchAnyRequest.GroupCode = groupcode;
-        searchAnyRequest.BranchCode = branchcode;
-        searchAnyRequest.SessionId = CurrentSession;
-        var apiResponse = await httpService.Post<ApiResponse<AdmissionDashboardModel>>("AdminDashboard/GetAdmissionDashboardData", searchAnyRequest) ?? new();
-        if (apiResponse.Success == true)
+        dashAnimator.Hide();
+        StateHasChanged();
+        try
         {
-            admissionDashboardpipeline = apiResponse.Data ?? new();
+            searchAnyRequest.GroupCode = groupcode;
+            searchAnyRequest.BranchCode = branchcode;
+            searchAnyRequest.SessionId = CurrentSession;
+            var apiResponse = await httpService.Post<ApiResponse<AdmissionDashboardModel>>("AdminDashboard/GetAdmissionDashboardData", searchAnyRequest) ?? new();
+            if (apiResponse.Success == true)
+            {
+                admissionDashboardpipeline = apiResponse.Data ?? new();
+            }
+        }
+        finally
+        {
+            // Always hide the loader, even if the API fails, so the screen never stays stuck
             IsLoading = false;
         }
     }
@@ -579,9 +600,11 @@ else
         
         if (firstRender)
         {
-
+            // Keep the loader up for a minimum time after login so the menu settles before the cards animate in
+            var minLoaderTask = Task.Delay(FirstLoadMinLoaderMs);
             CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
+            await minLoaderTask;
             var savedPeriod = string.IsNullOrEmpty(EnquiryState.DashboardValue)
                        ? "Today"
                        : EnquiryState.DashboardValue;

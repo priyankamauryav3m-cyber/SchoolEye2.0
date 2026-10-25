@@ -22,6 +22,7 @@
 @inject IStringLocalizer<Resource> Localizer
 @inject IJSRuntime JS
 @inject CommonMethod EnquiryState
+@implements IDisposable
 <style>
     .stat-icon.blue {
         background: #eaf3fb !important;
@@ -67,159 +68,164 @@
                     </PageHeading>
                 </div>
             </div>
-            <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
-                        <div class="state-icon--bxds">
-                            <div class="stat-icon blue"><i class="fas fa-user-graduate"></i></div>
-                            <div class="flex-grow-1">
-                                <div class="stat-label text-nowrap text-muted small">Total students</div>
-                                <div class="stat-value fw-bold fs-4">1,886</div>
+            @if (dashAnimator.IsVisible)
+            {
+                <div class="dash-animated">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.05s">
+                            <div class="stat-card p-3 bg-white">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon blue"><i class="fas fa-user-graduate"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Total students</div>
+                                        <div class="stat-value fw-bold fs-4">@dashAnimator.Count(TotalStudents)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.12s">
+                            <div class="stat-card p-3 bg-white">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon green"><i class="fas fa-bus"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Transport users</div>
+                                        <div class="stat-value fw-bold fs-4">@dashAnimator.Count(TransportUsers)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.19s">
+                            <div class="stat-card p-3 bg-white">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon blue"><i class="fas fa-briefcase"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">Total staff</div>
+                                        <div class="stat-value fw-bold fs-4">@dashAnimator.Count(TotalStaff)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.26s">
+                            <div class="stat-card p-3 bg-white">
+                                <div class="state-icon--bxds">
+                                    <div class="stat-icon blue"><i class="fas fa-shield-alt"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="stat-label text-nowrap text-muted small">EWS students</div>
+                                        <div class="stat-value fw-bold fs-4">@dashAnimator.Count(EwsStudents)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 dash-animate" style="--d:.34s">
+                            <div class="dashboard-card">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="card-title-custom mb-0">
+                                        <span class="status-badge me-2">02</span>Fees &amp; balances
+                                    </h5>
+                                    <span class="text-muted small">All amounts in INR</span>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Total fee due</div>
+                                        <div class="metric-box metric-blue"><span>₹</span><strong>@dashAnimator.Amount(TotalFeeDue)</strong></div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Total concession</div>
+                                        <div class="metric-box metric-purple"><span>₹</span><strong>@dashAnimator.Amount(TotalConcession)</strong></div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Total waive off</div>
+                                        <div class="metric-box metric-orange"><span>₹</span><strong>@dashAnimator.Amount(TotalWaiveOff)</strong></div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Late fine</div>
+                                        <div class="metric-box metric-red"><span>₹</span><strong>@dashAnimator.Amount(LateFine)</strong></div>
+                                    </div>
+
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Total received</div>
+                                        <div class="metric-box metric-green"><span>₹</span><strong>@dashAnimator.Amount(TotalReceived)</strong></div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Total outstanding</div>
+                                        <div class="metric-box metric-indigo"><span>₹</span><strong>@dashAnimator.Amount(TotalOutstanding)</strong></div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Pre-session advance</div>
+                                        <div class="metric-box metric-teal"><span>₹</span><strong>@dashAnimator.Amount(PreSessionAdvance)</strong></div>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <div class="text-muted small mb-1">Current advance</div>
+                                        <div class="metric-box metric-pink"><span>₹</span><strong>@dashAnimator.Amount(CurrentAdvance)</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-12 col-lg-7 dash-animate" style="--d:.42s">
+                            <div class="dashboard-card h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title-custom mb-0">
+                                        <span class="status-badge me-2">03</span>Today's collection
+                                    </h6>
+                                    <span class="text-muted small">By payment mode</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="text-muted small">Total collected</span>
+                                    <h4 class="fw-bold mb-0">₹ @dashAnimator.Amount(TodayTotalCollected)</h4>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="text-muted small mb-1">Cash</div>
+                                        <div class="metric-box metric-blue"><span>₹</span><strong>@dashAnimator.Amount(TodayCash)</strong></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted small mb-1">Cheque</div>
+                                        <div class="metric-box metric-purple"><span>₹</span><strong>@dashAnimator.Amount(TodayCheque)</strong></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted small mb-1">Online</div>
+                                        <div class="metric-box metric-teal"><span>₹</span><strong>@dashAnimator.Amount(TodayOnline)</strong></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted small mb-1">Other</div>
+                                        <div class="metric-box metric-orange"><span>₹</span><strong>@dashAnimator.Amount(TodayOther)</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-lg-5 dash-animate" style="--d:.5s">
+                            <div class="dashboard-card h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title-custom mb-0">
+                                        <span class="status-badge me-2">04</span>Expenses
+                                    </h6>
+                                    <span class="text-muted small">INR</span>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="text-muted small mb-1">Total expenses</div>
+                                        <div class="metric-box metric-red"><span>₹</span><strong>@dashAnimator.Amount(TotalExpenses)</strong></div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="text-muted small mb-1">Today's expenses</div>
+                                        <div class="metric-box metric-amber"><span>₹</span><strong>@dashAnimator.Amount(TodayExpenses)</strong></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
-                        <div class="state-icon--bxds">
-                            <div class="stat-icon green"><i class="fas fa-bus"></i></div>
-                            <div class="flex-grow-1">
-                                <div class="stat-label text-nowrap text-muted small">Transport users</div>
-                                <div class="stat-value fw-bold fs-4">352</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
-                        <div class="state-icon--bxds">
-                            <div class="stat-icon blue"><i class="fas fa-briefcase"></i></div>
-                            <div class="flex-grow-1">
-                                <div class="stat-label text-nowrap text-muted small">Total staff</div>
-                                <div class="stat-value fw-bold fs-4">20</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white">
-                        <div class="state-icon--bxds">
-                            <div class="stat-icon blue"><i class="fas fa-shield-alt"></i></div>
-                            <div class="flex-grow-1">
-                                <div class="stat-label text-nowrap text-muted small">EWS students</div>
-                                <div class="stat-value fw-bold fs-4">0</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <div class="dashboard-card">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title-custom mb-0">
-                                <span class="status-badge me-2">02</span>Fees &amp; balances
-                            </h5>
-                            <span class="text-muted small">All amounts in INR</span>
-                        </div>
-                      <div class="row g-3">
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Total fee due</div>
-                            <div class="metric-box metric-blue"><span>₹</span><strong>12,85,36,473.00</strong></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Total concession</div>
-                            <div class="metric-box metric-purple"><span>₹</span><strong>2,87,270.00</strong></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Total waive off</div>
-                            <div class="metric-box metric-orange"><span>₹</span><strong>5,000.00</strong></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Late fine</div>
-                            <div class="metric-box metric-red"><span>₹</span><strong>0.00</strong></div>
-                        </div>
-
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Total received</div>
-                            <div class="metric-box metric-green"><span>₹</span><strong>12,24,841.00</strong></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Total outstanding</div>
-                            <div class="metric-box metric-indigo"><span>₹</span><strong>12,70,28,422.00</strong></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Pre-session advance</div>
-                            <div class="metric-box metric-teal"><span>₹</span><strong>1,485.00</strong></div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small mb-1">Current advance</div>
-                            <div class="metric-box metric-pink"><span>₹</span><strong>-5,545.00</strong></div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row g-3">
-                <div class="col-12 col-lg-7">
-                    <div class="dashboard-card h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="card-title-custom mb-0">
-                                <span class="status-badge me-2">03</span>Today's collection
-                            </h6>
-                            <span class="text-muted small">By payment mode</span>
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="text-muted small">Total collected</span>
-                            <h4 class="fw-bold mb-0">₹ 1,36,160.00</h4>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-6">
-                                <div class="text-muted small mb-1">Cash</div>
-                                <div class="metric-box metric-blue"><span>₹</span><strong>1,36,160.00</strong></div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-muted small mb-1">Cheque</div>
-                                <div class="metric-box metric-purple"><span>₹</span><strong>0.00</strong></div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-muted small mb-1">Online</div>
-                                <div class="metric-box metric-teal"><span>₹</span><strong>0.00</strong></div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-muted small mb-1">Other</div>
-                                <div class="metric-box metric-orange"><span>₹</span><strong>0.00</strong></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-lg-5">
-                    <div class="dashboard-card h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="card-title-custom mb-0">
-                                <span class="status-badge me-2">04</span>Expenses
-                            </h6>
-                            <span class="text-muted small">INR</span>
-                        </div>
-
-                      <div class="row g-3">
-                        <div class="col-12">
-                            <div class="text-muted small mb-1">Total expenses</div>
-                            <div class="metric-box metric-red"><span>₹</span><strong>0.00</strong></div>
-                        </div>
-                        <div class="col-12">
-                            <div class="text-muted small mb-1">Today's expenses</div>
-                            <div class="metric-box metric-amber"><span>₹</span><strong>0.00</strong></div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-            </div>
+            }
         </div>
     </div>
 </section>
@@ -237,10 +243,6 @@
         </div>
     </div>
 }
-else
-{
-
-}
 
 <CustomAlert @ref="customAlert" Title="Alert" />
 @code {
@@ -249,7 +251,37 @@ else
     private DateTime fromDate = DateTime.Now;
     private DateTime toDate = DateTime.Now;
     private string CurrentDateTime => DateTime.Now.ToString("yyyy/MM/dd, hh:mm tt");
-    private bool IsLoading = false;
+    // Loader is visible from the first render until the dashboard data (and menu/session values) are ready
+    private bool IsLoading = true;
+    private const int FirstLoadMinLoaderMs = 900;
+    // Cards entrance + number count-up animation (shared with other dashboards)
+    private readonly DashboardCountAnimator dashAnimator = new();
+
+    // TODO: Static values for now - replace with API data (FeeManagement dashboard endpoint) later
+    private int TotalStudents = 1886;
+    private int TransportUsers = 352;
+    private int TotalStaff = 20;
+    private int EwsStudents = 0;
+
+    private decimal TotalFeeDue = 128536473.00m;
+    private decimal TotalConcession = 287270.00m;
+    private decimal TotalWaiveOff = 5000.00m;
+    private decimal LateFine = 0.00m;
+    private decimal TotalReceived = 1224841.00m;
+    private decimal TotalOutstanding = 127028422.00m;
+    private decimal PreSessionAdvance = 1485.00m;
+    private decimal CurrentAdvance = -5545.00m;
+
+    private decimal TodayTotalCollected = 136160.00m;
+    private decimal TodayCash = 136160.00m;
+    private decimal TodayCheque = 0.00m;
+    private decimal TodayOnline = 0.00m;
+    private decimal TodayOther = 0.00m;
+
+    private decimal TotalExpenses = 0.00m;
+    private decimal TodayExpenses = 0.00m;
+
+    public void Dispose() => dashAnimator.Dispose();
     string fromDateString = "", toDateString = "";
     private string nameFilter = "";
     private string branchcode = "";
@@ -300,6 +332,7 @@ else
 
         await GetAdmissionPipelineConfirmetion();
         StateHasChanged();
+        await dashAnimator.PlayAsync(() => InvokeAsync(StateHasChanged));
     }
     private List<StudentStatusModel> studentStatusList => new()
     {
@@ -371,13 +404,22 @@ else
     private async Task GetAdmissionPipelineConfirmetion()
     {
         IsLoading = true;
-        searchAnyRequest.GroupCode = groupcode;
-        searchAnyRequest.BranchCode = branchcode;
-        searchAnyRequest.SessionId = CurrentSession;
-        var apiResponse = await httpService.Post<ApiResponse<AdmissionDashboardModel>>("AdminDashboard/GetAdmissionDashboardData", searchAnyRequest) ?? new();
-        if (apiResponse.Success == true)
+        dashAnimator.Hide();
+        StateHasChanged();
+        try
         {
-            admissionDashboardpipeline = apiResponse.Data ?? new();
+            searchAnyRequest.GroupCode = groupcode;
+            searchAnyRequest.BranchCode = branchcode;
+            searchAnyRequest.SessionId = CurrentSession;
+            var apiResponse = await httpService.Post<ApiResponse<AdmissionDashboardModel>>("AdminDashboard/GetAdmissionDashboardData", searchAnyRequest) ?? new();
+            if (apiResponse.Success == true)
+            {
+                admissionDashboardpipeline = apiResponse.Data ?? new();
+            }
+        }
+        finally
+        {
+            // Always hide the loader, even if the API fails, so the screen never stays stuck
             IsLoading = false;
         }
     }
@@ -410,11 +452,12 @@ else
     {
         if (firstRender)
         {
-
+            // Keep the loader up for a minimum time after login so the menu settles before the cards animate in
+            var minLoaderTask = Task.Delay(FirstLoadMinLoaderMs);
             CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
+            await minLoaderTask;
             await ApplyPeriodFilter(SelectedPeriod);
-            StateHasChanged();
         }
     }
 

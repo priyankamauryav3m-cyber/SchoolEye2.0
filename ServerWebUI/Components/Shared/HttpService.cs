@@ -30,11 +30,14 @@ namespace ServerWebUI.Shared
         private HttpClient _httpClient;
         // dates sent by the API as strings are formatted by AppConfigurationSettings:DateFormat
         private readonly JsonSerializerOptions _jsonOptions;
-        public HttpService(HttpClient httpClient, NavigationManager navigationManager, IOptions<ApplicationConfiguration> settings, ProtectedSessionStorage sessionStorages = null)
+        // tracks running API calls so the page-open loader knows when the page data is bound
+        private readonly ServerWebUI.Components.CommonClass.PageLoadingState? _pageLoading;
+        public HttpService(HttpClient httpClient, NavigationManager navigationManager, IOptions<ApplicationConfiguration> settings, ProtectedSessionStorage sessionStorages = null, ServerWebUI.Components.CommonClass.PageLoadingState? pageLoading = null)
         {
             _httpClient = httpClient;
             _navigationManager = navigationManager;
             _sessionStorages = sessionStorages;
+            _pageLoading = pageLoading;
             _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             _jsonOptions.Converters.Add(new DateStringConverter(settings.Value));
         }
@@ -96,14 +99,22 @@ namespace ServerWebUI.Shared
         }
         private async Task sendRequest(HttpRequestMessage request)
         {
-            await addJwtHeader(request);
-            using var response = await _httpClient.SendAsync(request);
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            _pageLoading?.RequestStarted();
+            try
             {
-                _navigationManager.NavigateTo("/");
-                return;
+                await addJwtHeader(request);
+                using var response = await _httpClient.SendAsync(request);
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    _navigationManager.NavigateTo("/");
+                    return;
+                }
+                //await handleErrors(response);
             }
-            //await handleErrors(response);
+            finally
+            {
+                _pageLoading?.RequestEnded();
+            }
         }
         //private async Task<T> sendRequest<T>(HttpRequestMessage request)
         //{
@@ -127,6 +138,19 @@ namespace ServerWebUI.Shared
         //    return await response.Content.ReadFromJsonAsync<T>(options);
         //}
         private async Task<T> sendRequest<T>(HttpRequestMessage request)
+        {
+            _pageLoading?.RequestStarted();
+            try
+            {
+                return await sendRequestCore<T>(request);
+            }
+            finally
+            {
+                _pageLoading?.RequestEnded();
+            }
+        }
+
+        private async Task<T> sendRequestCore<T>(HttpRequestMessage request)
         {
             await addJwtHeader(request);
 

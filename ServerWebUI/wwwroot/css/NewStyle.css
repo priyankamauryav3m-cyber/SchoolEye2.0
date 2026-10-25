@@ -4653,3 +4653,98 @@ body:has(.fee-collection-page) .swal2-container {
     color: #68778a;
 }
 /* ===================== End: Fee Collection page - By Nilesh ===================== */
+
+/* ===================== Start: Dashboard entrance + count-up animation (DashboardCountAnimator) ===================== */
+.dash-animate {
+    opacity: 0;
+    animation: dashFadeUp .55s cubic-bezier(.22,.61,.36,1) forwards;
+    animation-delay: var(--d, 0s);
+}
+
+@keyframes dashFadeUp {
+    from { opacity: 0; transform: translateY(18px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dash-animated .stat-card,
+.dash-animated .mini-stat-card {
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+
+    .dash-animated .stat-card:hover,
+    .dash-animated .mini-stat-card:hover {
+        transform: translateY(-3px);
+    }
+
+.dash-animated .stat-icon,
+.dash-animated .stage-icon {
+    animation: dashIconPop .5s ease-out both;
+    animation-delay: calc(var(--d, 0s) + .2s);
+}
+
+@keyframes dashIconPop {
+    0% { transform: scale(.4); opacity: 0; }
+    70% { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* Numbers keep the same width while counting so cards don't jitter */
+.dash-animated .stat-value,
+.dash-animated .stage-count,
+.dash-animated .metric-box strong,
+.dash-animated h4,
+.dash-animated h5,
+.dash-animated strong {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-animate,
+    .dash-animated .stat-icon,
+    .dash-animated .stage-icon {
+        animation: none;
+        opacity: 1;
+    }
+}
+/* ===================== End: Dashboard entrance + count-up animation ===================== */
+
+/* ===================== Start: In-card chart loader (ChartCardLoader) ===================== */
+.chart-card-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, .92);
+    animation: chartLoaderIn .2s ease-out;
+}
+
+    .chart-card-loader .loader-ring {
+        width: 56px;
+        height: 56px;
+    }
+
+    .chart-card-loader .loader-core {
+        inset: 8px;
+    }
+
+    .chart-card-loader .loader-text {
+        font-size: 13px;
+    }
+
+@keyframes chartLoaderIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+/* ===================== End: In-card chart loader ===================== */
+
+/* ===================== Start: Page-open loader (MainLayout + PageLoadingState) ===================== */
+/* If the opened page already shows its own loader, hide the global one so two overlays never stack */
+main.main:has(.grid-loader-overlay) ~ .page-open-loader {
+    display: none;
+}
+/* ===================== End: Page-open loader ===================== */
