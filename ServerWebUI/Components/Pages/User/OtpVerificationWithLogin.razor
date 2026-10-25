@@ -85,14 +85,25 @@
             else
             {
                 <div class="mb-2">
-                    <input class="field-input otp-input-single"
-                           value="@otpdata"
-                           @oninput="OnOtpInput"
-                           onkeypress="return /^[0-9]$/.test(event.key)"
-                           maxlength="6"
-                           inputmode="numeric"
-                           placeholder="••••••"
-                           autofocus />
+                    <div class="otp-boxes @(string.IsNullOrWhiteSpace(OtpError) ? "" : "otp-error-shake")">
+                        @for (int i = 0; i < OtpLength; i++)
+                        {
+                            var index = i;
+                            <input @key="@($"otp-{index}-{otpBoxVersions[index]}")"
+                                   @ref="otpBoxRefs[index]"
+                                   class="otp-box @(string.IsNullOrEmpty(otpDigits[index]) ? "" : "filled") @(string.IsNullOrWhiteSpace(OtpError) ? "" : "has-error")"
+                                   value="@otpDigits[index]"
+                                   @oninput="e => OnOtpBoxInput(e, index)"
+                                   @onkeydown="e => OnOtpBoxKeyDown(e, index)"
+                                   onkeypress="return /^[0-9]$/.test(event.key)"
+                                   onfocus="this.select()"
+                                   type="text"
+                                   inputmode="numeric"
+                                   autocomplete="@(index == 0 ? "one-time-code" : "off")"
+                                   aria-label="@($"OTP digit {index + 1}")"
+                                   disabled="@isVerifying" />
+                        }
+                    </div>
                     @if (!string.IsNullOrWhiteSpace(OtpError))
                     {
                         <div class="text-danger mt-2 otp-error-shake text-center">
@@ -231,12 +242,14 @@
     .btn-signin:disabled{background:#cfdbe2;box-shadow:none;cursor:not-allowed}
     .btn-verify{margin-top:0}
 
-    .otp-input-single{width:100%;height:58px;text-align:center;border:1px solid #cbd9e3;border-radius:12px;
-        background:#f9fbfc repeating-linear-gradient(90deg,transparent 0 58px,#cbd9e3 58px 59px);
-        color:var(--ink);font-size:24px;font-weight:750;font-family:monospace;letter-spacing:30px;
-        padding-left:22px;outline:0}
-    .otp-input-single:focus{border-color:var(--blue);background-color:#fff;box-shadow:0 0 0 4px #1e6fb31a}
-    .otp-input-single::placeholder{letter-spacing:30px;color:#c3cdd6}
+    .otp-boxes{display:flex;justify-content:center;gap:10px}
+    .otp-box{width:52px;height:58px;min-width:0;flex:0 1 52px;padding:0;text-align:center;border:1px solid #cbd9e3;
+        border-radius:12px;background:#f9fbfc;color:var(--ink);font-size:24px;font-weight:750;font-family:monospace;
+        outline:0;caret-color:var(--blue);transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+    .otp-box:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 4px #1e6fb31a;transform:translateY(-1px)}
+    .otp-box.filled{border-color:var(--blue);background:#fff}
+    .otp-box.has-error{border-color:#dc3545;background:#fff5f5}
+    .otp-box:disabled{opacity:.7;cursor:not-allowed}
 
     .hint{margin-top:8px;text-align:left;color:#8998a6;font-size:11px}
 
@@ -314,9 +327,80 @@
     // Time format 01:30
     private string TimeLeft => $"{SecondsLeft / 60:D2}:{SecondsLeft % 60:D2}";
     private Timer? timer;
-    private void OnOtpInput(ChangeEventArgs e)
+    // ===================== 6-box OTP input =====================
+    private const int OtpLength = 6;
+    private readonly string[] otpDigits = new string[OtpLength] { "", "", "", "", "", "" };
+    private readonly ElementReference[] otpBoxRefs = new ElementReference[OtpLength];
+    // Bumped to re-create a box when the browser value differs from the stored digit (e.g. "11" typed in one box)
+    private readonly int[] otpBoxVersions = new int[OtpLength];
+    private int? pendingOtpFocusIndex;
+
+    private void OnOtpBoxInput(ChangeEventArgs e, int index)
     {
-        otpdata = e.Value?.ToString() ?? "";
+        var raw = e.Value?.ToString() ?? "";
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        var oldDigit = otpDigits[index];
+
+        // Typed in front of the existing digit: replace it. (Typed after it, e.g. fast typing,
+        // falls through to the spread below so the new digit goes to the next box.)
+        if (digits.Length == 2 && oldDigit.Length == 1 && digits[0].ToString() != oldDigit)
+            digits = digits[..1];
+
+        if (digits.Length == 0)
+        {
+            otpDigits[index] = "";
+        }
+        else
+        {
+            // One digit -> this box; pasted/autofilled code -> spread across the following boxes
+            int position = index;
+            foreach (var digit in digits)
+            {
+                if (position >= OtpLength)
+                    break;
+                otpDigits[position++] = digit.ToString();
+            }
+            pendingOtpFocusIndex = Math.Min(position, OtpLength - 1);
+        }
+
+        if (raw != otpDigits[index])
+            otpBoxVersions[index]++;
+
+        OnOtpChanged();
+    }
+
+    private async Task OnOtpBoxKeyDown(KeyboardEventArgs e, int index)
+    {
+        switch (e.Key)
+        {
+            case "Backspace":
+                // Empty box: clear the previous box and move back to it
+                if (string.IsNullOrEmpty(otpDigits[index]) && index > 0)
+                {
+                    otpDigits[index - 1] = "";
+                    pendingOtpFocusIndex = index - 1;
+                    OnOtpChanged();
+                }
+                break;
+            case "ArrowLeft":
+                if (index > 0)
+                    pendingOtpFocusIndex = index - 1;
+                break;
+            case "ArrowRight":
+                if (index < OtpLength - 1)
+                    pendingOtpFocusIndex = index + 1;
+                break;
+            case "Enter":
+            case "NumpadEnter":
+                if (otpdata.Length == OtpLength && !isVerifying)
+                    await VerifyOtpData();
+                break;
+        }
+    }
+
+    private void OnOtpChanged()
+    {
+        otpdata = string.Concat(otpDigits);
         if (IsVerifyClicked)
         {
             if (string.IsNullOrWhiteSpace(otpdata))
@@ -324,6 +408,15 @@
             else
                 OtpError = "";
         }
+    }
+
+    private void ClearOtpBoxes(bool focusFirstBox = true)
+    {
+        for (int i = 0; i < OtpLength; i++)
+            otpDigits[i] = "";
+        otpdata = "";
+        if (focusFirstBox)
+            pendingOtpFocusIndex = 0;
     }
     private void BackTologin()
     {
@@ -336,7 +429,7 @@
         // Stop the active timer
         timer?.Stop();
         IsOtpSent = false;
-        otpdata = "";
+        ClearOtpBoxes(focusFirstBox: false);
         OtpError = "";
         IsVerifyClicked = false;
     }
@@ -386,6 +479,20 @@
 
             StateHasChanged();
         }
+
+        // Move the cursor to the OTP box requested by the last input/keydown
+        if (pendingOtpFocusIndex is int focusIndex && IsOtpSent && !isVerifying)
+        {
+            pendingOtpFocusIndex = null;
+            try
+            {
+                await otpBoxRefs[focusIndex].FocusAsync();
+            }
+            catch (InvalidOperationException)
+            {
+                // Box not rendered yet - ignore
+            }
+        }
     }
     private async Task SendOtpEmailWithPhone()
     {
@@ -426,6 +533,7 @@
             await Task.Delay(2000);
             await JS.InvokeVoidAsync("closeSwal");
             IsOtpSent = true;
+            ClearOtpBoxes();
             StartTimer();
             sendOtpRequest = new();
         }
@@ -476,7 +584,7 @@
                         var dashboard = await sessionStorage.GetAsync<string>("Dashboard");
                         // Success hone par hi form reset hoga
                         verifyOtpRequestDto.OtpCode = "";
-                        otpdata = "";
+                        ClearOtpBoxes(focusFirstBox: false);
                         OtpError = "";
                         IsOtpSent = false;
                         if (dashboard.Success && !string.IsNullOrWhiteSpace(dashboard.Value))
@@ -492,11 +600,11 @@
                 case 2:
                 case 3:
                     OtpError = response.Message; // Screen par error dikhayega
-                    otpdata = "";
+                    ClearOtpBoxes();
                     break;
                 case 4:
                     OtpError = response.Message;
-                    otpdata = "";
+                    ClearOtpBoxes();
                     break;
                 default:
                     break;

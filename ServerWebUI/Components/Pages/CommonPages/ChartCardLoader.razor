@@ -1,0 +1,14 @@
+@* In-card loader shown over a dashboard card until its chart is drawn. Parent card needs "position-relative". *@
+<div class="chart-card-loader">
+    <div class="loader-ring">
+        <div class="loader-arc"></div>
+        <div class="loader-core">
+            <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+        </div>
+    </div>
+    <p class="loader-text">@Text<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+</div>
+
+@code {
+    [Parameter] public string Text { get; set; } = "Loading chart";
+}

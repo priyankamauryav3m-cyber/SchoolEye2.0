@@ -22,6 +22,7 @@
 @inject IStringLocalizer<Resource> Localizer
 @using ApexCharts
 @inject CommonMethod EnquiryState
+@implements IDisposable
 <style>
     /* ... same styles as before, unchanged ... */
     .chart-container {
@@ -191,316 +192,341 @@
                 </div>
             </div>
 
-            <!-- Stat cards (unchanged) -->
-            <div class="row g-3 mb-3 ">
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white " style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Enquiry</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalEnquiry</div>
+            @if (dashAnimator.IsVisible)
+            {
+                <div class="dash-animated">
+                    <!-- Stat cards (unchanged) -->
+                    <div class="row g-3 mb-3 ">
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.05s">
+                            <div class="stat-card p-3 bg-white " style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Enquiry</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.TotalEnquiry)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.EnquiryPercentage) vs last session</div>
                                     </div>
                                 </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.EnquiryPercentage vs last session</div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.13s">
+                            <div class="stat-card p-3 bg-white ">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon orange"><i class="fas fa-clipboard-list"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Application</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.Application)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.ApplicationPercentage) vs last session</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.21s">
+                            <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Registration</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.Registration)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.RegistrationPercentage) vs last session</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.29s">
+                            <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="state-icon--bxds">
+                                            <div class="stat-icon red"><i class="fas fa-user-graduate"></i></div>
+                                            <div class="flex-grow-1">
+                                                <div class="stat-label text-nowrap text-muted small">Total Admission</div>
+                                                <div class="stat-value fw-bold fs-4">@dashAnimator.Count(admissionDashboardpipeline.TotalAdmission)</div>
+                                            </div>
+                                        </div>
+                                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @dashAnimator.Percent(admissionDashboardpipeline.AdmissionPercentage) vs last session</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white ">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon orange"><i class="fas fa-clipboard-list"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Application</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.Application</div>
-                                    </div>
-                                </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.ApplicationPercentage vs last session</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Registration</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.Registration</div>
-                                    </div>
-                                </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.RegistrationPercentage vs last session</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon red"><i class="fas fa-user-graduate"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap text-muted small">Total Admission</div>
-                                        <div class="stat-value fw-bold fs-4">@admissionDashboardpipeline.TotalAdmission</div>
-                                    </div>
-                                </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @admissionDashboardpipeline.AdmissionPercentage vs last session</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="row g-3 mb-3">
-                <!-- Enquiry Summary Card (unchanged) -->
-                <div class="col-12 col-xl-6">
-                    <div class="dashboard-card">
-                        <h6 class="card-title-custom mb-3">Enquiry Summary</h6>
-                        <div class="row g-3">
-                            <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-green d-flex g-1 align-items-center " style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayEnquiery")'>
-                                    <div class="stat-icon green me-2"><i class="fas fa-user-plus"></i></div>
-                                    <span class="text-muted small d-block">Today Enquiry</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayEnquiry</h5>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-blue d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayFollowup")'>
-                                    <div class="stat-icon blue me-2"><i class="fas fa-headset"></i></div>
-                                    <span class="text-muted small">Today Follow-up</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayFollowup</h5>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-yellow d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayConversion")'>
-                                    <div class="stat-icon orange me-2"><i class="fas fa-exchange-alt"></i></div>
-                                    <span class="text-muted small">Today Conversion</span>
-                                    <h5 class="fw-bold fs-4 mb-0 ms-auto">@EnquirySummary.TodayConversion</h5>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-6">
-                                <div class="mini-stat-card mini-stat-purple d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("BasedOnSource")'>
-                                    <div class="stat-icon purple me-2"><i class="fas fa-chart-pie"></i></div>
-                                    <div class="d-flex flex-column">
-                                        <span class="text-muted small">Based on Source</span>
-                                        <a href="#" class="small text-primary">View Details</a>
+                    <div class="row g-3 mb-3">
+                        <!-- Enquiry Summary Card (unchanged) -->
+                        <div class="col-12 col-xl-6 dash-animate" style="--d:0.37s">
+                            <div class="dashboard-card">
+                                <h6 class="card-title-custom mb-3">Enquiry Summary</h6>
+                                <div class="row g-3">
+                                    <div class="col-6 col-md-6">
+                                        <div class="mini-stat-card mini-stat-green d-flex g-1 align-items-center " style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayEnquiery")'>
+                                            <div class="stat-icon green me-2"><i class="fas fa-user-plus"></i></div>
+                                            <span class="text-muted small d-block">Today Enquiry</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(EnquirySummary.TodayEnquiry)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-6">
+                                        <div class="mini-stat-card mini-stat-blue d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayFollowup")'>
+                                            <div class="stat-icon blue me-2"><i class="fas fa-headset"></i></div>
+                                            <span class="text-muted small">Today Follow-up</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(EnquirySummary.TodayFollowup)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-6">
+                                        <div class="mini-stat-card mini-stat-yellow d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("TodayConversion")'>
+                                            <div class="stat-icon orange me-2"><i class="fas fa-exchange-alt"></i></div>
+                                            <span class="text-muted small">Today Conversion</span>
+                                            <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(EnquirySummary.TodayConversion)</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-6">
+                                        <div class="mini-stat-card mini-stat-purple d-flex align-items-center" style="cursor:pointer;" @onclick='() => GoToEnquiry("BasedOnSource")'>
+                                            <div class="stat-icon purple me-2"><i class="fas fa-chart-pie"></i></div>
+                                            <div class="d-flex flex-column">
+                                                <span class="text-muted small">Based on Source</span>
+                                                <a href="#" class="small text-primary">View Details</a>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Source Report: ApexCharts Donut -->
-                <div class="col-12 col-xl-6">
-                    <div class="dashboard-card">
-                        <h6 class="card-title-custom mb-3">Enquiry Report Based on Source</h6>
-                        <div class="row align-items-center">
-                            <div class="col-12 col-md-6 text-center">
-                                @{
-                                    var visibleSources = sourceReports
-                                        .Where(x => !hiddenSources.Contains(x.SourceName))
-                                        .ToList();
+                        <!-- Source Report: ApexCharts Donut -->
+                        <div class="col-12 col-xl-6 dash-animate" style="--d:0.45s">
+                            <div class="dashboard-card position-relative">
+                                <h6 class="card-title-custom mb-3">Enquiry Report Based on Source</h6>
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-6 text-center">
+                                        @{
+                                            var visibleSources = sourceReports
+                                                .Where(x => !hiddenSources.Contains(x.SourceName))
+                                                .ToList();
 
-                                    var sourceChartKey = string.Join("|",
-                                        visibleSources.Select(x => $"{x.SourceName}:{x.TotalCount}"));
-                                }
-                                <div class="donut-container" @key="sourceChartKey">
-                                    @if (visibleSources.Any())
-                                    {
-                                        var sourceColorOptions = GetDonutOptions<SourceReportModel>(
-                                            visibleSources.Select(x => GetColor(x.SourceName)).ToList());
-
-                                        <ApexChart TItem="SourceReportModel"
-                                                   Options="sourceColorOptions">
-                                            <ApexPointSeries TItem="SourceReportModel"
-                                                             Items="visibleSources"
-                                                             Name="Source"
-                                                             SeriesType="SeriesType.Donut"
-                                                             XValue="x => x.SourceName"
-                                                             YValue="x => (decimal)x.TotalCount" />
-                                        </ApexChart>
-                                    }
-                                </div>
-                                @* <div class="donut-container" @key='$"{sourceReports.Count}-{string.Join(",", hiddenSources)}"'>
-                                    @if (sourceReports.Any())
-                                    {
-                                        var visibleSources = sourceReports.Where(x => !hiddenSources.Contains(x.SourceName)).ToList();
-                                        var sourceColorOptions = GetDonutOptions<SourceReportModel>(visibleSources.Select(x => GetColor(x.SourceName)).ToList());
-                                        <ApexChart TItem="SourceReportModel" Options="sourceColorOptions">
-                                            <ApexPointSeries TItem="SourceReportModel"
-                                                             Items="visibleSources"
-                                                             Name="Source"
-                                                             SeriesType="SeriesType.Donut"
-                                                             XValue="x => x.SourceName"
-                                                             YValue="x => (decimal)x.TotalCount" />
-                                        </ApexChart>
-                                    }
-                                </div> *@
-                            </div>
-                            <div class="col-12 col-md-6 mt-3 mt-md-0">
-                                <table class="table table-borderless custom-table mb-0">
-                                    <tbody>
-                                        @foreach (var item in sourceReports)
-                                        {
-                                            <tr class="source-row @(hiddenSources.Contains(item.SourceName) ? "source-disabled" : "")"
-                                                @onclick="() => ToggleSource(item.SourceName)">
-                                                <td><span class="badge @GetBadgeClass(item) me-2">&nbsp;</span>@item.SourceName</td>
-                                                <td class="fw-bold">@item.TotalCount</td>
-                                                <td class="text-muted">@($"{item.Percentage}%")</td>
-                                            </tr>
+                                            var sourceChartKey = string.Join("|",
+                                                visibleSources.Select(x => $"{x.SourceName}:{x.TotalCount}"));
                                         }
-                                    </tbody>
-                                </table>
+                                        <div class="donut-container" @key="sourceChartKey">
+                                            @if (visibleSources.Any())
+                                            {
+                                                var sourceColorOptions = GetDonutOptions<SourceReportModel>(
+                                                    visibleSources.Select(x => GetColor(x.SourceName)).ToList());
+
+                                                <ApexChart TItem="SourceReportModel"
+                                                           Options="sourceColorOptions"
+                                                           OnMounted="() => OnSourceChartMounted(sourceChartKey)">
+                                                    <ApexPointSeries TItem="SourceReportModel"
+                                                                     Items="visibleSources"
+                                                                     Name="Source"
+                                                                     SeriesType="SeriesType.Donut"
+                                                                     XValue="x => x.SourceName"
+                                                                     YValue="x => (decimal)x.TotalCount" />
+                                                </ApexChart>
+                                            }
+                                        </div>
+                                        @* <div class="donut-container" @key='$"{sourceReports.Count}-{string.Join(",", hiddenSources)}"'>
+                                            @if (sourceReports.Any())
+                                            {
+                                                var visibleSources = sourceReports.Where(x => !hiddenSources.Contains(x.SourceName)).ToList();
+                                                var sourceColorOptions = GetDonutOptions<SourceReportModel>(visibleSources.Select(x => GetColor(x.SourceName)).ToList());
+                                                <ApexChart TItem="SourceReportModel" Options="sourceColorOptions">
+                                                    <ApexPointSeries TItem="SourceReportModel"
+                                                                     Items="visibleSources"
+                                                                     Name="Source"
+                                                                     SeriesType="SeriesType.Donut"
+                                                                     XValue="x => x.SourceName"
+                                                                     YValue="x => (decimal)x.TotalCount" />
+                                                </ApexChart>
+                                            }
+                                        </div> *@
+                                    </div>
+                                    <div class="col-12 col-md-6 mt-3 mt-md-0">
+                                        <table class="table table-borderless custom-table mb-0">
+                                            <tbody>
+                                                @foreach (var item in sourceReports)
+                                                {
+                                                    <tr class="source-row @(hiddenSources.Contains(item.SourceName) ? "source-disabled" : "")"
+                                                        @onclick="() => ToggleSource(item.SourceName)">
+                                                        <td><span class="badge @GetBadgeClass(item) me-2">&nbsp;</span>@item.SourceName</td>
+                                                        <td class="fw-bold">@dashAnimator.Count(item.TotalCount)</td>
+                                                        <td class="text-muted">@dashAnimator.Percent($"{item.Percentage}%")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                @if (visibleSources.Any() && mountedSourceChartKey != sourceChartKey)
+                                {
+                                    <ChartCardLoader />
+                                }
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Session/Class/Month comparison + Follow-up pipeline -->
-            <div class="row g-3">
-                <div class="col-12 col-xl-6">
-                    <div class="dashboard-card">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="card-title-custom mb-0">Session Comparison Report (Year On Year)</h6>
-                            <InputSelect class="form-input form-select-sm w-auto" @bind-Value="selectedChartType">
-                                <option value="bar">Bar Chart</option>
-                                <option value="line">Line Chart</option>
-                            </InputSelect>
-                        </div>
-                        <div class="btn-group btn-group-sm gap-2 mb-3">
-                            <button type="button" class="btn @(selectedReport == "Sessionwise" ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick='() => selectedReport = "Sessionwise"'>
-                                Sessionwise
-                            </button>
-                            <i class="fas fa-arrow-right text-muted align-self-center"></i>
-                            <button type="button" class="btn @(selectedReport == "Classwise" ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick='() => selectedReport = "Classwise"'>
-                                Classwise
-                            </button>
-                            <i class="fas fa-arrow-right text-muted align-self-center"></i>
-                            <button type="button" class="btn @(selectedReport == "Monthwise" ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick='() => selectedReport = "Monthwise"'>
-                                Monthwise
-                            </button>
-                        </div>
+                    <!-- Session/Class/Month comparison + Follow-up pipeline -->
+                    <div class="row g-3">
+                        <div class="col-12 col-xl-6 dash-animate" style="--d:0.53s">
+                            <div class="dashboard-card">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title-custom mb-0">Session Comparison Report (Year On Year)</h6>
+                                    <InputSelect class="form-input form-select-sm w-auto" @bind-Value="selectedChartType">
+                                        <option value="bar">Bar Chart</option>
+                                        <option value="line">Line Chart</option>
+                                    </InputSelect>
+                                </div>
+                                <div class="btn-group btn-group-sm gap-2 mb-3">
+                                    <button type="button" class="btn @(selectedReport == "Sessionwise" ? "btn-primary" : "btn-outline-primary")"
+                                            @onclick='() => selectedReport = "Sessionwise"'>
+                                        Sessionwise
+                                    </button>
+                                    <i class="fas fa-arrow-right text-muted align-self-center"></i>
+                                    <button type="button" class="btn @(selectedReport == "Classwise" ? "btn-primary" : "btn-outline-primary")"
+                                            @onclick='() => selectedReport = "Classwise"'>
+                                        Classwise
+                                    </button>
+                                    <i class="fas fa-arrow-right text-muted align-self-center"></i>
+                                    <button type="button" class="btn @(selectedReport == "Monthwise" ? "btn-primary" : "btn-outline-primary")"
+                                            @onclick='() => selectedReport = "Monthwise"'>
+                                        Monthwise
+                                    </button>
+                                </div>
 
-                        <div class="chart-container" @key='$"{selectedReport}-{selectedChartType}-{sessionComparison.Count}-{classWise.Count}-{monthWise.Count}"'>
-                            @{
-                                var seriesType = selectedChartType == "line" ? SeriesType.Line : SeriesType.Bar;
-                            }
-                            @if (selectedReport == "Sessionwise")
-                            {
-                                var data = sessionComparison.TakeLast(5).ToList();
-                                <ApexChart TItem="SessionComparisonModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<SessionComparisonModel>()">
-                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Enquiry" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalEnquiry" />
-                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Application" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalApplication" />
-                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Registration" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalRegistration" />
-                                    <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Admission" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalAdmission" />
-                                </ApexChart>
-                            }
-                            else if (selectedReport == "Classwise")
-                            {
-                                <ApexChart TItem="ClassWiseModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<ClassWiseModel>()">
-                                    <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Enquiry" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.TotalEnquiry" />
-                                    <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Registration" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.Registration" />
-                                    <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Admission" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.TotalAdmission" />
-                                </ApexChart>
-                            }
-                            else
-                            {
-                                <ApexChart TItem="MonthWiseModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<MonthWiseModel>()">
-                                    <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Enquiry" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.TotalEnquiry" />
-                                    <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Registration" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.Registration" />
-                                    <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Pending Registration" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.PendingRegistration" />
-                                </ApexChart>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Follow-up Pipeline Donut -->
-                <div class="col-12 col-xl-6">
-                    <div class="dashboard-card">
-                        <h6 class="card-title-custom mb-3">Follow-up Report Dashboard</h6>
-                        <div class="row align-items-center">
-                            <div class="col-12 col-md-6 d-flex align-items-center justify-content-center">
                                 @{
-                                    var visiblePipeline = pipeline
-                                        .Where(x => !hiddenStages.Contains(x.Stage))
-                                        .ToList();
-
-                                    var pipelineChartKey = string.Join("|",
-                                        visiblePipeline.Select(x => $"{x.Stage}:{x.TotalCount}"));
+                                    var comparisonChartKey = $"{selectedReport}-{selectedChartType}-{sessionComparison.Count}-{classWise.Count}-{monthWise.Count}";
                                 }
-
-                                <div class="donut-container" @key="pipelineChartKey">
-                                    @if (visiblePipeline.Any())
+                                <div class="chart-container" @key="comparisonChartKey">
+                                    @{
+                                        var seriesType = selectedChartType == "line" ? SeriesType.Line : SeriesType.Bar;
+                                    }
+                                    @if (selectedReport == "Sessionwise")
                                     {
-                                        var pipelineColorOptions = GetDonutOptions<PipelineModel>(
-                                            visiblePipeline.Select(x => GetColor(x.Stage)).ToList());
-
-                                        <ApexChart TItem="PipelineModel" Options="pipelineColorOptions">
-                                            <ApexPointSeries TItem="PipelineModel"
-                                                             Items="visiblePipeline"
-                                                             Name="Pipeline"
-                                                             SeriesType="SeriesType.Donut"
-                                                             XValue="x => x.Stage"
-                                                             YValue="x => (decimal)x.TotalCount" />
+                                        var data = sessionComparison.TakeLast(5).ToList();
+                                        <ApexChart TItem="SessionComparisonModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<SessionComparisonModel>()"
+                                                   OnMounted="() => OnComparisonChartMounted(comparisonChartKey)">
+                                            <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Enquiry" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalEnquiry" />
+                                            <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Application" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalApplication" />
+                                            <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Registration" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalRegistration" />
+                                            <ApexPointSeries TItem="SessionComparisonModel" Items="data" Name="Admission" SeriesType="seriesType" XValue="x => x.SessionName" YValue="x => (decimal)x.TotalAdmission" />
                                         </ApexChart>
+                                    }
+                                    else if (selectedReport == "Classwise")
+                                    {
+                                        <ApexChart TItem="ClassWiseModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<ClassWiseModel>()"
+                                                   OnMounted="() => OnComparisonChartMounted(comparisonChartKey)">
+                                            <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Enquiry" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.TotalEnquiry" />
+                                            <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Registration" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.Registration" />
+                                            <ApexPointSeries TItem="ClassWiseModel" Items="classWise" Name="Admission" SeriesType="seriesType" XValue="x => x.ClassCode" YValue="x => (decimal)x.TotalAdmission" />
+                                        </ApexChart>
+                                    }
+                                    else
+                                    {
+                                        <ApexChart TItem="MonthWiseModel" XAxisType="ApexCharts.XAxisType.Category" Options="GetMainChartOptions<MonthWiseModel>()"
+                                                   OnMounted="() => OnComparisonChartMounted(comparisonChartKey)">
+                                            <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Enquiry" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.TotalEnquiry" />
+                                            <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Registration" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.Registration" />
+                                            <ApexPointSeries TItem="MonthWiseModel" Items="monthWise" Name="Pending Registration" SeriesType="seriesType" XValue="x => x.MonthName" YValue="x => (decimal)x.PendingRegistration" />
+                                        </ApexChart>
+                                    }
+                                    @if (mountedComparisonChartKey != comparisonChartKey)
+                                    {
+                                        <ChartCardLoader />
                                     }
                                 </div>
-                                @* <div class="donut-container" @key='$"{pipeline.Count}-{string.Join(",", hiddenStages)}"'>
-                                    @if (pipeline.Any())
-                                    {
-                                        var visiblePipeline = pipeline.Where(x => !hiddenStages.Contains(x.Stage)).ToList();
-                                        var pipelineColorOptions = GetDonutOptions<PipelineModel>(visiblePipeline.Select(x => GetColor(x.Stage)).ToList());
-                                        <ApexChart TItem="PipelineModel" Options="pipelineColorOptions">
-                                            <ApexPointSeries TItem="PipelineModel"
-                                                             Items="visiblePipeline"
-                                                             Name="Pipeline"
-                                                             SeriesType="SeriesType.Donut"
-                                                             XValue="x => x.Stage"
-                                                             YValue="x => (decimal)x.TotalCount" />
-                                        </ApexChart>
-                                    }
-                                </div> *@
-                            </div>
-                            <div class="col-12 col-md-6 mt-3 mt-md-0">
-                                <table class="table table-borderless custom-table mb-0">
-                                    <tbody>
-                                        @foreach (var item in pipeline)
-                                        {
-                                            <tr class="pipeline-row @(hiddenStages.Contains(item.Stage) ? "source-disabled" : "")"
-                                                @onclick="() => TogglePipeline(item.Stage)">
-                                                <td><span class="badge @GetstageClass(item) me-2">&nbsp;</span>@item.Stage &nbsp; (@item.TotalCount)</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
-                        <div class="mt-4 pt-2 border-top d-flex justify-content-around text-center small">
-                            <div><span class="fw-bold d-block">Enquiry</span><strong class="text-primary">@admissionDashboardpipeline.TotalEnquiry</strong></div>
-                            <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
-                            <div><span class="fw-bold d-block">Application</span><strong class="text-success">@admissionDashboardpipeline.Application</strong></div>
-                            <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
-                            <div><span class="fw-bold d-block">Registration</span><strong class="text-warning">@admissionDashboardpipeline.Registration</strong></div>
-                            <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
-                            <div><span class="fw-bold d-block">Admission</span><strong class="text-purple">@admissionDashboardpipeline.TotalAdmission</strong></div>
+
+                        <!-- Follow-up Pipeline Donut -->
+                        <div class="col-12 col-xl-6 dash-animate" style="--d:0.61s">
+                            <div class="dashboard-card position-relative">
+                                <h6 class="card-title-custom mb-3">Follow-up Report Dashboard</h6>
+                                <div class="row align-items-center">
+                                    <div class="col-12 col-md-6 d-flex align-items-center justify-content-center">
+                                        @{
+                                            var visiblePipeline = pipeline
+                                                .Where(x => !hiddenStages.Contains(x.Stage))
+                                                .ToList();
+
+                                            var pipelineChartKey = string.Join("|",
+                                                visiblePipeline.Select(x => $"{x.Stage}:{x.TotalCount}"));
+                                        }
+
+                                        <div class="donut-container" @key="pipelineChartKey">
+                                            @if (visiblePipeline.Any())
+                                            {
+                                                var pipelineColorOptions = GetDonutOptions<PipelineModel>(
+                                                    visiblePipeline.Select(x => GetColor(x.Stage)).ToList());
+
+                                                <ApexChart TItem="PipelineModel" Options="pipelineColorOptions"
+                                                           OnMounted="() => OnPipelineChartMounted(pipelineChartKey)">
+                                                    <ApexPointSeries TItem="PipelineModel"
+                                                                     Items="visiblePipeline"
+                                                                     Name="Pipeline"
+                                                                     SeriesType="SeriesType.Donut"
+                                                                     XValue="x => x.Stage"
+                                                                     YValue="x => (decimal)x.TotalCount" />
+                                                </ApexChart>
+                                            }
+                                        </div>
+                                        @* <div class="donut-container" @key='$"{pipeline.Count}-{string.Join(",", hiddenStages)}"'>
+                                            @if (pipeline.Any())
+                                            {
+                                                var visiblePipeline = pipeline.Where(x => !hiddenStages.Contains(x.Stage)).ToList();
+                                                var pipelineColorOptions = GetDonutOptions<PipelineModel>(visiblePipeline.Select(x => GetColor(x.Stage)).ToList());
+                                                <ApexChart TItem="PipelineModel" Options="pipelineColorOptions">
+                                                    <ApexPointSeries TItem="PipelineModel"
+                                                                     Items="visiblePipeline"
+                                                                     Name="Pipeline"
+                                                                     SeriesType="SeriesType.Donut"
+                                                                     XValue="x => x.Stage"
+                                                                     YValue="x => (decimal)x.TotalCount" />
+                                                </ApexChart>
+                                            }
+                                        </div> *@
+                                    </div>
+                                    <div class="col-12 col-md-6 mt-3 mt-md-0">
+                                        <table class="table table-borderless custom-table mb-0">
+                                            <tbody>
+                                                @foreach (var item in pipeline)
+                                                {
+                                                    <tr class="pipeline-row @(hiddenStages.Contains(item.Stage) ? "source-disabled" : "")"
+                                                        @onclick="() => TogglePipeline(item.Stage)">
+                                                        <td><span class="badge @GetstageClass(item) me-2">&nbsp;</span>@item.Stage &nbsp; (@dashAnimator.Count(item.TotalCount))</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-2 border-top d-flex justify-content-around text-center small">
+                                    <div><span class="fw-bold d-block">Enquiry</span><strong class="text-primary">@dashAnimator.Count(admissionDashboardpipeline.TotalEnquiry)</strong></div>
+                                    <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
+                                    <div><span class="fw-bold d-block">Application</span><strong class="text-success">@dashAnimator.Count(admissionDashboardpipeline.Application)</strong></div>
+                                    <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
+                                    <div><span class="fw-bold d-block">Registration</span><strong class="text-warning">@dashAnimator.Count(admissionDashboardpipeline.Registration)</strong></div>
+                                    <div class="align-self-center"><i class="fas fa-arrow-right text-muted"></i></div>
+                                    <div><span class="fw-bold d-block">Admission</span><strong class="text-purple">@dashAnimator.Count(admissionDashboardpipeline.TotalAdmission)</strong></div>
+                                </div>
+                                @if (visiblePipeline.Any() && mountedPipelineChartKey != pipelineChartKey)
+                                {
+                                    <ChartCardLoader />
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </section>
@@ -605,7 +631,22 @@
     private string selectedChartType = "bar";
     private string selectedReport = "Sessionwise";
     private bool ShowPopup = false;
-    private bool IsLoading = false;
+    // Loader is visible from the first render until the dashboard data (and menu/session values) are ready
+    private bool IsLoading = true;
+    private const int FirstLoadMinLoaderMs = 900;
+    // Cards entrance + number count-up animation (shared with other dashboards)
+    private readonly DashboardCountAnimator dashAnimator = new();
+    public void Dispose() => dashAnimator.Dispose();
+    // Chart key that has finished drawing; while it differs from the current key the card shows its own loader
+    private string? mountedSourceChartKey;
+    private string? mountedPipelineChartKey;
+    private string? mountedComparisonChartKey;
+
+    private void OnSourceChartMounted(string chartKey) => mountedSourceChartKey = chartKey;
+
+    private void OnPipelineChartMounted(string chartKey) => mountedPipelineChartKey = chartKey;
+
+    private void OnComparisonChartMounted(string chartKey) => mountedComparisonChartKey = chartKey;
     private long CurrentSession;
     private string DashboardName = "";
     private string branchcode = "";
@@ -733,10 +774,12 @@
     {
         if (firstRender)
         {
+            // Keep the loader up for a minimum time after login so the menu settles before the cards animate in
+            var minLoaderTask = Task.Delay(FirstLoadMinLoaderMs);
             CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
+            await minLoaderTask;
             await LoadDashboard();
-            StateHasChanged();
         }
     }
 
@@ -795,6 +838,12 @@
         try
         {
             IsLoading = true;
+            dashAnimator.Hide();
+            // Charts are re-created after every load, so their card loaders must show again
+            mountedSourceChartKey = null;
+            mountedPipelineChartKey = null;
+            mountedComparisonChartKey = null;
+            StateHasChanged();
             searchAnyRequest.GroupCode = groupcode;
             searchAnyRequest.BranchCode = branchcode;
             searchAnyRequest.SessionId = CurrentSession;
@@ -825,6 +874,7 @@
             IsLoading = false;
             StateHasChanged();
         }
+        await dashAnimator.PlayAsync(() => InvokeAsync(StateHasChanged));
     }
 
     // ===================== Toggle handlers (pure C#, no JS) =====================

@@ -16,6 +16,8 @@
 @inject IStringLocalizer<Resource> Localizer
 @inject SweetAlertService Alert
 @inject IWebHostEnvironment env
+@inject PermissionState PermissionState
+@implements IDisposable
 @rendermode InteractiveServer
 
 @if (IsVisible)
@@ -609,13 +611,28 @@
 
                                                         <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => childDisEnableform(true)" />
                                                     }
-                                                    <button type="submit" class="ui animated button form-btn nextBtn"
-                                                            tabindex="0">
-                                                        <div class="visible content">@buttontitle</div>
-                                                        <div class="hidden content">
-                                                            <i class="bi bi-arrow-right"></i>
-                                                        </div>
-                                                    </button>
+                                                    @if (CanModify)
+                                                    {
+                                                        @* Modify right: Continue / Submit saves the tab (POST) and moves next *@
+                                                        <button type="submit" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0">
+                                                            <div class="visible content">@buttontitle</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
+                                                    else if (CurrentTabIndex < Tabs.Count - 1)
+                                                    {
+                                                        @* No modify right: read-only Next, only loads the next tab (GET), never posts *@
+                                                        <button type="button" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0" @onclick="GoToNextTab">
+                                                            <div class="visible content">Next</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
 
                                                 </div>
                                             </div>
@@ -1030,13 +1047,28 @@
 
 
                                                     }
-                                                    <button type="submit" class="ui animated button form-btn nextBtn"
-                                                            tabindex="0">
-                                                        <div class="visible content">@buttontitle</div>
-                                                        <div class="hidden content">
-                                                            <i class="bi bi-arrow-right"></i>
-                                                        </div>
-                                                    </button>
+                                                    @if (CanModify)
+                                                    {
+                                                        @* Modify right: Continue / Submit saves the tab (POST) and moves next *@
+                                                        <button type="submit" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0">
+                                                            <div class="visible content">@buttontitle</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
+                                                    else if (CurrentTabIndex < Tabs.Count - 1)
+                                                    {
+                                                        @* No modify right: read-only Next, only loads the next tab (GET), never posts *@
+                                                        <button type="button" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0" @onclick="GoToNextTab">
+                                                            <div class="visible content">Next</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
                                                 </div>
                                             </div>
                                         </div>
@@ -1290,13 +1322,28 @@
 
 
                                                     }
-                                                    <button type="submit" class="ui animated button form-btn nextBtn"
-                                                            tabindex="0">
-                                                        <div class="visible content">@buttontitle</div>
-                                                        <div class="hidden content">
-                                                            <i class="bi bi-arrow-right"></i>
-                                                        </div>
-                                                    </button>
+                                                    @if (CanModify)
+                                                    {
+                                                        @* Modify right: Continue / Submit saves the tab (POST) and moves next *@
+                                                        <button type="submit" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0">
+                                                            <div class="visible content">@buttontitle</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
+                                                    else if (CurrentTabIndex < Tabs.Count - 1)
+                                                    {
+                                                        @* No modify right: read-only Next, only loads the next tab (GET), never posts *@
+                                                        <button type="button" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0" @onclick="GoToNextTab">
+                                                            <div class="visible content">Next</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
                                                 </div>
                                             </div>
                                         </div>
@@ -1459,13 +1506,28 @@
                                                     {
                                                         <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => SiblingDisEnableform(true)" />
                                                     }
-                                                    <button type="submit" class="ui animated button form-btn nextBtn"
-                                                            tabindex="0">
-                                                        <div class="visible content">@buttontitle</div>
-                                                        <div class="hidden content">
-                                                            <i class="bi bi-arrow-right"></i>
-                                                        </div>
-                                                    </button>
+                                                    @if (CanModify)
+                                                    {
+                                                        @* Modify right: Continue / Submit saves the tab (POST) and moves next *@
+                                                        <button type="submit" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0">
+                                                            <div class="visible content">@buttontitle</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
+                                                    else if (CurrentTabIndex < Tabs.Count - 1)
+                                                    {
+                                                        @* No modify right: read-only Next, only loads the next tab (GET), never posts *@
+                                                        <button type="button" class="ui animated button form-btn nextBtn"
+                                                                tabindex="0" @onclick="GoToNextTab">
+                                                            <div class="visible content">Next</div>
+                                                            <div class="hidden content">
+                                                                <i class="bi bi-arrow-right"></i>
+                                                            </div>
+                                                        </button>
+                                                    }
 
                                                 </div>
                                             </div>
@@ -1694,13 +1756,28 @@
 
                                         <SaveUpdateButton ShowSaveButton="false" OnClickCancel="() => OtherDisEnableform(true)" />
                                     }
-                                    <button type="submit" class="ui animated button form-btn nextBtn"
-                                            tabindex="0">
-                                        <div class="visible content">@buttontitle</div>
-                                        <div class="hidden content">
-                                            <i class="bi bi-arrow-right"></i>
-                                        </div>
-                                    </button>
+                                    @if (CanModify)
+                                    {
+                                        @* Modify right: Continue / Submit saves the tab (POST) and moves next *@
+                                        <button type="submit" class="ui animated button form-btn nextBtn"
+                                                tabindex="0">
+                                            <div class="visible content">@buttontitle</div>
+                                            <div class="hidden content">
+                                                <i class="bi bi-arrow-right"></i>
+                                            </div>
+                                        </button>
+                                    }
+                                    else if (CurrentTabIndex < Tabs.Count - 1)
+                                    {
+                                        @* No modify right: read-only Next, only loads the next tab (GET), never posts *@
+                                        <button type="button" class="ui animated button form-btn nextBtn"
+                                                tabindex="0" @onclick="GoToNextTab">
+                                            <div class="visible content">Next</div>
+                                            <div class="hidden content">
+                                                <i class="bi bi-arrow-right"></i>
+                                            </div>
+                                        </button>
+                                    }
 
                                 </div>
                             </div>
@@ -1955,6 +2032,25 @@
     {
         _originalSnapshot = CreateSnapshot(viewchildDetails);
         UrlData = CurrectUrl;
+        PermissionState.OnChange += OnPermissionChanged;
+    }
+
+    // Same right as the Edit button (AdmitChildButton): only these users can edit and Continue/Submit (save).
+    // Others get a read-only Next / Back that only loads tab data.
+    private bool CanModify => PermissionState.HasPermission(UrlData, x => x.IsModifiy);
+
+    private void OnPermissionChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => PermissionState.OnChange -= OnPermissionChanged;
+
+    // Read-only Next: move to the next tab and load its data (GET only, no save, no tab status change)
+    private async Task GoToNextTab()
+    {
+        if (CurrentTabIndex >= Tabs.Count - 1)
+            return;
+
+        CurrentTabIndex++;
+        await TabnextPreviuos();
     }
     private bool IsEdited(object obj, string datamatch)
     {
@@ -2056,7 +2152,8 @@
                 return;
 
             // leaving a tab whose required details were not saved -> show it as incomplete
-            if (!CompletedTabs.Contains(ActiveTab))
+            // (read-only users only view, so their tabs are never marked incomplete)
+            if (CanModify && !CompletedTabs.Contains(ActiveTab))
                 IncompleteTabs.Add(ActiveTab);
 
             CurrentTabIndex = index;
@@ -2285,6 +2382,9 @@
     }
     private async Task Childsdetails()
     {
+        // no modify right -> never save
+        if (!CanModify)
+            return;
         try
         {
             if (StudentSelectedFile != null)
@@ -2342,6 +2442,9 @@
     }
     private async Task ParentsDetails()
     {
+        // no modify right -> never save
+        if (!CanModify)
+            return;
         try
         {
             if (FatherSelectedFile != null)
@@ -2454,6 +2557,9 @@
     }
     private async Task Addressdetails()
     {
+        // no modify right -> never save
+        if (!CanModify)
+            return;
         try
         {
             // permanent address is not the form model, so the form submit does not check its contact no.
@@ -2615,6 +2721,9 @@
     }
     private async Task OtherDetails()
     {
+        // no modify right -> never save
+        if (!CanModify)
+            return;
         try
         {
             if (!IsForeign)

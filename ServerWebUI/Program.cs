@@ -208,6 +208,7 @@ try
     builder.Services.AddScoped<BookmarkState>();
     builder.Services.AddScoped<CommonMethod>();
     builder.Services.AddScoped<MenuState>();
+    builder.Services.AddScoped<PageLoadingState>();
     builder.Services.AddSingleton<SecureUrlService>();
     builder.Services.AddScoped(sp =>
     {

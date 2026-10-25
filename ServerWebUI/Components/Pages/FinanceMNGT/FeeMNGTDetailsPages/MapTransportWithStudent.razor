@@ -91,6 +91,12 @@
             color: #9ca3af;
         }
 
+    /* space for the in-card loader while months load */
+    .period-list-loading {
+        position: relative;
+        min-height: 150px;
+    }
+
     @@media (max-width: 992px) {
         .period-list {
             grid-template-columns: repeat(2, 1fr);
@@ -321,20 +327,30 @@
                                                         <label for="" class="form-label mb-0">Transport Months</label>
                                                         <div class="d-flex align-items-center gap-2">
                                                             <label for="" class="form-label mb-0">Check All</label>
-                                                            <input type="checkbox" checked="@IsAllMonthSelected" @onchange="SelectAllMonths" />
+                                                            <input type="checkbox" checked="@IsAllMonthSelected" @onchange="SelectAllMonths" disabled="@IsMonthsLoading" />
                                                         </div>
                                                     </div>
-                                                    <section class="module-section">
+                                                    <section class="module-section position-relative">
                                                         <div class="module-section-head"><h3>Applicable periods</h3><span>Select fee months</span></div>
-                                                        <div class="period-list">
-                                                            @foreach (var m in MonthList)
-                                                            {
-                                                                <label class="period-option">
-                                                                    <input class="check-cell" type="checkbox"   @bind="m.IsSelected" />
-                                                                    <span><strong>@m.MonthName</strong><small>Monthly</small></span>
-                                                                </label>
-                                                            }
-                                                        </div>
+                                                        @if (IsMonthsLoading)
+                                                        {
+                                                            @* Months are shown only after they are loaded and ordered by session *@
+                                                            <div class="period-list-loading">
+                                                                <ChartCardLoader Text="Loading months" />
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="period-list">
+                                                                @foreach (var m in MonthList)
+                                                                {
+                                                                    <label class="period-option">
+                                                                        <input class="check-cell" type="checkbox"   @bind="m.IsSelected" />
+                                                                        <span><strong>@m.MonthName</strong><small>Monthly</small></span>
+                                                                    </label>
+                                                                }
+                                                            </div>
+                                                        }
                                                     </section>
                                                     @* <div class="table-card m-0 p-0 scrollbar-thin overflow-auto rounded border">
                                                         <table class="basic-table border-collapse-separate" style="min-width: 500px;">
@@ -534,6 +550,8 @@
     private bool IsAllMonthSelected;
     private bool OpenMappedTransportHistory;
     private List<MonthModel> MonthList = new();
+    // Applicable periods card shows its loader until months are loaded and ordered
+    private bool IsMonthsLoading = true;
     private async Task OnSessionChanged()
     {
 
@@ -677,9 +695,17 @@
     {
         if (SetStudentMapTransportList.Count != 0)
         {
-            await LoadData();
-            await SetAllRecordStudent();
-
+            IsMonthsLoading = true;
+            try
+            {
+                await LoadData();
+                await SetAllRecordStudent();
+            }
+            finally
+            {
+                // Always show the months (even if an API fails) so the card never stays stuck on loading
+                IsMonthsLoading = false;
+            }
         }
 
     }
