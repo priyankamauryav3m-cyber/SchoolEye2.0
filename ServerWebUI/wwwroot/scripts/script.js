@@ -332,3 +332,67 @@ window.initCalendar = () => {
 
     renderCalendar();
 };
+
+// Popup dropdowns (opt-in with class "dd-float" on the .dropdown-menu):
+// inside a .custom-modal the menu is clipped by the popup and makes the popup
+// scroll, so float it with position:fixed right under its toggle button.
+// The toggle must use data-bs-display="static" so Popper does not reposition it.
+(function () {
+    function floatMenu(toggle, menu) {
+        // a transformed ancestor (popupSlide animation) would trap position:fixed
+        let el = menu.parentElement;
+        while (el && el !== document.body) {
+            const cs = getComputedStyle(el);
+            if (cs.transform !== "none" || cs.filter !== "none") {
+                el.style.animation = "none";
+                el.style.transform = "none";
+                el.style.filter = "none";
+            }
+            el = el.parentElement;
+        }
+
+        const r = toggle.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - r.bottom - 10;
+        const spaceAbove = r.top - 10;
+        const openUp = spaceBelow < 200 && spaceAbove > spaceBelow;
+        const maxH = Math.min(350, openUp ? spaceAbove : spaceBelow);
+
+        const set = (p, v) => menu.style.setProperty(p, v, "important");
+        set("position", "fixed");
+        set("transform", "none");
+        set("left", r.left + "px");
+        set("right", "auto");
+        set("min-width", r.width + "px");
+        set("max-height", maxH + "px");
+        set("z-index", "1000000000");
+        if (openUp) {
+            set("top", "auto");
+            set("bottom", (window.innerHeight - r.top + 2) + "px");
+        } else {
+            set("top", (r.bottom + 2) + "px");
+            set("bottom", "auto");
+        }
+    }
+
+    function hideFloating() {
+        document.querySelectorAll(".dropdown-menu.dd-float.show").forEach(function (menu) {
+            const toggle = menu.parentElement.querySelector('[data-bs-toggle="dropdown"]');
+            if (toggle && window.bootstrap) {
+                bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+            }
+        });
+    }
+
+    document.addEventListener("shown.bs.dropdown", function (e) {
+        const toggle = e.target;
+        const menu = toggle.parentElement && toggle.parentElement.querySelector(".dropdown-menu.dd-float");
+        if (menu) floatMenu(toggle, menu);
+    });
+
+    // a fixed menu would drift away from its button, so close it instead
+    window.addEventListener("resize", hideFloating);
+    document.addEventListener("scroll", function (e) {
+        if (e.target instanceof Element && e.target.closest(".dropdown-menu.dd-float")) return;
+        hideFloating();
+    }, true);
+})();
