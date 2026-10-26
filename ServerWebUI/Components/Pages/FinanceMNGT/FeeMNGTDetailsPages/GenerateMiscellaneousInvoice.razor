@@ -1,0 +1,1054 @@
+@page "/miscellaneousinvoice"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using System.ComponentModel.DataAnnotations
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<style>
+    .misc-fee-footer {
+        border-top: 1px solid #ddd;
+        padding: 8px;
+    }
+
+    .misc-total {
+        white-space: nowrap;
+        font-weight: 600;
+        color: #082f6b;
+    }
+
+    .misc-narration {
+        flex: 1;
+    }
+
+    .misc-narration .floating-input.is-required-empty {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+
+    .misc-student-no {
+        height: 80px;
+        resize: none;
+    }
+
+    .misc-popup-grid {
+        height: 50vh;
+        min-height: 200px;
+        margin-bottom: 0;
+    }
+
+    .misc-hint {
+        font-size: 12px;
+        color: #6b7280;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Generate Miscellaneous Invoice">
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="searchModel.ClassCode" class="form-input" @bind-Value:after="OnClassChanged">
+                        <option value="">-- Select Class --</option>
+                        @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@cs.ClassCode">@cs.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="searchModel.SectionCode" class="form-input">
+                        <option value="">-- Select Section --</option>
+                        @foreach (var sec in sectionlist)
+                        {
+                            <option value="@sec.SectionId">@sec.SectionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-6 p-1">
+
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Student No." Class="text-center" Align="Align.Center" Sortable="true" SortBy="GridSort<MiscellaneousResponse>.ByAscending(x => x.ControlNo)">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student No...." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ControlNo) ? " " : context.ControlNo)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Student Name" Align="Align.Left" Sortable="true" SortBy="GridSort<MiscellaneousResponse>.ByAscending(x => x.StudentName)">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student Name...." />
+                                        </div>
+                                    </ColumnOptions>
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Class" Class="text-center" Align="Align.Center" Sortable="true" SortBy="GridSort<MiscellaneousResponse>.ByAscending(x => x.ClassSection)">
+                                    <ChildContent>
+                                        @(string.IsNullOrWhiteSpace(context.ClassSection) ? " " : context.ClassSection)
+                                    </ChildContent>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@feeHeadQuery" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" checked="@(feeHeadlist.Count > 0)" disabled />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" checked disabled />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Fee Head Name" Align="Align.Left">
+                                    @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                </TemplateColumn>
+                                <TemplateColumn Title="Amount" Class="text-right" Align="Align.Right">
+                                    ₹ @((context.Amount ?? 0).ToString("N2"))
+                                </TemplateColumn>
+                                <TemplateColumn Title="Action" Align="Align.Center">
+                                    <div class="action-btn-group">
+                                        <button type="button" class="btn-icon inactive-btn custom-tooltip" data-tooltip="Remove" @onclick="() => RemoveFeeHead(context)" @onclick:stopPropagation="true">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="misc-fee-footer">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="form-box-group misc-narration mb-0">
+                                    <input class="floating-input @(narrationTouched && string.IsNullOrWhiteSpace(Narration) ? "is-required-empty" : "")"
+                                           placeholder=" " maxlength="200" autocomplete="off"
+                                           @bind="Narration" @bind:event="oninput" />
+                                    <label class="floating-label">Narration <span class="required">*</span></label>
+                                </div>
+                                <div class="misc-total">Total Amount : ₹ @TotalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="GenerateDues">Generate Dues</button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="OpenAddFeeHead">Add Fee Head</button>
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="GenerateChallan">Generate Challan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------------- Search popup ---------------- *@
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group">
+                                <InputText class="floating-input" placeholder=" " @bind-Value="searchModel.StudentName" autocomplete="off" />
+                                <label class="floating-label">First Name</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.IsValid">
+                                    <option value="-1">All</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Deactive</option>
+                                </InputSelect>
+                                <label class="floating-label">Status</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="ChallanDate" />
+                                <label class="floating-label">Challan Date</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-box-group static-label">
+                                <InputTextArea class="floating-input misc-student-no" placeholder=" " @bind-Value="searchModel.ControlNo" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                            <span class="misc-hint">Multiple student numbers can be searched, separated by comma (e.g. 0174, 0179, 0195).</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ---------------- Add Fee Head popup (session fee heads) ---------------- *@
+@if (ShowAddFeeHeadPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-8 col-md-7 col-lg-6 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Add Fee Head</h5>
+                    <button data-access="Close" type="button" @onclick="CloseAddFeeHead" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@sessionFeeHeadQuery" Pagination="@feeHeadPagination" Class="table">
+                                        <TemplateColumn Title="" Align="Align.Center">
+                                            <HeaderTemplate>
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <input type="checkbox" @bind="IsAllFeeHeadSelected" @bind:after="ToggleAllFeeHead" @onclick:stopPropagation="true" />
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ChildContent>
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" disabled="@context.IsAdded" />
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Fee Head Name" Align="Align.Left">
+                                            @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Fee Head Type" Align="Align.Left">
+                                            @(string.IsNullOrWhiteSpace(context.FeeHeadType) ? " " : context.FeeHeadType)
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="text-center" Align="Align.Center">
+                                            <input type="number" class="form-input text-end" min="0" max="@MaxFeeHeadAmount" step="0.01"
+                                                   value="@((context.Amount ?? 0).ToString("0.00"))" @onchange="e => SetFeeHeadAmount(context, e)" disabled="@context.IsAdded" />
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination">
+                                    <div class="d-flex align-items-center">
+                                        <div class="welcome-text w-100">
+                                            <Paginator State="@feeHeadPagination" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SubmitAddFeeHead" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content"><i class="bi bi-check2"></i></div>
+                        </button>
+                        <button type="button" class="table-btn" @onclick="CloseAddFeeHead">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ---------------- Generate Dues popup ---------------- *@
+@if (ShowGenerateDuesPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Select Fee Head</h5>
+                    <button data-access="Close" type="button" @onclick="CloseGenerateDues" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card px-1 py-2 mt-2">
+                        <div class="row gap-10-0">
+                            <div class="row m-1 gap-15-0">
+                                <div class="col-12 px-1">
+                                    <div class="card-headline d-flex align-items-center justify-content-between pb-1 p-0 mb-0">
+                                        <p class="m-0 headline-text">Add Fee Head With Amount</p>
+                                        <span class="misc-hint">Selected Students : @studentlist.Count(x => x.IsSelected)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" @bind-Value="DuesFeeHeadId" @bind-Value:after="OnDuesFeeHeadChanged">
+                                        <option value="0" selected>--Select--</option>
+                                        @foreach (var item in duesFeeHeadlist)
+                                        {
+                                            <option value="@item.FeeHeadId">@item.FeeHeadName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Fee Head <span class="required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2">
+                                <div class="form-box-group static-label">
+                                    <input class="floating-input text-end" placeholder=" " type="text" value="@((DuesFeeHeadAmount ?? 0).ToString("C0", new System.Globalization.CultureInfo("hi-IN")))" readonly disabled />
+                                    <label class="floating-label">Fee Head Amount <span class="required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
+                                <div class="form-box">
+                                    <div class="sef-month-grid">
+                                        @foreach (var month in MonthList)
+                                        {
+                                            <label class="sef-month-pill">
+                                                <input type="checkbox" @bind="month.IsSelected" />
+                                                <span>@month.MonthName</span>
+                                            </label>
+                                        }
+                                    </div>
+
+                                    @{
+                                        var selectedCount = MonthList.Count(m => m.IsSelected);
+                                        var currentHeadName = duesFeeHeadlist.FirstOrDefault(x => x.FeeHeadId == DuesFeeHeadId)?.FeeHeadName;
+                                        var totalPayable = selectedCount * (DuesFeeHeadAmount ?? 0);
+                                    }
+
+                                    <div class="sef-selected-summary">
+                                        <span class="sef-sel-text">
+                                            Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
+                                            @if (!string.IsNullOrWhiteSpace(currentHeadName))
+                                            {
+                                                @: · @currentHeadName
+                                            }
+                                        </span>
+                                        <span>
+                                            <span class="sef-total-label">Total Payable</span>
+                                            <span class="sef-total-value">₹ @totalPayable.ToString("N2")</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SubmitGenerateDues" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content"><i class="bi bi-check2"></i></div>
+                        </button>
+                        <button type="button" class="table-btn" @onclick="CloseGenerateDues">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+else
+{
+
+}
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS:
+    // - Students come from StudentMiscellaneous/GetStudentMiscellaneousData.
+    // - Fee heads / Generate Dues / Generate Challan are still static (TODO).
+    // - Narration is mandatory for Generate Challan.
+    // - Student No. (ControlNo) accepts multiple numbers separated by comma.
+    // ---------------------------------------------------------------------
+
+    private bool IsLoading = false;
+    private bool ShowSearchPopup;
+    private bool ShowAddFeeHeadPopup;
+    private bool IsAllSelected;
+    private bool narrationTouched;
+    private string? nameFilter;
+    private string Narration = string.Empty;
+    private DateTime? ChallanDate = DateTime.Today;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private MiscellaneousRequest searchModel = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private List<SessionModel> sessionlist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<MiscellaneousResponse> studentlist = new();
+    private List<MiscFeeHeadRow> feeHeadlist = new();
+
+    private decimal TotalAmount => feeHeadlist.Sum(x => x.Amount ?? 0);
+    private IQueryable<MiscFeeHeadRow> feeHeadQuery => feeHeadlist.AsQueryable();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            UserName = userResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load session / class.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<MiscellaneousResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchModel.SectionCode = string.Empty;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(searchModel.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchModel.ClassCode;
+
+        string ApiUri = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private void OpenSearch() => ShowSearchPopup = true;
+
+    private void ClosePopup() => ShowSearchPopup = false;
+
+    private async Task SearchStudents()
+    {
+        ShowSearchPopup = false;
+        StateHasChanged();
+
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+        if (string.IsNullOrEmpty(searchModel.ClassCode))
+        {
+            await Alert.ShowWarning("Please select class.");
+            return;
+        }
+        if (string.IsNullOrEmpty(searchModel.SectionCode))
+        {
+            await Alert.ShowWarning("Please select section.");
+            return;
+        }
+
+        searchModel.GroupCode = groupcode;
+        searchModel.BranchCode = branchcode;
+        searchModel.SessionId = CurrentSession;
+        searchModel.Gender ??= string.Empty;
+        searchModel.IsEWS ??= string.Empty;
+        searchModel.StudentName = searchModel.StudentName?.Trim() ?? string.Empty;
+        // multiple student no. -> "0174,0179,0195"
+        searchModel.ControlNo = string.Join(",", (searchModel.ControlNo ?? string.Empty)
+            .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "StudentMiscellaneous/GetStudentMiscellaneousData";
+            var apiResponse = await httpService.Post<ApiResponse<List<MiscellaneousResponse>>>(apiUrl, searchModel);
+
+            studentlist = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+            IsAllSelected = false;
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while searching.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleAll()
+    {
+        foreach (var row in studentlist)
+            row.IsSelected = IsAllSelected;
+    }
+
+    // ---------------- Add Fee Head (fee heads of the selected session) ----------------
+    private const decimal MaxFeeHeadAmount = 50000;
+    private CustomAlert customAlert;
+    private bool IsAllFeeHeadSelected;
+    private List<MiscFeeHeadRow> sessionFeeHeadlist = new();
+    private IQueryable<MiscFeeHeadRow> sessionFeeHeadQuery => sessionFeeHeadlist.AsQueryable();
+    private PaginationState feeHeadPagination = new() { ItemsPerPage = 10 };
+
+    private async Task OpenAddFeeHead()
+    {
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+
+            var apiResponse = await httpService.Post<ApiResponse<List<DetSessionModel>>>("SessionFeeHeads/GetSessionFeeHead", searchAny);
+            var sessionHeads = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+
+            // heads already in the fee head grid come checked + locked (IsAdded) with their amount;
+            // they unlock only after being deleted from that grid. New ones start unchecked at 0.00.
+            sessionFeeHeadlist = sessionHeads
+                .Where(x => x.IsValid)
+                .Select(x =>
+                {
+                    var added = feeHeadlist.FirstOrDefault(f => f.FeeHeadId == x.FeeHeadId);
+                    return new MiscFeeHeadRow
+                    {
+                        FeeHeadId = x.FeeHeadId,
+                        FeeHeadName = x.FeeHeadName,
+                        FeeHeadType = x.FeeHeadType,
+                        Amount = added?.Amount ?? 0,
+                        IsSelected = added != null,
+                        IsAdded = added != null
+                    };
+                })
+                .ToList();
+            IsAllFeeHeadSelected = sessionFeeHeadlist.Count > 0 && sessionFeeHeadlist.All(x => x.IsSelected);
+
+            if (sessionFeeHeadlist.Count == 0)
+            {
+                await Alert.ShowWarning("No fee head found for the selected session.");
+                return;
+            }
+            ShowAddFeeHeadPopup = true;
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load session fee heads.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // amount box shows 0.00 by default; invalid / negative input falls back to 0
+    private void SetFeeHeadAmount(MiscFeeHeadRow row, ChangeEventArgs e)
+    {
+        row.Amount = decimal.TryParse(e.Value?.ToString(), out var amount) && amount > 0 ? amount : 0;
+    }
+
+    private void ToggleAllFeeHead()
+    {
+        foreach (var row in sessionFeeHeadlist.Where(x => !x.IsAdded))
+            row.IsSelected = IsAllFeeHeadSelected;
+    }
+
+    private void CloseAddFeeHead()
+    {
+        ShowAddFeeHeadPopup = false;
+        sessionFeeHeadlist = new();
+        IsAllFeeHeadSelected = false;
+    }
+
+    // CustomAlert renders above the popup, so the popup stays open
+    private async Task ShowAddFeeHeadWarning(string message)
+    {
+        await customAlert.ShowCustomAlert(message, false);
+    }
+
+    private async Task SubmitAddFeeHead()
+    {
+        // only newly checked heads; already added (locked) ones are skipped
+        var selected = sessionFeeHeadlist.Where(x => x.IsSelected && !x.IsAdded).ToList();
+        if (selected.Count == 0)
+        {
+            // CustomAlert renders above the popup, so the popup stays open
+            await customAlert.ShowCustomAlert("Please select fee head.", false);
+            return;
+        }
+
+        var zeroRow = selected.FirstOrDefault(x => (x.Amount ?? 0) <= 0);
+        if (zeroRow != null)
+        {
+            await ShowAddFeeHeadWarning($"Please enter amount for {zeroRow.FeeHeadName}.");
+            return;
+        }
+
+        var overRow = selected.FirstOrDefault(x => x.Amount > MaxFeeHeadAmount);
+        if (overRow != null)
+        {
+            await ShowAddFeeHeadWarning($"Amount of {overRow.FeeHeadName} cannot be more than {MaxFeeHeadAmount:N0}.");
+            return;
+        }
+
+        // append to the fee head grid; a head that is already there gets the new amount
+        foreach (var row in selected)
+        {
+            var existing = feeHeadlist.FirstOrDefault(x => x.FeeHeadId == row.FeeHeadId);
+            if (existing != null)
+            {
+                existing.Amount = row.Amount;
+            }
+            else
+            {
+                feeHeadlist.Add(new MiscFeeHeadRow { FeeHeadId = row.FeeHeadId, FeeHeadName = row.FeeHeadName, FeeHeadType = row.FeeHeadType, Amount = row.Amount });
+            }
+        }
+        CloseAddFeeHead();
+    }
+
+    private async Task RemoveFeeHead(MiscFeeHeadRow row)
+    {
+        var confirm = await Alert.ShowConfirm($"Are you sure, you want to delete {row.FeeHeadName}?");
+        if (!confirm)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        feeHeadlist.Remove(row);
+        StateHasChanged();
+    }
+
+    // ---------------- Generate Dues ----------------
+    // Same design as Edit Invoice "Add Fee Head", but every fee head is listed
+    // (Annual / Quarterly / OneTime too). Fee heads + amount come from
+    // StudentFeeInvoice/GetFeeHeadWithAmount for the selected students' fee template.
+    private bool ShowGenerateDuesPopup;
+    private long DuesFeeHeadId;
+    private decimal? DuesFeeHeadAmount;
+    private List<FeeHeadDropdownModel> duesFeeHeadlist = new();
+    private List<MonthModel> MonthList = new();
+
+    private async Task GenerateDues()
+    {
+        // order: class -> section -> at least one student -> narration
+        if (string.IsNullOrEmpty(searchModel.ClassCode))
+        {
+            await Alert.ShowWarning("Please select class.");
+            return;
+        }
+        if (string.IsNullOrEmpty(searchModel.SectionCode))
+        {
+            await Alert.ShowWarning("Please select section.");
+            return;
+        }
+        if (!studentlist.Any(x => x.IsSelected))
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        } 
+        if (string.IsNullOrWhiteSpace(Narration))
+        {
+            narrationTouched = true;
+            await Alert.ShowWarning("Narration is required.");
+            return;
+        }
+
+        // fee head amounts depend on the fee template, so all selected students must share one
+        var templateIds = studentlist.Where(x => x.IsSelected).Select(x => x.TemplateId).Distinct().ToList();
+        if (templateIds.Count > 1)
+        {
+            await Alert.ShowWarning("Selected students have different fee templates. Please select students of the same fee template.");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var feeHeadRequest = new SearchAnyRequestModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                RequestId = templateIds.FirstOrDefault()
+            };
+            var feeHeadResponse = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", feeHeadRequest);
+            duesFeeHeadlist = (feeHeadResponse != null && feeHeadResponse.Success) ? (feeHeadResponse.Data ?? new()) : new();
+
+            if (duesFeeHeadlist.Count == 0)
+            {
+                await Alert.ShowWarning("No fee head found for the selected students.");
+                return;
+            }
+
+            MonthList = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
+            ApplySessionMonthOrder();
+
+            DuesFeeHeadId = 0;
+            DuesFeeHeadAmount = null;
+            ShowGenerateDuesPopup = true;
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load fee head / month.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // months in session order (e.g. Apr - Mar), same as Edit Invoice
+    private void ApplySessionMonthOrder()
+    {
+        var session = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession);
+        if (session == null || MonthList.Count == 0)
+            return;
+
+        int startMonth = session.StartDate.Month;
+        int endMonth = session.EndDate.Month;
+        var orderedMonths = new List<MonthModel>();
+        int current = startMonth;
+        for (int i = 0; i < 12; i++)
+        {
+            var month = MonthList.FirstOrDefault(x => x.MonthNo == current);
+            if (month != null)
+                orderedMonths.Add(month);
+
+            if (current == endMonth)
+                break;
+            current = current == 12 ? 1 : current + 1;
+        }
+        MonthList = orderedMonths;
+    }
+
+    // selected fee head -> its amount into Fee Head Amount
+    private void OnDuesFeeHeadChanged()
+    {
+        var feeHead = duesFeeHeadlist.FirstOrDefault(x => x.FeeHeadId == DuesFeeHeadId);
+        DuesFeeHeadAmount = feeHead?.Amount;
+    }
+
+    private void CloseGenerateDues()
+    {
+        ShowGenerateDuesPopup = false;
+        DuesFeeHeadId = 0;
+        DuesFeeHeadAmount = null;
+        foreach (var month in MonthList)
+            month.IsSelected = false;
+    }
+
+    private async Task ShowDuesWarning(string message)
+    {
+        ShowGenerateDuesPopup = false;
+        StateHasChanged();
+        await Alert.ShowWarning(message);
+        ShowGenerateDuesPopup = true;
+        StateHasChanged();
+    }
+
+    private async Task SubmitGenerateDues()
+    {
+        if (DuesFeeHeadId <= 0)
+        {
+            await ShowDuesWarning("Please select fee head.");
+            return;
+        }
+        if (DuesFeeHeadAmount == null || DuesFeeHeadAmount <= 0)
+        {
+            await ShowDuesWarning("Please enter fee head amount.");
+            return;
+        }
+        if (!MonthList.Any(x => x.IsSelected))
+        {
+            await ShowDuesWarning("Please select at least one month.");
+            return;
+        }
+
+        // TODO: no endpoint specified yet — send selected students (StudentId),
+        // DuesFeeHeadId, DuesFeeHeadAmount and selected MonthNo list.
+    }
+
+    private async Task GenerateChallan()
+    {
+        narrationTouched = true;
+
+        if (!studentlist.Any(x => x.IsSelected))
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        if (feeHeadlist.Count == 0)
+        {
+            await Alert.ShowWarning("Please add at least one fee head.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Narration))
+        {
+            await Alert.ShowWarning("Narration is required.");
+            return;
+        }
+
+        if (ChallanDate == null)
+        {
+            await Alert.ShowWarning("Please select challan date.");
+            return;
+        }
+
+        var selectedStudents = studentlist.Where(x => x.IsSelected).ToList();
+
+        // the SP takes one SocietyId (bank account), so all students must belong to one society
+        // var societyIds = selectedStudents.Select(x => x.SocietyId).Distinct().ToList();
+        // if (societyIds.Count > 1)
+        // {
+        //     await Alert.ShowWarning("Selected students belong to different societies. Please select students of one society.");
+        //     return;
+        // }
+
+        var submit = await Alert.ShowConfirm($"Are you sure, you want to generate challan for {selectedStudents.Count} student(s)?");
+        if (!submit)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var dueDate = ChallanDate.Value.Date;
+        var request = new GenerateMiscChallanRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            //SocietyId = societyIds.FirstOrDefault(),
+            SessionId = CurrentSession,
+            DueDate = dueDate,
+            Narration = Narration.Trim(),
+            CreatedBy = UserName,
+            // Usp_GetStudentmiscellaneous returns no StudentId; StudentId = StudentNo in this system
+            Students = selectedStudents.Select(x => new MiscChallanStudent
+            {
+                StudentId = long.TryParse(x.StudentNo, out var id) ? id : x.StudentId,
+                StudentNo = x.StudentNo,
+                ClassCode = x.ClassCode
+            }).ToList(),
+            FeeHeads = feeHeadlist.Select((x, index) => new MiscChallanFeeHead
+            {
+                FeeHeadId = x.FeeHeadId,
+                DisplayOrder = index + 1,
+                MonthNo = dueDate.Month,
+                Amount = x.Amount ?? 0,
+                Concession = 0
+            }).ToList()
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<List<GenerateMiscChallanResponse>>>("StudentMiscellaneous/GenerateMiscellaneousChallan", request);
+            if (apiResponse != null && apiResponse.Success)
+            {
+                IsLoading = false;
+                StateHasChanged();
+                await Alert.ShowSuccess($"Challan generated successfully for {apiResponse.Data?.Count ?? 0} student(s).");
+
+                // reset for the next challan
+                feeHeadlist = new();
+                Narration = string.Empty;
+                narrationTouched = false;
+                foreach (var row in studentlist)
+                    row.IsSelected = false;
+                IsAllSelected = false;
+            }
+            else
+            {
+                IsLoading = false;
+                StateHasChanged();
+                await Alert.ShowWarning(string.IsNullOrWhiteSpace(apiResponse?.Message) ? "Challan not generated." : apiResponse.Message);
+            }
+        }
+        catch
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to generate challan.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public class MiscFeeHeadRow
+    {
+        public bool IsSelected { get; set; }
+        // already in the fee head grid -> locked in the Add Fee Head popup
+        public bool IsAdded { get; set; }
+        public int FeeHeadId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public string? FeeHeadType { get; set; }
+        public decimal? Amount { get; set; }
+    }
+}

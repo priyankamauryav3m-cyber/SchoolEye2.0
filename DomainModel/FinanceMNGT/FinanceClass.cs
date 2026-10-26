@@ -2460,6 +2460,94 @@ namespace DomainModel.FinanceMNGT
         public decimal ConcessionAmt { get; set; }
     }
 
+    #region------------------Student Miscellaneous-----------------
+    public class MiscellaneousRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string? ClassCode { get; set; }
+        public string? SectionCode { get; set; }
+        public string? Gender { get; set; } = string.Empty;
+        // multiple student no. separated by comma
+        public string? ControlNo { get; set; } = string.Empty;
+        public string? StudentName { get; set; } = string.Empty;
+        public string? IsEWS { get; set; } = string.Empty;
+        // -1 = All, 1 = Active, 0 = Deactive
+        public int IsValid { get; set; } = -1;
+    }
+
+    public class MiscellaneousResponse
+    {
+        public long StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        public int SectionId { get; set; }
+        public string? SectionName { get; set; }
+        public string? ClassSection { get; set; }
+        public int? RollNo { get; set; }
+        public int SocietyId { get; set; }
+        public int TemplateId { get; set; }
+        public bool IsSelected { get; set; }
+    }
+
+    // V3M_FIN_GenerateMiscellaneousChallanBulk
+    public class GenerateMiscChallanRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public int SocietyId { get; set; }
+        public long SessionId { get; set; }
+        public DateTime DueDate { get; set; }
+        public string? Narration { get; set; }
+        public string? CreatedBy { get; set; }
+        public List<MiscChallanStudent> Students { get; set; } = new();
+        public List<MiscChallanFeeHead> FeeHeads { get; set; } = new();
+    }
+
+    // dbo.V3M_FIN_UDT_MiscChallanStudent
+    public class MiscChallanStudent
+    {
+        public long StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ClassCode { get; set; }
+    }
+
+    // dbo.V3M_FIN_UDT_MiscChallanFeeHead
+    public class MiscChallanFeeHead
+    {
+        public int FeeHeadId { get; set; }
+        public int DisplayOrder { get; set; }
+        public int MonthNo { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Concession { get; set; }
+    }
+
+    public class GenerateMiscChallanResponse
+    {
+        public long StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public long InvoiceId { get; set; }
+        public string? InvoiceNo { get; set; }
+    }
+
+    public class FeeHeadForComboRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public string? FeeHeadType { get; set; }
+        public bool IsMiscellaneous { get; set; }
+    }
+
+    public class FeeHeadForComboResponse
+    {
+        public int FeeHeadId { get; set; }
+        public string? FeeHeadName { get; set; }
+    }
+    #endregion
 
 }
 
