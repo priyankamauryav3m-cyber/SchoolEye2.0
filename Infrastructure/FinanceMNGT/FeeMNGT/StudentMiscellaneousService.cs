@@ -99,6 +99,73 @@ namespace SchoolEye.Infrastructure.Admin
             }
         }
 
+        public async Task<IEnumerable<StudentByFeeTemplateResponse>> GetStudentByFeeTemplate(StudentByFeeTemplateRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@FeeTemplateId", request.FeeTemplateId);
+                param.Add("@ControlNoList", request.ControlNoList);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionId", request.SectionId);
+
+                return await con.QueryAsync<StudentByFeeTemplateResponse>(
+                    "USP_GetAllStudentByFeeTemplate",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // all selected students x fee head months; the SP runs everything in one transaction
+        public async Task<int> GenerateMiscChallanWithMonths(MiscChallanWithMonthsRequest request)
+        {
+            try
+            {
+                var feeHeadTable = new DataTable();
+                feeHeadTable.Columns.Add("FeeHeadId", typeof(int));
+                feeHeadTable.Columns.Add("MonthNo", typeof(int));
+                feeHeadTable.Columns.Add("Amount", typeof(decimal));
+                foreach (var item in request.FeeHeads)
+                {
+                    feeHeadTable.Rows.Add(item.FeeHeadId, item.MonthNo, item.Amount);
+                }
+
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentIds", string.Join(",", request.StudentIds));
+                param.Add("@FeeHeads", feeHeadTable.AsTableValuedParameter("dbo.V3M_FIN_FeeHeadMonthType"));
+                param.Add("@FeeTemplateId", request.FeeTemplateId);
+                param.Add("@DueDate", request.DueDate.Date, DbType.Date);
+                param.Add("@Narration", request.Narration);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(
+                    "V3M_FIN_MiscellaniousChallanWithMonths",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return param.Get<int>("@Result");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<FeeHeadForComboResponse>> GetFeeHeadForCombo(FeeHeadForComboRequest request)
         {
             try

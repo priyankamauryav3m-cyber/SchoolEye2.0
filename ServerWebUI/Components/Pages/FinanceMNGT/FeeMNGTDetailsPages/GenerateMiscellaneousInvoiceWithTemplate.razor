@@ -1,0 +1,717 @@
+@page "/miscellaneousinvoicewithtemplate"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+<style>
+    .misc-student-no {
+        height: 80px;
+        resize: none;
+    }
+
+    .misc-hint {
+        font-size: 12px;
+        color: #6b7280;
+    }
+</style>
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="Generate Miscellaneous Invoice With Template">
+                <div class="form-box">
+                    <InputSelect @bind-Value="CurrentSession" class="form-input">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="searchModel.FeeTemplateId" class="form-input">
+                        <option value="0" selected>Select-Template</option>
+                        @foreach (var tp in feeTemplatelist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@tp.FeeTemplateId">@tp.TemplateName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <div class="d-flex gap-2">
+                        <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                            <i class="bi bi-sliders"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Student No." Sortable="true" Class="text-center" Align="Align.Center">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.AdmissionNo) ? " " : x.AdmissionNo)" Title="Admission No." Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Search..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <PropertyColumn Property="@(x => GetClassName(x.ClassCode))" Title="Class" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => GetSectionName(x.SectionId))" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.RollNo.HasValue ? x.RollNo.Value.ToString() : " ")" Title="Roll No." Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MobileNo) ? " " : x.MobileNo)" Title="Mobile No." Class="text-center" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-end">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="form-box">
+                        <button type="button" class="table-btn" @onclick="GenerateDues">Generate Due</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------------- Search popup ---------------- *@
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-9">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.ClassCode" @bind-Value:after="OnClassChanged">
+                                    <option value="">--Select--</option>
+                                    @foreach (var cs in classlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@cs.ClassCode">@cs.ClassName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Class</label>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.SectionId">
+                                    <option value="0">--Select--</option>
+                                    @foreach (var sec in sectionlist)
+                                    {
+                                        <option value="@sec.SectionId">@sec.SectionName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Section</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-box-group static-label">
+                                <InputTextArea class="floating-input misc-student-no" placeholder=" " @bind-Value="searchModel.ControlNoList" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                            <span class="misc-hint">Multiple student numbers can be searched, separated by comma (e.g. 0174, 0179, 0195).</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SearchStudents" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ---------------- Generate Dues popup ---------------- *@
+@if (ShowGenerateDuesPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Select Fee Head</h5>
+                    <button data-access="Close" type="button" @onclick="CloseGenerateDues" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card px-1 py-2 mt-2">
+                        <div class="row gap-10-0">
+                            <div class="row m-1 gap-15-0">
+                                <div class="col-12 px-1">
+                                    <div class="card-headline d-flex align-items-center justify-content-between pb-1 p-0 mb-0">
+                                        <p class="m-0 headline-text">Add Fee Head With Amount</p>
+                                        <span class="misc-hint">Selected Students : @studentlist.Count(x => x.IsSelected)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-3 mt-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" @bind-Value="DuesFeeHeadId" @bind-Value:after="OnDuesFeeHeadChanged">
+                                        <option value="0" selected>--Select--</option>
+                                        @foreach (var item in duesFeeHeadlist)
+                                        {
+                                            <option value="@item.FeeHeadId">@item.FeeHeadName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Fee Head <span class="required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-3 mt-2">
+                                <div class="form-box-group static-label">
+                                    <input class="floating-input text-end" placeholder=" " type="text" value="@((DuesFeeHeadAmount ?? 0).ToString("C0", new System.Globalization.CultureInfo("hi-IN")))" readonly disabled />
+                                    <label class="floating-label">Fee Head Amount <span class="required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-3 mt-2">
+                                <div class="form-box-group static-label">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="DuesDueDate" />
+                                    <label class="floating-label">Due Date <span class="required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12 px-3 ">
+                                <div class="form-box-group static-label">
+                                    <input class="floating-input" placeholder=" " maxlength="150" autocomplete="off"
+                                           @bind="DuesNarration" @bind:event="oninput" />
+                                    <label class="floating-label">Narration <span class="required">*</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
+                                <div class="form-box">
+                                    <div class="sef-month-grid">
+                                        @foreach (var month in MonthList)
+                                        {
+                                            <label class="sef-month-pill">
+                                                <input type="checkbox" @bind="month.IsSelected" />
+                                                <span>@month.MonthName</span>
+                                            </label>
+                                        }
+                                    </div>
+
+                                    @{
+                                        var selectedCount = MonthList.Count(m => m.IsSelected);
+                                        var currentHeadName = duesFeeHeadlist.FirstOrDefault(x => x.FeeHeadId == DuesFeeHeadId)?.FeeHeadName;
+                                        var totalPayable = selectedCount * (DuesFeeHeadAmount ?? 0);
+                                    }
+
+                                    <div class="sef-selected-summary">
+                                        <span class="sef-sel-text">
+                                            Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
+                                            @if (!string.IsNullOrWhiteSpace(currentHeadName))
+                                            {
+                                                @: · @currentHeadName
+                                            }
+                                        </span>
+                                        <span>
+                                            <span class="sef-total-label">Total Payable</span>
+                                            <span class="sef-total-value">₹ @totalPayable.ToString("N2")</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SubmitGenerateDues" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content"><i class="bi bi-check2"></i></div>
+                        </button>
+                        <button type="button" class="table-btn" @onclick="CloseGenerateDues">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+else
+{
+
+}
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS:
+    // - Students come from StudentMiscellaneous/GetStudentByFeeTemplate
+    //   (USP_GetAllStudentByFeeTemplate) for the template selected in the header.
+    // - Fee heads + amount in Generate Due come from the template used for the
+    //   last search (not the students' own fee template).
+    // - Class / Section names are looked up from BranchClass/GetClassCode and
+    //   ClassSection/GetClassSection, since the SP returns only codes / ids.
+    // - Generate Due Submit -> StudentMiscellaneous/GenerateMiscChallanWithMonths
+    //   (V3M_FIN_MiscellaniousChallanWithMonthsNewSS): one row per selected month.
+    // ---------------------------------------------------------------------
+
+    private bool IsLoading = false;
+    private bool ShowSearchPopup;
+    private bool IsAllSelected;
+    private string? nameFilter;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+
+    // template the current grid was searched with
+    private int SearchedTemplateId;
+
+    private PaginationState pagination = new() { ItemsPerPage = 15 };
+    private StudentByFeeTemplateRequest searchModel = new();
+    private SearchAnyRequestModel searchAny = new();
+
+    private List<SessionModel> sessionlist = new();
+    private List<FeeTemplateModel> feeTemplatelist = new();
+    private List<BranchClassModel> classlist = new();
+    private List<SectionModel> sectionlist = new();
+    private List<ClassSectionModal> allSectionlist = new();
+    private List<StudentByFeeTemplateResponse> studentlist = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            UserName = userResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            feeTemplatelist = await httpService.Get<List<FeeTemplateModel>>("FeeTemplate/GetFeeTemplate") ?? new();
+            classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+            allSectionlist = await httpService.Get<List<ClassSectionModal>>("ClassSection/GetClassSection") ?? new();
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load session / template / class.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<StudentByFeeTemplateResponse> moduleQuery
+    {
+        get
+        {
+            var result = studentlist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+                (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    private string GetClassName(string? classCode)
+    {
+        var name = classlist.FirstOrDefault(x => x.ClassCode == classCode)?.ClassName;
+        return string.IsNullOrWhiteSpace(name) ? (string.IsNullOrWhiteSpace(classCode) ? " " : classCode) : name;
+    }
+
+    private string GetSectionName(int sectionId)
+    {
+        var name = allSectionlist.FirstOrDefault(x => x.SectionId == sectionId)?.SectionName;
+        return string.IsNullOrWhiteSpace(name) ? " " : name;
+    }
+
+    private async Task OnClassChanged()
+    {
+        searchModel.SectionId = 0;
+        sectionlist = new();
+
+        if (string.IsNullOrEmpty(searchModel.ClassCode))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        searchAny.GroupCode = groupcode;
+        searchAny.BranchCode = branchcode;
+        searchAny.RequestName = searchModel.ClassCode;
+
+        string ApiUri = "ClassSection/GetClassWithSection";
+        var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri, searchAny) ?? new();
+        if (apiResponse.Success)
+        {
+            sectionlist = apiResponse.Data ?? new();
+        }
+        StateHasChanged();
+    }
+
+    private void OpenSearch() => ShowSearchPopup = true;
+
+    private void ClosePopup() => ShowSearchPopup = false;
+
+    private async Task SearchStudents()
+    {
+        ShowSearchPopup = false;
+        StateHasChanged();
+
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+        if (searchModel.FeeTemplateId <= 0)
+        {
+            await Alert.ShowWarning("Please select template!");
+            return;
+        }
+
+        searchModel.GroupCode = groupcode;
+        searchModel.BranchCode = branchcode;
+        searchModel.SessionId = CurrentSession;
+        searchModel.ClassCode ??= string.Empty;
+        // multiple student no. -> "0174,0179,0195"
+        searchModel.ControlNoList = string.Join(",", (searchModel.ControlNoList ?? string.Empty)
+            .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            string apiUrl = "StudentMiscellaneous/GetStudentByFeeTemplate";
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentByFeeTemplateResponse>>>(apiUrl, searchModel);
+
+            studentlist = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+            SearchedTemplateId = searchModel.FeeTemplateId;
+            IsAllSelected = false;
+
+            if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+            else if (apiResponse != null && !apiResponse.Success)
+            {
+                await Alert.ShowWarning(apiResponse.Message ?? "No records found.");
+            }
+        }
+        catch
+        {
+            studentlist = new();
+            await Alert.ShowWarning("An error occurred while searching.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleAll()
+    {
+        foreach (var row in studentlist)
+            row.IsSelected = IsAllSelected;
+    }
+
+    // ---------------- Generate Dues ----------------
+    // Same design as Edit Invoice "Add Fee Head", but every fee head is listed
+    // (Annual / Quarterly / OneTime too). Fee heads + amount come from
+    // StudentFeeInvoice/GetFeeHeadWithAmount for the template the grid was searched with.
+    private bool ShowGenerateDuesPopup;
+    private long DuesFeeHeadId;
+    private decimal? DuesFeeHeadAmount;
+    private string DuesNarration = string.Empty;
+    private DateTime? DuesDueDate = DateTime.Today;
+    private List<FeeHeadDropdownModel> duesFeeHeadlist = new();
+    private List<MonthModel> MonthList = new();
+
+    private async Task GenerateDues()
+    {
+        if (SearchedTemplateId <= 0)
+        {
+            await Alert.ShowWarning("Please select template and search students.");
+            return;
+        }
+        if (!studentlist.Any(x => x.IsSelected))
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var feeHeadRequest = new SearchAnyRequestModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                RequestId = SearchedTemplateId
+            };
+            var feeHeadResponse = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", feeHeadRequest);
+            duesFeeHeadlist = (feeHeadResponse != null && feeHeadResponse.Success) ? (feeHeadResponse.Data ?? new()) : new();
+
+            if (duesFeeHeadlist.Count == 0)
+            {
+                await Alert.ShowWarning("No fee head found for the selected template.");
+                return;
+            }
+
+            MonthList = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
+            ApplySessionMonthOrder();
+
+            DuesFeeHeadId = 0;
+            DuesFeeHeadAmount = null;
+            DuesNarration = string.Empty;
+            DuesDueDate = DateTime.Today;
+            ShowGenerateDuesPopup = true;
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load fee head / month.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // months in session order (e.g. Apr - Mar), same as Edit Invoice
+    private void ApplySessionMonthOrder()
+    {
+        var session = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession);
+        if (session == null || MonthList.Count == 0)
+            return;
+
+        int startMonth = session.StartDate.Month;
+        int endMonth = session.EndDate.Month;
+        var orderedMonths = new List<MonthModel>();
+        int current = startMonth;
+        for (int i = 0; i < 12; i++)
+        {
+            var month = MonthList.FirstOrDefault(x => x.MonthNo == current);
+            if (month != null)
+                orderedMonths.Add(month);
+
+            if (current == endMonth)
+                break;
+            current = current == 12 ? 1 : current + 1;
+        }
+        MonthList = orderedMonths;
+    }
+
+    // selected fee head -> its amount into Fee Head Amount
+    private void OnDuesFeeHeadChanged()
+    {
+        var feeHead = duesFeeHeadlist.FirstOrDefault(x => x.FeeHeadId == DuesFeeHeadId);
+        DuesFeeHeadAmount = feeHead?.Amount;
+    }
+
+    private void CloseGenerateDues()
+    {
+        ShowGenerateDuesPopup = false;
+        DuesFeeHeadId = 0;
+        DuesFeeHeadAmount = null;
+        DuesNarration = string.Empty;
+        foreach (var month in MonthList)
+            month.IsSelected = false;
+    }
+
+    private async Task ShowDuesWarning(string message)
+    {
+        ShowGenerateDuesPopup = false;
+        StateHasChanged();
+        await Alert.ShowWarning(message);
+        ShowGenerateDuesPopup = true;
+        StateHasChanged();
+    }
+
+    private async Task SubmitGenerateDues()
+    {
+        if (DuesFeeHeadId <= 0)
+        {
+            await ShowDuesWarning("Please select fee head.");
+            return;
+        }
+        if (DuesFeeHeadAmount == null || DuesFeeHeadAmount <= 0)
+        {
+            await ShowDuesWarning("Please enter fee head amount.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(DuesNarration))
+        {
+            await ShowDuesWarning("Narration is required.");
+            return;
+        }
+        if (DuesDueDate == null)
+        {
+            await ShowDuesWarning("Please select due date.");
+            return;
+        }
+        if (!MonthList.Any(x => x.IsSelected))
+        {
+            await ShowDuesWarning("Please select at least one month.");
+            return;
+        }
+
+        var selectedStudents = studentlist.Where(x => x.IsSelected).ToList();
+        if (selectedStudents.Count == 0)
+        {
+            ShowGenerateDuesPopup = false;
+            StateHasChanged();
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+
+        ShowGenerateDuesPopup = false;
+        StateHasChanged();
+        var submit = await Alert.ShowConfirm($"Are you sure, you want to generate due for {selectedStudents.Count} student(s)?");
+        if (!submit)
+        {
+            ShowGenerateDuesPopup = true;
+            StateHasChanged();
+            return;
+        }
+
+        var request = new MiscChallanWithMonthsRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            FeeTemplateId = SearchedTemplateId,
+            DueDate = DuesDueDate.Value.Date,
+            Narration = DuesNarration.Trim(),
+            CreatedBy = UserName,
+            StudentIds = selectedStudents.Select(x => x.StudentId).ToList(),
+            FeeHeads = MonthList.Where(x => x.IsSelected).Select(x => new MiscChallanFeeHeadMonth
+            {
+                FeeHeadId = (int)DuesFeeHeadId,
+                MonthNo = x.MonthNo,
+                Amount = DuesFeeHeadAmount ?? 0
+            }).ToList()
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<object>>("StudentMiscellaneous/GenerateMiscChallanWithMonths", request);
+            IsLoading = false;
+            StateHasChanged();
+            if (apiResponse != null && apiResponse.Success)
+            {
+                await Alert.ShowSuccess(apiResponse.Message ?? "Due generated successfully.");
+
+                // reset for the next due
+                CloseGenerateDues();
+                foreach (var row in studentlist)
+                    row.IsSelected = false;
+                IsAllSelected = false;
+            }
+            else
+            {
+                await Alert.ShowWarning(string.IsNullOrWhiteSpace(apiResponse?.Message) ? "Due not generated." : apiResponse.Message);
+                ShowGenerateDuesPopup = true;
+            }
+        }
+        catch
+        {
+            IsLoading = false;
+            await Alert.ShowError("Unable to generate due.");
+            ShowGenerateDuesPopup = true;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

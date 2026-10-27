@@ -12,6 +12,11 @@ namespace SchoolEye.ApplicationInterface.Admin
         public Task<IEnumerable<FeeHeadForComboResponse>> GetFeeHeadForCombo(FeeHeadForComboRequest request);
 
         public Task<IEnumerable<GenerateMiscChallanResponse>> GenerateMiscellaneousChallan(GenerateMiscChallanRequest request);
-        
+
+        public Task<IEnumerable<StudentByFeeTemplateResponse>> GetStudentByFeeTemplate(StudentByFeeTemplateRequest request);
+
+        // returns the SP @Result: 1 = success, -1 = error
+        public Task<int> GenerateMiscChallanWithMonths(MiscChallanWithMonthsRequest request);
+
     }
 }

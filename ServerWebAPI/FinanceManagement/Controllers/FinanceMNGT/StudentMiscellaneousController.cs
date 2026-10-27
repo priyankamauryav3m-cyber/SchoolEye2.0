@@ -70,6 +70,60 @@ namespace SchoolEye.ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
+        [HttpPost("GetStudentByFeeTemplate")]
+        public async Task<IActionResult> GetStudentByFeeTemplate([FromBody] StudentByFeeTemplateRequest request)
+        {
+            if (request == null || request.SessionId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Please select session.",
+                    Code = 0
+                });
+            }
+            if (request.FeeTemplateId <= 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Please select template.",
+                    Code = 0
+                });
+            }
+            try
+            {
+                var data = await _service.GetStudentByFeeTemplate(request);
+                if (data == null || !data.Any())
+                {
+                    return Ok(new ApiResponse<IEnumerable<StudentByFeeTemplateResponse>>
+                    {
+                        Success = true,
+                        Message = "No records found.",
+                        Code = 0,
+                        Data = Enumerable.Empty<StudentByFeeTemplateResponse>()
+                    });
+                }
+                return Ok(new ApiResponse<IEnumerable<StudentByFeeTemplateResponse>>
+                {
+                    Success = true,
+                    Message = "Students retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the students.",
+                    Code = -1
+                });
+            }
+        }
+
         [HttpPost("GenerateMiscellaneousChallan")]
         public async Task<IActionResult> GenerateMiscellaneousChallan([FromBody] GenerateMiscChallanRequest request)
         {
@@ -137,6 +191,69 @@ namespace SchoolEye.ServerWebAPI.Addmission.Controllers.Admin
                 {
                     Success = false,
                     Message = "An error occurred while generating the challan.",
+                    Code = -1
+                });
+            }
+        }
+
+        [HttpPost("GenerateMiscChallanWithMonths")]
+        public async Task<IActionResult> GenerateMiscChallanWithMonths([FromBody] MiscChallanWithMonthsRequest request)
+        {
+            if (request == null || request.SessionId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select session.", Code = 0 });
+            }
+            if (request.FeeTemplateId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select template.", Code = 0 });
+            }
+            if (request.StudentIds == null || !request.StudentIds.Any(x => x > 0))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select at least one student.", Code = 0 });
+            }
+            if (request.FeeHeads == null || request.FeeHeads.Count == 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select fee head and month.", Code = 0 });
+            }
+            if (request.FeeHeads.Any(x => x.FeeHeadId <= 0 || x.MonthNo < 1 || x.MonthNo > 12))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Invalid fee head or month.", Code = 0 });
+            }
+            if (request.FeeHeads.Any(x => x.Amount <= 0))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Fee head amount must be greater than 0.", Code = 0 });
+            }
+            if (string.IsNullOrWhiteSpace(request.Narration))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Narration is required.", Code = 0 });
+            }
+            if (request.Narration.Trim().Length > 150)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Narration can be maximum 150 characters.", Code = 0 });
+            }
+            if (request.DueDate == default)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select due date.", Code = 0 });
+            }
+            try
+            {
+                request.StudentIds = request.StudentIds.Where(x => x > 0).Distinct().ToList();
+                request.Narration = request.Narration.Trim();
+
+                var result = await _service.GenerateMiscChallanWithMonths(request);
+                if (result != 1)
+                {
+                    return Ok(new ApiResponse<object> { Success = false, Message = "Due not generated.", Code = 0 });
+                }
+                return Ok(new ApiResponse<object> { Success = true, Message = "Due generated successfully.", Code = 1 });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while generating the due.",
                     Code = -1
                 });
             }

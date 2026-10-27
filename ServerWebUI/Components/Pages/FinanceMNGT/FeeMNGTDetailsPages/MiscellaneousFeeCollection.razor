@@ -1,0 +1,774 @@
+@page "/miscellaneousfeecollection"
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@rendermode InteractiveServer
+
+
+@* page styles: NewStyle.css -> "Fee Collection page" block (all scoped under .fee-collection-page) *@
+<div class="fee-collection-page">
+    <div class="main-container">
+        <div class="row m-0 main-row">
+
+            <div class="col-12 p-1" id="main-header">
+                <PageHeading Tittle="Miscellaneous Fee Collection">
+                    <div class="form-box">
+                        <InputSelect @bind-Value="CurrentSession" class="form-input">
+                            <option value="0">-- Select Session --</option>
+                            @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                            {
+                                <option value="@data.SessionId">@data.SessionName</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-box student-search-wrap">
+                        <input @key="searchInputKey" class="form-input" placeholder="Enter student no. or student name" @bind-Value="searchTerm" @bind-Value:event="oninput" @bind-Value:after="OnSearchTermChanged" @onkeydown="HandleSearchKeyDown" />
+
+                        @if (ShowSuggestions)
+                        {
+                            <div class="student-suggest-box">
+                                @if (IsSearchingStudents)
+                                {
+                                    <div class="inline-loader">
+                                        <span>Loading students</span>
+                                        <span class="inline-spinner" role="status" aria-hidden="true"></span>
+                                    </div>
+                                }
+                                else if (filteredSuggestions.Count == 0)
+                                {
+                                    <div class="student-suggest-empty">No matching student found.</div>
+                                }
+                                else
+                                {
+                                    @for (int i = 0; i < filteredSuggestions.Count; i++)
+                                    {
+                                        var item = filteredSuggestions[i];
+                                        var index = i;
+                                        <div class="student-suggest-item @(index == activeSuggestion ? "active" : "")" @onclick="() => SelectStudent(item)">
+                                            <div class="student-suggest-column">
+                                                <span class="student-suggest-label">Student Name</span>
+                                                <span class="student-suggest-value">@item.StudentName</span>
+                                            </div>
+                                            <div class="student-suggest-column">
+                                                <span class="student-suggest-label">Admission No.</span>
+                                                <span class="student-suggest-value">@item.ControlNo</span>
+                                            </div>
+                                            <div class="student-suggest-column">
+                                                <span class="student-suggest-label">Class</span>
+                                                <span class="student-suggest-value">@item.ClassSection</span>
+                                            </div>
+                                            <div class="student-suggest-column">
+                                                <span class="student-suggest-label">Father</span>
+                                                <span class="student-suggest-value">@item.FatherName</span>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="form-box">
+                        <button type="button" class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
+                            <div class="visible content justify-content-center">Search</div>
+                            <div class="hidden content"><i class="bi bi-search"></i></div>
+                        </button>
+                    </div>
+                </PageHeading>
+            </div>
+
+            <div class="col-12 p-1">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="student-avatar">
+                                @GetInitials(IsStudentSelected ? selectedStudent.StudentName : null)
+                            </div>
+                            <div>
+                                <div class="student-name">
+                                    @(IsStudentSelected ? selectedStudent.StudentName : "No student selected")
+                                </div>
+                                <div class="student-sub">
+                                    @if (IsStudentSelected)
+                                    {
+                                        @:Admission no. @selectedStudent.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedStudent.FatherContactNo
+                                    }
+                                    else
+                                    {
+                                        @:Search and select a student to collect miscellaneous fee.
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-box">
+                                <label class="form-label">RECEIPT DATE</label>
+                                <InputDate @bind-Value="ReceiptDate" class="form-input" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-8 p-1">
+                <div class="card h-100">
+                    <div class="card-body table-card p-0">
+                        <div class="quick-main">
+                            <div class="grid-box-with-btn">
+                                <QuickGrid Items="@feeHeadQuery" Class="table">
+                                    <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FeeHeadName) ? " " : x.FeeHeadName)" Title="Head" Align="Align.Left" />
+                                    <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FeeHeadType) ? " " : x.FeeHeadType)" Title="Head Type" Class="text-center" Align="Align.Center" />
+                                    <TemplateColumn Title="Amount" Class="text-right" Align="Align.Right">
+                                        @Money(context.Amount ?? 0)
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Concession" Class="text-right" Align="Align.Right">
+                                        @Money(context.Concession)
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Total" Class="text-right" Align="Align.Right">
+                                        @Money((context.Amount ?? 0) - context.Concession)
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Action" Align="Align.Center">
+                                        <div class="action-btn-group">
+                                            <button type="button" class="btn-icon inactive-btn custom-tooltip" data-tooltip="Remove" @onclick="() => RemoveFeeHead(context)" @onclick:stopPropagation="true">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </TemplateColumn>
+                                </QuickGrid>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-4 p-1">
+                <div class="amount-to-collect-card mb-2">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="amount-stat-label">PREVIOUS BALANCE</div>
+                            <div class="amount-stat-value">@(IsStudentSelected ? Money(PreviousBalance) : "-")</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="amount-stat-label">TOTAL FEE</div>
+                            <div class="amount-stat-value">@Money(TotalFee)</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="amount-stat-label">CONCESSION</div>
+                            <div class="amount-stat-value">@Money(TotalConcession)</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="amount-stat-label">LATE FEE</div>
+                            <div class="amount-stat-value">@Money(LateFee)</div>
+                        </div>
+                    </div>
+                    <div class="amount-divider"></div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12">
+                            <div class="amount-to-collect-label">TOTAL AMOUNT</div>
+                            <div class="amount-to-collect-value mb-2">@Money(TotalAmount)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="fee-head-title mb-3" style="font-size:15px;">Payment details</div>
+
+                        <label class="fee-head-sub d-block mb-2">Payment mode</label>
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="payment-mode-btn @(PaymentMode == "Cash" ? "active" : "")" @onclick='() => SelectPaymentMode("Cash")'>
+                                Cash
+                            </button>
+                            <button type="button" class="payment-mode-btn @(PaymentMode == "Cheque" ? "active" : "")" @onclick='() => SelectPaymentMode("Cheque")'>
+                                Cheque
+                            </button>
+                            <button type="button" class="payment-mode-btn @(PaymentMode == "Online" ? "active" : "")" @onclick='() => SelectPaymentMode("Online")'>
+                                Online
+                            </button>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="form-box-group mb-0">
+                                    <input class="floating-input" placeholder=" " maxlength="50" autocomplete="off" @bind="ChequeNo" @bind:event="oninput" disabled="@IsCash" />
+                                    <label class="floating-label">@(PaymentMode == "Online" ? "Transaction No." : "Cheque No.") @if (!IsCash) {<span class="required">*</span>}</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-box-group static-label mb-0">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="ChequeDate" disabled="@IsCash" />
+                                    <label class="floating-label">@(PaymentMode == "Online" ? "Transaction Date" : "Cheque Date") @if (!IsCash) {<span class="required">*</span>}</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-box-group mb-3">
+                            <input class="floating-input" placeholder=" " maxlength="100" autocomplete="off" @bind="BankName" @bind:event="oninput" disabled="@IsCash" />
+                            <label class="floating-label">Bank @if (!IsCash) {<span class="required">*</span>}</label>
+                        </div>
+
+                        <label class="form-label d-block mb-2">Remark</label>
+                        <InputTextArea class="fee-remark" @bind-Value="Remark" rows="2" maxlength="200" placeholder="Add an internal note (optional)"></InputTextArea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 p-1">
+                <div class="page-heading d-flex align-items-center justify-content-end">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="form-box">
+                            <button type="button" class="table-btn" @onclick="OpenAddFeeHead">Miscellaneous Fee Head</button>
+                        </div>
+                        <div class="form-box">
+                            <button type="button" class="table-btn" @onclick="CollectFee">Collect Fee</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------------- Miscellaneous Fee Head popup ---------------- *@
+@if (ShowAddFeeHeadPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-8 col-md-7 col-lg-6 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Miscellaneous Fee Head</h5>
+                    <button data-access="Close" type="button" @onclick="CloseAddFeeHead" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body table-card p-0">
+                            <div class="quick-main">
+                                <div class="grid-box-with-btn">
+                                    <QuickGrid Items="@miscFeeHeadQuery" Pagination="@feeHeadPagination" Class="table">
+                                        <TemplateColumn Title="" Align="Align.Center">
+                                            <HeaderTemplate>
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <input type="checkbox" @bind="IsAllFeeHeadSelected" @bind:after="ToggleAllFeeHead" @onclick:stopPropagation="true" />
+                                                </div>
+                                            </HeaderTemplate>
+                                            <ChildContent>
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" disabled="@context.IsAdded" />
+                                                </div>
+                                            </ChildContent>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Head Name" Align="Align.Left">
+                                            @(string.IsNullOrWhiteSpace(context.FeeHeadName) ? " " : context.FeeHeadName)
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Head Type" Align="Align.Left">
+                                            @(string.IsNullOrWhiteSpace(context.FeeHeadType) ? " " : context.FeeHeadType)
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="text-center" Align="Align.Center">
+                                            <input type="number" class="form-input text-end" min="0" max="@MaxFeeHeadAmount" step="0.01"
+                                                   value="@((context.Amount ?? 0).ToString("0.00"))" @onchange="e => SetFeeHeadAmount(context, e)" disabled="@context.IsAdded" />
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination">
+                                    <div class="d-flex align-items-center">
+                                        <div class="welcome-text w-100">
+                                            <Paginator State="@feeHeadPagination" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SubmitAddFeeHead" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content"><i class="bi bi-check2"></i></div>
+                        </button>
+                        <button type="button" class="table-btn" @onclick="CloseAddFeeHead">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+else
+{
+
+}
+
+<CustomAlert @ref="customAlert" Title="Alert" />
+
+@code {
+    // ---------------------------------------------------------------------
+    // ASSUMPTIONS:
+    // - Student search uses the same API as Fee Collection (StudentFee/GetStudentDetailsForFee).
+    // - Popup fee heads = session fee heads (SessionFeeHeads/GetSessionFeeHead) whose
+    //   FeeApplicableType is "Miscellaneous" (taken from FeeHead/GetFeeHeadList).
+    // - Concession and Late Fee are 0 for miscellaneous heads (read-only).
+    // - Collect Fee has no endpoint yet (TODO).
+    // ---------------------------------------------------------------------
+
+    private bool IsLoading = false;
+    private long CurrentSession;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+    private DateTime? ReceiptDate = DateTime.Today;
+
+    private List<SessionModel> sessionlist = new();
+
+    // ---------------- student search (same as Fee Collection) ----------------
+    private string? searchTerm;
+    private string searchInputKey = Guid.NewGuid().ToString();
+    private StudentDetailsForFeeRequest studentDetailsForFeeRequest = new();
+    private List<StudentDetailsForFee> filteredSuggestions = new();
+    private StudentDetailsForFee selectedStudent = new();
+    private bool ShowSuggestions = false;
+    private bool IsSearchingStudents = false;
+    private int activeSuggestion = -1;
+    private bool IsStudentSelected = false;
+
+    // ---------------- fee heads added from the popup ----------------
+    private List<MiscFeeHeadRow> feeHeadlist = new();
+    private IQueryable<MiscFeeHeadRow> feeHeadQuery => feeHeadlist.AsQueryable();
+
+    // ---------------- right side amounts (read only) ----------------
+    private decimal PreviousBalance => IsStudentSelected ? selectedStudent.PreviousBalance : 0;
+    private decimal TotalFee => feeHeadlist.Sum(x => x.Amount ?? 0);
+    private decimal TotalConcession => feeHeadlist.Sum(x => x.Concession);
+    private decimal LateFee => 0;
+    private decimal TotalAmount => TotalFee - TotalConcession + LateFee;
+
+    // ---------------- payment ----------------
+    private string PaymentMode = "Cash";
+    private bool IsCash => PaymentMode == "Cash";
+    private string ChequeNo = string.Empty;
+    private DateTime? ChequeDate;
+    private string BankName = string.Empty;
+    private string? Remark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CurrentSession = await _commonmethod.SetCurrentSessionData();
+
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            var userResult = await sessionStorage.GetAsync<string>("UserName");
+            UserName = userResult.Value;
+
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load session.");
+        }
+    }
+
+    // rupee format: ₹1,24,000.00 (Indian grouping, always 2 decimals) — same as Fee Collection
+    private static readonly System.Globalization.NumberFormatInfo RupeeFormat = new()
+    {
+        NumberGroupSizes = new[] { 3, 2 },
+        NumberGroupSeparator = ",",
+        NumberDecimalSeparator = ".",
+        NumberDecimalDigits = 2
+    };
+    private static string Money(decimal value) =>
+        (value < 0 ? "-₹" : "₹") + Math.Abs(value).ToString("N2", RupeeFormat);
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+
+        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+    }
+
+    // ---------------- student search ----------------
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown" when ShowSuggestions && filteredSuggestions.Count > 0:
+                activeSuggestion = (activeSuggestion + 1) % filteredSuggestions.Count;
+                break;
+            case "ArrowUp" when ShowSuggestions && filteredSuggestions.Count > 0:
+                activeSuggestion = activeSuggestion <= 0 ? filteredSuggestions.Count - 1 : activeSuggestion - 1;
+                break;
+            case "Escape":
+                ShowSuggestions = false;
+                break;
+            case "Enter":
+                if (ShowSuggestions && activeSuggestion >= 0 && activeSuggestion < filteredSuggestions.Count)
+                    SelectStudent(filteredSuggestions[activeSuggestion]);
+                else
+                    await SearchStudent();
+                break;
+        }
+    }
+
+    // typing a new name / no. clears the selected student and the fee heads
+    private void OnSearchTermChanged()
+    {
+        ShowSuggestions = false;
+        filteredSuggestions = new();
+        activeSuggestion = -1;
+        selectedStudent = new();
+        IsStudentSelected = false;
+        feeHeadlist = new();
+        StateHasChanged();
+    }
+
+    private async Task SearchStudent()
+    {
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            await Alert.ShowWarning("Please enter student name or student no to search.");
+            return;
+        }
+
+        try
+        {
+            // loader shows inside the student list under the search box (not the full page loader)
+            filteredSuggestions = new();
+            activeSuggestion = -1;
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+
+            studentDetailsForFeeRequest.GroupCode = groupcode ?? string.Empty;
+            studentDetailsForFeeRequest.BranchCode = branchcode ?? string.Empty;
+            studentDetailsForFeeRequest.SessionId = CurrentSession;
+            studentDetailsForFeeRequest.ReceiptDate = ReceiptDate ?? DateTime.Today;
+            if (searchTerm.Any(char.IsDigit))
+            {
+                studentDetailsForFeeRequest.ControlNo = searchTerm.Trim();
+                studentDetailsForFeeRequest.StudentName = string.Empty;
+            }
+            else
+            {
+                studentDetailsForFeeRequest.ControlNo = string.Empty;
+                studentDetailsForFeeRequest.StudentName = searchTerm.Trim();
+            }
+
+            var response = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", studentDetailsForFeeRequest);
+            IsSearchingStudents = false;
+
+            if (response != null && response.Success && response.Data != null && response.Data.Any())
+            {
+                if (response.Data.Count == 1)
+                {
+                    SelectStudent(response.Data[0]);
+                }
+                else
+                {
+                    filteredSuggestions = response.Data;
+                    activeSuggestion = 0;
+                    selectedStudent = new();
+                    IsStudentSelected = false;
+                    ShowSuggestions = true;
+                }
+            }
+            else
+            {
+                filteredSuggestions = new();
+                activeSuggestion = -1;
+                selectedStudent = new();
+                IsStudentSelected = false;
+                ShowSuggestions = true;
+                await Alert.ShowWarning(response?.Message ?? "No student found.");
+            }
+        }
+        catch
+        {
+            ShowSuggestions = false;
+            await Alert.ShowWarning("An error occurred while searching.");
+        }
+        finally
+        {
+            IsSearchingStudents = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectStudent(StudentDetailsForFee item)
+    {
+        selectedStudent = item;
+        searchTerm = item.StudentName;
+        searchInputKey = Guid.NewGuid().ToString();
+        IsStudentSelected = true;
+        ShowSuggestions = false;
+        feeHeadlist = new();
+        StateHasChanged();
+    }
+
+    // ---------------- payment mode ----------------
+    // Cash -> cheque / transaction no., date and bank are disabled and cleared; only Remark stays enabled
+    private void SelectPaymentMode(string mode)
+    {
+        PaymentMode = mode;
+        if (IsCash)
+        {
+            ChequeNo = string.Empty;
+            ChequeDate = null;
+            BankName = string.Empty;
+        }
+        else
+        {
+            ChequeDate ??= DateTime.Today;
+        }
+    }
+
+    // ---------------- Miscellaneous Fee Head popup ----------------
+    private const decimal MaxFeeHeadAmount = 50000;
+    private const string MiscellaneousApplicableType = "Miscellaneous";
+    private CustomAlert customAlert;
+    private bool ShowAddFeeHeadPopup;
+    private bool IsAllFeeHeadSelected;
+    private SearchAnyRequestModel searchAny = new();
+    private List<MiscFeeHeadRow> miscFeeHeadlist = new();
+    private IQueryable<MiscFeeHeadRow> miscFeeHeadQuery => miscFeeHeadlist.AsQueryable();
+    private PaginationState feeHeadPagination = new() { ItemsPerPage = 10 };
+
+    private async Task OpenAddFeeHead()
+    {
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+        if (!IsStudentSelected)
+        {
+            await Alert.ShowWarning("Please search and select student.");
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+
+            var apiResponse = await httpService.Post<ApiResponse<List<DetSessionModel>>>("SessionFeeHeads/GetSessionFeeHead", searchAny);
+            var sessionHeads = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+
+            // only heads whose applicable type is Miscellaneous
+            var feeHeadMaster = await httpService.Get<List<FeeHeadModel>>("FeeHead/GetFeeHeadList") ?? new();
+            var miscHeadIds = feeHeadMaster
+                .Where(x => string.Equals(x.FeeApplicableType?.Trim(), MiscellaneousApplicableType, StringComparison.OrdinalIgnoreCase))
+                .Select(x => x.FeeHeadId)
+                .ToHashSet();
+
+            // heads already in the grid come checked + locked (IsAdded) with their amount;
+            // they unlock only after being deleted from the grid. New ones start unchecked at 0.00.
+            miscFeeHeadlist = sessionHeads
+                .Where(x => x.IsValid && miscHeadIds.Contains(x.FeeHeadId))
+                .Select(x =>
+                {
+                    var added = feeHeadlist.FirstOrDefault(f => f.FeeHeadId == x.FeeHeadId);
+                    return new MiscFeeHeadRow
+                    {
+                        FeeHeadId = x.FeeHeadId,
+                        FeeHeadName = x.FeeHeadName,
+                        FeeHeadType = x.FeeHeadType,
+                        Amount = added?.Amount ?? 0,
+                        IsSelected = added != null,
+                        IsAdded = added != null
+                    };
+                })
+                .ToList();
+            IsAllFeeHeadSelected = miscFeeHeadlist.Count > 0 && miscFeeHeadlist.All(x => x.IsSelected);
+
+            if (miscFeeHeadlist.Count == 0)
+            {
+                await Alert.ShowWarning("No miscellaneous fee head found for the selected session.");
+                return;
+            }
+            ShowAddFeeHeadPopup = true;
+        }
+        catch
+        {
+            await Alert.ShowError("Unable to load miscellaneous fee heads.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // amount box shows 0.00 by default; invalid / negative input falls back to 0
+    private void SetFeeHeadAmount(MiscFeeHeadRow row, ChangeEventArgs e)
+    {
+        row.Amount = decimal.TryParse(e.Value?.ToString(), out var amount) && amount > 0 ? amount : 0;
+    }
+
+    private void ToggleAllFeeHead()
+    {
+        foreach (var row in miscFeeHeadlist.Where(x => !x.IsAdded))
+            row.IsSelected = IsAllFeeHeadSelected;
+    }
+
+    private void CloseAddFeeHead()
+    {
+        ShowAddFeeHeadPopup = false;
+        miscFeeHeadlist = new();
+        IsAllFeeHeadSelected = false;
+    }
+
+    private async Task SubmitAddFeeHead()
+    {
+        // only newly checked heads; already added (locked) ones are skipped
+        var selected = miscFeeHeadlist.Where(x => x.IsSelected && !x.IsAdded).ToList();
+        if (selected.Count == 0)
+        {
+            // CustomAlert renders above the popup, so the popup stays open
+            await customAlert.ShowCustomAlert("Please select fee head.", false);
+            return;
+        }
+
+        var zeroRow = selected.FirstOrDefault(x => (x.Amount ?? 0) <= 0);
+        if (zeroRow != null)
+        {
+            await customAlert.ShowCustomAlert($"Please enter amount for {zeroRow.FeeHeadName}.", false);
+            return;
+        }
+
+        var overRow = selected.FirstOrDefault(x => x.Amount > MaxFeeHeadAmount);
+        if (overRow != null)
+        {
+            await customAlert.ShowCustomAlert($"Amount of {overRow.FeeHeadName} cannot be more than {MaxFeeHeadAmount:N0}.", false);
+            return;
+        }
+
+        foreach (var row in selected)
+        {
+            feeHeadlist.Add(new MiscFeeHeadRow { FeeHeadId = row.FeeHeadId, FeeHeadName = row.FeeHeadName, FeeHeadType = row.FeeHeadType, Amount = row.Amount });
+        }
+        CloseAddFeeHead();
+    }
+
+    private async Task RemoveFeeHead(MiscFeeHeadRow row)
+    {
+        var confirm = await Alert.ShowConfirm($"Are you sure, you want to delete {row.FeeHeadName}?");
+        if (!confirm)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        feeHeadlist.Remove(row);
+        StateHasChanged();
+    }
+
+    // ---------------- Collect Fee ----------------
+    private async Task CollectFee()
+    {
+        if (!IsStudentSelected)
+        {
+            await Alert.ShowWarning("Please search and select student.");
+            return;
+        }
+        if (feeHeadlist.Count == 0)
+        {
+            await Alert.ShowWarning("Please add at least one miscellaneous fee head.");
+            return;
+        }
+        if (ReceiptDate == null)
+        {
+            await Alert.ShowWarning("Please select receipt date.");
+            return;
+        }
+        if (!IsCash)
+        {
+            var noLabel = PaymentMode == "Online" ? "transaction no." : "cheque no.";
+            var dateLabel = PaymentMode == "Online" ? "transaction date" : "cheque date";
+            if (string.IsNullOrWhiteSpace(ChequeNo))
+            {
+                await Alert.ShowWarning($"Please enter {noLabel}.");
+                return;
+            }
+            if (ChequeDate == null)
+            {
+                await Alert.ShowWarning($"Please select {dateLabel}.");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(BankName))
+            {
+                await Alert.ShowWarning("Please enter bank.");
+                return;
+            }
+        }
+
+        var submit = await Alert.ShowConfirm($"Are you sure, you want to collect {Money(TotalAmount)}?");
+        if (!submit)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        // TODO: no endpoint specified yet — send selectedStudent.StudentId, CurrentSession, ReceiptDate,
+        // feeHeadlist (FeeHeadId, Amount, Concession), PaymentMode, ChequeNo, ChequeDate, BankName, Remark.
+    }
+
+    public class MiscFeeHeadRow
+    {
+        public bool IsSelected { get; set; }
+        // already in the grid -> locked in the Miscellaneous Fee Head popup
+        public bool IsAdded { get; set; }
+        public int FeeHeadId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public string? FeeHeadType { get; set; }
+        public decimal? Amount { get; set; }
+        public decimal Concession { get; set; }
+    }
+}
