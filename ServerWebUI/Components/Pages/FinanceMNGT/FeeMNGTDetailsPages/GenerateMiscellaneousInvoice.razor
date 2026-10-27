@@ -209,9 +209,6 @@
             <div class="page-heading d-flex align-items-center justify-content-end">
                 <div class="d-flex align-items-center gap-2">
                     <div class="form-box">
-                        <button type="button" class="table-btn" @onclick="GenerateDues">Generate Dues</button>
-                    </div>
-                    <div class="form-box">
                         <button type="button" class="table-btn" @onclick="OpenAddFeeHead">Add Fee Head</button>
                     </div>
                     <div class="form-box">
@@ -342,96 +339,6 @@
     </div>
 }
 
-@* ---------------- Generate Dues popup ---------------- *@
-@if (ShowGenerateDuesPopup)
-{
-    <div class="custom-modal row m-0">
-        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
-            <div class="modal-content clearfix main-popup">
-                <div class="head-btn">
-                    <h5 class="modal-title">Select Fee Head</h5>
-                    <button data-access="Close" type="button" @onclick="CloseGenerateDues" class="close"><span aria-hidden="true">×</span></button>
-                </div>
-                <div class="modal-body">
-                    <div class="card px-1 py-2 mt-2">
-                        <div class="row gap-10-0">
-                            <div class="row m-1 gap-15-0">
-                                <div class="col-12 px-1">
-                                    <div class="card-headline d-flex align-items-center justify-content-between pb-1 p-0 mb-0">
-                                        <p class="m-0 headline-text">Add Fee Head With Amount</p>
-                                        <span class="misc-hint">Selected Students : @studentlist.Count(x => x.IsSelected)</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2">
-                                <div class="form-box-group static-label">
-                                    <InputSelect class="floating-input" @bind-Value="DuesFeeHeadId" @bind-Value:after="OnDuesFeeHeadChanged">
-                                        <option value="0" selected>--Select--</option>
-                                        @foreach (var item in duesFeeHeadlist)
-                                        {
-                                            <option value="@item.FeeHeadId">@item.FeeHeadName</option>
-                                        }
-                                    </InputSelect>
-                                    <label class="floating-label">Fee Head <span class="required">*</span></label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-6 px-3 mt-2">
-                                <div class="form-box-group static-label">
-                                    <input class="floating-input text-end" placeholder=" " type="text" value="@((DuesFeeHeadAmount ?? 0).ToString("C0", new System.Globalization.CultureInfo("hi-IN")))" readonly disabled />
-                                    <label class="floating-label">Fee Head Amount <span class="required">*</span></label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-12 px-3">
-                                <div class="form-box">
-                                    <div class="sef-month-grid">
-                                        @foreach (var month in MonthList)
-                                        {
-                                            <label class="sef-month-pill">
-                                                <input type="checkbox" @bind="month.IsSelected" />
-                                                <span>@month.MonthName</span>
-                                            </label>
-                                        }
-                                    </div>
-
-                                    @{
-                                        var selectedCount = MonthList.Count(m => m.IsSelected);
-                                        var currentHeadName = duesFeeHeadlist.FirstOrDefault(x => x.FeeHeadId == DuesFeeHeadId)?.FeeHeadName;
-                                        var totalPayable = selectedCount * (DuesFeeHeadAmount ?? 0);
-                                    }
-
-                                    <div class="sef-selected-summary">
-                                        <span class="sef-sel-text">
-                                            Selected: <b>@selectedCount month@(selectedCount == 1 ? "" : "s")</b>
-                                            @if (!string.IsNullOrWhiteSpace(currentHeadName))
-                                            {
-                                                @: · @currentHeadName
-                                            }
-                                        </span>
-                                        <span>
-                                            <span class="sef-total-label">Total Payable</span>
-                                            <span class="sef-total-value">₹ @totalPayable.ToString("N2")</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="form-group btn-gr">
-                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SubmitGenerateDues" tabindex="0">
-                            <div class="visible content">Submit</div>
-                            <div class="hidden content"><i class="bi bi-check2"></i></div>
-                        </button>
-                        <button type="button" class="table-btn" @onclick="CloseGenerateDues">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
 @if (IsLoading)
 {
     <div class="grid-loader-overlay">
@@ -457,9 +364,10 @@ else
     // ---------------------------------------------------------------------
     // ASSUMPTIONS:
     // - Students come from StudentMiscellaneous/GetStudentMiscellaneousData.
-    // - Fee heads / Generate Dues / Generate Challan are still static (TODO).
+    // - Generate Due (by fee template) is on GenerateMiscellaneousInvoiceWithTemplate.
     // - Narration is mandatory for Generate Challan.
-    // - Student No. (ControlNo) accepts multiple numbers separated by comma.
+    // - Student No. (ControlNo) accepts multiple numbers separated by comma;
+    //   when given, Class / Section are optional (else both are mandatory).
     // ---------------------------------------------------------------------
 
     private bool IsLoading = false;
@@ -566,6 +474,9 @@ else
         StateHasChanged();
     }
 
+    // grid was loaded by Student No. -> class / section not required for challan
+    private bool SearchedByStudentNo;
+
     private void OpenSearch() => ShowSearchPopup = true;
 
     private void ClosePopup() => ShowSearchPopup = false;
@@ -580,12 +491,19 @@ else
             await Alert.ShowWarning("Please select session.");
             return;
         }
-        if (string.IsNullOrEmpty(searchModel.ClassCode))
+
+        // multiple student no. -> "0174,0179,0195"
+        searchModel.ControlNo = string.Join(",", (searchModel.ControlNo ?? string.Empty)
+            .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        // student no. given -> class / section optional; otherwise both mandatory
+        bool byStudentNo = !string.IsNullOrEmpty(searchModel.ControlNo);
+        if (!byStudentNo && string.IsNullOrEmpty(searchModel.ClassCode))
         {
             await Alert.ShowWarning("Please select class.");
             return;
         }
-        if (string.IsNullOrEmpty(searchModel.SectionCode))
+        if (!byStudentNo && string.IsNullOrEmpty(searchModel.SectionCode))
         {
             await Alert.ShowWarning("Please select section.");
             return;
@@ -594,12 +512,11 @@ else
         searchModel.GroupCode = groupcode;
         searchModel.BranchCode = branchcode;
         searchModel.SessionId = CurrentSession;
+        searchModel.ClassCode ??= string.Empty;
+        searchModel.SectionCode ??= string.Empty;
         searchModel.Gender ??= string.Empty;
         searchModel.IsEWS ??= string.Empty;
         searchModel.StudentName = searchModel.StudentName?.Trim() ?? string.Empty;
-        // multiple student no. -> "0174,0179,0195"
-        searchModel.ControlNo = string.Join(",", (searchModel.ControlNo ?? string.Empty)
-            .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
         IsLoading = true;
         StateHasChanged();
@@ -609,6 +526,7 @@ else
             var apiResponse = await httpService.Post<ApiResponse<List<MiscellaneousResponse>>>(apiUrl, searchModel);
 
             studentlist = (apiResponse != null && apiResponse.Success) ? (apiResponse.Data ?? new()) : new();
+            SearchedByStudentNo = byStudentNo;
             IsAllSelected = false;
 
             if (apiResponse != null && apiResponse.Success && apiResponse.Code == 0)
@@ -778,160 +696,20 @@ else
         StateHasChanged();
     }
 
-    // ---------------- Generate Dues ----------------
-    // Same design as Edit Invoice "Add Fee Head", but every fee head is listed
-    // (Annual / Quarterly / OneTime too). Fee heads + amount come from
-    // StudentFeeInvoice/GetFeeHeadWithAmount for the selected students' fee template.
-    private bool ShowGenerateDuesPopup;
-    private long DuesFeeHeadId;
-    private decimal? DuesFeeHeadAmount;
-    private List<FeeHeadDropdownModel> duesFeeHeadlist = new();
-    private List<MonthModel> MonthList = new();
-
-    private async Task GenerateDues()
+    private async Task GenerateChallan()
     {
-        // order: class -> section -> at least one student -> narration
-        if (string.IsNullOrEmpty(searchModel.ClassCode))
+        // order: class -> section (skipped for Student No. search) -> at least one student -> fee head -> narration -> date
+        if (!SearchedByStudentNo && string.IsNullOrEmpty(searchModel.ClassCode))
         {
             await Alert.ShowWarning("Please select class.");
             return;
         }
-        if (string.IsNullOrEmpty(searchModel.SectionCode))
+        if (!SearchedByStudentNo && string.IsNullOrEmpty(searchModel.SectionCode))
         {
             await Alert.ShowWarning("Please select section.");
             return;
         }
-        if (!studentlist.Any(x => x.IsSelected))
-        {
-            await JS.InvokeVoidAsync("showSelectRecordAlert");
-            return;
-        } 
-        if (string.IsNullOrWhiteSpace(Narration))
-        {
-            narrationTouched = true;
-            await Alert.ShowWarning("Narration is required.");
-            return;
-        }
 
-        // fee head amounts depend on the fee template, so all selected students must share one
-        var templateIds = studentlist.Where(x => x.IsSelected).Select(x => x.TemplateId).Distinct().ToList();
-        if (templateIds.Count > 1)
-        {
-            await Alert.ShowWarning("Selected students have different fee templates. Please select students of the same fee template.");
-            return;
-        }
-
-        IsLoading = true;
-        StateHasChanged();
-        try
-        {
-            var feeHeadRequest = new SearchAnyRequestModel
-            {
-                GroupCode = groupcode,
-                BranchCode = branchcode,
-                SessionId = CurrentSession,
-                RequestId = templateIds.FirstOrDefault()
-            };
-            var feeHeadResponse = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", feeHeadRequest);
-            duesFeeHeadlist = (feeHeadResponse != null && feeHeadResponse.Success) ? (feeHeadResponse.Data ?? new()) : new();
-
-            if (duesFeeHeadlist.Count == 0)
-            {
-                await Alert.ShowWarning("No fee head found for the selected students.");
-                return;
-            }
-
-            MonthList = await httpService.Get<List<MonthModel>>("Month/GetMonth") ?? new();
-            ApplySessionMonthOrder();
-
-            DuesFeeHeadId = 0;
-            DuesFeeHeadAmount = null;
-            ShowGenerateDuesPopup = true;
-        }
-        catch
-        {
-            await Alert.ShowError("Unable to load fee head / month.");
-        }
-        finally
-        {
-            IsLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    // months in session order (e.g. Apr - Mar), same as Edit Invoice
-    private void ApplySessionMonthOrder()
-    {
-        var session = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession);
-        if (session == null || MonthList.Count == 0)
-            return;
-
-        int startMonth = session.StartDate.Month;
-        int endMonth = session.EndDate.Month;
-        var orderedMonths = new List<MonthModel>();
-        int current = startMonth;
-        for (int i = 0; i < 12; i++)
-        {
-            var month = MonthList.FirstOrDefault(x => x.MonthNo == current);
-            if (month != null)
-                orderedMonths.Add(month);
-
-            if (current == endMonth)
-                break;
-            current = current == 12 ? 1 : current + 1;
-        }
-        MonthList = orderedMonths;
-    }
-
-    // selected fee head -> its amount into Fee Head Amount
-    private void OnDuesFeeHeadChanged()
-    {
-        var feeHead = duesFeeHeadlist.FirstOrDefault(x => x.FeeHeadId == DuesFeeHeadId);
-        DuesFeeHeadAmount = feeHead?.Amount;
-    }
-
-    private void CloseGenerateDues()
-    {
-        ShowGenerateDuesPopup = false;
-        DuesFeeHeadId = 0;
-        DuesFeeHeadAmount = null;
-        foreach (var month in MonthList)
-            month.IsSelected = false;
-    }
-
-    private async Task ShowDuesWarning(string message)
-    {
-        ShowGenerateDuesPopup = false;
-        StateHasChanged();
-        await Alert.ShowWarning(message);
-        ShowGenerateDuesPopup = true;
-        StateHasChanged();
-    }
-
-    private async Task SubmitGenerateDues()
-    {
-        if (DuesFeeHeadId <= 0)
-        {
-            await ShowDuesWarning("Please select fee head.");
-            return;
-        }
-        if (DuesFeeHeadAmount == null || DuesFeeHeadAmount <= 0)
-        {
-            await ShowDuesWarning("Please enter fee head amount.");
-            return;
-        }
-        if (!MonthList.Any(x => x.IsSelected))
-        {
-            await ShowDuesWarning("Please select at least one month.");
-            return;
-        }
-
-        // TODO: no endpoint specified yet — send selected students (StudentId),
-        // DuesFeeHeadId, DuesFeeHeadAmount and selected MonthNo list.
-    }
-
-    private async Task GenerateChallan()
-    {
         narrationTouched = true;
 
         if (!studentlist.Any(x => x.IsSelected))

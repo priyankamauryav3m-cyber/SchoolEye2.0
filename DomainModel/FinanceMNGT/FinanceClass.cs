@@ -2494,6 +2494,41 @@ namespace DomainModel.FinanceMNGT
         public bool IsSelected { get; set; }
     }
 
+    // USP_GetAllStudentByFeeTemplate
+    public class StudentByFeeTemplateRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public int FeeTemplateId { get; set; }
+        // multiple student no. separated by comma
+        public string? ControlNoList { get; set; } = string.Empty;
+        public string? ClassCode { get; set; } = string.Empty;
+        // 0 = all sections
+        public int SectionId { get; set; }
+    }
+
+    public class StudentByFeeTemplateResponse
+    {
+        public long StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? FirstName { get; set; }
+        public string? MiddleName { get; set; }
+        public string? LastName { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? ClassCode { get; set; }
+        public int SectionId { get; set; }
+        public int? RollNo { get; set; }
+        public string? MobileNo { get; set; }
+        public int SocietyId { get; set; }
+        public int FeeTemplateId { get; set; }
+        public string StudentName => string.Join(" ", new[] { FirstName, MiddleName, LastName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        public bool IsSelected { get; set; }
+    }
+
     // V3M_FIN_GenerateMiscellaneousChallanBulk
     public class GenerateMiscChallanRequest
     {
@@ -2532,6 +2567,28 @@ namespace DomainModel.FinanceMNGT
         public string? StudentNo { get; set; }
         public long InvoiceId { get; set; }
         public string? InvoiceNo { get; set; }
+    }
+
+    // V3M_FIN_MiscellaniousChallanWithMonthsNewSS
+    public class MiscChallanWithMonthsRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public List<long> StudentIds { get; set; } = new();
+        public List<MiscChallanFeeHeadMonth> FeeHeads { get; set; } = new();
+        public int FeeTemplateId { get; set; }
+        public DateTime DueDate { get; set; }
+        public string? Narration { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+
+    // dbo.V3M_FIN_FeeHeadMonthType
+    public class MiscChallanFeeHeadMonth
+    {
+        public int FeeHeadId { get; set; }
+        public int MonthNo { get; set; }
+        public decimal Amount { get; set; }
     }
 
     public class FeeHeadForComboRequest
