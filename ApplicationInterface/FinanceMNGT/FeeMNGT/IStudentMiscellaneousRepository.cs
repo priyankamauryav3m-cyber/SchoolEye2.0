@@ -18,5 +18,8 @@ namespace SchoolEye.ApplicationInterface.Admin
         // returns the SP @Result: 1 = success, -1 = error
         public Task<int> GenerateMiscChallanWithMonths(MiscChallanWithMonthsRequest request);
 
+        // receipt no / id come back as SP output params; empty receipt no = not generated
+        public Task<GenerateMiscReceiptResponse> GenerateMiscellaneousReceipt(GenerateMiscReceiptRequest request);
+
     }
 }

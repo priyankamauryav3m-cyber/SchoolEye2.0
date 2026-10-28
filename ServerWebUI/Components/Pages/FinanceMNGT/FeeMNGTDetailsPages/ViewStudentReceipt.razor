@@ -4,983 +4,1033 @@
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using MyApp.Common
-@using ServerWebUI.Components.Common
 @using ServerWebUI.Components.Pages.CommonPages
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
 @inject ICommonMethod _commonmethod
-@implements IDisposable
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 <style>
-    .grid-box{
-        height: calc(70vh - 207px);
-    }
-    .quickgrid thead th:nth-last-child(2) {
-        min-width: 75px;
-    }
-
-    .quickgrid thead th:last-child {
-        min-width: 75px;
-    }
-    .student-avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: #dbeafe;
-        color: #1d4ed8;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-    }
-
-    .student-name {
-        font-weight: 700;
-        font-size: 15px;
-    }
-
-    .student-sub {
+        .quickgrid thead th:nth-last-child(2) {
+    min-width: 75px;
+}
+.quickgrid thead th:last-child {
+    min-width: 75px;
+}
+    .field-title {
         font-weight: 500;
-        font-size: 13px;
-        color: #6c757d;
+        color: #1f2937;
     }
 
-    /* this card must not clip the suggestion list (global .card has overflow:hidden) and must sit above the cards below */
-    .student-search-card {
-        overflow: visible !important;
-        z-index: 5;
-    }
-
-    /* small input; the suggestion list keeps its full width and opens under the input */
-    .student-search-wrap {
-        position: relative;
-        width: 300px;
-    }
-
-    .student-suggest-box-popup {
-        position: absolute;
-        top: 100%;
-        right: -70px;
-        width: 550px;
-        max-width: 92vw;
-        margin-top: 2px;
-        border: 1px solid #d9d9d9;
-        border-radius: 8px;
-        background: #fff;
-        max-height: 400px;
-        overflow-y: auto;
-        box-shadow: 0 8px 20px rgba(0,0,0,.15);
-        z-index: 2000;
-    }
-
-    .student-suggest-item {
-        display: grid;
-        grid-template-columns: 2fr 1.4fr 1fr 1.6fr;
-        gap: 20px;
-        padding: 10px 14px;
-        cursor: pointer;
-        background: #fff;
-        border-bottom: 1px solid #f1f3f5;
-    }
-
-        .student-suggest-item:last-child {
-            border-bottom: none;
-        }
-
-        .student-suggest-item:hover,
-        .student-suggest-item.active {
-            background: #f7f9fc;
-        }
-
-    .student-suggest-column {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-    }
-
-    .student-suggest-label {
-        font-size: 12px;
+    .field-value {
+        color: #6b7280;
         font-weight: 500;
-        margin-bottom: 2px;
-        color: #263238;
     }
 
-    .student-suggest-value {
-        font-size: 11px;
-        font-weight: 600;
-        color: #8a94a6;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    /* small coloured amount cards next to the fee head grid (same as Edit Invoice) */
+    .invoice-amount-tile {
+        border-radius: 10px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        height: 100%;
     }
 
-    .student-suggest-empty {
-        padding: 14px;
-        color: #6c757d;
-        font-size: 13px;
-    }
-
-    /* "Loading" text with a small spinning circle after it (student search list) */
-    .ledger-inline-loader {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 24px 13px;
-        color: #68778a;
-        font-weight: 600;
-    }
-
-    .ledger-inline-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid #cbd8e5;
-        border-top-color: #118c91;
-        border-radius: 50%;
-        display: inline-block;
-        animation: ledger-inline-spin .7s linear infinite;
-    }
-
-    @@keyframes ledger-inline-spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .module-section-head {
-        padding: 13px 16px;
-        border-bottom: 1px solid #eef1f5;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-    }
-
-        .module-section-head h6 {
-            margin: 0;
-            font-size: 15px;
+        .invoice-amount-tile span {
+            display: block;
+            font-size: 11px;
             font-weight: 700;
-            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            opacity: .85;
         }
 
-        .module-section-head span {
-            color: #94a3b8;
-            font-size: 12.5px;
+        .invoice-amount-tile strong {
+            display: block;
+            text-align: right;
+            font-size: 17px;
+            margin-top: 4px;
         }
 
-        .module-section-head.no-border {
-            border-bottom: none;
+        .invoice-amount-tile.tile-blue {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
         }
 
-    .empty-state {
-        min-height: 240px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 24px 20px;
-    }
-
-    .empty-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        background: #eaf3fb;
-        color: #177a9b;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 12px;
-        font-size: 20px;
-    }
-
-    .empty-state strong {
-        display: block;
-        font-size: 14px;
-        color: #1e293b;
-        margin-bottom: 4px;
-    }
-
-    .empty-state div div {
-        color: #94a3b8;
-        font-size: 13px;
-    }
-
-    @@media (max-width: 767px) {
-        .student-search-wrap {
-            width: 100%;
+        .invoice-amount-tile.tile-green {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #15803d;
         }
 
-        .student-suggest-box-popup {
-            left: 0;
-            width: 100%;
+        .invoice-amount-tile.tile-teal {
+            background: #f0fdfa;
+            border-color: #99f6e4;
+            color: #0f766e;
         }
+
+        .invoice-amount-tile.tile-amber {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
+
+        .invoice-amount-tile.tile-navy {
+            background: linear-gradient(135deg, #0b2948, #14577d);
+            color: #fff;
+        }
+
+    /* loader must show over the Receipt Details popup (.custom-modal is z-index 999999999) */
+    .grid-loader-overlay.above-popup {
+        z-index: 1000000000;
     }
 </style>
 
-<section class="@classs">
-    <div class="row gap-10-0 m-0 main-row">
-        @* Student details (left) + session / search (right) in one card *@
-        <div class="col-12 p-1">
-            <div class="card student-search-card">
-                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    @if (!IsStudentSelected)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="student-avatar" style="background:#e5e7eb;color:#6b7280;">?</div>
-                            <div>
-                                <div class="student-name">No student selected</div>
-                                <div class="student-sub">Search and select a student to view fee details.</div>
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="student-avatar">@GetInitials(selectedStudent?.StudentName)</div>
-                            <div>
-                                <div class="student-name">@selectedStudent?.StudentName</div>
-                                <div class="student-sub">
-                                    Admission no. @selectedStudent?.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent?.ClassSection
-                                     &nbsp;&middot;&nbsp; Father: @selectedStudent?.FatherName
-                                </div>
-                                <div class="student-sub mt-1">
-                                     Mobile: @selectedStudent?.FatherContactNo
-                                </div>
-                            </div>
-                        </div>
-                    }
+<div class="main-container">
+    <div class="row m-0 main-row">
 
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <div class="form-box">
-                            <select class="form-input" value="@CurrentSession" @onchange="OnSessionChanged">
-                                <option value="0">-- Select Session --</option>
-                                @foreach (var s in sessionlist.Where(x => x.IsValid))
-                                {
-                                    <option value="@s.SessionId">@s.SessionName</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="form-box student-search-wrap">
-                            <input @key="searchInputKey" class="form-input w-100" placeholder="Enter student no. or student name" maxlength="200" autocomplete="off"
-                                   @bind-Value="searchText" @bind-Value:event="oninput" @bind-Value:after="OnSearchTextChanged" @onkeydown="HandleSearchKeyDown" />
-                            @if (ShowSuggestions)
-                            {
-                                <div class="student-suggest-box-popup">
-                                    @* search running -> "Loading" with the small spinner, then the students to select *@
-                                    @if (IsSearchingStudents)
-                                    {
-                                        <div class="ledger-inline-loader">
-                                            <span>Loading students</span>
-                                            <span class="ledger-inline-spinner" role="status" aria-hidden="true"></span>
+        <div class="col-12 p-1" id="main-header">
+            <PageHeading Tittle="View Student Receipt">
+                <div class="form-box">
+                    <InputSelect @bind-Value="request.SessionId" class="form-input">
+                        <option value="0">All</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="request.GroupClassCode" class="form-input">
+                        <option value="">-- All Class Group --</option>
+                        @foreach (var data in classGroupList)
+                        {
+                            <option value="@data">@data</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="request.ClassCode" class="form-input">
+                        <option value="">-- All Class --</option>
+                        @foreach (var data in classlist)
+                        {
+                            <option value="@data.ClassCode">@data.ClassName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button type="button" class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="() => SearchReceipt()">
+                        <div class="visible content justify-content-center">Search</div>
+                        <div class="hidden content"><i class="bi bi-search"></i></div>
+                    </button>
+                </div>
+                <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
+                    <i class="bi bi-sliders"></i>
+                </button>
+            </PageHeading>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0">
+                    <div class="quick-main">
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@receiptQuery" Pagination="@pagination" Class="table">
+                                <TemplateColumn Title="" Align="Align.Center">
+                                    <HeaderTemplate>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" @bind="IsAllSelected" @bind:after="ToggleAll" @onclick:stopPropagation="true" />
                                         </div>
-                                    }
-                                    else if (suggestions.Count == 0)
+                                    </HeaderTemplate>
+                                    <ChildContent>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="checkbox" checked="@selectedReceiptIds.Contains(context.ReceiptId)" @onchange="e => ToggleReceipt(context, e)" @onclick:stopPropagation="true" />
+                                        </div>
+                                    </ChildContent>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Receipt No" Class="text-center" Align="Align.Center">
+                                    <button type="button" class="btn btn-link p-0" title="Receipt Details" @onclick="() => OpenReceiptDetails(context)" @onclick:stopPropagation="true">
+                                        @(string.IsNullOrWhiteSpace(context.ReceiptNo) ? " " : context.ReceiptNo)
+                                    </button>
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentNo) ? " " : x.StudentNo)" Title="Student No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? (x.ClassName ?? " ") : x.ClassSection)" Title="Class" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => (x.TotalAmount ?? 0).ToString("N2"))" Title="Total" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => (x.PaidAmount ?? 0).ToString("N2"))" Title="Paid" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => (x.Concession ?? 0).ToString("N2"))" Title="Concession" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ConcessionName) ? " " : x.ConcessionName)" Title="Concession Name" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => (x.Balance ?? 0).ToString("N2"))" Title="Balance" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? " " : x.PaymentMode)" Title="Mode" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remark) ? " " : x.Remark)" Title="Remarks" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.ReceiptDate.HasValue ? x.ReceiptDate.Value.ToString("dd/MM/yyyy") : " ")" Title="Date" Class="text-center" Align="Align.Center" />
+                                <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
+                                    @* active receipt -> Done (green), cancelled -> Not Done (red) *@
+                                    @if (context.Valid == true)
                                     {
-                                        <div class="student-suggest-empty">No matching student found.</div>
+                                        <span class="d-inline-flex align-items-center justify-content-center gap-1 text-success fw-semibold text-nowrap">
+                                            <i class="bi bi-check-circle-fill"></i> Done
+                                        </span>
                                     }
                                     else
                                     {
-                                        @for (int i = 0; i < suggestions.Count; i++)
+                                        <span class="d-inline-flex align-items-center justify-content-center gap-1 text-danger fw-semibold text-nowrap">
+                                            <i class="bi bi-x-circle-fill"></i> Not Done
+                                        </span>
+                                    }
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 p-1">
+            <div class="page-heading d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3 px-1 fw-bold">
+                    <span>Receipt(s) : @receiptlist.Count</span>
+                    <span class="text-danger">Total : @receiptlist.Sum(x => x.TotalAmount ?? 0).ToString("N2")</span>
+                    <span class="text-success">Received : @receiptlist.Sum(x => x.PaidAmount ?? 0).ToString("N2")</span>
+                    <span class="text-info">Concession : @receiptlist.Sum(x => x.Concession ?? 0).ToString("N2")</span>
+                </div>
+                @* buttons are static for now (no action wired yet) *@
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="form-box"><button type="button" class="table-btn">Chq Report</button></div>
+                    <div class="form-box"><button type="button" class="table-btn">Cancel</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="OnPrintListClick">Print</button></div>
+                    <div class="form-box"><button type="button" class="table-btn">Student Print</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="GenerateStudentReceiptHeadWisePdf">Head Details</button></div>
+                    <div class="form-box"><button type="button" class="table-btn">Edit</button></div>
+                    <div class="form-box"><button type="button" class="table-btn">Collection Report</button></div>
+                    <div class="form-box"><button type="button" class="table-btn">Print Multi Receipt</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------------- Search popup (all filters) ---------------- *@
+@if (ShowSearchPopup)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-10 col-md-9 col-lg-8 col-xl-8">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Search Receipt</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.SessionId">
+                                    <option value="0">All</option>
+                                    @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@data.SessionId">@data.SessionName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Session</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.GroupClassCode">
+                                    <option value="">All</option>
+                                    @foreach (var data in classGroupList)
+                                    {
+                                        <option value="@data">@data</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Class-Group</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.ClassCode">
+                                    <option value="">All</option>
+                                    @foreach (var data in classlist)
+                                    {
+                                        <option value="@data.ClassCode">@data.ClassName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Class</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.ReceiptMode">
+                                    <option value="-1">All</option>
+                                    <option value="1">Admission Fee</option>
+                                    <option value="0">Other</option>
+                                </InputSelect>
+                                <label class="floating-label">Receipt Type</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.CancelType">
+                                    <option value="-1">All</option>
+                                    <option value="Cheque Bounce">Cheque Bounce</option>
+                                    <option value="Other">Other</option>
+                                </InputSelect>
+                                <label class="floating-label">Cancel Type</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.PaymentMode">
+                                    <option value="">All</option>
+                                    @foreach (var data in paymentModeList)
+                                    {
+                                        <option value="@data.ModeName">@data.ModeName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Mode</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.BankAccountId">
+                                    <option value="0">All</option>
+                                    @foreach (var data in bankList)
+                                    {
+                                        <option value="@data.BankId">@data.BankName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Bank A/C</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " maxlength="50" autocomplete="off" @bind="request.FeeReceivedBy" />
+                                <label class="floating-label">Counter (Received By)</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " maxlength="50" autocomplete="off" @bind="request.ChequeNo" />
+                                <label class="floating-label">Cheque No.</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " maxlength="50" autocomplete="off" @bind="request.ReceiptNo" />
+                                <label class="floating-label">Receipt No.</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " maxlength="100" autocomplete="off" @bind="request.FirstName" />
+                                <label class="floating-label">Student Name</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group">
+                                <input class="floating-input" placeholder=" " maxlength="50" autocomplete="off" @bind="request.StudentNo" />
+                                <label class="floating-label">Student No.</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="request.FromDate" />
+                                <label class="floating-label">From Date <span class="required">*</span></label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="request.ToDate" />
+                                <label class="floating-label">To Date <span class="required">*</span></label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.Status">
+                                    <option value="-1">All</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Cancelled</option>
+                                </InputSelect>
+                                <label class="floating-label">Status</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="() => SearchReceipt(fromPopup: true)" tabindex="0">
+                            <div class="visible content">Search</div>
+                            <div class="hidden content"><i class="bi bi-search"></i></div>
+                        </button>
+                        <button type="button" class="table-btn" @onclick="ResetFilters">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ---------------- Receipt Details popup (click on Receipt No) ---------------- *@
+@if (ShowReceiptDetailsPopup && receiptHeader != null)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-xl-10">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Receipt Details &nbsp;&middot;&nbsp; Session : @GetSessionName(receiptHeader.SessionId)</h5>
+                    <button data-access="Close" type="button" @onclick="CloseReceiptDetails" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 form-row">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0 p-3">
+                                <div class="row g-2">
+                                    <div class="col-md-12">
+                                        <span class="fw-bold text-primary">@receiptHeader.StudentName</span>
+                                        @if (receiptHeader.Valid == false)
                                         {
-                                            var item = suggestions[i];
-                                            var index = i;
-                                            <div class="student-suggest-item @(index == activeSuggestion ? "active" : "")" @onclick="() => SelectStudent(item)">
-                                                <div class="student-suggest-column">
-                                                    <span class="student-suggest-label">Student Name</span>
-                                                    <span class="student-suggest-value">@item.StudentName</span>
-                                                </div>
-                                                <div class="student-suggest-column">
-                                                    <span class="student-suggest-label">Admission No.</span>
-                                                    <span class="student-suggest-value">@item.ControlNo</span>
-                                                </div>
-                                                <div class="student-suggest-column">
-                                                    <span class="student-suggest-label">Class</span>
-                                                    <span class="student-suggest-value">@item.ClassSection</span>
-                                                </div>
-                                                <div class="student-suggest-column">
-                                                    <span class="student-suggest-label">Father</span>
-                                                    <span class="student-suggest-value">@item.FatherName</span>
-                                                </div>
-                                            </div>
+                                            <span class="badge bg-danger ms-2">Cancelled</span>
                                         }
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Receipt No.:</span>
+                                        <span class="field-value">@receiptHeader.ReceiptNo</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Student No.:</span>
+                                        <span class="field-value">@receiptHeader.StudentNo</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Class:</span>
+                                        <span class="field-value">@(string.IsNullOrWhiteSpace(receiptHeader.ClassSection) ? receiptHeader.ClassName : receiptHeader.ClassSection)</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Receipt Date:</span>
+                                        <span class="field-value">@(receiptHeader.CreatedDate?.ToString("dd/MM/yyyy"))</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Father Name:</span>
+                                        <span class="field-value">@receiptHeader.FatherName</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Period:</span>
+                                        <span class="field-value">@receiptHeader.PeriodName</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Payment:</span>
+                                        <span class="field-value">@receiptHeader.PaymentMode</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Received By:</span>
+                                        <span class="field-value">@receiptHeader.CreatedBy</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <span class="field-title">Remarks:</span>
+                                        <span class="field-value">@receiptHeader.Remark</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(receiptHeader.ChequeNo))
+                                    {
+                                        <div class="col-md-4">
+                                            <span class="field-title">Cheque / Txn No.:</span>
+                                            <span class="field-value">@receiptHeader.ChequeNo</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <span class="field-title">Cheque / Txn Date:</span>
+                                            <span class="field-value">@(receiptHeader.ChequeDate?.ToString("dd/MM/yyyy"))</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <span class="field-title">Bank:</span>
+                                            <span class="field-value">@receiptHeader.ChequeBank</span>
+                                        </div>
                                     }
                                 </div>
-                            }
-                        </div>
-                        <div class="form-box">
-                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
-                                <div class="visible content justify-content-center">Search</div>
-                                <div class="hidden content"><i class="bi bi-search"></i></div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @* ---------- Fees & balances (menu page: left half next to Invoice Details; popup: full width) ---------- *@
-        <div class="@FeesCardColClass p-1">
-            <div class="dashboard-card @(IsPopup ? "" : "h-100")">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="card-title-custom mb-0">
-                        <span class="status-badge me-2">02</span>Fees &amp; balances
-                    </h5>
-                    <span class="text-muted small">All amounts in INR</span>
-                </div>
-                @* 10 boxes: menu page 3 in each row; popup 5 in one row, 5 in the next *@
-                <div class="row g-3 @FeesBoxRowClass">
-                    <div class="col">
-                        <div class="text-muted small mb-1">Total fee due</div>
-                        <div class="metric-box metric-blue"><span>&#8377;</span><strong>@TotalfeeAmount.ToString("N2")</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">waive off</div>
-                        <div class="metric-box metric-orange"><span>&#8377;</span><strong>@TotalWaiveOff.ToString("N2")</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Adv. Approved</div>
-                        <div class="metric-box metric-purple"><span>&#8377;</span><strong>0.00</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Adj. Approved</div>
-                        <div class="metric-box metric-green"><span>&#8377;</span><strong>12,24,841.00</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Balance</div>
-                        <div class="metric-box metric-red"><span>&#8377;</span><strong>@BalanceAmount.ToString("N2")</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Received</div>
-                        <div class="metric-box metric-teal"><span>&#8377;</span><strong>@TotalReceivedAmount.ToString("N2")</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Total Late Fee</div>
-                        <div class="metric-box metric-amber"><span>&#8377;</span><strong>@TotalLateFee.ToString("N2")</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Refunded Amt.</div>
-                        <div class="metric-box metric-pink"><span>&#8377;</span><strong>-5,545.00</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Total Fee</div>
-                        <div class="metric-box metric-indigo"><span>&#8377;</span><strong>@TotalfeeAmount.ToString("N2")</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="text-muted small mb-1">Total Concession</div>
-                        <div class="metric-box metric-cyan"><span>&#8377;</span><strong>@TotalStudentConcession.ToString("N2")</strong></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @* ---------- Invoice Details ---------- *@
-        <div class="@GridCardColClass p-1">
-            <div class="card h-100">
-                <div class="card-body table-card p-0">
-                    <div class="quick-main">
-                        <div class="module-section-head @(studentChallanlist.Any(x => x.InvoiceId != 0) ? "no-border" : "")">
-                            <h6>Invoice Details</h6>
-                            <span>@(studentChallanlist.Any() ? $"{studentChallanlist.Count} invoices" : "No invoices")</span>
-                        </div>
-                        @if (studentChallanlist.Any(x => x.InvoiceId != 0))
-                        {
-                            <div class="grid-box">
-                                <QuickGrid Items="@studentinvoicemoduleQuery" Pagination="@studentinvoivepagination" Class="table">
-                                    @* menu page: edit icon opens the invoice directly; popup: checkbox + Fee Collection's footer "Edit Invoice" *@
-                                    <TemplateColumn Title="" class="text-center" Align="Align.Center">
-                                        <ChildContent>
-                                            <div>
-                                                @if (IsPopup)
-                                                {
-                                                    <input type="checkbox" checked="@context.IsSelected" @onchange="e => OnInvoiceCheckChanged(context, e)" @onclick:stopPropagation="true" />
-                                                }
-                                                else
-                                                {
-                                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-nowrap d-inline-flex align-items-center gap-1" title="Edit Invoice" @onclick="() => OpenEditInvoiceFor(context)" @onclick:stopPropagation="true">
-                                                        <i class="bi bi-pencil-square"></i><span class="small">Edit Invoice</span>
-                                                    </button>
-                                                }
-                                            </div>
-                                        </ChildContent>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="Invoice No" class="text-center" Align="Align.Center">
-                                        <ChildContent>
-                                            @if (string.IsNullOrWhiteSpace(context.InvoiceNo))
-                                            {
-                                                @(" ")
-                                            }
-                                            else
-                                            {
-                                                @* click on Invoice No -> Invoice Preview popup *@
-                                                <button type="button" class="btn btn-link p-0" title="Invoice Preview" @onclick="() => OpenInvoicePreviewFor(context)" @onclick:stopPropagation="true">
-                                                    @context.InvoiceNo
-                                                </button>
-                                            }
-                                        </ChildContent>
-                                        <ColumnOptions>
-                                            <div class="search-box">
-                                                <input type="search" @bind="invoiceFilter" @bind:event="oninput" placeholder="Invoice no..." />
-                                            </div>
-                                        </ColumnOptions>
-                                    </TemplateColumn>
-                                    <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.PeriodName)" Title="Period" />
-                                    <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.TotalAmount)" Title="Amount" />
-                                    <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.TotalConcession)" Title="Concession" />
-                                </QuickGrid>
                             </div>
-                            <div class="footer-pagination mt-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="welcome-text w-100">
-                                        <Paginator State="@studentinvoivepagination" />
+                        </div>
+
+                        <div class="col-12 col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-body table-card p-0">
+                                    <div class="quick-main">
+                                        <div class="grid-box scrollbar-thin" style="max-height: 300px; min-height:100px;">
+                                            <QuickGrid Items="@receiptDetailQuery" Class="table">
+                                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.HeadName) ? " " : x.HeadName)" Title="Fee Head" Align="Align.Left" />
+                                                <PropertyColumn Property="@(x => (x.HeadAmount ?? 0).ToString("N2"))" Title="Head Amount" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => (x.TotalAmount ?? 0).ToString("N2"))" Title="Amount" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => (x.Concession ?? 0).ToString("N2"))" Title="Concession" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => (x.PaidAmount ?? 0).ToString("N2"))" Title="Paid Amount" Class="text-right" Align="Align.Right" />
+                                            </QuickGrid>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        }
-                        else
-                        {
-                            <div class="empty-state">
-                                <div>
-                                    <div class="empty-icon"><i class="bi bi-file-earmark-text"></i></div>
-                                    <strong>No invoices recorded</strong>
-                                    <div>Generated invoices will appear here.</div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @* ---------- Student receipts ---------- *@
-        <div class="@GridCardColClass p-1">
-            <div class="card h-100">
-                <div class="card-body table-card p-0">
-                    <div class="quick-main">
-                        <div class="module-section-head">
-                            <h6>Student receipts</h6>
-                            <span>@(studentReceiptllist.Any() ? $"{studentReceiptllist.Count} receipts" : "No receipts")</span>
                         </div>
-                        @if (studentReceiptllist.Count > 0)
-                        {
-                            <div class="grid-box">
-                                <QuickGrid Items="@StudentreceiptmoduleQuery" Pagination="@Studentreceiptpagination" Class="table">
-                                    <TemplateColumn Title="Receipt No." class="text-center" Align="Align.Center">
-                                        <ChildContent>
-                                            @(string.IsNullOrWhiteSpace(context.ReceiptNo) ? " " : context.ReceiptNo)
-                                        </ChildContent>
-                                        <ColumnOptions>
-                                            <div class="search-box">
-                                                <input type="search" @bind="receiptFilter" @bind:event="oninput" placeholder="Receipt no..." />
+
+                        @* amounts as small coloured cards *@
+                        <div class="col-12 col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-body p-3">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-blue">
+                                                <span>Prev. Balance</span>
+                                                <strong>₹ @((receiptHeader.PreviousBalance ?? 0).ToString("N2"))</strong>
                                             </div>
-                                        </ColumnOptions>
-                                    </TemplateColumn>
-                                    <PropertyColumn Sortable="true" Align="Align.Center" class="text-center" Property="@(x => x.ReceiptDate)" Format="dd-MM-yyyy" Title="Rec Date" />
-                                    <PropertyColumn Sortable="true" Align="Align.Center" class="text-right" Property="@(x => x.ReceiptAmount)" Title="Rec Amount" />
-                                    <PropertyColumn Align="Align.Center" class="text-right" Sortable="true" Property="@(x => x.LateFee)" Title="Late Fee" />
-                                </QuickGrid>
-                            </div>
-                            <div class="footer-pagination mt-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="welcome-text w-100">
-                                        <Paginator State="@Studentreceiptpagination" />
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-blue">
+                                                <span>Total Fee</span>
+                                                <strong>₹ @((receiptHeader.TotalAmount ?? 0).ToString("N2"))</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-green">
+                                                <span>Concession</span>
+                                                <strong>₹ @((receiptHeader.Concession ?? 0).ToString("N2"))</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-amber">
+                                                <span>Late Fee</span>
+                                                <strong>₹ @((receiptHeader.LateFee ?? 0).ToString("N2"))</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-teal">
+                                                <span>Payable</span>
+                                                <strong>₹ @((receiptHeader.PayableAmount ?? 0).ToString("N2"))</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-green">
+                                                <span>Total Paid</span>
+                                                <strong>₹ @((receiptHeader.PaidAmount ?? 0).ToString("N2"))</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="invoice-amount-tile tile-navy">
+                                                <span>Curr. Balance</span>
+                                                <strong>₹ @((receiptHeader.Balance ?? 0).ToString("N2"))</strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        }
-                        else
-                        {
-                            <div class="empty-state">
-                                <div>
-                                    <div class="empty-icon"><i class="bi bi-receipt"></i></div>
-                                    <strong>No receipts recorded</strong>
-                                    <div>Collected payments will appear here.</div>
-                                </div>
-                            </div>
-                        }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        @* both open the receipt PDF in a new tab *@
+                        <button type="button" class="table-btn" @onclick="PrintParentFormat">Parent Format</button>
+                        <button type="button" class="table-btn" @onclick="PrintReceipt">Print</button>
+                        <button type="button" class="table-btn" @onclick="CloseReceiptDetails">Close</button>
                     </div>
                 </div>
             </div>
         </div>
-
-        @* ---------- Bank receipts (not built yet: empty state only) ---------- *@
-        <div class="@GridCardColClass p-1">
-            <div class="card h-100">
-                <div class="card-body table-card p-0">
-                    <div class="quick-main">
-                        <div class="module-section-head">
-                            <h6>Bank receipts</h6>
-                            <span>No receipts</span>
-                        </div>
-                        <div class="empty-state">
-                            <div>
-                                <div class="empty-icon"><i class="bi bi-bank"></i></div>
-                                <strong>No bank receipts</strong>
-                                <div>Verified bank payments will appear here.</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
-</section>
-
-@if (ShowEditInvoice)
-{
-    <EditInvoice ShowEditInvoice="@ShowEditInvoice"
-                 SelectedStudent="@EditInvoiceStudent"
-                 CurrentSessionInfo="@sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)"
-                 SessionId="@CurrentSession"
-                 BranchCode="@branchcode"
-                 GroupCode="@groupcode"
-                 UserName="@UserName"
-                 OnClose="CloseEditInvoice" />
 }
 
-@if (ShowInvoicePreview)
+@if (IsLoading)
 {
-    <InvoicePreview ShowInvoicePreview="@ShowInvoicePreview"
-                    SelectedStudent="@PreviewInvoiceStudent"
-                    BranchCode="@branchcode"
-                    GroupCode="@groupcode"
-                    OnClose="CloseInvoicePreview" />
+    <div class="grid-loader-overlay above-popup">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
 }
-
-<CustomAlert @ref="customAlert" Title="Alert" />
 
 @code {
-    // Same pattern as RegistrationForm:
-    //   menu  -> /ViewStudentReceipt  (classs = "main-container", full page)
-    //   popup -> <ViewStudentReceipt classs="" ... /> inside the caller's modal (Fee Collection)
-    [Parameter] public string? classs { get; set; } = "main-container";
-    [Parameter] public string? SearchTerm { get; set; }                     // student no. / name to open with
-    [Parameter] public long SessionId { get; set; }                         // session to open with
-    [Parameter] public List<FeeCollectionDuesNew>? FeeDues { get; set; }    // Fee Collection passes its dues list (not used until Bank receipts is built)
-    [Parameter] public EventCallback OnClose { get; set; }
+    // ---------------------------------------------------------------------
+    // Search -> StudentFeeReceipt/GetStudentFeeReceiptListData (V3M_FIN_GetStudentFeeReceiptList)
+    // - Session defaults to All (0), the current session is NOT preselected.
+    // - Receipt Type (static): All = -1, Admission Fee = 1, Other = 0.
+    // - Cancel Type (static) : All = "-1", Cheque Bounce, Other.
+    // - Status               : All = -1, Active = 1, Cancelled = 0.
+    // - Payment mode from the master (PaymentMode/GetBankPaymentMode), bank from Finance/GetBank.
+    // - Class-Group from StudentFeeReceipt/GetClassGroup (V3M_DetClassGroup by group + branch code), All = "".
+    // - Bottom buttons are static for now.
+    // ---------------------------------------------------------------------
 
-    private bool IsPopup => string.IsNullOrEmpty(classs);
-
-    // layout: menu page -> Fees & Invoice side by side (6/6), receipts 6/6, 3 boxes per row
-    //         popup     -> old layout: Fees full width (5 boxes per row), 3 grids of 4 each
-    private string FeesCardColClass => IsPopup ? "col-12" : "col-12 col-lg-6";
-    private string GridCardColClass => IsPopup ? "col-12 col-lg-4" : "col-12 col-lg-6";
-    private string FeesBoxRowClass => IsPopup ? "row-cols-2 row-cols-md-3 row-cols-xl-5" : "row-cols-3";
-
-    private CustomAlert customAlert = default!;
-    private string? groupcode;
+    private bool IsLoading = false;
+    private bool ShowSearchPopup = false;
     private string? branchcode;
-    private string? UserName;
-    private long CurrentSession;
+    private string? groupcode;
+      private string? UserName;
+    private StudentFeeReceiptListRequest request = NewRequest();
+
     private List<SessionModel> sessionlist = new();
+    private List<string> classGroupList = new();
+    private List<BranchClassModel> classlist = new();
+    private List<PaymentModel> paymentModeList = new();
+    private List<BankModel> bankList = new();
 
-    // search
-    private string? searchText;
-    private string searchInputKey = Guid.NewGuid().ToString();
-    private bool ShowSuggestions;
-    private bool IsSearchingStudents;
-    private int activeSuggestion = -1;
-    private List<StudentLedgerChallanMiniDetailsResponse> suggestions = new();
-    private CancellationTokenSource? typingCts;
+    private List<StudentFeeReceiptListResponse> receiptlist = new();
+    private IQueryable<StudentFeeReceiptListResponse> receiptQuery => receiptlist.AsQueryable();
+    private PaginationState pagination = new() { ItemsPerPage = 20 };
 
-    // selected student
-    private StudentLedgerChallanMiniDetailsResponse? selectedStudent;
-    private bool IsStudentSelected => selectedStudent != null;
-    private List<StudentChallanResponse> studentChallanlist = new();
-    private List<StudentReceiptsResponse> studentReceiptllist = new();
+    private HashSet<long> selectedReceiptIds = new();
+    private bool IsAllSelected;
 
-    // grids
-    private string invoiceFilter = string.Empty;
-    private string receiptFilter = string.Empty;
-    PaginationState studentinvoivepagination = new() { ItemsPerPage = 10 };
-    PaginationState Studentreceiptpagination = new() { ItemsPerPage = 10 };
-
-    // edit invoice
-    private bool ShowEditInvoice;
-    private SearchStudentBalanceDto EditInvoiceStudent = new();
-
-    // invoice preview
-    private bool ShowInvoicePreview;
-    private SearchStudentBalanceDto PreviewInvoiceStudent = new();
-
-    private decimal TotalfeeAmount => studentChallanlist.Sum(x => x.TotalAmount);
-    private decimal TotalWaiveOff => studentChallanlist.Sum(x => x.TotalWaiveOff);
-    private decimal TotalStudentConcession => studentChallanlist.Sum(x => x.TotalConcession);
-    private decimal TotalReceivedAmount => studentReceiptllist.Sum(x => x.ReceiptAmount);
-    private decimal TotalLateFee => studentReceiptllist.Sum(x => x.LateFee);
-   // Payable = Total fee - Concession - Waive off
-    private decimal NetPayableAmount => TotalfeeAmount - TotalStudentConcession - TotalWaiveOff;
-
-    // Balance = Payable - Received (negative nahi jayega)
-    private decimal BalanceAmount => Math.Max(0, NetPayableAmount - TotalReceivedAmount);
-     
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
-
-        groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
-        branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
-        UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
-        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
-        CurrentSession = SessionId > 0 ? SessionId : await _commonmethod.SetCurrentSessionData();
-
-        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        if (firstRender)
         {
-            searchText = SearchTerm.Trim();
-            searchInputKey = Guid.NewGuid().ToString();
-            // student already selected on Fee Collection -> open straight away, no search loader
-            await SearchStudentCore(showLoader: false);
+            var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
+            branchcode = branchResult.Value;
+            UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+            var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
+            groupcode = groupResult.Value;
+
+            await LoadData();
+            StateHasChanged();
         }
-        StateHasChanged();
     }
 
-    // ---------------- Search ----------------
-
-    private async Task<List<StudentLedgerChallanMiniDetailsResponse>> FetchStudents(string term)
+    // academic year starts in April -> From Date = 1 Apr of the running year, To Date = today
+    private static StudentFeeReceiptListRequest NewRequest()
     {
-        var request = new StudentLedgerChallanMiniDetailsRequest
+        var today = DateTime.Today;
+        return new StudentFeeReceiptListRequest
         {
-            GroupCode = groupcode,
-            BranchCode = branchcode,
-            SessionId = CurrentSession,
-            ControlNo = string.Empty,
-            StudentName = string.Empty
+            SessionId = 0,
+            ReceiptMode = -1,
+            Status = -1,
+            CancelType = "-1",
+            FromDate = new DateTime(today.Month >= 4 ? today.Year : today.Year - 1, 4, 1),
+            ToDate = today
         };
-        // a term with a digit = student no., otherwise student name
-        if (term.Any(char.IsDigit))
-            request.ControlNo = term;
-        else
-            request.StudentName = term;
-
-        var response = await httpService.Post<ApiResponse<List<StudentLedgerChallanMiniDetailsResponse>>>("StudentFee/GetStudentLedgerChallanMiniDetails", request);
-        return (response != null && response.Success && response.Data != null) ? response.Data : new();
     }
 
-    // suggestions while typing (after 3 characters)
-    private async Task OnSearchTextChanged()
+    private async Task LoadData()
     {
-        ClearSelectedStudent();
-        typingCts?.Cancel();
-
-        var term = searchText?.Trim() ?? "";
-        if (term.Length < 3 || CurrentSession <= 0)
-        {
-            ShowSuggestions = false;
-            suggestions = new();
-            return;
-        }
-
-        var cts = typingCts = new CancellationTokenSource();
+        IsLoading = true;
+        StateHasChanged();
         try
         {
-            await Task.Delay(400, cts.Token);
-            var results = await FetchStudents(term);
-            if (cts.IsCancellationRequested) return;
+            var sessionTask = httpService.Get<List<SessionModel>>("Session/GetSession");
+            var classTask = httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode");
+            var paymentTask = httpService.Get<List<PaymentModel>>("PaymentMode/GetBankPaymentMode");
+            var bankTask = httpService.Get<List<BankModel>>("Finance/GetBank");
+            var classGroupTask = httpService.Post<ApiResponse<List<ClassGroupResponse>>>("StudentFeeReceipt/GetClassGroup",
+                new ClassGroupRequest { GroupCode = groupcode, BranchCode = branchcode });
 
-            suggestions = results;
-            activeSuggestion = results.Count > 0 ? 0 : -1;
-            ShowSuggestions = true;
-            StateHasChanged();
+            sessionlist = await sessionTask ?? new();
+            classlist = await classTask ?? new();
+            paymentModeList = await paymentTask ?? new();
+            bankList = await bankTask ?? new();
+
+            var classGroupResponse = await classGroupTask;
+            classGroupList = (classGroupResponse != null && classGroupResponse.Success && classGroupResponse.Data != null)
+                ? classGroupResponse.Data.Where(x => !string.IsNullOrWhiteSpace(x.ClassCode)).Select(x => x.ClassCode!).ToList()
+                : new();
         }
-        catch (TaskCanceledException) { }
-        catch (Exception ex)
+        catch
         {
-            ShowSuggestions = false;
-            Console.WriteLine($"Error fetching student suggestions: {ex.Message}");
-        }
-    }
-
-    // Search button / Enter: loader in the student list
-    private Task SearchStudent() => SearchStudentCore(showLoader: true);
-
-    // showLoader = false when the popup opens with the student already chosen on Fee Collection
-    private async Task SearchStudentCore(bool showLoader)
-    {
-        typingCts?.Cancel();
-        var term = searchText?.Trim();
-        if (string.IsNullOrWhiteSpace(term))
-        {
-            await customAlert.ShowCustomAlert("Please enter student name or student no to search.", false);
-            return;
-        }
-        if (CurrentSession <= 0)
-        {
-            await customAlert.ShowCustomAlert("Please select a session.", false);
-            return;
-        }
-
-        try
-        {
-            List<StudentLedgerChallanMiniDetailsResponse> results;
-            if (showLoader)
-            {
-                // loader shows inside the student list for 5 seconds (API runs alongside)
-                ClearSelectedStudent();
-                suggestions = new();
-                activeSuggestion = -1;
-                IsSearchingStudents = true;
-                ShowSuggestions = true;
-                StateHasChanged();
-
-                var loaderDelay = Task.Delay(5000);
-                results = await FetchStudents(term);
-                await loaderDelay;
-                IsSearchingStudents = false;
-            }
-            else
-            {
-                results = await FetchStudents(term);
-            }
-
-            if (results.Count == 1)
-            {
-                ShowSuggestions = false;
-                await SelectStudent(results[0]);
-            }
-            else
-            {
-                ClearSelectedStudent();
-                suggestions = results;
-                activeSuggestion = results.Count > 0 ? 0 : -1;
-                ShowSuggestions = true;
-                if (results.Count == 0)
-                    await Alert.ShowWarning("No student found.");
-            }
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching student ledger details: {ex.Message}");
-            ShowSuggestions = false;
+            await Alert.ShowError("Unable to load data.");
         }
         finally
         {
-            IsSearchingStudents = false;
+            IsLoading = false;
             StateHasChanged();
         }
     }
 
-    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    private void OpenSearch() => ShowSearchPopup = true;
+    private void ClosePopup() => ShowSearchPopup = false;
+
+    private void ResetFilters()
     {
-        switch (e.Key)
+        request = NewRequest();
+    }
+
+    private async Task SearchReceipt(bool fromPopup = false)
+    {
+        if (request.FromDate == default || request.ToDate == default)
         {
-            case "ArrowDown" when ShowSuggestions && suggestions.Count > 0:
-                activeSuggestion = (activeSuggestion + 1) % suggestions.Count;
-                break;
-            case "ArrowUp" when ShowSuggestions && suggestions.Count > 0:
-                activeSuggestion = activeSuggestion <= 0 ? suggestions.Count - 1 : activeSuggestion - 1;
-                break;
-            case "Escape":
-                ShowSuggestions = false;
-                break;
-            case "Enter":
-                if (ShowSuggestions && activeSuggestion >= 0 && activeSuggestion < suggestions.Count)
-                    await SelectStudent(suggestions[activeSuggestion]);
-                else
-                    await SearchStudent();
-                break;
-        }
-    }
-
-    private async Task OnSessionChanged(ChangeEventArgs e)
-    {
-        long.TryParse(e.Value?.ToString(), out var sessionId);
-        CurrentSession = sessionId;
-        ShowSuggestions = false;
-        if (IsStudentSelected)
-            await LoadStudentDetails();
-    }
-
-    private void ClearSelectedStudent()
-    {
-        selectedStudent = null;
-        studentChallanlist = new();
-        studentReceiptllist = new();
-    }
-
-    private async Task SelectStudent(StudentLedgerChallanMiniDetailsResponse item)
-    {
-        typingCts?.Cancel();
-        selectedStudent = item;
-        ShowSuggestions = false;
-        suggestions = new();
-        searchText = item.StudentName;
-        searchInputKey = Guid.NewGuid().ToString();
-        StateHasChanged();
-        await LoadStudentDetails();
-    }
-
-    private async Task LoadStudentDetails()
-    {
-        if (selectedStudent == null) return;
-        studentChallanlist = new();
-        studentReceiptllist = new();
-        await GetStudentInvoiceDetails();
-        await GetSearchStudentreceipt();
-        StateHasChanged();
-    }
-
-    private async Task GetStudentInvoiceDetails()
-    {
-        try
-        {
-            var request = new StudentChallanRequest
-            {
-                GroupCode = groupcode,
-                BranchCode = branchcode,
-                SessionId = CurrentSession,
-                StudentId = selectedStudent!.StudentId
-            };
-            var response = await httpService.Post<ApiResponse<List<StudentChallanResponse>>>("StudentFee/GetStudentChallan", request);
-            if (response != null && response.Success && response.Code == 1)
-                studentChallanlist = response.Data ?? new();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching student invoices: {ex.Message}");
-        }
-    }
-
-    private async Task GetSearchStudentreceipt()
-    {
-        try
-        {
-            var request = new StudentReceiptsRequest
-            {
-                GroupCode = groupcode,
-                BranchCode = branchcode,
-                SessionId = CurrentSession,
-                StudentId = selectedStudent!.StudentId
-            };
-            var response = await httpService.Post<ApiResponse<List<StudentReceiptsResponse>>>("StudentFee/GetStudentReceipts", request);
-            if (response != null && response.Success && response.Code == 1)
-                studentReceiptllist = response.Data ?? new();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching student receipts: {ex.Message}");
-        }
-    }
-
-    // ---------------- Grids ----------------
-
-    protected IQueryable<StudentChallanResponse> studentinvoicemoduleQuery
-    {
-        get
-        {
-            var result = studentChallanlist.AsQueryable();
-            if (!string.IsNullOrEmpty(invoiceFilter))
-            {
-                result = result.Where(x => (x.PeriodName != null && x.PeriodName.Contains(invoiceFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-                                           (x.InvoiceNo != null && x.InvoiceNo.Contains(invoiceFilter, StringComparison.CurrentCultureIgnoreCase)));
-            }
-            return result;
-        }
-    }
-
-    protected IQueryable<StudentReceiptsResponse> StudentreceiptmoduleQuery
-    {
-        get
-        {
-            var result = studentReceiptllist.AsQueryable();
-            if (!string.IsNullOrEmpty(receiptFilter))
-            {
-                result = result.Where(x => x.ReceiptNo != null && x.ReceiptNo.Contains(receiptFilter, StringComparison.CurrentCultureIgnoreCase));
-            }
-            return result;
-        }
-    }
-
-    // one invoice at a time can be selected for edit
-    private void OnInvoiceCheckChanged(StudentChallanResponse item, ChangeEventArgs e)
-    {
-        bool isChecked = e.Value is bool b && b;
-        if (isChecked)
-        {
-            foreach (var invoice in studentChallanlist)
-                invoice.IsSelected = false;
-        }
-        item.IsSelected = isChecked;
-        StateHasChanged();
-    }
-
-    // ---------------- Edit invoice / close ----------------
-
-    // public: the popup footer in Fee Collection calls this through @ref
-    public async Task OpenEditInvoice()
-    {
-        var selected = studentChallanlist.FirstOrDefault(x => x.IsSelected);
-        if (selected == null)
-        {
-            await customAlert.ShowCustomAlert("Please select a invoice first.", false);
+            await Alert.ShowWarning("Please select from date and to date.");
             return;
         }
-        OpenEditInvoiceFor(selected);
-    }
+        if (request.FromDate.Date > request.ToDate.Date)
+        {
+            await Alert.ShowWarning("From date cannot be greater than to date.");
+            return;
+        }
 
-    // menu page: edit icon in the invoice grid opens that invoice
-    private void OpenEditInvoiceFor(StudentChallanResponse selected)
-    {
-        EditInvoiceStudent = ToInvoiceStudent(selected);
-        ShowEditInvoice = true;
+        IsLoading = true;
         StateHasChanged();
+        try
+        {
+            request.GroupCode = groupcode;
+            request.BranchCode = branchcode;
+            request.GroupClassCode = request.GroupClassCode ?? string.Empty;
+            request.ClassCode = request.ClassCode ?? string.Empty;
+            request.PaymentMode = request.PaymentMode ?? string.Empty;
+            request.ReceiptNo = request.ReceiptNo?.Trim() ?? string.Empty;
+            request.StudentNo = request.StudentNo?.Trim() ?? string.Empty;
+            request.FirstName = request.FirstName?.Trim() ?? string.Empty;
+            request.ChequeNo = request.ChequeNo?.Trim() ?? string.Empty;
+            request.FeeReceivedBy = request.FeeReceivedBy?.Trim() ?? string.Empty;
+            request.CancelType = string.IsNullOrWhiteSpace(request.CancelType) ? "-1" : request.CancelType;
+
+            var response = await httpService.Post<ApiResponse<List<StudentFeeReceiptListResponse>>>("StudentFeeReceipt/GetStudentFeeReceiptListData", request);
+
+            receiptlist = (response != null && response.Success) ? (response.Data ?? new()) : new();
+            // the list print shows the date range of the search that produced this list
+            searchedFromDate = request.FromDate;
+            searchedToDate = request.ToDate;
+            selectedReceiptIds = new();
+            IsAllSelected = false;
+            await pagination.SetCurrentPageIndexAsync(0);
+
+            if (fromPopup)
+                ShowSearchPopup = false;
+
+            if (receiptlist.Count == 0)
+            {
+                IsLoading = false;
+                StateHasChanged();
+                await Alert.ShowWarning(response?.Message ?? "No records found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            receiptlist = new();
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to load receipts." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
-    // click on Invoice No in the invoice grid opens the Invoice Preview popup
-    private void OpenInvoicePreviewFor(StudentChallanResponse selected)
+    // ---------------- Receipt Details popup ----------------
+    // header -> StudentFeeReceipt/GetStudentReceiptById (V3M_FIN_GetStudentReceiptById)
+    // grid   -> StudentFeeReceipt/GetReceiptDetail     (USP_FIN_GetReceiptDetail)
+    private bool ShowReceiptDetailsPopup;
+    private StudentReceiptByIdResponse? receiptHeader;
+    private List<ReceiptDetailResponse> receiptDetaillist = new();
+    private IQueryable<ReceiptDetailResponse> receiptDetailQuery => receiptDetaillist.AsQueryable();
+
+    private string GetSessionName(long? sessionId) =>
+        sessionlist.FirstOrDefault(x => x.SessionId == (sessionId ?? 0))?.SessionName ?? string.Empty;
+
+    private async Task OpenReceiptDetails(StudentFeeReceiptListResponse row)
     {
-        PreviewInvoiceStudent = ToInvoiceStudent(selected);
-        ShowInvoicePreview = true;
+        if (row.ReceiptId <= 0)
+        {
+            await Alert.ShowWarning("Receipt record was not found.");
+            return;
+        }
+
+        IsLoading = true;
         StateHasChanged();
+        try
+        {
+            var detailRequest = new StudentReceiptByIdRequest { GroupCode = groupcode, BranchCode = branchcode, ReceiptId = row.ReceiptId };
+
+            var headerTask = httpService.Post<ApiResponse<StudentReceiptByIdResponse>>("StudentFeeReceipt/GetStudentReceiptById", detailRequest);
+            var detailTask = httpService.Post<ApiResponse<List<ReceiptDetailResponse>>>("StudentFeeReceipt/GetReceiptDetail", detailRequest);
+
+            var headerResponse = await headerTask;
+            var detailResponse = await detailTask;
+
+            if (headerResponse == null || !headerResponse.Success || headerResponse.Data == null)
+            {
+                IsLoading = false;
+                StateHasChanged();
+                await Alert.ShowWarning(headerResponse?.Message ?? "Receipt record was not found.");
+                return;
+            }
+
+            receiptHeader = headerResponse.Data;
+            receiptDetaillist = (detailResponse != null && detailResponse.Success) ? (detailResponse.Data ?? new()) : new();
+            ShowReceiptDetailsPopup = true;
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to load receipt details." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
-    private void CloseInvoicePreview()
+    // ---------------- Receipt list print (bottom Print button) ----------------
+    // PDF opens in a new tab, Excel is downloaded; selected rows are printed, otherwise the whole searched list
+    private DateTime searchedFromDate;
+    private DateTime searchedToDate;
+
+    private async Task OnPrintListClick()
     {
-        ShowInvoicePreview = false;
-        PreviewInvoiceStudent = new();
+        if (receiptlist.Count == 0)
+        {
+            await Alert.ShowWarning("Please search receipts first.");
+            return;
+        }
+
+        var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("showPrintConfirm");
+        var isPdf = result.TryGetProperty("isConfirmed", out var confirmed) && confirmed.GetBoolean();
+        var isExcel = result.TryGetProperty("isDenied", out var denied) && denied.GetBoolean();
+        if (!isPdf && !isExcel)
+            return;
+
+        var printRequest = new StudentReceiptListPrintRequest
+        {
+            FromDate = searchedFromDate,
+            ToDate = searchedToDate,
+            Receipts = selectedReceiptIds.Count > 0
+                ? receiptlist.Where(x => selectedReceiptIds.Contains(x.ReceiptId)).ToList()
+                : receiptlist
+        };
+
+        IsLoading = true;
         StateHasChanged();
+        try
+        {
+            var apiUrl = isPdf ? "Export/GenerateStudentReceiptListPdf" : "Export/GenerateStudentReceiptListExcel";
+            var response = await httpService.Post<ApiResponse<string>>(apiUrl, printRequest);
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+            {
+                if (isPdf)
+                    await JS.InvokeVoidAsync("viewPdf", response.Data);
+                else
+                    await JS.InvokeVoidAsync("downloadExcel", response.Data, "StudentReceipts.xlsx");
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Unable to generate the receipt list.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing receipt list: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to generate the receipt list.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
-    // selected student + clicked invoice, in the shape EditInvoice / InvoicePreview expect
-    private SearchStudentBalanceDto ToInvoiceStudent(StudentChallanResponse selected) => new()
+    // ---------------- Receipt print (new tab) ----------------
+    // Print         -> school copy + parent copy side by side (Export/GenerateAdmitChildReceiptPdf)
+    // Parent Format -> single fee receipt with due / paid per head (Export/GenerateParentFormatReceiptPdf)
+    private async Task PrintReceipt()
     {
-        StudentId = selectedStudent?.StudentId ?? 0,
-        InvoiceId = (int)selected.InvoiceId,
-        ControlNo = selectedStudent?.ControlNo,
-        StudentName = selectedStudent?.StudentName,
-        ClassCode = selectedStudent?.ClassCode,
-        TemplateName = selected.TemplateName,
-        TemplateId = selected.TemplateId,
-        InvType=selected.InvType,
-        ImagePath = selected.ImagePath,
-        ClassSection = selectedStudent?.ClassSection
-    };
+        if (receiptHeader == null || receiptDetaillist.Count == 0)
+        {
+            await Alert.ShowWarning("Receipt details not found to print.");
+            return;
+        }
 
-    private async Task CloseEditInvoice(bool refresh)
+        var receipt = new AdmitChildReceiptPrintModel
+        {
+            ReceiptNo = receiptHeader.ReceiptNo,
+            ReceiptDate = receiptHeader.CreatedDate ?? DateTime.Today,
+            RegistrationNo = receiptHeader.RegistrationId,
+            StudentNo = receiptHeader.StudentNo,
+            StudentName = receiptHeader.StudentName,
+            FatherName = receiptHeader.FatherName,
+            ClassName = string.IsNullOrWhiteSpace(receiptHeader.ClassSection) ? receiptHeader.ClassName : receiptHeader.ClassSection,
+            SessionName = GetSessionName(receiptHeader.SessionId),
+            PeriodName = receiptHeader.PeriodName,
+            PaymentMode = receiptHeader.PaymentMode,
+            TotalAmount = receiptHeader.PayableAmount ?? 0,
+            Concession = 0,
+            PaidAmount = receiptHeader.PaidAmount ?? 0,
+            Balance = receiptHeader.Balance ?? 0,
+            AmountHeader = "Payable",
+            ShowGeneratedFooter = true,
+            FeeHeads = receiptDetaillist
+                .Select(x => new AdmitChildReceiptPrintFeeHead { FeeHeadName = x.HeadName, Amount = x.TotalAmount ?? 0 })
+                .ToList()
+        };
+        // late fee is not a fee head row, show it as its own line like Fee Collection does
+        if ((receiptHeader.LateFee ?? 0) > 0)
+            receipt.FeeHeads.Add(new AdmitChildReceiptPrintFeeHead { FeeHeadName = "Late Fee", Amount = receiptHeader.LateFee ?? 0 });
+
+        await OpenPdf("Export/GenerateAdmitChildReceiptPdf", receipt);
+    }
+
+    private async Task PrintParentFormat()
     {
-        ShowEditInvoice = false;
-        EditInvoiceStudent = new();
-        foreach (var invoice in studentChallanlist)
-            invoice.IsSelected = false;
-        if (refresh)
-            await GetStudentInvoiceDetails();
+        if (receiptHeader == null || receiptDetaillist.Count == 0)
+        {
+            await Alert.ShowWarning("Receipt details not found to print.");
+            return;
+        }
+
+        var receipt = new ParentFormatReceiptPrintModel
+        {
+            ReceiptNo = receiptHeader.ReceiptNo,
+            ReceiptDate = receiptHeader.CreatedDate ?? DateTime.Today,
+            AdmissionNo = receiptHeader.StudentNo,
+            StudentName = receiptHeader.StudentName,
+            FatherName = receiptHeader.FatherName,
+            ClassSection = string.IsNullOrWhiteSpace(receiptHeader.ClassSection) ? receiptHeader.ClassName : receiptHeader.ClassSection,
+            MobileNo = receiptHeader.NextToKinContactNo,
+            SessionName = GetSessionName(receiptHeader.SessionId),
+            Instalment = receiptHeader.PeriodName,
+            PaymentMode = receiptHeader.PaymentMode,
+            FeeHeads = receiptDetaillist
+                .Select(x => new ParentFormatReceiptPrintFeeHead
+                {
+                    Description = string.IsNullOrWhiteSpace(x.OnlyHeadName) ? x.HeadName : x.OnlyHeadName,
+                    DueAmount = x.TotalAmount ?? 0,
+                    PaidAmount = x.PaidAmount ?? 0
+                })
+                .ToList()
+        };
+        if ((receiptHeader.LateFee ?? 0) > 0)
+            receipt.FeeHeads.Add(new ParentFormatReceiptPrintFeeHead { Description = "Late Fee", DueAmount = receiptHeader.LateFee ?? 0, PaidAmount = receiptHeader.LateFee ?? 0 });
+
+        await OpenPdf("Export/GenerateParentFormatReceiptPdf", receipt);
+    }
+
+    private async Task OpenPdf(string apiUrl, object receipt)
+    {
+        IsLoading = true;
         StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<string>>(apiUrl, receipt);
+            IsLoading = false;
+            StateHasChanged();
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+                await JS.InvokeVoidAsync("viewPdf", response.Data);
+            else
+                await Alert.ShowWarning(response?.Message ?? "Receipt could not be generated.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing receipt: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Receipt could not be generated.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
-    private string GetInitials(string? name)
+    private void CloseReceiptDetails()
     {
-        if (string.IsNullOrWhiteSpace(name))
-            return "?";
-        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 1)
-            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
-        return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+        ShowReceiptDetailsPopup = false;
+        receiptHeader = null;
+        receiptDetaillist = new();
     }
 
-    public void Dispose()
+    // ---------------- grid selection ----------------
+    private void ToggleAll()
     {
-        typingCts?.Cancel();
-        typingCts?.Dispose();
+        selectedReceiptIds = IsAllSelected ? receiptlist.Select(x => x.ReceiptId).ToHashSet() : new();
+    }
+
+    private void ToggleReceipt(StudentFeeReceiptListResponse row, ChangeEventArgs e)
+    {
+        if (e.Value is bool isChecked && isChecked)
+            selectedReceiptIds.Add(row.ReceiptId);
+        else
+            selectedReceiptIds.Remove(row.ReceiptId);
+
+        IsAllSelected = receiptlist.Count > 0 && selectedReceiptIds.Count == receiptlist.Count;
+    }
+    
+    private async Task GenerateStudentReceiptHeadWisePdf()
+    {
+        if (receiptlist.Count == 0)
+        {
+            await Alert.ShowWarning("Please search receipts first.");
+            return;
+        }
+
+        var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("showPrintConfirm");
+        var isPdf = result.TryGetProperty("isConfirmed", out var confirmed) && confirmed.GetBoolean();
+        var isExcel = result.TryGetProperty("isDenied", out var denied) && denied.GetBoolean();
+        if (!isPdf && !isExcel)
+            return;
+
+        var printRequest = new StudentReceiptHeadWiseRequest
+        {
+            GroupCode=groupcode,
+            BranchCode=branchcode,
+            SessionId=request.SessionId,
+            SocietyId=request.SocietyId,
+            ClassCode=request.ClassCode,
+            ReceiptNo=request.ReceiptNo,
+            StudentNo=request.StudentNo,
+            StudentName=request.FirstName,
+            CancelType=request.CancelType,
+            CreatedBy=UserName,
+            BankAccountId=request.BankAccountId,
+            PayMode=request.PaymentMode,
+            ClassGroupCode=request.GroupClassCode,
+            FromDate = request.FromDate,
+            ToDate = request.ToDate,
+         
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiUrl = isPdf ? "StudentFeeReceipt/GenerateStudentReceiptHeadWisePdf" : "StudentFeeReceipt/GenerateStudentReceiptHeadWiseExcel";
+            var response = await httpService.Post<ApiResponse<string>>(apiUrl, printRequest);
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+            {
+                if (isPdf)
+                    await JS.InvokeVoidAsync("viewPdf", response.Data);
+                else
+                    await JS.InvokeVoidAsync("downloadExcel", response.Data, "StudentReceipts.xlsx");
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Unable to generate the receipt list.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing receipt list: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to generate the receipt list.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 }

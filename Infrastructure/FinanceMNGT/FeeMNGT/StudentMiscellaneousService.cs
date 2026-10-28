@@ -8,7 +8,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using SchoolEye.ApplicationInterface.Admin;
 
-namespace SchoolEye.Infrastructure.Admin
+
+namespace Infrastructure.FinanceMNGT.FeeMNGT
 {
     public class StudentMiscellaneousService : IStudentMiscellaneousRepository
     {
@@ -158,6 +159,61 @@ namespace SchoolEye.Infrastructure.Admin
                     commandType: CommandType.StoredProcedure);
 
                 return param.Get<int>("@Result");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // one receipt for the student's miscellaneous fee heads; the SP runs everything in one transaction
+        public async Task<GenerateMiscReceiptResponse> GenerateMiscellaneousReceipt(GenerateMiscReceiptRequest request)
+        {
+            try
+            {
+                var feeHeadTable = new DataTable();
+                feeHeadTable.Columns.Add("FeeHeadId", typeof(int));
+                feeHeadTable.Columns.Add("DisplayOrder", typeof(int));
+                feeHeadTable.Columns.Add("MonthNo", typeof(int));
+                feeHeadTable.Columns.Add("Amount", typeof(decimal));
+                feeHeadTable.Columns.Add("Concession", typeof(decimal));
+                foreach (var item in request.FeeHeads)
+                {
+                    feeHeadTable.Rows.Add(item.FeeHeadId, item.DisplayOrder, item.MonthNo, item.Amount, item.Concession);
+                }
+
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SocietyId", request.SocietyId);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@StudentId", request.StudentId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionId", request.SectionId);
+                param.Add("@ReceiptDate", request.ReceiptDate.Date, DbType.Date);
+                param.Add("@PaidAmount", request.PaidAmount);
+                param.Add("@PaymentMode", request.PaymentMode);
+                param.Add("@ChequeNo", request.ChequeNo ?? string.Empty);
+                param.Add("@ChequeDate", request.ChequeDate?.Date, DbType.Date);
+                param.Add("@ChequeBank", request.ChequeBank ?? string.Empty);
+                param.Add("@Remark", request.Remark ?? string.Empty);
+                param.Add("@CreatedBy", request.CreatedBy);
+                param.Add("@FeeHeads", feeHeadTable.AsTableValuedParameter("dbo.V3M_FIN_UDT_MiscChallanFeeHead"));
+                param.Add("@StudentReceiptNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                param.Add("@ReceiptId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(
+                    "V3M_FIN_GenerateMiscellaneousReceipt",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return new GenerateMiscReceiptResponse
+                {
+                    StudentReceiptNo = param.Get<string?>("@StudentReceiptNo"),
+                    ReceiptId = param.Get<long?>("@ReceiptId") ?? 0
+                };
             }
             catch (Exception ex)
             {

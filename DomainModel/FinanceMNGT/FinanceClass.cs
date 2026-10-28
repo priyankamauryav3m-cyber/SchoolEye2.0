@@ -2399,13 +2399,12 @@ namespace DomainModel.FinanceMNGT
         public List<AdmissionConcessionFeeHead> ConcessionFeeHeads { get; set; } = new();
     }
 
-    // fee head of the mapped concession, as configured in the concession master
+
     public class AdmissionConcessionFeeHead
     {
         public int FeeHeadId { get; set; }
-        // 0 = percentage, 1 = amount
+  
         public string? ConcessionType { get; set; }
-        // percentage (10) or amount (1000) — not the calculated concession
         public decimal ConcessionValue { get; set; }
     }
 
@@ -2440,6 +2439,8 @@ namespace DomainModel.FinanceMNGT
         public List<AdmitChildReceiptPrintFeeHead> FeeHeads { get; set; } = new();
         // title of the amount column: admission receipt "Total", fee collection receipt "Payable"
         public string AmountHeader { get; set; } = "Total";
+        // "Generated on ... / Page x of y" footer (View Student Receipt print)
+        public bool ShowGeneratedFooter { get; set; }
     }
 
     public class AdmitChildReceiptPrintFeeHead
@@ -2447,6 +2448,29 @@ namespace DomainModel.FinanceMNGT
         // fee head name with its months, e.g. "Library Fee (Apr, May, Jun)"
         public string? FeeHeadName { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    // fee receipt print, parent format (single copy with due / paid per head)
+    public class ParentFormatReceiptPrintModel
+    {
+        public string? ReceiptNo { get; set; }
+        public DateTime ReceiptDate { get; set; }
+        public string? AdmissionNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? FatherName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? MobileNo { get; set; }
+        public string? SessionName { get; set; }
+        public string? Instalment { get; set; }
+        public string? PaymentMode { get; set; }
+        public List<ParentFormatReceiptPrintFeeHead> FeeHeads { get; set; } = new();
+    }
+
+    public class ParentFormatReceiptPrintFeeHead
+    {
+        public string? Description { get; set; }
+        public decimal DueAmount { get; set; }
+        public decimal PaidAmount { get; set; }
     }
 
     // rows of dbo.TVP_AdmissionReceiptFeeHead; paid amount is allocated in RowNo order
@@ -2604,8 +2628,203 @@ namespace DomainModel.FinanceMNGT
         public int FeeHeadId { get; set; }
         public string? FeeHeadName { get; set; }
     }
+
+    // V3M_FIN_GenerateMiscellaneousReceipt
+    public class GenerateMiscReceiptRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public int SocietyId { get; set; }
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+        public string? ClassCode { get; set; }
+        public int SectionId { get; set; }
+        public DateTime ReceiptDate { get; set; }
+        public decimal PaidAmount { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? ChequeBank { get; set; }
+        public string? Remark { get; set; }
+        public string? CreatedBy { get; set; }
+        // dbo.V3M_FIN_UDT_MiscChallanFeeHead
+        public List<MiscChallanFeeHead> FeeHeads { get; set; } = new();
+    }
+
+    public class GenerateMiscReceiptResponse
+    {
+        public string? StudentReceiptNo { get; set; }
+        public long ReceiptId { get; set; }
+    }
     #endregion
 
+
+    public class StudentFeeReceiptListRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+
+        public long SessionId { get; set; } = 0;
+
+        public string GroupClassCode { get; set; } = "";
+        public string ClassCode { get; set; } = "";
+        public string PaymentMode { get; set; } = "";
+
+        public int ReceiptMode { get; set; } = -1;
+        public string ReceiptNo { get; set; } = "";
+
+        public string StudentNo { get; set; } = "";
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        public int Status { get; set; } = -1;
+        public string FirstName { get; set; } = "";
+        public int SocietyId { get; set; } = 0;
+        public string ChequeNo { get; set; } = "";
+        public int BankAccountId { get; set; } = 0;
+
+        public string FeeReceivedBy { get; set; } = "";
+
+        public string CancelType { get; set; } = "-1";
+    }
+
+    public class StudentFeeReceiptListResponse
+    {
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public long StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassName { get; set; }
+        public string? ClassSection { get; set; }
+        public decimal? PreviousBalance { get; set; }
+        public decimal? TotalAmount { get; set; }
+        public decimal? PaidAmount { get; set; }
+        public decimal? Concession { get; set; }
+        public decimal? Balance { get; set; }
+        public decimal? LateFee { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public bool? Valid { get; set; }
+        public DateTime? ReceiptDate { get; set; }
+        public string? CreatedBy { get; set; }
+        public decimal TotalFeeAmount { get; set; }
+        public bool IsActive { get; set; }
+        public string? ConcessionName { get; set; }
+        public string? ConcessionType { get; set; }
+        public string? Remark { get; set; }
+        // used by the receipt list print; filled once V3M_FIN_GetStudentFeeReceiptList returns them
+        public string? ChequeBank { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? PeriodName { get; set; }
+    }
+
+    // receipt list print (PDF / Excel) of View Student Receipt
+    public class StudentReceiptListPrintRequest
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public List<StudentFeeReceiptListResponse> Receipts { get; set; } = new();
+    }
+
+    // V3M_FIN_GetClassGroup (V3M_DetClassGroup)
+    public class ClassGroupRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+    }
+
+    public class ClassGroupResponse
+    {
+        public string? ClassCode { get; set; }
+    }
+
+    // V3M_FIN_GetStudentReceiptById / USP_FIN_GetReceiptDetail
+    public class StudentReceiptByIdRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long ReceiptId { get; set; }
+    }
+
+    // receipt header; address / next-to-kin columns of the SP are intentionally not mapped
+    public class StudentReceiptByIdResponse
+    {
+        public bool? IsAdmissionReceipt { get; set; }
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public long? SessionId { get; set; }
+        public string? RegistrationId { get; set; }
+        public long? StudentId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? FatherName { get; set; }
+        // mobile no. on the parent format receipt print
+        public string? NextToKinContactNo { get; set; }
+        public decimal? PreviousBalance { get; set; }
+        public decimal? TotalAmount { get; set; }
+        public decimal? PaidAmount { get; set; }
+        public decimal? Concession { get; set; }
+        public decimal? Balance { get; set; }
+        public decimal? LateFee { get; set; }
+        public decimal? PayableAmount { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? ChequeBank { get; set; }
+        public string? ChequeBankBranch { get; set; }
+        public string? ChequeType { get; set; }
+        public string? Remark { get; set; }
+        public bool? Valid { get; set; }
+        // receipt date (the save SP stores @ReceiptDate in CreatedDate)
+        public DateTime? CreatedDate { get; set; }
+        // received by
+        public string? CreatedBy { get; set; }
+        public string? PeriodName { get; set; }
+    }
+
+    public class ReceiptDetailResponse
+    {
+        public int FeeHeadId { get; set; }
+        // fee head with months, e.g. "Tuition fee (May,Jun,Jul)"
+        public string? HeadName { get; set; }
+        public string? OnlyHeadName { get; set; }
+        public string? AllMonths { get; set; }
+        public string? AllMonthsDisplay { get; set; }
+        public decimal? HeadAmount { get; set; }
+        public decimal? TotalAmount { get; set; }
+        public decimal? Concession { get; set; }
+        public decimal? PaidAmount { get; set; }
+        public int? DisplayOrder { get; set; }
+        public string? FeeApplicableType { get; set; }
+    }
+    public class StudentReceiptHeadWiseRequest
+    {
+        public string? GroupCode { get; set; } 
+        public string? BranchCode { get; set; }
+        public int SocietyId { get; set; } = 0;
+        public long SessionId { get; set; } = 0;
+        public string ClassCode { get; set; } = "";
+        public string ReceiptNo { get; set; } = "";
+        public string StudentNo { get; set; } = "";
+        public string StudentName { get; set; } = "";
+        public string CancelType { get; set; } = "-1";
+        public string CreatedBy { get; set; } = "";
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public int BankAccountId { get; set; } = 0;
+        public string PayMode { get; set; } = "";
+        public string ClassGroupCode { get; set; } = "";
+    }
+    public class StudentReceiptHeadWiseResponse
+    {
+        public Dictionary<string, object?> Values { get; set; }
+            = new(StringComparer.OrdinalIgnoreCase);
+    }
 }
 
 
