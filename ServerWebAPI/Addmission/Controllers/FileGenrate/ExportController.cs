@@ -377,6 +377,91 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 });
             }
         }
+        [HttpPost("GenerateStudentReceiptListPdf")]
+        public async Task<IActionResult> GenerateStudentReceiptListPdf([FromBody] StudentReceiptListPrintRequest request)
+        {
+            if (request == null || request.Receipts == null || request.Receipts.Count == 0)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No data found to print." });
+            }
+            try
+            {
+                var pdfBytes = await _generateFile.GenerateStudentReceiptListPdf(request);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(pdfBytes),
+                    Message = "PDF generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the receipt list."
+                });
+            }
+        }
+        [HttpPost("GenerateStudentReceiptListExcel")]
+        public async Task<IActionResult> GenerateStudentReceiptListExcel([FromBody] StudentReceiptListPrintRequest request)
+        {
+            if (request == null || request.Receipts == null || request.Receipts.Count == 0)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No data found to print." });
+            }
+            try
+            {
+                var bytes = await _generateFile.GenerateStudentReceiptListExcel(request);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(bytes),
+                    Message = "Excel generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the receipt list."
+                });
+            }
+        }
+        [HttpPost("GenerateParentFormatReceiptPdf")]
+        public async Task<IActionResult> GenerateParentFormatReceiptPdf([FromBody] ParentFormatReceiptPrintModel receipt)
+        {
+            if (receipt == null || string.IsNullOrWhiteSpace(receipt.ReceiptNo) || receipt.FeeHeads == null || receipt.FeeHeads.Count == 0)
+            {
+                return BadRequest(new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Receipt data not found."
+                });
+            }
+            try
+            {
+                var pdfBytes = await _generateFile.GenerateParentFormatReceiptPdf(receipt);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(pdfBytes),
+                    Message = "PDF generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the receipt."
+                });
+            }
+        }
         [HttpPost("GeneratePublishingListExcel")]
         public async Task<IActionResult> GeneratePublishingListExcel([FromBody] List<PublishingListResponse> publishingList)
         {

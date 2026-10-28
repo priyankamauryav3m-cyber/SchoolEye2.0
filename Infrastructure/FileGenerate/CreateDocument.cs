@@ -7,6 +7,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -2142,6 +2143,10 @@ namespace Infrastructure.FileGenerate
                     row.ConstantItem(12);
                     row.RelativeItem().Element(x => ComposeCopy(x, "PARENT COPY"));
                 });
+
+                // only View Student Receipt asks for it; Fee Collection / Admit Child prints stay unchanged
+                if (_receipt.ShowGeneratedFooter)
+                    page.Footer().Element(StudentReceiptListPdfDocument.ComposeFooter);
             });
         }
 
@@ -2277,7 +2282,7 @@ namespace Infrastructure.FileGenerate
         }
 
         // Indian numbering: 71700 -> "Seventy One Thousand Seven Hundred Only"
-        private static string AmountInWords(decimal amount)
+        internal static string AmountInWords(decimal amount)
         {
             var rupees = (long)Math.Floor(amount);
             var paise = (int)Math.Round((amount - rupees) * 100);
@@ -2321,4 +2326,816 @@ namespace Infrastructure.FileGenerate
         }
     }
     #endregion
+
+    #region---------------- Print Student Receipt List --------------
+    // View Student Receipt -> Print -> PDF: landscape list with totals at the end
+    public class StudentReceiptListPdfDocument : IDocument
+    {
+        private readonly StudentReceiptListPrintRequest _request;
+
+        public StudentReceiptListPdfDocument(StudentReceiptListPrintRequest request)
+        {
+            _request = request;
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.MarginHorizontal(8);
+                page.MarginVertical(12);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8f));
+
+                page.Header().Element(ComposeHeader);
+                page.Content().Element(ComposeContent);
+                page.Footer().Element(ComposeFooter);
+            });
+        }
+
+        // same footer as the other generated list PDFs; also used by the receipt prints of View Student Receipt
+        internal static void ComposeFooter(IContainer container)
+        {
+            container.PaddingTop(6).Column(col =>
+            {
+                col.Item().Height(1).Background(Colors.Grey.Darken1);
+                col.Item().PaddingTop(3).Row(row =>
+                {
+                    row.RelativeItem()
+                        .AlignLeft()
+                        .Text($"Generated on: {DateTime.Now:dd-MM-yyyy HH:mm:ss}")
+                        .Italic()
+                        .SemiBold();
+
+                    row.RelativeItem()
+                        .AlignRight()
+                        .Text(text =>
+                        {
+                            text.Span("Page ").Bold();
+                            text.CurrentPageNumber().Bold();
+                            text.Span(" of ").Bold();
+                            text.TotalPages().Bold();
+                        });
+                });
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+
+            container.Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    if (File.Exists(logo))
+                        row.ConstantItem(70).Height(40).AlignMiddle().Image(logo).FitArea();
+                    else
+                        row.ConstantItem(70);
+
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("V3M International School").FontSize(16).Bold();
+                        c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9).SemiBold();
+                        c.Item().AlignCenter().Text($"Student Receipts between {_request.FromDate:dd'/'MM'/'yyyy} and {_request.ToDate:dd'/'MM'/'yyyy}").FontSize(10).SemiBold();
+                    });
+
+                    row.ConstantItem(70);
+                });
+
+                col.Item().PaddingTop(4).Row(row =>
+                {
+                    row.RelativeItem().Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(8));
+                        text.Span("Pages : ");
+                        text.CurrentPageNumber();
+                        text.Span("/");
+                        text.TotalPages();
+                    });
+                    row.RelativeItem().AlignRight().Text($"Date :{DateTime.Now:dd'/'MM'/'yyyy HH:mm:ss}").FontSize(8);
+                });
+                col.Item().PaddingTop(2);
+            });
+        }
+
+        private void ComposeContent(IContainer container)
+        {
+            var receipts = _request.Receipts ?? new List<StudentFeeReceiptListResponse>();
+
+            var totalAmount = receipts.Sum(x => x.TotalAmount ?? 0);
+            var totalPaid = receipts.Sum(x => x.PaidAmount ?? 0);
+            var totalConcession = receipts.Sum(x => x.Concession ?? 0);
+
+            container.Column(col =>
+            {
+                col.Item().Table(table =>
+                {
+                    // all relative -> the table always takes the full page width
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.RelativeColumn(2.2f);   // S.No.
+                        c.RelativeColumn(3.6f);   // Receipt No.
+                        c.RelativeColumn(3.6f);   // Student No.
+                        c.RelativeColumn(7.5f);   // Student Name
+                        c.RelativeColumn(3.8f);   // Class Section
+                        c.RelativeColumn(4.2f);   // Total
+                        c.RelativeColumn(4.2f);   // Paid
+                        c.RelativeColumn(3.8f);   // Concession
+                        c.RelativeColumn(4.2f);   // Receipt Date
+                        c.RelativeColumn(3.4f);   // Mode
+                        c.RelativeColumn(3.6f);   // Chq. No
+                        c.RelativeColumn(4.6f);   // Cheque Bank
+                        c.RelativeColumn(4.2f);   // Cheque Date
+                        c.RelativeColumn(5.5f);   // Period Name
+                        c.RelativeColumn(5.5f);   // Remarks
+                        c.RelativeColumn(3.4f);   // Receipt Type
+                    });
+
+                    table.Header(header =>
+                    {
+                        foreach (var title in new[] { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
+                                     "Concession", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks", "Receipt Type" })
+                        {
+                            header.Cell().Element(HeaderCell).Text(title);
+                        }
+                    });
+
+                    var sNo = 1;
+                    foreach (var r in receipts)
+                    {
+                        table.Cell().Element(Cell).AlignCenter().Text((sNo++).ToString());
+                        table.Cell().Element(Cell).AlignCenter().Text(r.ReceiptNo ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.StudentNo ?? "");
+                        table.Cell().Element(Cell).Text(r.StudentName ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(string.IsNullOrWhiteSpace(r.ClassSection) ? (r.ClassName ?? "") : r.ClassSection);
+                        table.Cell().Element(Cell).AlignCenter().Text((r.TotalAmount ?? 0).ToString("0.00"));
+                        table.Cell().Element(Cell).AlignCenter().Text((r.PaidAmount ?? 0).ToString("0.00"));
+                        table.Cell().Element(Cell).AlignCenter().Text((r.Concession ?? 0).ToString("0.00"));
+                        table.Cell().Element(Cell).AlignCenter().Text(r.ReceiptDate?.ToString("dd'/'MM'/'yyyy") ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.PaymentMode ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.ChequeNo ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.ChequeBank ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.ChequeDate?.ToString("dd'/'MM'/'yyyy") ?? "");
+                        table.Cell().Element(Cell).Text(r.PeriodName ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.Remark ?? "");
+                        table.Cell().Element(Cell).AlignCenter().Text(r.Valid == true ? "Active" : "Cancel");
+                    }
+
+                    // last row of the table: totals under Total / Paid / Concession
+                    table.Cell().ColumnSpan(5).Element(TotalCell).AlignRight().Text($"Total ({receipts.Count} Receipts)");
+                    table.Cell().Element(TotalCell).AlignCenter().Text(totalAmount.ToString("N2"));
+                    table.Cell().Element(TotalCell).AlignCenter().Text(totalPaid.ToString("N2"));
+                    table.Cell().Element(TotalCell).AlignCenter().Text(totalConcession.ToString("N2"));
+                    table.Cell().ColumnSpan(8).Element(TotalCell).Text("");
+
+                    IContainer HeaderCell(IContainer c) =>
+                        c.Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignMiddle().AlignCenter().DefaultTextStyle(x => x.FontSize(7.5f).Bold()).MinHeight(20);
+
+                    IContainer Cell(IContainer c) =>
+                        c.Border(1).PaddingVertical(3).PaddingHorizontal(2).AlignMiddle().DefaultTextStyle(x => x.FontSize(7.5f));
+
+                    IContainer TotalCell(IContainer c) =>
+                        c.Border(1).Background(Colors.Grey.Lighten3).PaddingVertical(5).PaddingHorizontal(3).AlignMiddle().DefaultTextStyle(x => x.FontSize(8.5f).Bold());
+                });
+            });
+        }
+    }
+    #endregion
+
+    #region---------------- Print Fee Receipt (Parent Format) --------------
+    // single fee receipt on A4: header, student details, S.No. / Description / Due / Paid, total in words, note
+    public class ParentFormatReceiptPdfDocument : IDocument
+    {
+        private readonly ParentFormatReceiptPrintModel _receipt;
+
+        public ParentFormatReceiptPdfDocument(ParentFormatReceiptPrintModel receipt)
+        {
+            _receipt = receipt;
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(25);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10).FontColor(Colors.Black));
+
+                page.Content().Column(col =>
+                {
+                    col.Item().Element(ComposeHeader);
+                    col.Item().PaddingTop(15).Border(1).Column(c =>
+                    {
+                        c.Item().BorderBottom(1).PaddingVertical(5).AlignCenter().Text($"FEE RECEIPT ({ShortSession(_receipt.SessionName)})");
+                        c.Item().BorderBottom(1).Padding(6).Element(ComposeStudentDetails);
+                        c.Item().Element(ComposeFeeTable);
+                        c.Item().Padding(6).Text(text =>
+                        {
+                            text.Span("NOTE : 1. Fees, Charges once paid are not refundable     2. Cheque payment subject to realization").Bold().FontSize(9);
+                        });
+                    });
+                });
+
+                page.Footer().DefaultTextStyle(x => x.FontSize(8)).Element(StudentReceiptListPdfDocument.ComposeFooter);
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+
+            container.Row(row =>
+            {
+                if (File.Exists(logo))
+                    row.ConstantItem(70).Height(70).AlignMiddle().Image(logo).FitArea();
+
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().AlignCenter().Text("V3M International School").FontSize(24).Bold();
+                    c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9);
+                });
+            });
+        }
+
+        private void ComposeStudentDetails(IContainer container)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.RelativeColumn(3);
+                    c.ConstantColumn(12);
+                    c.RelativeColumn(3);
+                    c.RelativeColumn(3);
+                    c.ConstantColumn(12);
+                    c.RelativeColumn(3);
+                });
+
+                void Pair(string label, string? value)
+                {
+                    table.Cell().PaddingVertical(4).Text(label);
+                    table.Cell().PaddingVertical(4).Text(string.IsNullOrEmpty(label) ? "" : ":");
+                    table.Cell().PaddingVertical(4).Text(value ?? "");
+                }
+
+                Pair("Receipt No.", _receipt.ReceiptNo);
+                Pair("Date", _receipt.ReceiptDate.ToString("dd'/'MM'/'yyyy"));
+                Pair("Admission No.", _receipt.AdmissionNo);
+                Pair("Class & Section", _receipt.ClassSection);
+                Pair("Name of the Student", _receipt.StudentName);
+                Pair("Father Name", _receipt.FatherName);
+                Pair("Instalment", _receipt.Instalment);
+                Pair("Mobile No.", _receipt.MobileNo);
+                Pair("Mode of Payment", _receipt.PaymentMode);
+                Pair("", "");
+            });
+        }
+
+        private void ComposeFeeTable(IContainer container)
+        {
+            var totalDue = _receipt.FeeHeads.Sum(x => x.DueAmount);
+            var totalPaid = _receipt.FeeHeads.Sum(x => x.PaidAmount);
+
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.ConstantColumn(45);
+                    c.RelativeColumn(4);
+                    c.RelativeColumn(2);
+                    c.RelativeColumn(2);
+                });
+
+                table.Header(header =>
+                {
+                    header.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text("S.No.");
+                    header.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text("Description");
+                    header.Cell().BorderBottom(1).BorderRight(1).Padding(4).AlignRight().Text("Actual Amount Due");
+                    header.Cell().BorderBottom(1).Padding(4).AlignRight().Text("Paid Amount");
+                });
+
+                var sNo = 1;
+                foreach (var fee in _receipt.FeeHeads)
+                {
+                    table.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text($"{sNo++}.");
+                    table.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text(fee.Description ?? "");
+                    table.Cell().BorderBottom(1).BorderRight(1).Padding(4).AlignRight().Text(fee.DueAmount.ToString("N2"));
+                    table.Cell().BorderBottom(1).Padding(4).AlignRight().Text(fee.PaidAmount.ToString("N2"));
+                }
+
+                table.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text("");
+                table.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text("Total");
+                table.Cell().BorderBottom(1).BorderRight(1).Padding(4).AlignRight().Text(totalDue.ToString("N2"));
+                table.Cell().BorderBottom(1).Padding(4).AlignRight().Text(totalPaid.ToString("N2"));
+
+                table.Cell().BorderBottom(1).BorderRight(1).Padding(4).Text("");
+                table.Cell().ColumnSpan(3).BorderBottom(1).Padding(4).Text($"Total Amount in words :   {AdmitChildReceiptPdfDocument.AmountInWords(totalPaid)}");
+            });
+        }
+
+        // "2026-2027" -> "2026-27"; anything else is printed as it is
+        private static string ShortSession(string? sessionName)
+        {
+            if (string.IsNullOrWhiteSpace(sessionName))
+                return string.Empty;
+
+            var parts = sessionName.Trim().Split('-');
+            return parts.Length == 2 && parts[0].Length == 4 && parts[1].Length == 4
+                ? $"{parts[0]}-{parts[1].Substring(2)}"
+                : sessionName.Trim();
+        }
+    }
+    #endregion
+
+    #region---------------------- Head Details Report------------------
+    public class StudentReceiptHeadWisePdfDocument : IDocument
+    {
+        private readonly StudentReceiptHeadWiseRequest _request;
+        private readonly List<StudentReceiptHeadWiseResponse> _receipts;
+
+        private static readonly string[] FixedColumns =
+        {
+            "Sl. No",
+            "Receipt No",
+            "Student No",
+            "Student Name",
+            "Class Name",
+            "Category",
+            "Reciept Date"
+        };
+
+        private static readonly HashSet<string> NonAmountColumns =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "Sl. No",
+                "Receipt No",
+                "Student No",
+                "Student Name",
+                "Class Name",
+                "Category",
+                "Reciept Date",
+                "Payment Mode",
+                "Cheque No.",
+                "Cheque Date",
+                "Period",
+                "Remarks"
+            };
+
+        public StudentReceiptHeadWisePdfDocument(
+            StudentReceiptHeadWiseRequest request,
+            List<StudentReceiptHeadWiseResponse> receipts)
+        {
+            _request = request;
+            _receipts = receipts ?? new();
+        }
+
+        public DocumentMetadata GetMetadata() =>
+            DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() =>
+            DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.MarginHorizontal(8);
+                page.MarginVertical(8);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8));
+
+                page.Header().Element(ComposeHeader);
+                page.Content().Element(ComposeContent);
+                page.Footer().Element(ComposeFooter);
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "Logos",
+                "logo (1).png");
+
+            container.Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    if (File.Exists(logo))
+                    {
+                        row.ConstantItem(95)
+                            .Height(48)
+                            .AlignMiddle()
+                            .Image(logo)
+                            .FitArea();
+                    }
+                    else
+                    {
+                        row.ConstantItem(95);
+                    }
+
+                    row.RelativeItem().Column(center =>
+                    {
+                        center.Item().AlignCenter()
+                            .Text("V3M International School")
+                            .FontSize(14)
+                            .Bold();
+
+                        center.Item().AlignCenter()
+                            .Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017")
+                            .FontSize(8);
+
+                        center.Item().AlignCenter()
+                            .Text(
+                                $"Receipt Head-Wise Detail | " +
+                                $"{_request.FromDate:dd/MM/yyyy} - " +
+                                $"{_request.ToDate:dd/MM/yyyy}")
+                            .FontSize(9)
+                            .SemiBold();
+                    });
+
+                    row.ConstantItem(120)
+                        .AlignRight()
+                        .AlignMiddle()
+                        .Text($"Printed on : {DateTime.Now:dd MMM yyyy hh:mm:ss tt}")
+                        .FontSize(6);
+                });
+
+                col.Item().PaddingTop(5);
+            });
+        }
+
+        private void ComposeContent(IContainer container)
+        {
+            var columns = GetColumns();
+
+            container.Column(col =>
+            {
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(definition =>
+                    {
+                        foreach (var column in columns)
+                        {
+                            definition.RelativeColumn(GetColumnWidth(column));
+                        }
+                    });
+
+                    table.Header(header =>
+                    {
+                        foreach (var column in columns)
+                        {
+                            header.Cell()
+                                .Element(HeaderCell)
+                                .Text(column);
+                        }
+                    });
+
+                    foreach (var receipt in _receipts)
+                    {
+                        foreach (var column in columns)
+                        {
+                            receipt.Values.TryGetValue(
+                                column, out var value);
+
+                            table.Cell()
+                                .Element(BodyCell)
+                                .Text(FormatValue(column, value));
+                        }
+                    }
+
+                    if (_receipts.Count > 0)
+                    {
+                        for (var i = 0; i < columns.Count; i++)
+                        {
+                            var column = columns[i];
+
+                            if (i == 0)
+                            {
+                                table.Cell()
+                                    .Element(TotalCell)
+                                    .Text($"Grand Total ({_receipts.Count})");
+                            }
+                            else if (IsAmountColumn(column))
+                            {
+                                table.Cell()
+                                    .Element(TotalCell)
+                                    .AlignRight()
+                                    .Text(GetColumnTotal(column));
+                            }
+                            else
+                            {
+                                table.Cell()
+                                    .Element(TotalCell)
+                                    .Text("");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        table.Cell()
+                            .ColumnSpan((uint)columns.Count)
+                            .Element(BodyCell)
+                            .AlignCenter()
+                            .Text("No records found");
+                    }
+                });
+
+                col.Item()
+                    .PaddingTop(8)
+                    .AlignRight()
+                    .Element(ComposeSummary);
+            });
+        }
+
+        private List<string> GetColumns()
+        {
+            if (_receipts.Count == 0)
+            {
+                return FixedColumns
+                    .Concat(new[]
+                    {
+                        "Payment Mode",
+                        "Cheque No.",
+                        "Cheque Date",
+                        "Cheque Collection",
+                        "Cash Collection",
+                        "Total Amount",
+                        "Balance",
+                        "Period",
+                        "Remarks"
+                    })
+                    .ToList();
+            }
+
+            var columns = _receipts[0].Values.Keys.ToList();
+
+            var ordered = FixedColumns
+                .Where(fixedColumn => columns.Any(
+                    x => x.Equals(
+                        fixedColumn,
+                        StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            ordered.AddRange(
+                columns.Where(column =>
+                    !ordered.Contains(
+                        column,
+                        StringComparer.OrdinalIgnoreCase) &&
+                    !IsEndingColumn(column)));
+
+            var endingColumns = new[]
+            {
+                "Previous Balance",
+                "Late Fee",
+                "Payment Mode",
+                "Cheque No.",
+                "Cheque Date",
+                "Cheque Collection",
+                "Cash Collection",
+                "Total Amount",
+                "Balance",
+                "Period",
+                "Remarks"
+            };
+
+            foreach (var endingColumn in endingColumns)
+            {
+                if (columns.Any(x => x.Equals(
+                    endingColumn,
+                    StringComparison.OrdinalIgnoreCase)))
+                {
+                    ordered.Add(endingColumn);
+                }
+            }
+
+            return ordered;
+        }
+
+        private static bool IsEndingColumn(string column)
+        {
+            return new[]
+            {
+                "Previous Balance",
+                "Late Fee",
+                "Payment Mode",
+                "Cheque No.",
+                "Cheque Date",
+                "Cheque Collection",
+                "Cash Collection",
+                "Total Amount",
+                "Balance",
+                "Period",
+                "Remarks"
+            }.Contains(column, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static float GetColumnWidth(string column)
+        {
+            if (column.Equals("Student Name",
+                StringComparison.OrdinalIgnoreCase))
+                return 2.5f;
+
+            if (column.Equals("Receipt No",
+                StringComparison.OrdinalIgnoreCase) ||
+                column.Equals("Student No",
+                StringComparison.OrdinalIgnoreCase))
+                return 1.25f;
+
+            if (column.Equals("Period",
+                StringComparison.OrdinalIgnoreCase) ||
+                column.Equals("Remarks",
+                StringComparison.OrdinalIgnoreCase))
+                return 1.8f;
+
+            if (column.Equals("Payment Mode",
+                StringComparison.OrdinalIgnoreCase) ||
+                column.Equals("Cheque No.",
+                StringComparison.OrdinalIgnoreCase))
+                return 1.5f;
+
+            if (NonAmountColumns.Contains(column))
+                return 1.4f;
+
+            return 1.15f;
+        }
+
+        private static bool IsAmountColumn(string column)
+        {
+            return !NonAmountColumns.Contains(column);
+        }
+
+        private string GetColumnTotal(string column)
+        {
+            decimal total = 0;
+
+            foreach (var receipt in _receipts)
+            {
+                if (receipt.Values.TryGetValue(column, out var value))
+                    total += ToDecimal(value);
+            }
+
+            return total.ToString("N0", CultureInfo.InvariantCulture);
+        }
+
+        private static decimal ToDecimal(object? value)
+        {
+            if (value == null || value == DBNull.Value)
+                return 0;
+
+            try
+            {
+                return Convert.ToDecimal(
+                    value, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return decimal.TryParse(
+                    value.ToString(),
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out var result)
+                    ? result
+                    : 0;
+            }
+        }
+
+        private static string FormatValue(
+            string column, object? value)
+        {
+            if (value == null || value == DBNull.Value)
+                return "";
+
+            if (IsAmountColumn(column))
+            {
+                return ToDecimal(value).ToString(
+                    "N0", CultureInfo.InvariantCulture);
+            }
+
+            return Convert.ToString(
+                value, CultureInfo.InvariantCulture) ?? "";
+        }
+
+        private void ComposeSummary(IContainer container)
+        {
+            decimal cash = GetColumnTotalValue("Cash Collection");
+            decimal cheque = GetColumnTotalValue("Cheque Collection");
+            decimal grandTotal = GetColumnTotalValue("Total Amount");
+
+            container.Column(col =>
+            {
+                col.Item().AlignRight().Row(row =>
+                {
+                    row.ConstantItem(110).AlignRight()
+                        .Text("Total By Cash :").Bold();
+
+                    row.ConstantItem(90).AlignRight()
+                        .Text(cash.ToString("N0")).Bold();
+                });
+
+                col.Item().AlignRight().Row(row =>
+                {
+                    row.ConstantItem(110).AlignRight()
+                        .Text("Total By Cheque :").Bold();
+
+                    row.ConstantItem(90).AlignRight()
+                        .Text(cheque.ToString("N0")).Bold();
+                });
+
+                col.Item().AlignRight().Row(row =>
+                {
+                    row.ConstantItem(110).AlignRight()
+                        .Text("Grand Total :").Bold();
+
+                    row.ConstantItem(90).AlignRight()
+                        .Text(grandTotal.ToString("N0")).Bold();
+                });
+            });
+        }
+
+        private decimal GetColumnTotalValue(string column)
+        {
+            decimal total = 0;
+
+            foreach (var receipt in _receipts)
+            {
+                if (receipt.Values.TryGetValue(column, out var value))
+                    total += ToDecimal(value);
+            }
+
+            return total;
+        }
+
+        private static IContainer HeaderCell(IContainer container)
+        {
+            return container
+                .Border(0.7f)
+                .Background(Colors.Grey.Lighten3)
+                .Padding(2)
+                .AlignMiddle()
+                .AlignCenter()
+                .DefaultTextStyle(x =>
+                    x.FontSize(5.5f).Bold());
+        }
+
+        private static IContainer BodyCell(IContainer container)
+        {
+            return container
+                .Border(0.5f)
+                .PaddingVertical(2)
+                .PaddingHorizontal(1.5f)
+                .AlignMiddle()
+                .DefaultTextStyle(x => x.FontSize(5.5f));
+        }
+
+        private static IContainer TotalCell(IContainer container)
+        {
+            return container
+                .Border(0.7f)
+                .Background(Colors.Grey.Lighten3)
+                .Padding(2)
+                .AlignMiddle()
+                .DefaultTextStyle(x =>
+                    x.FontSize(6).Bold());
+        }
+
+        private static void ComposeFooter(IContainer container)
+        {
+            container.PaddingTop(4).Row(row =>
+            {
+                row.RelativeItem()
+                    .Text($"Generated on: {DateTime.Now:dd-MM-yyyy HH:mm:ss}")
+                    .FontSize(6)
+                    .Italic();
+
+                row.RelativeItem()
+                    .AlignRight()
+                    .Text(text =>
+                    {
+                        text.Span("Page ").FontSize(6);
+                        text.CurrentPageNumber().FontSize(6);
+                        text.Span(" of ").FontSize(6);
+                        text.TotalPages().FontSize(6);
+                    });
+            });
+        }
+    }
+    #endregion
+
 }

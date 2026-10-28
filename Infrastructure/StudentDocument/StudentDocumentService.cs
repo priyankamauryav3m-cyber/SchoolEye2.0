@@ -8,6 +8,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.StudentDocument
 {
-    public class StudentDocumentService : IPrintStudentRec             
+    public class StudentDocumentService : IPrintStudentRec
     {
         public async Task<byte[]> GenerateRegistrationExcel(List<RegistrationDto> students)
         {
@@ -105,6 +106,112 @@ namespace Infrastructure.StudentDocument
             QuestPDF.Settings.License = LicenseType.Community;
             var document = new AdmitChildReceiptPdfDocument(receipt);
             return document.GeneratePdf();
+        }
+        public async Task<byte[]> GenerateParentFormatReceiptPdf(ParentFormatReceiptPrintModel receipt)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var document = new ParentFormatReceiptPdfDocument(receipt);
+            return document.GeneratePdf();
+        }
+        public async Task<byte[]> GenerateStudentReceiptListPdf(StudentReceiptListPrintRequest request)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var document = new StudentReceiptListPdfDocument(request);
+            return document.GeneratePdf();
+        }
+        // same columns and totals as the receipt list PDF
+        public async Task<byte[]> GenerateStudentReceiptListExcel(StudentReceiptListPrintRequest request)
+        {
+            var receipts = request.Receipts ?? new List<StudentFeeReceiptListResponse>();
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Student Receipts");
+
+            var headers = new[] { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
+                "Concession", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks", "Receipt Type" };
+            int totalColumns = headers.Length;
+
+            // ===== TITLE =====
+            ws.Range(1, 1, 1, totalColumns).Merge();
+            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 20;
+            ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(2, 1, 2, totalColumns).Merge();
+            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(3, 1, 3, totalColumns).Merge();
+            ws.Cell(3, 1).Value = $"Student Receipts between {request.FromDate:dd'/'MM'/'yyyy} and {request.ToDate:dd'/'MM'/'yyyy}";
+            ws.Cell(3, 1).Style.Font.Bold = true;
+            ws.Cell(3, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(4, 1, 4, totalColumns).Merge();
+            ws.Cell(4, 1).Value = $"Date : {DateTime.Now:dd'/'MM'/'yyyy HH:mm:ss}";
+            ws.Cell(4, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            // ===== HEADERS =====
+            int headerRow = 5;
+            for (int c = 0; c < totalColumns; c++)
+                ws.Cell(headerRow, c + 1).Value = headers[c];
+            ws.Range(headerRow, 1, headerRow, totalColumns).Style.Font.Bold = true;
+            ws.Range(headerRow, 1, headerRow, totalColumns).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // ===== DATA =====
+            int row = headerRow + 1;
+            int sNo = 1;
+            foreach (var r in receipts)
+            {
+                ws.Cell(row, 1).Value = sNo++;
+                ws.Cell(row, 2).Value = r.ReceiptNo;
+                ws.Cell(row, 3).Value = r.StudentNo;
+                ws.Cell(row, 4).Value = r.StudentName;
+                ws.Cell(row, 5).Value = string.IsNullOrWhiteSpace(r.ClassSection) ? r.ClassName : r.ClassSection;
+                ws.Cell(row, 6).Value = r.TotalAmount ?? 0;
+                ws.Cell(row, 7).Value = r.PaidAmount ?? 0;
+                ws.Cell(row, 8).Value = r.Concession ?? 0;
+                ws.Cell(row, 9).Value = r.ReceiptDate?.ToString("dd'/'MM'/'yyyy");
+                ws.Cell(row, 10).Value = r.PaymentMode;
+                ws.Cell(row, 11).Value = r.ChequeNo;
+                ws.Cell(row, 12).Value = r.ChequeBank;
+                ws.Cell(row, 13).Value = r.ChequeDate?.ToString("dd'/'MM'/'yyyy");
+                ws.Cell(row, 14).Value = r.PeriodName;
+                ws.Cell(row, 15).Value = r.Remark;
+                ws.Cell(row, 16).Value = r.Valid == true ? "Active" : "Cancel";
+
+                ws.Range(row, 6, row, 8).Style.NumberFormat.Format = "0.00";
+                row++;
+            }
+
+            // ===== TOTAL ROW (last row of the table, same as the PDF) =====
+            int totalRow = row;
+            ws.Range(totalRow, 1, totalRow, 5).Merge();
+            ws.Cell(totalRow, 1).Value = $"Total ({receipts.Count} Receipts)";
+            ws.Cell(totalRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            ws.Cell(totalRow, 6).Value = receipts.Sum(x => x.TotalAmount ?? 0);
+            ws.Cell(totalRow, 7).Value = receipts.Sum(x => x.PaidAmount ?? 0);
+            ws.Cell(totalRow, 8).Value = receipts.Sum(x => x.Concession ?? 0);
+            ws.Range(totalRow, 6, totalRow, 8).Style.NumberFormat.Format = "#,##0.00";
+            ws.Range(totalRow, 9, totalRow, totalColumns).Merge();
+
+            var totalRange = ws.Range(totalRow, 1, totalRow, totalColumns);
+            totalRange.Style.Font.Bold = true;
+            totalRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+
+            ws.Range(headerRow, 1, headerRow, totalColumns).Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+
+            // borders only on the table (header -> total row), not on the title rows
+            var tableRange = ws.Range(headerRow, 1, totalRow, totalColumns);
+            tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Columns().AdjustToContents();
+
+            // ===== EXPORT =====
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
         }
         public async Task<byte[]> GenerateStudentListPdf(List<RegistrationDto> students)
         {
@@ -2774,6 +2881,365 @@ namespace Infrastructure.StudentDocument
 
             return await Task.FromResult(stream.ToArray());
         }
+        public async Task<byte[]> GenerateStudentReceiptHeadWisePdf(StudentReceiptHeadWiseRequest request, List<StudentReceiptHeadWiseResponse> data)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var document = new StudentReceiptHeadWisePdfDocument(
+                request,
+                data);
+
+            return await Task.FromResult(document.GeneratePdf());
+        }
+
+        public async Task<byte[]> GenerateStudentReceiptHeadWiseExcel( StudentReceiptHeadWiseRequest request, List<StudentReceiptHeadWiseResponse> data)
+        {
+            var receipts = data ?? new List<StudentReceiptHeadWiseResponse>();
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Receipt Head Wise");
+
+            var columns = GetStudentReceiptHeadWiseExcelColumns(receipts);
+
+            int totalColumns = columns.Count;
+            int headerRow = 5;
+
+            // Title
+            ws.Range(1, 1, 1, totalColumns).Merge();
+            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 20;
+            ws.Cell(1, 1).Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Center;
+
+            ws.Range(2, 1, 2, totalColumns).Merge();
+            ws.Cell(2, 1).Value =
+                "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Center;
+
+            ws.Range(3, 1, 3, totalColumns).Merge();
+            ws.Cell(3, 1).Value =
+                $"Receipt Head-Wise Detail between " +
+                $"{request.FromDate:dd/MM/yyyy} and {request.ToDate:dd/MM/yyyy}";
+            ws.Cell(3, 1).Style.Font.Bold = true;
+            ws.Cell(3, 1).Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Center;
+
+            ws.Range(4, 1, 4, totalColumns).Merge();
+            ws.Cell(4, 1).Value =
+                $"Printed on: {DateTime.Now:dd MMM yyyy hh:mm:ss tt}";
+            ws.Cell(4, 1).Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Right;
+
+            // Headers
+            for (int c = 0; c < totalColumns; c++)
+            {
+                ws.Cell(headerRow, c + 1).Value = columns[c];
+            }
+
+            var headerRange = ws.Range(
+                headerRow, 1, headerRow, totalColumns);
+
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor =
+                XLColor.FromHtml("#EEEEEE");
+            headerRange.Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Alignment.Vertical =
+                XLAlignmentVerticalValues.Center;
+            headerRange.Style.Alignment.WrapText = true;
+
+            // Data
+            int row = headerRow + 1;
+
+            foreach (var receipt in receipts)
+            {
+                for (int c = 0; c < totalColumns; c++)
+                {
+                    string column = columns[c];
+
+                    receipt.Values.TryGetValue(column, out var value);
+
+                    var cell = ws.Cell(row, c + 1);
+
+                    if (IsStudentReceiptHeadWiseAmountColumn(column))
+                    {
+                        cell.Value = ToStudentReceiptHeadWiseDecimal(value);
+                        cell.Style.NumberFormat.Format = "#,##0";
+                        cell.Style.Alignment.Horizontal =
+                            XLAlignmentHorizontalValues.Right;
+                    }
+                    else
+                    {
+                        cell.Value = value == null || value == DBNull.Value
+                            ? string.Empty
+                            : Convert.ToString(
+                                value, CultureInfo.InvariantCulture) ?? string.Empty;
+                    }
+
+                    cell.Style.Alignment.Vertical =
+                        XLAlignmentVerticalValues.Center;
+                }
+
+                row++;
+            }
+
+            // Table Grand Total
+            int totalRow = row;
+
+            if (receipts.Count > 0)
+            {
+                ws.Cell(totalRow, 1).Value =
+                    $"Grand Total ({receipts.Count} Receipts)";
+
+                ws.Cell(totalRow, 1).Style.Alignment.Horizontal =
+                    XLAlignmentHorizontalValues.Right;
+
+                for (int c = 1; c < totalColumns; c++)
+                {
+                    string column = columns[c];
+
+                    if (IsStudentReceiptHeadWiseAmountColumn(column))
+                    {
+                        decimal total = receipts.Sum(receipt =>
+                        {
+                            receipt.Values.TryGetValue(column, out var value);
+                            return ToStudentReceiptHeadWiseDecimal(value);
+                        });
+
+                        ws.Cell(totalRow, c + 1).Value = total;
+                        ws.Cell(totalRow, c + 1).Style.NumberFormat.Format =
+                            "#,##0";
+                        ws.Cell(totalRow, c + 1).Style.Alignment.Horizontal =
+                            XLAlignmentHorizontalValues.Right;
+                    }
+                }
+            }
+            else
+            {
+                ws.Cell(totalRow, 1).Value = "No records found";
+
+                if (totalColumns > 1)
+                {
+                    ws.Range(totalRow, 1, totalRow, totalColumns).Merge();
+                }
+            }
+
+            var totalRange = ws.Range(
+                totalRow, 1, totalRow, totalColumns);
+
+            totalRange.Style.Font.Bold = true;
+            totalRange.Style.Fill.BackgroundColor =
+                XLColor.FromHtml("#EEEEEE");
+
+            // Borders: headers through Grand Total
+            var tableRange = ws.Range(
+                headerRow, 1, totalRow, totalColumns);
+
+            tableRange.Style.Border.OutsideBorder =
+                XLBorderStyleValues.Thin;
+            tableRange.Style.Border.InsideBorder =
+                XLBorderStyleValues.Thin;
+
+            // Cash, Cheque and Grand Total summary
+            int summaryRow = totalRow + 2;
+
+            decimal cashTotal =
+                GetStudentReceiptHeadWiseTotal(receipts, "Cash Collection");
+
+            decimal chequeTotal =
+                GetStudentReceiptHeadWiseTotal(receipts, "Cheque Collection");
+
+            decimal grandTotal =
+                GetStudentReceiptHeadWiseTotal(receipts, "Total Amount");
+
+            WriteStudentReceiptHeadWiseSummary(
+                ws, summaryRow++, totalColumns, "Total By Cash", cashTotal);
+
+            WriteStudentReceiptHeadWiseSummary(
+                ws, summaryRow++, totalColumns, "Total By Cheque", chequeTotal);
+
+            WriteStudentReceiptHeadWiseSummary(
+                ws, summaryRow, totalColumns, "Grand Total", grandTotal);
+
+            ws.SheetView.FreezeRows(headerRow);
+            ws.PageSetup.PageOrientation = XLPageOrientation.Landscape;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
+            ws.PageSetup.FitToPages(1, 0);
+            ws.PageSetup.PagesWide = 1;
+            ws.PageSetup.CenterHorizontally = true;
+            ws.PageSetup.Margins.Top = 0.3;
+            ws.PageSetup.Margins.Bottom = 0.3;
+            ws.PageSetup.Margins.Left = 0.2;
+            ws.PageSetup.Margins.Right = 0.2;
+
+            ws.Columns().AdjustToContents();
+
+            // Limit very wide dynamic columns
+            foreach (var column in ws.ColumnsUsed())
+            {
+                if (column.Width > 28)
+                    column.Width = 28;
+            }
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+
+            return await Task.FromResult(stream.ToArray());
+        }
+
+        private static List<string> GetStudentReceiptHeadWiseExcelColumns(
+            List<StudentReceiptHeadWiseResponse> receipts)
+        {
+            var fixedColumns = new[]
+            {
+        "Sl. No",
+        "Receipt No",
+        "Student No",
+        "Student Name",
+        "Class Name",
+        "Category",
+        "Reciept Date"
+    };
+
+            var endingColumns = new[]
+            {
+        "Previous Balance",
+        "Late Fee",
+        "Payment Mode",
+        "Cheque No.",
+        "Cheque Date",
+        "Cheque Collection",
+        "Cash Collection",
+        "Total Amount",
+        "Balance",
+        "Period",
+        "Remarks"
+    };
+
+            var available = receipts
+                .SelectMany(x => x.Values.Keys)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var result = fixedColumns
+                .Where(x => available.Contains(
+                    x, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            result.AddRange(available.Where(x =>
+                !result.Contains(x, StringComparer.OrdinalIgnoreCase) &&
+                !endingColumns.Contains(x, StringComparer.OrdinalIgnoreCase)));
+
+            foreach (var column in endingColumns)
+            {
+                if (available.Contains(
+                    column, StringComparer.OrdinalIgnoreCase))
+                {
+                    result.Add(column);
+                }
+            }
+
+            if (result.Count == 0)
+            {
+                result.AddRange(fixedColumns);
+                result.AddRange(new[]
+                {
+            "Payment Mode",
+            "Cheque No.",
+            "Cheque Date",
+            "Cheque Collection",
+            "Cash Collection",
+            "Total Amount",
+            "Balance",
+            "Period",
+            "Remarks"
+        });
+            }
+
+            return result;
+        }
+
+        private static bool IsStudentReceiptHeadWiseAmountColumn(
+            string column)
+        {
+            var textColumns = new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase)
+    {
+        "Sl. No",
+        "Receipt No",
+        "Student No",
+        "Student Name",
+        "Class Name",
+        "Category",
+        "Reciept Date",
+        "Payment Mode",
+        "Cheque No.",
+        "Cheque Date",
+        "Period",
+        "Remarks"
+    };
+
+            return !textColumns.Contains(column);
+        }
+
+        private static decimal ToStudentReceiptHeadWiseDecimal(object? value)
+        {
+            if (value == null || value == DBNull.Value)
+                return 0;
+
+            try
+            {
+                return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return decimal.TryParse(
+                    value.ToString(),
+                    NumberStyles.Any,
+                    CultureInfo.InvariantCulture,
+                    out var result)
+                    ? result
+                    : 0;
+            }
+        }
+
+        private static decimal GetStudentReceiptHeadWiseTotal(
+            List<StudentReceiptHeadWiseResponse> receipts,
+            string column)
+        {
+            return receipts.Sum(receipt =>
+            {
+                receipt.Values.TryGetValue(column, out var value);
+                return ToStudentReceiptHeadWiseDecimal(value);
+            });
+        }
+
+        private static void WriteStudentReceiptHeadWiseSummary(
+            IXLWorksheet ws,
+            int row,
+            int totalColumns,
+            string label,
+            decimal amount)
+        {
+            int labelColumn = Math.Max(1, totalColumns - 1);
+            int amountColumn = totalColumns;
+
+            ws.Cell(row, labelColumn).Value = $"{label} :";
+            ws.Cell(row, amountColumn).Value = amount;
+
+            ws.Cell(row, labelColumn).Style.Font.Bold = true;
+            ws.Cell(row, labelColumn).Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Right;
+
+            ws.Cell(row, amountColumn).Style.Font.Bold = true;
+            ws.Cell(row, amountColumn).Style.NumberFormat.Format = "#,##0";
+            ws.Cell(row, amountColumn).Style.Alignment.Horizontal =
+                XLAlignmentHorizontalValues.Right;
+        }
+
     }
 
 

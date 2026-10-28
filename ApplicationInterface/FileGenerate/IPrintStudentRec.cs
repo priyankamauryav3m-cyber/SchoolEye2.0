@@ -35,6 +35,9 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateStudentReceiptToPdfData(List<RegistrationReceiptResponse> students);
         public Task<byte[]> GenerateStudentPdf(RegistrationReceiptResponse students);
         public Task<byte[]> GenerateAdmitChildReceiptPdf(AdmitChildReceiptPrintModel receipt);
+        public Task<byte[]> GenerateParentFormatReceiptPdf(ParentFormatReceiptPrintModel receipt);
+        public Task<byte[]> GenerateStudentReceiptListPdf(StudentReceiptListPrintRequest request);
+        public Task<byte[]> GenerateStudentReceiptListExcel(StudentReceiptListPrintRequest request);
         public Task<byte[]> GeneratePublishingListExcel(List<PublishingListResponse> publishingList);
         public Task<byte[]> GeneratePublishingListPdf(List<PublishingListResponse> publishingList);
         //  public Task<byte[]> GenerateClassList(List<GetSearchedViewStudentModel> model);
@@ -48,6 +51,7 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateSiblingListExcel(List<SiblingListResponse> students);
         public Task<byte[]> GenerateStudentBirthdayExcel(List<BirthdayStudentResponse> students);
         public Task<byte[]> GenerateStudentSiblingExcel(List<SiblingListResponse> students);
-
+        Task<byte[]> GenerateStudentReceiptHeadWisePdf(StudentReceiptHeadWiseRequest request, List<StudentReceiptHeadWiseResponse> data);
+        Task<byte[]> GenerateStudentReceiptHeadWiseExcel(StudentReceiptHeadWiseRequest request,List<StudentReceiptHeadWiseResponse> data);
     }
 }

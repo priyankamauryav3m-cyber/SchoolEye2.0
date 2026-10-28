@@ -329,7 +329,7 @@ else
     // - Popup fee heads = session fee heads (SessionFeeHeads/GetSessionFeeHead) whose
     //   FeeApplicableType is "Miscellaneous" (taken from FeeHead/GetFeeHeadList).
     // - Concession and Late Fee are 0 for miscellaneous heads (read-only).
-    // - Collect Fee has no endpoint yet (TODO).
+    // - Collect Fee posts to StudentMiscellaneous/GenerateMiscellaneousReceipt (one receipt for all added heads).
     // ---------------------------------------------------------------------
 
     private bool IsLoading = false;
@@ -756,8 +756,76 @@ else
             return;
         }
 
-        // TODO: no endpoint specified yet — send selectedStudent.StudentId, CurrentSession, ReceiptDate,
-        // feeHeadlist (FeeHeadId, Amount, Concession), PaymentMode, ChequeNo, ChequeDate, BankName, Remark.
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var request = new GenerateMiscReceiptRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SocietyId = int.TryParse(selectedStudent.SocietyId, out var societyId) ? societyId : 0,
+                SessionId = CurrentSession,
+                StudentId = selectedStudent.StudentId,
+                ClassCode = selectedStudent.ClassCode,
+                SectionId = selectedStudent.SectionId,
+                ReceiptDate = ReceiptDate.Value,
+                PaidAmount = TotalAmount,
+                PaymentMode = PaymentMode,
+                ChequeNo = IsCash ? string.Empty : ChequeNo.Trim(),
+                ChequeDate = IsCash ? null : ChequeDate,
+                ChequeBank = IsCash ? string.Empty : BankName.Trim(),
+                Remark = Remark?.Trim(),
+                CreatedBy = UserName,
+                FeeHeads = feeHeadlist
+                    .Select((x, i) => new MiscChallanFeeHead
+                    {
+                        FeeHeadId = x.FeeHeadId,
+                        DisplayOrder = i + 1,
+                        MonthNo = 0,
+                        Amount = x.Amount ?? 0,
+                        Concession = x.Concession
+                    })
+                    .ToList()
+            };
+
+            var response = await httpService.Post<ApiResponse<GenerateMiscReceiptResponse>>("StudentMiscellaneous/GenerateMiscellaneousReceipt", request);
+
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && response.Data != null)
+            {
+                await Alert.ShowSuccess($"Fee collected successfully. Receipt No: {response.Data.StudentReceiptNo}");
+                ResetAfterCollect();
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Receipt could not be generated.");
+            }
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to collect the fee. Please try again." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // after a receipt the student stays selected; heads and payment details are cleared for the next one
+    private void ResetAfterCollect()
+    {
+        feeHeadlist = new();
+        PaymentMode = "Cash";
+        ChequeNo = string.Empty;
+        ChequeDate = null;
+        BankName = string.Empty;
+        Remark = null;
     }
 
     public class MiscFeeHeadRow

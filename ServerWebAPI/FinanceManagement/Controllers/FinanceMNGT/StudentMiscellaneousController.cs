@@ -259,6 +259,106 @@ namespace SchoolEye.ServerWebAPI.Addmission.Controllers.Admin
             }
         }
 
+        [HttpPost("GenerateMiscellaneousReceipt")]
+        public async Task<IActionResult> GenerateMiscellaneousReceipt([FromBody] GenerateMiscReceiptRequest request)
+        {
+            if (request == null || request.SessionId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select session.", Code = 0 });
+            }
+            if (request.StudentId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select student.", Code = 0 });
+            }
+            if (request.ReceiptDate == default)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select receipt date.", Code = 0 });
+            }
+            if (request.FeeHeads == null || request.FeeHeads.Count == 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please add at least one fee head.", Code = 0 });
+            }
+            if (request.FeeHeads.Any(x => x.FeeHeadId <= 0))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Invalid fee head.", Code = 0 });
+            }
+            if (request.FeeHeads.GroupBy(x => x.FeeHeadId).Any(g => g.Count() > 1))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Fee head cannot be added more than once.", Code = 0 });
+            }
+            if (request.FeeHeads.Any(x => x.Amount <= 0 || x.Concession < 0 || x.Concession > x.Amount))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Fee head amount must be greater than 0.", Code = 0 });
+            }
+            var payable = request.FeeHeads.Sum(x => x.Amount - x.Concession);
+            if (request.PaidAmount <= 0 || request.PaidAmount != payable)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Paid amount does not match the fee head total.", Code = 0 });
+            }
+            var paymentModes = new[] { "Cash", "Cheque", "Online" };
+            if (string.IsNullOrWhiteSpace(request.PaymentMode) || !paymentModes.Contains(request.PaymentMode))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select payment mode.", Code = 0 });
+            }
+            if (request.PaymentMode != "Cash")
+            {
+                var noLabel = request.PaymentMode == "Online" ? "transaction no." : "cheque no.";
+                var dateLabel = request.PaymentMode == "Online" ? "transaction date" : "cheque date";
+                if (string.IsNullOrWhiteSpace(request.ChequeNo) || request.ChequeNo.Trim().Length > 50)
+                {
+                    return BadRequest(new ApiResponse<object> { Success = false, Message = $"Please enter valid {noLabel}", Code = 0 });
+                }
+                if (request.ChequeDate == null)
+                {
+                    return BadRequest(new ApiResponse<object> { Success = false, Message = $"Please select {dateLabel}.", Code = 0 });
+                }
+                if (string.IsNullOrWhiteSpace(request.ChequeBank) || request.ChequeBank.Trim().Length > 100)
+                {
+                    return BadRequest(new ApiResponse<object> { Success = false, Message = "Please enter valid bank.", Code = 0 });
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(request.Remark) && request.Remark.Trim().Length > 200)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Remark can be maximum 200 characters.", Code = 0 });
+            }
+            try
+            {
+                // cash receipts never carry cheque / transaction details
+                if (request.PaymentMode == "Cash")
+                {
+                    request.ChequeNo = string.Empty;
+                    request.ChequeDate = null;
+                    request.ChequeBank = string.Empty;
+                }
+                request.ChequeNo = request.ChequeNo?.Trim();
+                request.ChequeBank = request.ChequeBank?.Trim();
+                request.Remark = request.Remark?.Trim();
+
+                var result = await _service.GenerateMiscellaneousReceipt(request);
+                if (result == null || string.IsNullOrWhiteSpace(result.StudentReceiptNo))
+                {
+                    return Ok(new ApiResponse<object> { Success = false, Message = "Receipt could not be generated.", Code = 0 });
+                }
+                return Ok(new ApiResponse<GenerateMiscReceiptResponse>
+                {
+                    Success = true,
+                    Message = "Fee collected successfully.",
+                    Code = 1,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while generating the receipt.",
+                    Code = -1
+                });
+            }
+        }
+
         //[HttpPost("GetFeeHeadForCombo")]
         //public async Task<IActionResult> GetFeeHeadForCombo([FromBody] FeeHeadForComboRequest request)
         //{

@@ -536,11 +536,11 @@
                 <div class="overflow-auto" style="height: calc(125vh - 280px); min-height: 400px; border-radius:10px;">
                     <div class="modal-body">
                         <div class="tab-content form-tab-count">
-                            <ViewStudentReceipt @ref="ledgerReceiptRef" classs=""
+                            <ViewStudentDuesAndReceipt @ref="ledgerReceiptRef" classs=""
                                                 SearchTerm="@(IsStudentSelected && !string.IsNullOrWhiteSpace(selectedStudent.ControlNo) ? selectedStudent.ControlNo : searchTerm)"
                                                 SessionId="@CurrentSession"
                                                 FeeDues="@feeCollectionDuelist"
-                                                OnClose="CloseLedgerPopup"></ViewStudentReceipt>
+                                                OnClose="CloseLedgerPopup"></ViewStudentDuesAndReceipt>
                         </div>
                     </div>
                 </div>
@@ -1286,7 +1286,7 @@ else
         CashPaymentAmount = TotalWithLateFee;
         StateHasChanged();
     }
-    // Ledger details popup = ViewStudentReceipt component (it runs its own search/session/data)
+    // Ledger details popup = ViewStudentDuesAndReceipt component (it runs its own search/session/data)
     private async Task OpenLedgerPopup()
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -1298,7 +1298,7 @@ else
     }
     private void CloseLedgerPopup() { ShowLedgerPopup = false; StateHasChanged(); }
 
-    private ViewStudentReceipt? ledgerReceiptRef;
+    private ViewStudentDuesAndReceipt? ledgerReceiptRef;
 
     // footer "Edit Invoice" -> the component holds the selected invoice
     private async Task OpenLedgerEditInvoice()
