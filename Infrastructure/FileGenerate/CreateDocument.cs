@@ -2354,7 +2354,8 @@ namespace Infrastructure.FileGenerate
 
                 page.Header().Element(ComposeHeader);
                 page.Content().Element(ComposeContent);
-                page.Footer().Element(ComposeFooter);
+                if (!_request.IsStudentPrint)
+                    page.Footer().Element(ComposeFooter);
             });
         }
 
@@ -2431,6 +2432,12 @@ namespace Infrastructure.FileGenerate
             var totalAmount = receipts.Sum(x => x.TotalAmount ?? 0);
             var totalPaid = receipts.Sum(x => x.PaidAmount ?? 0);
             var totalConcession = receipts.Sum(x => x.Concession ?? 0);
+            var studentPrint = _request.IsStudentPrint;
+
+            var titles = new List<string> { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
+                "Concession", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks" };
+            if (!studentPrint)
+                titles.Add("Receipt Type");
 
             container.Column(col =>
             {
@@ -2454,13 +2461,13 @@ namespace Infrastructure.FileGenerate
                         c.RelativeColumn(4.2f);   // Cheque Date
                         c.RelativeColumn(5.5f);   // Period Name
                         c.RelativeColumn(5.5f);   // Remarks
-                        c.RelativeColumn(3.4f);   // Receipt Type
+                        if (!studentPrint)
+                            c.RelativeColumn(3.4f);   // Receipt Type
                     });
 
                     table.Header(header =>
                     {
-                        foreach (var title in new[] { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
-                                     "Concession", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks", "Receipt Type" })
+                        foreach (var title in titles)
                         {
                             header.Cell().Element(HeaderCell).Text(title);
                         }
@@ -2484,15 +2491,19 @@ namespace Infrastructure.FileGenerate
                         table.Cell().Element(Cell).AlignCenter().Text(r.ChequeDate?.ToString("dd'/'MM'/'yyyy") ?? "");
                         table.Cell().Element(Cell).Text(r.PeriodName ?? "");
                         table.Cell().Element(Cell).AlignCenter().Text(r.Remark ?? "");
-                        table.Cell().Element(Cell).AlignCenter().Text(r.Valid == true ? "Active" : "Cancel");
+                        if (!studentPrint)
+                            table.Cell().Element(Cell).AlignCenter().Text(r.Valid == true ? "Active" : "Cancel");
                     }
 
-                    // last row of the table: totals under Total / Paid / Concession
-                    table.Cell().ColumnSpan(5).Element(TotalCell).AlignRight().Text($"Total ({receipts.Count} Receipts)");
-                    table.Cell().Element(TotalCell).AlignCenter().Text(totalAmount.ToString("N2"));
-                    table.Cell().Element(TotalCell).AlignCenter().Text(totalPaid.ToString("N2"));
-                    table.Cell().Element(TotalCell).AlignCenter().Text(totalConcession.ToString("N2"));
-                    table.Cell().ColumnSpan(8).Element(TotalCell).Text("");
+                    if (!studentPrint)
+                    {
+                        // last row of the table: totals under Total / Paid / Concession
+                        table.Cell().ColumnSpan(5).Element(TotalCell).AlignRight().Text($"Total ({receipts.Count} Receipts)");
+                        table.Cell().Element(TotalCell).AlignCenter().Text(totalAmount.ToString("N2"));
+                        table.Cell().Element(TotalCell).AlignCenter().Text(totalPaid.ToString("N2"));
+                        table.Cell().Element(TotalCell).AlignCenter().Text(totalConcession.ToString("N2"));
+                        table.Cell().ColumnSpan(8).Element(TotalCell).Text("");
+                    }
 
                     IContainer HeaderCell(IContainer c) =>
                         c.Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignMiddle().AlignCenter().DefaultTextStyle(x => x.FontSize(7.5f).Bold()).MinHeight(20);
@@ -2503,6 +2514,264 @@ namespace Infrastructure.FileGenerate
                     IContainer TotalCell(IContainer c) =>
                         c.Border(1).Background(Colors.Grey.Lighten3).PaddingVertical(5).PaddingHorizontal(3).AlignMiddle().DefaultTextStyle(x => x.FontSize(8.5f).Bold());
                 });
+
+                // Student Print: totals as label : value lines below the table, under the amount columns
+                if (studentPrint)
+                {
+                    col.Item().PaddingTop(10).Row(row =>
+                    {
+                        row.RelativeItem(68);
+                        row.RelativeItem(32).Column(t =>
+                        {
+                            foreach (var (label, value) in new[] { ("Total Amount", totalAmount), ("Paid Amount", totalPaid), ("Concession", totalConcession) })
+                            {
+                                t.Item().Row(r =>
+                                {
+                                    r.ConstantItem(80).Text(label).FontSize(10).Bold();
+                                    r.ConstantItem(20).Text(":").FontSize(10).Bold();
+                                    r.RelativeItem().Text(value.ToString("0.##")).FontSize(10).Bold();
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+        }
+    }
+    #endregion
+
+    #region---------------- Cheque Report (Chq Combine / Print) --------------
+    // View Student Receipt -> Chq Report: shared header and totals box of the two cheque report PDFs
+    internal static class StudentChequeReportLayout
+    {
+        internal static void ComposeHeader(IContainer container, DateTime fromDate, DateTime toDate)
+        {
+            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+
+            container.Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    if (File.Exists(logo))
+                        row.ConstantItem(70).Height(40).AlignMiddle().Image(logo).FitArea();
+                    else
+                        row.ConstantItem(70);
+
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().AlignCenter().Text("V3M International School").FontSize(16).Bold();
+                        c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9).SemiBold();
+                        c.Item().AlignCenter().Text($"Student Cheque Receipts between {fromDate:dd'/'MM'/'yyyy} and {toDate:dd'/'MM'/'yyyy}").FontSize(11).SemiBold();
+                    });
+
+                    row.ConstantItem(70);
+                });
+
+                col.Item().PaddingTop(4).AlignRight().Text($"Date :{DateTime.Now:dd'/'MM'/'yyyy HH:mm:ss}").FontSize(8);
+                col.Item().PaddingTop(2);
+            });
+        }
+
+        // label : value lines in a bordered box, right side under the amount columns; last line is highlighted
+        internal static void ComposeTotals(IContainer container, IList<(string Label, string Value)> lines)
+        {
+            container.PaddingTop(8).AlignRight().Width(230).Border(1).Column(col =>
+            {
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    var isLast = i == lines.Count - 1;
+                    var item = col.Item();
+                    if (i > 0)
+                        item = item.BorderTop(1);
+                    if (isLast)
+                        item = item.Background(Colors.Grey.Lighten3);
+
+                    item.PaddingVertical(3).PaddingHorizontal(6).Row(r =>
+                    {
+                        r.RelativeItem().Text(lines[i].Label).FontSize(9).Bold();
+                        r.ConstantItem(10).Text(":").FontSize(9).Bold();
+                        r.ConstantItem(90).AlignRight().Text(lines[i].Value).FontSize(9).Bold();
+                    });
+                }
+            });
+        }
+
+        internal static IContainer HeaderCell(IContainer c) =>
+            c.Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignMiddle().AlignCenter().DefaultTextStyle(x => x.FontSize(7.5f).Bold()).MinHeight(22);
+
+        internal static IContainer Cell(IContainer c) =>
+            c.Border(1).PaddingVertical(3).PaddingHorizontal(2).AlignMiddle().DefaultTextStyle(x => x.FontSize(7.5f));
+    }
+
+    // Chq Combine -> PDF (Fin_GetOnlyChqCombineReport): portrait, one row per cheque
+    public class ChqCombineReportPdfDocument : IDocument
+    {
+        private readonly StudentChequeReportRequest _request;
+        private readonly List<ChqCombineReportResponse> _data;
+
+        public ChqCombineReportPdfDocument(StudentChequeReportRequest request, List<ChqCombineReportResponse> data)
+        {
+            _request = request;
+            _data = data ?? new List<ChqCombineReportResponse>();
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.MarginHorizontal(20);
+                page.MarginVertical(15);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8f));
+
+                page.Header().Element(c => StudentChequeReportLayout.ComposeHeader(c, _request.FromDate, _request.ToDate));
+                page.Content().Element(ComposeContent);
+                page.Footer().Element(StudentReceiptListPdfDocument.ComposeFooter);
+            });
+        }
+
+        private void ComposeContent(IContainer container)
+        {
+            container.Column(col =>
+            {
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.RelativeColumn(2f);     // S.No.
+                        c.RelativeColumn(3.6f);   // Receipt No.
+                        c.RelativeColumn(4.6f);   // Student No.
+                        c.RelativeColumn(5.6f);   // Chq. No.
+                        c.RelativeColumn(3.8f);   // Chq. Date
+                        c.RelativeColumn(4f);     // Cheque Bank
+                        c.RelativeColumn(2.8f);   // Paid
+                    });
+
+                    table.Header(header =>
+                    {
+                        foreach (var title in new[] { "S.No.", "Receipt No.", "Student No.", "Chq. No.", "Chq. Date", "Cheque Bank", "Paid" })
+                            header.Cell().Element(StudentChequeReportLayout.HeaderCell).Text(title);
+                    });
+
+                    foreach (var r in _data)
+                    {
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.SNo.ToString());
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ReceiptNo ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.StudentNo ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ChqNo ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ChqDate ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ChequeBank ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignRight().Text((r.Paid ?? 0).ToString("0.00"));
+                    }
+                });
+
+                col.Item().Element(c => StudentChequeReportLayout.ComposeTotals(c, new List<(string, string)>
+                {
+                    ("Total Cheques", _data.Count.ToString()),
+                    ("Total Amount", _data.Sum(x => x.Paid ?? 0).ToString("N2"))
+                }));
+            });
+        }
+    }
+
+    // Chq Report -> Print -> PDF (V3M_FIN_PrintViewStudentReceipts): landscape receipt list
+    public class PrintViewReceiptsPdfDocument : IDocument
+    {
+        private readonly StudentChequeReportRequest _request;
+        private readonly List<PrintViewStudentReceiptResponse> _data;
+
+        public PrintViewReceiptsPdfDocument(StudentChequeReportRequest request, List<PrintViewStudentReceiptResponse> data)
+        {
+            _request = request;
+            _data = data ?? new List<PrintViewStudentReceiptResponse>();
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.MarginHorizontal(8);
+                page.MarginVertical(12);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8f));
+
+                page.Header().Element(c => StudentChequeReportLayout.ComposeHeader(c, _request.FromDate, _request.ToDate));
+                page.Content().Element(ComposeContent);
+                page.Footer().Element(StudentReceiptListPdfDocument.ComposeFooter);
+            });
+        }
+
+        private void ComposeContent(IContainer container)
+        {
+            container.Column(col =>
+            {
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.RelativeColumn(2.2f);   // S.No.
+                        c.RelativeColumn(3.6f);   // Receipt No.
+                        c.RelativeColumn(3.6f);   // Student No.
+                        c.RelativeColumn(6.5f);   // Student Name
+                        c.RelativeColumn(3.8f);   // Class Section
+                        c.RelativeColumn(4.2f);   // Total
+                        c.RelativeColumn(4.2f);   // Paid
+                        c.RelativeColumn(3.8f);   // Concession
+                        c.RelativeColumn(4.2f);   // Concession Name
+                        c.RelativeColumn(4.2f);   // Receipt Date
+                        c.RelativeColumn(3.4f);   // Mode
+                        c.RelativeColumn(3.6f);   // Chq. No
+                        c.RelativeColumn(4.6f);   // Cheque Bank
+                        c.RelativeColumn(4.2f);   // Cheque Date
+                        c.RelativeColumn(5f);     // Period Name
+                        c.RelativeColumn(4.6f);   // Remarks
+                    });
+
+                    table.Header(header =>
+                    {
+                        foreach (var title in new[] { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
+                                     "Concession", "ConcessionName", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks" })
+                            header.Cell().Element(StudentChequeReportLayout.HeaderCell).Text(title);
+                    });
+
+                    foreach (var r in _data)
+                    {
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.SNo.ToString());
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ReceiptNo ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.StudentNo ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).Text(r.StudentName ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ClassSection ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text((r.Total ?? 0).ToString("0.00"));
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text((r.Paid ?? 0).ToString("0.00"));
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text((r.Concession ?? 0).ToString("0.00"));
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ConcessionName ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ReceiptDate ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.Mode ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ChqNo ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ChequeBank ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.ChequeDate ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).Text(r.PeriodName ?? "");
+                        table.Cell().Element(StudentChequeReportLayout.Cell).AlignCenter().Text(r.Remarks ?? "");
+                    }
+                });
+
+                col.Item().Element(c => StudentChequeReportLayout.ComposeTotals(c, new List<(string, string)>
+                {
+                    ("Total Receipts", _data.Count.ToString()),
+                    ("Total Amount", _data.Sum(x => x.Total ?? 0).ToString("N2")),
+                    ("Concession", _data.Sum(x => x.Concession ?? 0).ToString("N2")),
+                    ("Paid Amount", _data.Sum(x => x.Paid ?? 0).ToString("N2"))
+                }));
             });
         }
     }

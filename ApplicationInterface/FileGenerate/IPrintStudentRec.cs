@@ -38,6 +38,11 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateParentFormatReceiptPdf(ParentFormatReceiptPrintModel receipt);
         public Task<byte[]> GenerateStudentReceiptListPdf(StudentReceiptListPrintRequest request);
         public Task<byte[]> GenerateStudentReceiptListExcel(StudentReceiptListPrintRequest request);
+        public Task<byte[]> GenerateCollectionReportExcel(StudentReceiptListPrintRequest request);
+        public Task<byte[]> GenerateChqCombinePdf(StudentChequeReportRequest request, List<ChqCombineReportResponse> data);
+        public Task<byte[]> GenerateChqCombineExcel(StudentChequeReportRequest request, List<ChqCombineReportResponse> data);
+        public Task<byte[]> GeneratePrintViewReceiptsPdf(StudentChequeReportRequest request, List<PrintViewStudentReceiptResponse> data);
+        public Task<byte[]> GeneratePrintViewReceiptsExcel(StudentChequeReportRequest request, List<PrintViewStudentReceiptResponse> data);
         public Task<byte[]> GeneratePublishingListExcel(List<PublishingListResponse> publishingList);
         public Task<byte[]> GeneratePublishingListPdf(List<PublishingListResponse> publishingList);
         //  public Task<byte[]> GenerateClassList(List<GetSearchedViewStudentModel> model);

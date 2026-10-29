@@ -2726,6 +2726,8 @@ namespace DomainModel.FinanceMNGT
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
         public List<StudentFeeReceiptListResponse> Receipts { get; set; } = new();
+        // Student Print (only active or only cancelled receipts): no Receipt Type column, totals below the table
+        public bool IsStudentPrint { get; set; }
     }
 
     // V3M_FIN_GetClassGroup (V3M_DetClassGroup)
@@ -2746,6 +2748,72 @@ namespace DomainModel.FinanceMNGT
         public string? GroupCode { get; set; }
         public string? BranchCode { get; set; }
         public long ReceiptId { get; set; }
+    }
+
+    // View Student Receipt -> Chq Report: same filters as the search + cheque type / selected receipts
+    // Fin_GetOnlyChqCombineReport (Chq Combine) and V3M_FIN_PrintViewStudentReceipts (Print)
+    public class StudentChequeReportRequest : StudentFeeReceiptListRequest
+    {
+        public string ChqType { get; set; } = "";       // "" = all cheque types
+        public string ReceiptIds { get; set; } = "";    // "4,5,9"; empty = all receipts of the filter (Print only)
+    }
+
+    // Fin_GetOnlyChqCombineReport: one row per cheque (receipts of the same cheque combined)
+    public class ChqCombineReportResponse
+    {
+        public long SNo { get; set; }
+        public string? ReceiptNo { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ChqNo { get; set; }
+        public string? ChqDate { get; set; }
+        public string? ChequeBank { get; set; }
+        public decimal? Paid { get; set; }
+    }
+
+    // V3M_FIN_PrintViewStudentReceipts (dates come formatted dd/MM/yyyy from the SP)
+    public class PrintViewStudentReceiptResponse
+    {
+        public long SNo { get; set; }
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public string? StudentNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassSection { get; set; }
+        public decimal? Total { get; set; }
+        public decimal? Paid { get; set; }
+        public decimal? Concession { get; set; }
+        public string? ConcessionName { get; set; }
+        public string? ReceiptDate { get; set; }
+        public string? Mode { get; set; }
+        public string? ChqType { get; set; }
+        public string? ChqNo { get; set; }
+        public string? ChequeBank { get; set; }
+        public string? ChequeDate { get; set; }
+        public string? PeriodName { get; set; }
+        public string? Remarks { get; set; }
+        public string? ReceiptType { get; set; }
+    }
+
+    // V3M_FIN_CancelStudentReceipt: normal receipt cancel (search not done with Cancel Type = Cheque Bounce)
+    public class CancelStudentReceiptRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long ReceiptId { get; set; }
+        public string? CancelReason { get; set; }
+        public string? CancelledBy { get; set; }
+    }
+
+    // V3M_FIN_GenerateReceiptChqBounceChallan; CancelType 1 = Cheque Bounce (charges applied), 2 = Other
+    public class ReceiptChqBounceRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long ReceiptId { get; set; }
+        public int CancelType { get; set; }
+        public DateTime? CancelledDate { get; set; }
+        public string? Remark { get; set; }
+        public string? CancelledBy { get; set; }
     }
 
     // receipt header; address / next-to-kin columns of the SP are intentionally not mapped

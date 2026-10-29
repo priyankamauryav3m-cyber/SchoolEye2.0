@@ -16,5 +16,13 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
 
         Task<IEnumerable<ReceiptDetailResponse>> GetReceiptDetail(StudentReceiptByIdRequest request);
          Task<List<StudentReceiptHeadWiseResponse>> GetWithModeReceiptHeadWiseDetail(StudentReceiptHeadWiseRequest request);
+
+        Task<int> GenerateReceiptChqBounceChallan(ReceiptChqBounceRequest request);
+
+        Task<int> CancelStudentReceipt(CancelStudentReceiptRequest request);
+
+        Task<IEnumerable<ChqCombineReportResponse>> GetChqCombineReport(StudentChequeReportRequest request);
+
+        Task<IEnumerable<PrintViewStudentReceiptResponse>> GetPrintViewStudentReceipts(StudentChequeReportRequest request);
     }
 }

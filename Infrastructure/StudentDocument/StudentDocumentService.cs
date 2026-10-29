@@ -126,9 +126,13 @@ namespace Infrastructure.StudentDocument
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Student Receipts");
 
-            var headers = new[] { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
-                "Concession", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks", "Receipt Type" };
-            int totalColumns = headers.Length;
+            // Student Print (only active or only cancelled): no Receipt Type column, totals below the table
+            var studentPrint = request.IsStudentPrint;
+            var headers = new List<string> { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid",
+                "Concession", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks" };
+            if (!studentPrint)
+                headers.Add("Receipt Type");
+            int totalColumns = headers.Count;
 
             // ===== TITLE =====
             ws.Range(1, 1, 1, totalColumns).Merge();
@@ -178,10 +182,41 @@ namespace Infrastructure.StudentDocument
                 ws.Cell(row, 13).Value = r.ChequeDate?.ToString("dd'/'MM'/'yyyy");
                 ws.Cell(row, 14).Value = r.PeriodName;
                 ws.Cell(row, 15).Value = r.Remark;
-                ws.Cell(row, 16).Value = r.Valid == true ? "Active" : "Cancel";
+                if (!studentPrint)
+                    ws.Cell(row, 16).Value = r.Valid == true ? "Active" : "Cancel";
 
                 ws.Range(row, 6, row, 8).Style.NumberFormat.Format = "0.00";
                 row++;
+            }
+
+            if (studentPrint)
+            {
+                ws.Range(headerRow, 1, headerRow, totalColumns).Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+                var studentTable = ws.Range(headerRow, 1, row - 1, totalColumns);
+                studentTable.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                studentTable.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                // ===== TOTALS below the table (same as the Student Print PDF) =====
+                int sumRow = row + 1;
+                foreach (var (label, value) in new[]
+                         {
+                             ("Total Amount :", receipts.Sum(x => x.TotalAmount ?? 0)),
+                             ("Paid Amount :", receipts.Sum(x => x.PaidAmount ?? 0)),
+                             ("Concession :", receipts.Sum(x => x.Concession ?? 0))
+                         })
+                {
+                    ws.Cell(sumRow, 10).Value = label;
+                    ws.Cell(sumRow, 11).Value = value;
+                    ws.Cell(sumRow, 11).Style.NumberFormat.Format = "0.##";
+                    ws.Range(sumRow, 10, sumRow, 11).Style.Font.Bold = true;
+                    sumRow++;
+                }
+
+                ws.Columns().AdjustToContents();
+
+                using var studentStream = new MemoryStream();
+                workbook.SaveAs(studentStream);
+                return studentStream.ToArray();
             }
 
             // ===== TOTAL ROW (last row of the table, same as the PDF) =====
@@ -213,6 +248,308 @@ namespace Infrastructure.StudentDocument
             workbook.SaveAs(stream);
             return stream.ToArray();
         }
+        // View Student Receipt -> Collection Report: Cash/Cheque Collection Register (active receipts only),
+        // receipt no. order, total row under the table and a total-by-mode summary below it
+        public async Task<byte[]> GenerateCollectionReportExcel(StudentReceiptListPrintRequest request)
+        {
+            var receipts = (request.Receipts ?? new List<StudentFeeReceiptListResponse>())
+                .Where(x => x.Valid == true)
+                .OrderBy(x => x.ReceiptDate)
+                .ThenBy(x => x.ReceiptNo)
+                .ToList();
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Collection Report");
+
+            var headers = new[] { "S.No", "Rpt No", "Admission No", "Student Name", "class", "Payment Mode", "Bank Name",
+                "Branch Name", "Cheque No.", "Mode Date", "Receipt Date", "Amount", "Remarks" };
+            int totalColumns = headers.Length;
+            const int amountColumn = 12;
+
+            // ===== TITLE =====
+            ws.Range(1, 1, 1, totalColumns).Merge();
+            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 20;
+            ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(2, 1, 2, totalColumns).Merge();
+            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Font.FontSize = 13;
+            ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(4, 1, 4, totalColumns).Merge();
+            ws.Cell(4, 1).Value = $"Cash/Cheque Collection Register From {request.FromDate:dd'/'MMM'/'yyyy} to {request.ToDate:dd'/'MMM'/'yyyy}";
+            ws.Cell(4, 1).Style.Font.Bold = true;
+            ws.Cell(4, 1).Style.Font.FontSize = 13;
+            ws.Cell(4, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // ===== HEADERS =====
+            int headerRow = 5;
+            for (int c = 0; c < totalColumns; c++)
+                ws.Cell(headerRow, c + 1).Value = headers[c];
+            var headerRange = ws.Range(headerRow, 1, headerRow, totalColumns);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+
+            // ===== DATA =====
+            int row = headerRow + 1;
+            int sNo = 1;
+            foreach (var r in receipts)
+            {
+                // text columns stay text so leading zeros of receipt / admission no. are kept
+                ws.Cell(row, 1).Value = sNo++;
+                ws.Cell(row, 2).SetValue(r.ReceiptNo ?? "");
+                ws.Cell(row, 3).SetValue(r.StudentNo ?? "");
+                ws.Cell(row, 4).Value = r.StudentName;
+                ws.Cell(row, 5).Value = string.IsNullOrWhiteSpace(r.ClassSection) ? r.ClassName : r.ClassSection;
+                ws.Cell(row, 6).Value = r.PaymentMode;
+                ws.Cell(row, 7).Value = r.ChequeBank;
+                ws.Cell(row, 8).Value = "";
+                ws.Cell(row, 9).SetValue(r.ChequeNo ?? "");
+                // cheque / transaction date, cash receipts use the receipt date
+                ws.Cell(row, 10).Value = (r.ChequeDate ?? r.ReceiptDate)?.ToString("dd-MM-yyyy");
+                ws.Cell(row, 11).Value = r.ReceiptDate?.ToString("dd-MM-yyyy");
+                ws.Cell(row, amountColumn).Value = r.PaidAmount ?? 0;
+                ws.Cell(row, 13).Value = r.Remark;
+                row++;
+            }
+
+            int lastDataRow = row - 1;
+            if (lastDataRow > headerRow)
+            {
+                ws.Range(headerRow + 1, 1, lastDataRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Range(headerRow + 1, 5, lastDataRow, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Range(headerRow + 1, 9, lastDataRow, 11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Range(headerRow + 1, amountColumn, lastDataRow, amountColumn).Style.NumberFormat.Format = "#,##0.00";
+            }
+
+            // ===== TOTAL ROW (last row of the table) =====
+            var grandTotal = receipts.Sum(x => x.PaidAmount ?? 0);
+            int totalRow = row;
+            ws.Range(totalRow, 1, totalRow, totalColumns).Merge();
+            ws.Cell(totalRow, 1).Value = $"Total Amount : {grandTotal:N2}";
+            ws.Cell(totalRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            ws.Cell(totalRow, 1).Style.Font.Bold = true;
+            ws.Cell(totalRow, 1).Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+
+            var tableRange = ws.Range(headerRow, 1, totalRow, totalColumns);
+            tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            // ===== TOTAL BY MODE (Cash, Cheque, ... and Grand Total) =====
+            // label in Mode Date + Receipt Date (merged), amount under the Amount column
+            int summaryRow = totalRow + 3;
+            int summaryStart = summaryRow;
+            var modeTotals = receipts
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? "Other" : x.PaymentMode!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => new { Mode = g.Key, Count = g.Count(), Amount = g.Sum(x => x.PaidAmount ?? 0) })
+                .OrderBy(x => x.Mode);
+
+            foreach (var m in modeTotals)
+            {
+                ws.Range(summaryRow, 10, summaryRow, 11).Merge();
+                ws.Cell(summaryRow, 10).Value = $"Total By {m.Mode} ({m.Count})";
+                ws.Cell(summaryRow, amountColumn).Value = m.Amount;
+                summaryRow++;
+            }
+
+            ws.Range(summaryRow, 10, summaryRow, 11).Merge();
+            ws.Cell(summaryRow, 10).Value = $"Grand Total ({receipts.Count})";
+            ws.Cell(summaryRow, amountColumn).Value = grandTotal;
+            var grandRange = ws.Range(summaryRow, 10, summaryRow, amountColumn);
+            grandRange.Style.Font.Bold = true;
+            grandRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+
+            var summaryRange = ws.Range(summaryStart, 10, summaryRow, amountColumn);
+            summaryRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            summaryRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(summaryStart, amountColumn, summaryRow, amountColumn).Style.NumberFormat.Format = "#,##0.00";
+            ws.Range(summaryStart, amountColumn, summaryRow, amountColumn).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            ws.Columns().AdjustToContents(headerRow, totalRow - 1);
+            ws.Column(amountColumn).Width = Math.Max(ws.Column(amountColumn).Width, 14);
+
+            // ===== EXPORT =====
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+
+        // ---------------- Chq Report (Chq Combine / Print) ----------------
+        public async Task<byte[]> GenerateChqCombinePdf(StudentChequeReportRequest request, List<ChqCombineReportResponse> data)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            return new ChqCombineReportPdfDocument(request, data).GeneratePdf();
+        }
+
+        public async Task<byte[]> GeneratePrintViewReceiptsPdf(StudentChequeReportRequest request, List<PrintViewStudentReceiptResponse> data)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            return new PrintViewReceiptsPdfDocument(request, data).GeneratePdf();
+        }
+
+        // same columns and totals as the Chq Combine PDF
+        public async Task<byte[]> GenerateChqCombineExcel(StudentChequeReportRequest request, List<ChqCombineReportResponse> data)
+        {
+            data ??= new List<ChqCombineReportResponse>();
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Cheque Combine");
+
+            var headers = new[] { "S.No.", "Receipt No.", "Student No.", "Chq. No.", "Chq. Date", "Cheque Bank", "Paid" };
+            int headerRow = WriteChequeReportTitle(ws, request, headers);
+
+            int row = headerRow + 1;
+            foreach (var r in data)
+            {
+                ws.Cell(row, 1).Value = r.SNo;
+                ws.Cell(row, 2).SetValue(r.ReceiptNo ?? "");
+                ws.Cell(row, 3).SetValue(r.StudentNo ?? "");
+                ws.Cell(row, 4).SetValue(r.ChqNo ?? "");
+                ws.Cell(row, 5).Value = r.ChqDate;
+                ws.Cell(row, 6).Value = r.ChequeBank;
+                ws.Cell(row, 7).Value = r.Paid ?? 0;
+                row++;
+            }
+            FormatChequeReportTable(ws, headerRow, row - 1, headers.Length, new[] { 7 });
+
+            WriteChequeReportTotals(ws, row + 1, headers.Length, new List<(string, decimal, bool)>
+            {
+                ("Total Cheques", data.Count, false),
+                ("Total Amount", data.Sum(x => x.Paid ?? 0), true)
+            });
+
+            return SaveWorkbook(ws, workbook, headerRow, row - 1);
+        }
+
+        // same columns and totals as the Chq Report Print PDF
+        public async Task<byte[]> GeneratePrintViewReceiptsExcel(StudentChequeReportRequest request, List<PrintViewStudentReceiptResponse> data)
+        {
+            data ??= new List<PrintViewStudentReceiptResponse>();
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Student Receipts");
+
+            var headers = new[] { "S.No.", "Receipt No.", "Student No.", "Student Name", "Class Section", "Total", "Paid", "Concession",
+                "ConcessionName", "Receipt Date", "Mode", "Chq. No", "ChequeBank", "ChequeDate", "PeriodName", "Remarks" };
+            int headerRow = WriteChequeReportTitle(ws, request, headers);
+
+            int row = headerRow + 1;
+            foreach (var r in data)
+            {
+                ws.Cell(row, 1).Value = r.SNo;
+                ws.Cell(row, 2).SetValue(r.ReceiptNo ?? "");
+                ws.Cell(row, 3).SetValue(r.StudentNo ?? "");
+                ws.Cell(row, 4).Value = r.StudentName;
+                ws.Cell(row, 5).Value = r.ClassSection;
+                ws.Cell(row, 6).Value = r.Total ?? 0;
+                ws.Cell(row, 7).Value = r.Paid ?? 0;
+                ws.Cell(row, 8).Value = r.Concession ?? 0;
+                ws.Cell(row, 9).Value = r.ConcessionName;
+                ws.Cell(row, 10).Value = r.ReceiptDate;
+                ws.Cell(row, 11).Value = r.Mode;
+                ws.Cell(row, 12).SetValue(r.ChqNo ?? "");
+                ws.Cell(row, 13).Value = r.ChequeBank;
+                ws.Cell(row, 14).Value = r.ChequeDate;
+                ws.Cell(row, 15).Value = r.PeriodName;
+                ws.Cell(row, 16).Value = r.Remarks;
+                row++;
+            }
+            FormatChequeReportTable(ws, headerRow, row - 1, headers.Length, new[] { 6, 7, 8 });
+
+            WriteChequeReportTotals(ws, row + 1, headers.Length, new List<(string, decimal, bool)>
+            {
+                ("Total Receipts", data.Count, false),
+                ("Total Amount", data.Sum(x => x.Total ?? 0), true),
+                ("Concession", data.Sum(x => x.Concession ?? 0), true),
+                ("Paid Amount", data.Sum(x => x.Paid ?? 0), true)
+            });
+
+            return SaveWorkbook(ws, workbook, headerRow, row - 1);
+        }
+
+        // school name, address, report title and date; returns the header row
+        private static int WriteChequeReportTitle(IXLWorksheet ws, StudentChequeReportRequest request, string[] headers)
+        {
+            int totalColumns = headers.Length;
+
+            ws.Range(1, 1, 1, totalColumns).Merge();
+            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 20;
+            ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(2, 1, 2, totalColumns).Merge();
+            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(3, 1, 3, totalColumns).Merge();
+            ws.Cell(3, 1).Value = $"Student Cheque Receipts between {request.FromDate:dd'/'MM'/'yyyy} and {request.ToDate:dd'/'MM'/'yyyy}";
+            ws.Cell(3, 1).Style.Font.Bold = true;
+            ws.Cell(3, 1).Style.Font.FontSize = 13;
+            ws.Cell(3, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            ws.Range(4, 1, 4, totalColumns).Merge();
+            ws.Cell(4, 1).Value = $"Date : {DateTime.Now:dd'/'MM'/'yyyy HH:mm:ss}";
+            ws.Cell(4, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            int headerRow = 5;
+            for (int c = 0; c < totalColumns; c++)
+                ws.Cell(headerRow, c + 1).Value = headers[c];
+            var headerRange = ws.Range(headerRow, 1, headerRow, totalColumns);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+            return headerRow;
+        }
+
+        private static void FormatChequeReportTable(IXLWorksheet ws, int headerRow, int lastDataRow, int totalColumns, int[] amountColumns)
+        {
+            if (lastDataRow > headerRow)
+            {
+                ws.Range(headerRow + 1, 1, lastDataRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                foreach (var c in amountColumns)
+                    ws.Range(headerRow + 1, c, lastDataRow, c).Style.NumberFormat.Format = "0.00";
+            }
+
+            var table = ws.Range(headerRow, 1, Math.Max(headerRow, lastDataRow), totalColumns);
+            table.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        // bordered label : value box at the right of the table; the last line is highlighted
+        private static void WriteChequeReportTotals(IXLWorksheet ws, int startRow, int totalColumns, List<(string Label, decimal Value, bool IsAmount)> lines)
+        {
+            int labelFrom = Math.Max(1, totalColumns - 2), labelTo = totalColumns - 1;
+            int row = startRow;
+            foreach (var (label, value, isAmount) in lines)
+            {
+                if (labelTo > labelFrom)
+                    ws.Range(row, labelFrom, row, labelTo).Merge();
+                ws.Cell(row, labelFrom).Value = label;
+                ws.Cell(row, totalColumns).Value = value;
+                ws.Cell(row, totalColumns).Style.NumberFormat.Format = isAmount ? "#,##0.00" : "0";
+                ws.Cell(row, totalColumns).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                row++;
+            }
+
+            var box = ws.Range(startRow, labelFrom, row - 1, totalColumns);
+            box.Style.Font.Bold = true;
+            box.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            box.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(row - 1, labelFrom, row - 1, totalColumns).Style.Fill.BackgroundColor = XLColor.FromHtml("#EEEEEE");
+        }
+
+        private static byte[] SaveWorkbook(IXLWorksheet ws, XLWorkbook workbook, int headerRow, int lastDataRow)
+        {
+            ws.Columns().AdjustToContents(headerRow, Math.Max(headerRow, lastDataRow));
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+
         public async Task<byte[]> GenerateStudentListPdf(List<RegistrationDto> students)
         {
             QuestPDF.Settings.License = LicenseType.Community;

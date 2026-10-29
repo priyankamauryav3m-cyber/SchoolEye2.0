@@ -431,6 +431,34 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 });
             }
         }
+        [HttpPost("GenerateCollectionReportExcel")]
+        public async Task<IActionResult> GenerateCollectionReportExcel([FromBody] StudentReceiptListPrintRequest request)
+        {
+            // only active receipts go into the collection register
+            if (request == null || request.Receipts == null || !request.Receipts.Any(x => x.Valid == true))
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "No active receipts found to print." });
+            }
+            try
+            {
+                var bytes = await _generateFile.GenerateCollectionReportExcel(request);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(bytes),
+                    Message = "Excel generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the collection report."
+                });
+            }
+        }
         [HttpPost("GenerateParentFormatReceiptPdf")]
         public async Task<IActionResult> GenerateParentFormatReceiptPdf([FromBody] ParentFormatReceiptPrintModel receipt)
         {
