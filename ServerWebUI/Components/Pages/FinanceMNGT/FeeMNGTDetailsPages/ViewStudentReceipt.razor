@@ -91,6 +91,25 @@
 
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="View Student Receipt">
+                @* Status: All = -1, Active = 1, Cancelled = 0 *@
+                <div class="form-box">
+                    <div class="border-box d-flex justify-content-center align-items-center gap-3">
+                        <InputRadioGroup @bind-Value="request.Status">
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio id="statusAll" Value="-1" />
+                                <label for="statusAll" class="form-label">All</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio id="statusActive" Value="1" />
+                                <label for="statusActive" class="form-label">Active</label>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <InputRadio id="statusCancelled" Value="0" />
+                                <label for="statusCancelled" class="form-label">Cancelled</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                </div>
                 <div class="form-box">
                     <InputSelect @bind-Value="request.SessionId" class="form-input">
                         <option value="0">All</option>
@@ -162,21 +181,24 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ConcessionName) ? " " : x.ConcessionName)" Title="Concession Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => (x.Balance ?? 0).ToString("N2"))" Title="Balance" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? " " : x.PaymentMode)" Title="Mode" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PeriodName) ? " " : x.PeriodName)" Title="Period" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remark) ? " " : x.Remark)" Title="Remarks" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => x.ReceiptDate.HasValue ? x.ReceiptDate.Value.ToString("dd/MM/yyyy") : " ")" Title="Date" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
                                     @* active receipt -> Done (green), cancelled -> Not Done (red) *@
                                     @if (context.Valid == true)
                                     {
-                                        <span class="d-inline-flex align-items-center justify-content-center gap-1 text-success fw-semibold text-nowrap">
-                                            <i class="bi bi-check-circle-fill"></i> Done
-                                        </span>
+                                        <span class="badge rounded-pill bg-success">  <i class="bi bi-check-circle-fill"></i> Done</span>
+                                        @* <span class="d-inline-flex align-items-center justify-content-center gap-1 text-success fw-semibold text-nowrap">
+                                           
+                                        </span> *@
                                     }
                                     else
                                     {
-                                        <span class="d-inline-flex align-items-center justify-content-center gap-1 text-danger fw-semibold text-nowrap">
-                                            <i class="bi bi-x-circle-fill"></i> Not Done
-                                        </span>
+                                         <span class="badge rounded-pill bg-danger"> <i class="bi bi-x-circle-fill"></i> Not Done</span>
+                                        @* <span class="d-inline-flex align-items-center justify-content-center gap-1 text-danger fw-semibold text-nowrap">
+                                           
+                                        </span> *@
                                     }
                                 </TemplateColumn>
                             </QuickGrid>
@@ -203,13 +225,13 @@
                 </div>
                 @* buttons are static for now (no action wired yet) *@
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <div class="form-box"><button type="button" class="table-btn">Chq Report</button></div>
-                    <div class="form-box"><button type="button" class="table-btn">Cancel</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="OpenChequeReportPopup">Chq Report</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="OpenCancelPopup">Cancel</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OnPrintListClick">Print</button></div>
-                    <div class="form-box"><button type="button" class="table-btn">Student Print</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="OnStudentPrintClick">Student Print</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="GenerateStudentReceiptHeadWisePdf">Head Details</button></div>
                     <div class="form-box"><button type="button" class="table-btn">Edit</button></div>
-                    <div class="form-box"><button type="button" class="table-btn">Collection Report</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="OnCollectionReportClick">Collection Report</button></div>
                     <div class="form-box"><button type="button" class="table-btn">Print Multi Receipt</button></div>
                 </div>
             </div>
@@ -349,16 +371,6 @@
                             <div class="form-box-group static-label">
                                 <InputDate class="floating-input" placeholder=" " @bind-Value="request.ToDate" />
                                 <label class="floating-label">To Date <span class="required">*</span></label>
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-md-6 col-12 mb-2">
-                            <div class="form-box-group static-label">
-                                <InputSelect class="floating-input" placeholder=" " @bind-Value="request.Status">
-                                    <option value="-1">All</option>
-                                    <option value="1">Active</option>
-                                    <option value="0">Cancelled</option>
-                                </InputSelect>
-                                <label class="floating-label">Status</label>
                             </div>
                         </div>
                     </div>
@@ -538,6 +550,109 @@
     </div>
 }
 
+@* ---------------- Cheque Report popup (bottom Chq Report button) ---------------- *@
+@if (ShowChequeReportPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Cheque Report &nbsp;&middot;&nbsp; @(request.Status == 1 ? "Active" : "Cancelled")</h5>
+                    <button data-access="Close" type="button" @onclick="CloseChequeReportPopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        <div class="col-12 mb-2">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="floating-input" placeholder=" " @bind-Value="SelectedChqType">
+                                    <option value="0">All</option>
+                                    @foreach (var data in chequeTypeList.Where(x => x.IsValid && !string.IsNullOrWhiteSpace(x.ChequeTypeName)))
+                                    {
+                                        <option value="@data.ChequeTypeName">@data.ChequeTypeName</option>
+                                    }
+                                </InputSelect>
+                                <label class="floating-label">Cheque Type</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="table-btn" @onclick="PrintChqCombine">Chq Combine</button>
+                        <button type="button" class="table-btn" @onclick="PrintChequeReceipts">Print</button>
+                        <button type="button" class="table-btn" @onclick="CloseChequeReportPopup">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ---------------- Cancel Receipt popup (bottom Cancel button) ---------------- *@
+@if (ShowCancelPopup && cancelReceipt != null)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@(IsChequeBounceCancel ? "Cheque Bounce" : "Cancel Receipt") &nbsp;&middot;&nbsp; @cancelReceipt.ReceiptNo</h5>
+                    <button data-access="Close" type="button" @onclick="CloseCancelPopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row m-0 form-row">
+                        @* required messages show in red under each field after Submit and clear as soon as the value is filled *@
+                        <div class="col-12 mb-4">
+                            <div class="form-box-group static-label">
+                                <InputSelect class="@CancelTypeInputClass" placeholder=" " @bind-Value="cancelRequest.CancelType">
+                                    <option value="0">-- Select --</option>
+                                    <option value="1">Cheque Bounce</option>
+                                    <option value="2">Other</option>
+                                </InputSelect>
+                                <label class="floating-label">Cancel Type <span class="required">*</span></label>
+                                @if (CancelTypeError)
+                                {
+                                    <div class="validation-message">Please select cancel type.</div>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12 mb-4">
+                            <div class="form-box-group static-label">
+                                <InputDate class="@CancelDateInputClass" placeholder=" " @bind-Value="cancelRequest.CancelledDate" />
+                                <label class="floating-label">Date <span class="required">*</span></label>
+                                @if (CancelDateError)
+                                {
+                                    <div class="validation-message">Please select date.</div>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12 mb-4">
+                            <div class="form-box-group">
+                                <input class="floating-input @(CancelReasonError ? "is-required-empty" : "")"
+                                       placeholder=" " maxlength="250" autocomplete="off"
+                                       @bind="cancelRequest.Remark" @bind:event="oninput" />
+                                <label class="floating-label">Cancel Reason <span class="required">*</span></label>
+                                @if (CancelReasonError)
+                                {
+                                    <div class="validation-message">Cancel reason is required.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SubmitCancelReceipt" disabled="@IsLoading" tabindex="0">
+                            <div class="visible content">Submit</div>
+                            <div class="hidden content"><i class="bi bi-check2"></i></div>
+                        </button>
+                        <button type="button" class="table-btn" @onclick="CloseCancelPopup">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @if (IsLoading)
 {
     <div class="grid-loader-overlay above-popup">
@@ -692,6 +807,8 @@
             // the list print shows the date range of the search that produced this list
             searchedFromDate = request.FromDate;
             searchedToDate = request.ToDate;
+            // Cancel button: cheque bounce challan only when this list was searched with Cancel Type = Cheque Bounce
+            searchedCancelType = request.CancelType;
             selectedReceiptIds = new();
             IsAllSelected = false;
             await pagination.SetCurrentPageIndexAsync(0);
@@ -839,6 +956,271 @@
         }
     }
 
+    // ---------------- Student Print (bottom Student Print button) ----------------
+    // only one status at a time: Status radio must be Active or Cancelled (not All);
+    // prints the searched receipts of that status (selected rows only, if any are ticked)
+    private async Task OnStudentPrintClick()
+    {
+        if (request.Status != 1 && request.Status != 0)
+        {
+            await Alert.ShowWarning("You cannot print both(Active & Cancelled) receipt at one time. Please select any one.");
+            return;
+        }
+
+        var isActive = request.Status == 1;
+        var receipts = receiptlist
+            .Where(x => (x.Valid == true) == isActive)
+            .Where(x => selectedReceiptIds.Count == 0 || selectedReceiptIds.Contains(x.ReceiptId))
+            .ToList();
+        if (receipts.Count == 0)
+        {
+            await Alert.ShowWarning(isActive ? "No active receipts found. Please search first." : "No cancelled receipts found. Please search first.");
+            return;
+        }
+
+        var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("showPrintConfirm");
+        var isPdf = result.TryGetProperty("isConfirmed", out var confirmed) && confirmed.GetBoolean();
+        var isExcel = result.TryGetProperty("isDenied", out var denied) && denied.GetBoolean();
+        if (!isPdf && !isExcel)
+            return;
+
+        var printRequest = new StudentReceiptListPrintRequest
+        {
+            FromDate = searchedFromDate,
+            ToDate = searchedToDate,
+            Receipts = receipts,
+            IsStudentPrint = true
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var apiUrl = isPdf ? "Export/GenerateStudentReceiptListPdf" : "Export/GenerateStudentReceiptListExcel";
+            var response = await httpService.Post<ApiResponse<string>>(apiUrl, printRequest);
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+            {
+                if (isPdf)
+                    await JS.InvokeVoidAsync("viewPdf", response.Data);
+                else
+                    await JS.InvokeVoidAsync("downloadExcel", response.Data, isActive ? "ActiveStudentReceipts.xlsx" : "CancelledStudentReceipts.xlsx");
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Unable to generate the student print.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in student print: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to generate the student print.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ---------------- Cheque Report popup (bottom Chq Report button) ----------------
+    // Status radio must be Active or Cancelled; Cheque Type All = "0" (default), else the type name
+    // Chq Combine -> StudentFeeReceipt/GenerateChqCombinePdf|Excel        (Fin_GetOnlyChqCombineReport)
+    // Print       -> StudentFeeReceipt/GeneratePrintViewReceiptsPdf|Excel (V3M_FIN_PrintViewStudentReceipts, ticked rows only if any)
+    private bool ShowChequeReportPopup;
+    private string SelectedChqType = "0";
+    private List<ChequeTypeModel> chequeTypeList = new();
+
+    private async Task OpenChequeReportPopup()
+    {
+        if (request.Status != 1 && request.Status != 0)
+        {
+            await Alert.ShowWarning("You cannot print both(Active & Cancelled) receipt at one time. Please select any one.");
+            return;
+        }
+
+        if (chequeTypeList.Count == 0)
+        {
+            try
+            {
+                chequeTypeList = await httpService.Get<List<ChequeTypeModel>>("ChequeType/GetChecktype") ?? new();
+            }
+            catch
+            {
+                chequeTypeList = new();
+            }
+        }
+
+        SelectedChqType = "0";
+        ShowChequeReportPopup = true;
+    }
+
+    private void CloseChequeReportPopup() => ShowChequeReportPopup = false;
+
+    private Task PrintChqCombine() =>
+        GenerateChequeReport("StudentFeeReceipt/GenerateChqCombinePdf", "StudentFeeReceipt/GenerateChqCombineExcel", "ChequeCombine.xlsx", withReceiptIds: false);
+
+    private Task PrintChequeReceipts() =>
+        GenerateChequeReport("StudentFeeReceipt/GeneratePrintViewReceiptsPdf", "StudentFeeReceipt/GeneratePrintViewReceiptsExcel", "ChequeReceipts.xlsx", withReceiptIds: true);
+
+    private async Task GenerateChequeReport(string pdfUrl, string excelUrl, string excelFileName, bool withReceiptIds)
+    {
+        if (request.Status != 1 && request.Status != 0)
+        {
+            await Alert.ShowWarning("You cannot print both(Active & Cancelled) receipt at one time. Please select any one.");
+            return;
+        }
+        if (request.FromDate == default || request.ToDate == default)
+        {
+            await Alert.ShowWarning("Please select from date and to date.");
+            return;
+        }
+        if (request.FromDate.Date > request.ToDate.Date)
+        {
+            await Alert.ShowWarning("From date cannot be greater than to date.");
+            return;
+        }
+
+        // hide the Cheque Report popup while the PDF / Excel choice is open, show it again once done
+        ShowChequeReportPopup = false;
+        StateHasChanged();
+        try
+        {
+            await RunChequeReport(pdfUrl, excelUrl, excelFileName, withReceiptIds);
+        }
+        finally
+        {
+            ShowChequeReportPopup = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RunChequeReport(string pdfUrl, string excelUrl, string excelFileName, bool withReceiptIds)
+    {
+        var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("showPrintConfirm");
+        var isPdf = result.TryGetProperty("isConfirmed", out var confirmed) && confirmed.GetBoolean();
+        var isExcel = result.TryGetProperty("isDenied", out var denied) && denied.GetBoolean();
+        if (!isPdf && !isExcel)
+            return;
+
+        // same filters as the search; ticked rows of the current status narrow the Print
+        var isActive = request.Status == 1;
+        var reportRequest = new StudentChequeReportRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = request.SessionId,
+            GroupClassCode = request.GroupClassCode ?? string.Empty,
+            ClassCode = request.ClassCode ?? string.Empty,
+            PaymentMode = request.PaymentMode ?? string.Empty,
+            ReceiptMode = request.ReceiptMode,
+            ReceiptNo = request.ReceiptNo?.Trim() ?? string.Empty,
+            StudentNo = request.StudentNo?.Trim() ?? string.Empty,
+            FromDate = request.FromDate,
+            ToDate = request.ToDate,
+            Status = request.Status,
+            FirstName = request.FirstName?.Trim() ?? string.Empty,
+            SocietyId = request.SocietyId,
+            ChequeNo = request.ChequeNo?.Trim() ?? string.Empty,
+            BankAccountId = request.BankAccountId,
+            FeeReceivedBy = request.FeeReceivedBy?.Trim() ?? string.Empty,
+            CancelType = string.IsNullOrWhiteSpace(request.CancelType) ? "-1" : request.CancelType,
+            // All -> "" : in V3M_FIN_PrintViewStudentReceipts "0" means cheque receipts only (cash would be left out)
+            ChqType = string.IsNullOrWhiteSpace(SelectedChqType) || SelectedChqType == "0" ? string.Empty : SelectedChqType,
+            ReceiptIds = withReceiptIds
+                ? string.Join(",", receiptlist.Where(x => selectedReceiptIds.Contains(x.ReceiptId) && (x.Valid == true) == isActive).Select(x => x.ReceiptId))
+                : string.Empty
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<string>>(isPdf ? pdfUrl : excelUrl, reportRequest);
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+            {
+                if (isPdf)
+                    await JS.InvokeVoidAsync("viewPdf", response.Data);
+                else
+                    await JS.InvokeVoidAsync("downloadExcel", response.Data, excelFileName);
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "No cheque records found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in cheque report: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to generate the cheque report." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ---------------- Collection Report (bottom Collection Report button) ----------------
+    // Excel only; always the active receipts of the searched list, whatever the Status filter is
+    private async Task OnCollectionReportClick()
+    {
+        if (receiptlist.Count == 0)
+        {
+            await Alert.ShowWarning("Please search receipts first.");
+            return;
+        }
+
+        var activeReceipts = receiptlist.Where(x => x.Valid == true).ToList();
+        if (activeReceipts.Count == 0)
+        {
+            await Alert.ShowWarning("No active receipts found to print.");
+            return;
+        }
+
+        var reportRequest = new StudentReceiptListPrintRequest
+        {
+            FromDate = searchedFromDate,
+            ToDate = searchedToDate,
+            Receipts = activeReceipts
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<string>>("Export/GenerateCollectionReportExcel", reportRequest);
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+                await JS.InvokeVoidAsync("downloadExcel", response.Data, "CollectionReport.xlsx");
+            else
+                await Alert.ShowWarning(response?.Message ?? "Unable to generate the collection report.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in collection report: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to generate the collection report.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
     // ---------------- Receipt print (new tab) ----------------
     // Print         -> school copy + parent copy side by side (Export/GenerateAdmitChildReceiptPdf)
     // Parent Format -> single fee receipt with due / paid per head (Export/GenerateParentFormatReceiptPdf)
@@ -947,6 +1329,113 @@
         ShowReceiptDetailsPopup = false;
         receiptHeader = null;
         receiptDetaillist = new();
+    }
+
+    // ---------------- Cancel Receipt popup ----------------
+    // one selected active receipt; Cancel Type, Date (default today) and Cancel Reason are mandatory
+    // searched with Cancel Type = Cheque Bounce -> StudentFeeReceipt/GenerateReceiptChqBounceChallan (V3M_FIN_GenerateReceiptChqBounceChallan),
+    //                                              popup Cancel Type 1 = Cheque Bounce (charges), 2 = Other
+    // otherwise (All / Other)                    -> StudentFeeReceipt/CancelStudentReceipt (V3M_FIN_CancelStudentReceipt)
+    private bool ShowCancelPopup;
+    private bool cancelSubmitted;
+    private string searchedCancelType = "-1";
+    private bool IsChequeBounceCancel => searchedCancelType == "Cheque Bounce";
+    private bool CancelTypeError => cancelSubmitted && cancelRequest.CancelType != 1 && cancelRequest.CancelType != 2;
+    private bool CancelDateError => cancelSubmitted && cancelRequest.CancelledDate == null;
+    private bool CancelReasonError => cancelSubmitted && string.IsNullOrWhiteSpace(cancelRequest.Remark);
+    private string CancelTypeInputClass => CancelTypeError ? "floating-input is-required-empty" : "floating-input";
+    private string CancelDateInputClass => CancelDateError ? "floating-input is-required-empty" : "floating-input";
+    private StudentFeeReceiptListResponse? cancelReceipt;
+    private ReceiptChqBounceRequest cancelRequest = new();
+
+    private async Task OpenCancelPopup()
+    {
+        if (selectedReceiptIds.Count != 1)
+        {
+            await Alert.ShowWarning("Please select one receipt to cancel.");
+            return;
+        }
+
+        var row = receiptlist.FirstOrDefault(x => x.ReceiptId == selectedReceiptIds.First());
+        if (row == null)
+        {
+            await Alert.ShowWarning("Receipt record was not found.");
+            return;
+        }
+        if (row.Valid != true)
+        {
+            await Alert.ShowWarning("Receipt is already cancelled.");
+            return;
+        }
+
+        cancelReceipt = row;
+        cancelRequest = new ReceiptChqBounceRequest { CancelType = 0, CancelledDate = DateTime.Today, Remark = string.Empty };
+        cancelSubmitted = false;
+        ShowCancelPopup = true;
+    }
+
+    private void CloseCancelPopup()
+    {
+        ShowCancelPopup = false;
+        cancelReceipt = null;
+        cancelSubmitted = false;
+    }
+
+    private async Task SubmitCancelReceipt()
+    {
+        if (cancelReceipt == null)
+            return;
+
+        // missing values -> red message under the field (no alert); Submit works once all three are filled
+        cancelSubmitted = true;
+        if (CancelTypeError || CancelDateError || CancelReasonError)
+            return;
+
+        cancelRequest.GroupCode = groupcode;
+        cancelRequest.BranchCode = branchcode;
+        cancelRequest.ReceiptId = cancelReceipt.ReceiptId;
+        cancelRequest.CancelledBy = UserName;
+        cancelRequest.Remark = cancelRequest.Remark.Trim();
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = IsChequeBounceCancel
+                ? await httpService.Post<ApiResponse<object>>("StudentFeeReceipt/GenerateReceiptChqBounceChallan", cancelRequest)
+                : await httpService.Post<ApiResponse<object>>("StudentFeeReceipt/CancelStudentReceipt", new CancelStudentReceiptRequest
+                {
+                    GroupCode = cancelRequest.GroupCode,
+                    BranchCode = cancelRequest.BranchCode,
+                    ReceiptId = cancelRequest.ReceiptId,
+                    CancelledBy = cancelRequest.CancelledBy,
+                    CancelReason = cancelRequest.Remark
+                });
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success)
+            {
+                CloseCancelPopup();
+                await Alert.ShowSuccess(response.Message ?? "Receipt cancelled successfully.");
+                await SearchReceipt();
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Unable to cancel the receipt.");
+            }
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to cancel the receipt." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
 
     // ---------------- grid selection ----------------
