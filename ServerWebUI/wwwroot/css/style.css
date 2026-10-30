@@ -4299,8 +4299,49 @@ textarea.form-control {
         background-color: #2cc328;
     }
 
+/* alerts always above the custom popups (.custom-modal is 999999999) */
 .swal2-container {
-    z-index: 999999 !important;
+    z-index: 2147483647 !important;
+}
+
+/* ---------- success toast (top-end, animated) : window.showSuccessToast ---------- */
+.swal2-popup.swal2-toast.se-toast {
+    border-left: 5px solid #22c55e;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    padding: 18px 16px;
+    min-width: 300px;
+    min-height: 72px;
+    margin-top: 60px; /* below the 50px main header */
+}
+
+    .swal2-popup.swal2-toast.se-toast .swal2-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 8px;
+    }
+
+    .swal2-popup.swal2-toast.se-toast .swal2-timer-progress-bar {
+        background: #22c55e;
+    }
+
+.se-toast-in {
+    animation: se-toast-in 0.55s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+.se-toast-out {
+    animation: se-toast-out 0.35s ease-in both;
+}
+
+@keyframes se-toast-in {
+    0% { transform: translateX(120%) scale(0.9); opacity: 0; }
+    70% { transform: translateX(-6%) scale(1.02); opacity: 1; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+@keyframes se-toast-out {
+    0% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(120%); opacity: 0; }
 }
 
 .white-space-nowrap {
