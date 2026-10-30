@@ -44,35 +44,23 @@ public class SweetAlertService
 
     }
 
-    public async Task ShowSuccess(string? message)
+    // every success alert (save / update / active / deactive) is the same animated top-end toast
+    // (window.showSuccessToast in sweetalert.js), shown above any open popup
+    private async Task ShowSuccessToast(string? message)
     {
-
-        await _js.InvokeVoidAsync("Swal.fire", new
+        try
         {
-            icon = "success",
-            text = message,
-            timer = 10000,
-            timerProgressBar = true,
-
-
-        });
-
-    }
-    public async Task ShowSuccessVerification(string? message)
-    {
-
-        await _js.InvokeVoidAsync("Swal.fire", new
+            await _js.InvokeVoidAsync("showSuccessToast", message, false);
+        }
+        catch (TaskCanceledException)
         {
-            position= "top-end",
-            icon = "success",
-            title = message,
-            timer= 2000,
-            showConfirmButton =false,
-
-
-        });
-
+            // ignore (page closed while showing)
+        }
     }
+
+    public Task ShowSuccess(string? message) => ShowSuccessToast(message);
+
+    public Task ShowSuccessVerification(string? message) => ShowSuccessToast(message);
 
     public class SweetAlertResult
     {
@@ -111,62 +99,11 @@ public class SweetAlertService
 
     }
 
-    public async Task ShowDeactive(string message)
-    {
+    public Task ShowDeactive(string message) => ShowSuccessToast(message);
 
-        await _js.InvokeVoidAsync("Swal.fire", new
-        {
+    public Task ShowActive(string message) => ShowSuccessToast(message);
 
-            icon = "success",
-
-            title = message,
-
-            timer = 10000,
-
-            timerProgressBar = true,
-
-
-        });
-
-    }
-
-    public async Task ShowActive(string message)
-    {
-
-        await _js.InvokeVoidAsync("Swal.fire", new
-        {
-
-            icon = "success",
-
-            title = message,
-
-            timer = 10000,
-
-            timerProgressBar = true,
-
-            IsVisible = true
-
-        });
-
-    }
-
-    public async Task ShowUpdate(string message)
-    {
-
-        await _js.InvokeVoidAsync("Swal.fire", new
-        {
-
-            icon = "success",
-
-            text = message,
-
-            timer = 10000,
-
-            timerProgressBar = true,
-
-        });
-
-    }
+    public Task ShowUpdate(string message) => ShowSuccessToast(message);
 
     public async Task ShowCustomAlert(string message)
     {

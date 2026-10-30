@@ -2150,18 +2150,20 @@ namespace Infrastructure.FileGenerate
             });
         }
 
-        private void ComposeCopy(IContainer container, string copyName)
+        // also used by MultiReceiptPdfDocument (copyName null -> title "Receipt";
+        // joined -> fee table sits right under the student details, one continuous box)
+        internal void ComposeCopy(IContainer container, string? copyName, bool joined = false)
         {
             container.Column(col =>
             {
-                col.Item().AlignCenter().Text($"Receipt ({copyName})").FontSize(8);
+                col.Item().AlignCenter().Text(string.IsNullOrWhiteSpace(copyName) ? "Receipt" : $"Receipt ({copyName})").FontSize(8);
                 col.Item().Border(1).Padding(5).Column(c =>
                 {
                     c.Item().Element(ComposeHeader);
                     c.Item().PaddingVertical(3).Height(1).Background(Colors.Black);
                     c.Item().Element(ComposeStudentDetails);
                 });
-                col.Item().PaddingTop(10).Element(ComposeFeeTable);
+                col.Item().PaddingTop(joined ? 0 : 10).Element(x => ComposeFeeTable(x, joined));
                 col.Item().Border(1).BorderTop(0).Padding(4).Element(ComposeSummary);
             });
         }
@@ -2214,7 +2216,7 @@ namespace Infrastructure.FileGenerate
             });
         }
 
-        private void ComposeFeeTable(IContainer container)
+        private void ComposeFeeTable(IContainer container, bool joined)
         {
             container.Table(table =>
             {
@@ -2224,16 +2226,19 @@ namespace Infrastructure.FileGenerate
                     c.RelativeColumn(1);
                 });
 
+                // joined: the details box already draws the top line, so no double border
                 table.Header(header =>
                 {
-                    header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text("Fee Head").FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
-                    header.Cell().Border(1).PaddingVertical(5).AlignCenter().Text(string.IsNullOrWhiteSpace(_receipt.AmountHeader) ? "Total" : _receipt.AmountHeader).FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
+                    header.Cell().Border(1).BorderTop(joined ? 0 : 1).PaddingVertical(5).AlignCenter().Text("Fee Head").FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
+                    header.Cell().Border(1).BorderTop(joined ? 0 : 1).PaddingVertical(5).AlignCenter().Text(string.IsNullOrWhiteSpace(_receipt.AmountHeader) ? "Total" : _receipt.AmountHeader).FontSize(9).SemiBold().FontColor(Colors.Grey.Darken2);
                 });
 
+                // joined (multi receipt print): tighter rows so more fee heads fit in half a page
+                var rowPadding = joined ? 2 : 4;
                 foreach (var fee in _receipt.FeeHeads)
                 {
-                    table.Cell().Border(1).Padding(4).Text(fee.FeeHeadName ?? "").FontSize(9);
-                    table.Cell().Border(1).Padding(4).AlignRight().Text(fee.Amount.ToString("N2"));
+                    table.Cell().Border(1).PaddingHorizontal(4).PaddingVertical(rowPadding).Text(fee.FeeHeadName ?? "").FontSize(9);
+                    table.Cell().Border(1).PaddingHorizontal(4).PaddingVertical(rowPadding).AlignRight().Text(fee.Amount.ToString("N2"));
                 }
             });
         }
@@ -2323,6 +2328,66 @@ namespace Infrastructure.FileGenerate
             Add(number, "");
 
             return string.Join(" ", parts);
+        }
+    }
+    #endregion
+
+    #region---------------- Print Multi Receipt --------------
+    // View Student Receipt -> Print Multi Receipt: 2 receipts per A4 page (one above the other,
+    // dashed cut line between them), same receipt layout as Print
+    public class MultiReceiptPdfDocument : IDocument
+    {
+        private const int ReceiptsPerPage = 2;
+        // A4 = 842pt high; 15pt margins + footer leave room for two receipts of 375pt with the cut line between
+        private const float CellHeight = 375;
+        private const float CutLineSpace = 14;
+
+        private readonly List<AdmitChildReceiptPrintModel> _receipts;
+
+        public MultiReceiptPdfDocument(List<AdmitChildReceiptPrintModel> receipts)
+        {
+            _receipts = receipts;
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(15);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Black));
+
+                page.Content().Column(col =>
+                {
+                    for (var i = 0; i < _receipts.Count; i += ReceiptsPerPage)
+                    {
+                        if (i > 0)
+                            col.Item().PageBreak();
+
+                        var pageReceipts = _receipts.Skip(i).Take(ReceiptsPerPage).ToList();
+                        col.Item().Element(x => ComposeCell(x, pageReceipts[0]));
+                        // cut line below the first receipt
+                        col.Item().Height(CutLineSpace).AlignMiddle()
+                            .LineHorizontal(1).LineColor(Colors.Grey.Darken1).LineDashPattern(new[] { 4f, 3f });
+                        if (pageReceipts.Count > 1)
+                            col.Item().Element(x => ComposeCell(x, pageReceipts[1]));
+                    }
+                });
+
+                page.Footer().Element(StudentReceiptListPdfDocument.ComposeFooter);
+            });
+        }
+
+        // a receipt with many fee heads is scaled down to fit its half of the page
+        private static void ComposeCell(IContainer container, AdmitChildReceiptPrintModel receipt)
+        {
+            container.Height(CellHeight).ScaleToFit()
+                .Element(x => new AdmitChildReceiptPdfDocument(receipt).ComposeCopy(x, null, joined: true));
         }
     }
     #endregion

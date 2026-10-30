@@ -24,6 +24,7 @@
 @inject BookmarkState BookmarkState
 @inject MenuState MenuState
 @inject SecureUrlService SecureUrl
+@implements IDisposable
 <style>
     .right-menu .list-group {
         gap: 5px;
@@ -212,12 +213,23 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await GetMenuMappingList();
-            await BookmarkState.LoadAsync(username);
+        // Load only once. Re-rendering after every render kept the menu in an endless render loop.
+        if (!firstRender)
+            return;
 
-        }
+        // Session values are independent, so read them together instead of one after another
+        var dashboardTask = sessionStorage.GetAsync<string>("Dashboard").AsTask();
+        var roleTask = sessionStorage.GetAsync<string>("RoleId").AsTask();
+        var userTask = sessionStorage.GetAsync<string>("UserName").AsTask();
+        await Task.WhenAll(dashboardTask, roleTask, userTask);
+
+        DashboardUrl = dashboardTask.Result.Value;
+        if (string.IsNullOrEmpty(DashboardUrl)) DashboardUrl = "/";
+        roleId = roleTask.Result.Value;
+        username = userTask.Result.Value;
+
+        // Menu and bookmarks do not depend on each other, so call both APIs in parallel
+        await Task.WhenAll(GetMenuMappingList(), BookmarkState.LoadAsync(username));
 
         StateHasChanged();
     }
@@ -232,11 +244,7 @@
     }
     protected async Task GetMenuMappingList()
 {
-    DashboardUrl = (await sessionStorage.GetAsync<string>("Dashboard")).Value;
-    if (string.IsNullOrEmpty(DashboardUrl)) DashboardUrl = "/";
-
-    roleId   = (await sessionStorage.GetAsync<string>("RoleId")).Value;
-    username = (await sessionStorage.GetAsync<string>("UserName")).Value;
+    if (string.IsNullOrWhiteSpace(roleId)) return;
 
     // ✅ Sirf ek API call
     rolebaseActivities = await httpService.Get<List<RolebaseActivity>>($"SuperAdminModule/RoleBasedActivity/{roleId}") ?? new();

@@ -774,3 +774,31 @@ window.initSplitter = () => {
 //         }
 //     });
 // }
+
+// ---------------- Success toast ----------------
+// SweetAlertService.ShowSuccess / ShowUpdate / ShowActive / ShowDeactive / ShowSuccessVerification:
+// small animated toast at the top-end corner, shown above any open popup (css: .se-toast).
+// Returns at once so the page carries on (save -> close popup / reload grid) while the toast is showing.
+window.showSuccessToast = function (message, isHtml) {
+    var options = {
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        showConfirmButton: false,
+        showCloseButton: true,
+        timer: 3000,
+        timerProgressBar: true,
+        customClass: { popup: 'se-toast' },
+        showClass: { popup: 'se-toast-in' },
+        hideClass: { popup: 'se-toast-out' },
+        didOpen: function (toast) {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    };
+    if (isHtml)
+        options.html = message || 'Saved successfully.';
+    else
+        options.title = message || 'Saved successfully.';
+    Swal.fire(options);
+};

@@ -11,6 +11,10 @@
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 <style>
+    .border-box
+    {
+     height: 36px;
+    }
         .quickgrid thead th:nth-last-child(2) {
     min-width: 75px;
 }
@@ -175,7 +179,7 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentNo) ? " " : x.StudentNo)" Title="Student No" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? (x.ClassName ?? " ") : x.ClassSection)" Title="Class" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => (x.TotalAmount ?? 0).ToString("N2"))" Title="Total" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => RowTotal(x).ToString("N2"))" Title="Total" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => (x.PaidAmount ?? 0).ToString("N2"))" Title="Paid" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => (x.Concession ?? 0).ToString("N2"))" Title="Concession" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ConcessionName) ? " " : x.ConcessionName)" Title="Concession Name" Align="Align.Left" />
@@ -203,6 +207,13 @@
                                 </TemplateColumn>
                             </QuickGrid>
                         </div>
+                        @* totals of the whole searched list, shown inside the grid above the pager *@
+                        <div class="d-flex align-items-center gap-3 px-2 py-1 fw-bold border-top flex-wrap">
+                            <span>Receipt(s) : @receiptlist.Count</span>
+                            <span class="text-danger">Total : @receiptlist.Sum(RowTotal).ToString("N2")</span>
+                            <span class="text-success">Received : @receiptlist.Sum(x => x.PaidAmount ?? 0).ToString("N2")</span>
+                            <span class="text-info">Concession : @receiptlist.Sum(x => x.Concession ?? 0).ToString("N2")</span>
+                        </div>
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center">
                                 <div class="welcome-text w-100">
@@ -216,14 +227,7 @@
         </div>
 
         <div class="col-12 p-1">
-            <div class="page-heading d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-3 px-1 fw-bold">
-                    <span>Receipt(s) : @receiptlist.Count</span>
-                    <span class="text-danger">Total : @receiptlist.Sum(x => x.TotalAmount ?? 0).ToString("N2")</span>
-                    <span class="text-success">Received : @receiptlist.Sum(x => x.PaidAmount ?? 0).ToString("N2")</span>
-                    <span class="text-info">Concession : @receiptlist.Sum(x => x.Concession ?? 0).ToString("N2")</span>
-                </div>
-                @* buttons are static for now (no action wired yet) *@
+            <div class="page-heading d-flex align-items-center justify-content-end flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OpenChequeReportPopup">Chq Report</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OpenCancelPopup">Cancel</button></div>
@@ -232,7 +236,7 @@
                     <div class="form-box"><button type="button" class="table-btn" @onclick="GenerateStudentReceiptHeadWisePdf">Head Details</button></div>
                     <div class="form-box"><button type="button" class="table-btn">Edit</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OnCollectionReportClick">Collection Report</button></div>
-                    <div class="form-box"><button type="button" class="table-btn">Print Multi Receipt</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="PrintMultiReceipt">Print Multi Receipt</button></div>
                 </div>
             </div>
         </div>
@@ -1436,6 +1440,35 @@
             IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    // receipt total: the list SP leaves TotalAmount empty for some receipts (Total showed 0.00),
+    // then it is what was due on the receipt = paid + concession + balance
+    private static decimal RowTotal(StudentFeeReceiptListResponse x) =>
+        (x.TotalAmount ?? 0) > 0 ? x.TotalAmount!.Value : (x.PaidAmount ?? 0) + (x.Concession ?? 0) + (x.Balance ?? 0);
+
+    // ---------------- Print Multi Receipt ----------------
+    // ticked receipts -> StudentFeeReceipt/GenerateMultiReceiptPdf, 4 receipts per A4 page, opens in a new tab
+    private async Task PrintMultiReceipt()
+    {
+        if (selectedReceiptIds.Count == 0)
+        {
+            await Alert.ShowWarning("Please select receipt.");
+            return;
+        }
+
+        var printRequest = new StudentMultiReceiptPrintRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            // same order as the grid
+            ReceiptIds = receiptlist.Where(x => selectedReceiptIds.Contains(x.ReceiptId)).Select(x => x.ReceiptId).ToList(),
+            SessionNames = sessionlist
+                .GroupBy(x => (long)x.SessionId)
+                .ToDictionary(g => g.Key, g => g.First().SessionName ?? string.Empty)
+        };
+
+        await OpenPdf("StudentFeeReceipt/GenerateMultiReceiptPdf", printRequest);
     }
 
     // ---------------- grid selection ----------------

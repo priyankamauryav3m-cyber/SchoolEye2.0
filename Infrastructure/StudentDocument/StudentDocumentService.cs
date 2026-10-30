@@ -107,6 +107,12 @@ namespace Infrastructure.StudentDocument
             var document = new AdmitChildReceiptPdfDocument(receipt);
             return document.GeneratePdf();
         }
+        public async Task<byte[]> GenerateMultiReceiptPdf(List<AdmitChildReceiptPrintModel> receipts)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var document = new MultiReceiptPdfDocument(receipts);
+            return document.GeneratePdf();
+        }
         public async Task<byte[]> GenerateParentFormatReceiptPdf(ParentFormatReceiptPrintModel receipt)
         {
             QuestPDF.Settings.License = LicenseType.Community;

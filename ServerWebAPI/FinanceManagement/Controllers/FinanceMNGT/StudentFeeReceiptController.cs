@@ -199,6 +199,109 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
+
+        // ---------------- Print Multi Receipt: ticked receipts, 4 per A4 page ----------------
+        // header -> V3M_FIN_GetStudentReceiptById, fee heads -> USP_FIN_GetReceiptDetail (same as the single receipt Print)
+        private const int MaxMultiReceipts = 500;
+
+        [HttpPost("GenerateMultiReceiptPdf")]
+        public async Task<IActionResult> GenerateMultiReceiptPdf([FromBody] StudentMultiReceiptPrintRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Group code and branch code are required.", Code = 0 });
+            }
+            var receiptIds = (request.ReceiptIds ?? new List<long>()).Distinct().ToList();
+            if (receiptIds.Count == 0 || receiptIds.Any(x => x <= 0))
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Please select receipt.", Code = 0 });
+            }
+            if (receiptIds.Count > MaxMultiReceipts)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = $"You can print maximum {MaxMultiReceipts} receipts at one time.", Code = 0 });
+            }
+
+            try
+            {
+                // a few receipts at a time so a large selection does not open too many connections
+                using var throttle = new SemaphoreSlim(5);
+                var tasks = receiptIds.Select(async receiptId =>
+                {
+                    await throttle.WaitAsync();
+                    try
+                    {
+                        var byId = new StudentReceiptByIdRequest { GroupCode = request.GroupCode, BranchCode = request.BranchCode, ReceiptId = receiptId };
+                        var header = await _service.GetStudentReceiptById(byId);
+                        var details = header == null ? new List<ReceiptDetailResponse>() : (await _service.GetReceiptDetail(byId))?.ToList() ?? new();
+                        return ToReceiptPrint(header, details, request.SessionNames);
+                    }
+                    finally
+                    {
+                        throttle.Release();
+                    }
+                });
+
+                // keep the order of the ticked rows
+                var receipts = (await Task.WhenAll(tasks)).Where(x => x != null).Select(x => x!).ToList();
+                if (receipts.Count == 0)
+                {
+                    return Ok(new ApiResponse<string> { Success = false, Message = "Receipt details not found to print.", Code = 0 });
+                }
+
+                var pdfBytes = await _generateFile.GenerateMultiReceiptPdf(receipts);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Message = "Receipt PDF generated successfully.",
+                    Code = 1,
+                    Data = Convert.ToBase64String(pdfBytes)
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the receipts.",
+                    Code = -1
+                });
+            }
+        }
+
+        // same mapping as the single receipt Print of View Student Receipt; null when the receipt has no fee heads
+        private static AdmitChildReceiptPrintModel? ToReceiptPrint(StudentReceiptByIdResponse? header, List<ReceiptDetailResponse> details, Dictionary<long, string>? sessionNames)
+        {
+            if (header == null || details.Count == 0)
+                return null;
+
+            var receipt = new AdmitChildReceiptPrintModel
+            {
+                ReceiptNo = header.ReceiptNo,
+                ReceiptDate = header.CreatedDate ?? DateTime.Today,
+                RegistrationNo = header.RegistrationId,
+                StudentNo = header.StudentNo,
+                StudentName = header.StudentName,
+                FatherName = header.FatherName,
+                ClassName = string.IsNullOrWhiteSpace(header.ClassSection) ? header.ClassName : header.ClassSection,
+                SessionName = sessionNames != null && header.SessionId.HasValue && sessionNames.TryGetValue(header.SessionId.Value, out var sessionName) ? sessionName : "",
+                PeriodName = header.PeriodName,
+                PaymentMode = header.PaymentMode,
+                TotalAmount = header.PayableAmount ?? 0,
+                Concession = 0,
+                PaidAmount = header.PaidAmount ?? 0,
+                Balance = header.Balance ?? 0,
+                AmountHeader = "Payable",
+                FeeHeads = details
+                    .Select(x => new AdmitChildReceiptPrintFeeHead { FeeHeadName = x.HeadName, Amount = x.TotalAmount ?? 0 })
+                    .ToList()
+            };
+            // late fee is not a fee head row, show it as its own line like the single receipt Print
+            if ((header.LateFee ?? 0) > 0)
+                receipt.FeeHeads.Add(new AdmitChildReceiptPrintFeeHead { FeeHeadName = "Late Fee", Amount = header.LateFee ?? 0 });
+            return receipt;
+        }
+
         [HttpPost("GenerateReceiptChqBounceChallan")]
         public async Task<IActionResult> GenerateReceiptChqBounceChallan([FromBody] ReceiptChqBounceRequest request)
         {

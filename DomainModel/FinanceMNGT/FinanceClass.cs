@@ -2750,6 +2750,16 @@ namespace DomainModel.FinanceMNGT
         public long ReceiptId { get; set; }
     }
 
+    // View Student Receipt -> Print Multi Receipt: ticked receipts, 4 receipts per A4 page
+    public class StudentMultiReceiptPrintRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public List<long> ReceiptIds { get; set; } = new();
+        // SessionId -> SessionName (the receipt SP returns only the id)
+        public Dictionary<long, string> SessionNames { get; set; } = new();
+    }
+
     // View Student Receipt -> Chq Report: same filters as the search + cheque type / selected receipts
     // Fin_GetOnlyChqCombineReport (Chq Combine) and V3M_FIN_PrintViewStudentReceipts (Print)
     public class StudentChequeReportRequest : StudentFeeReceiptListRequest
