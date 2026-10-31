@@ -385,17 +385,63 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
             {
                 return BadRequest(new ApiResponse<object> { Success = false, Message = "User not found.", Code = 0 });
             }
+            if (request.SettlementMode > 2)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select Keep as Advance or Refund to Parent.", Code = 0 });
+            }
+            if (request.SettlementMode == 2 && (string.IsNullOrWhiteSpace(request.OtpCode) || request.OtpCode.Trim().Length != 6 || !request.OtpCode.Trim().All(char.IsDigit)))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please enter the 6 digit OTP sent to the parent.", Code = 0 });
+            }
             try
             {
                 request.CancelReason = request.CancelReason.Trim();
+                request.OtpCode = request.OtpCode?.Trim();
                 var result = await _service.CancelStudentReceipt(request);
                 if (result == 1)
                 {
-                    return Ok(new ApiResponse<object> { Success = true, Message = "Receipt cancelled successfully.", Code = 1, Data = result });
+                    var message = request.SettlementMode switch
+                    {
+                        1 => "Receipt cancelled. Amount kept as student advance, it will be adjusted in the next fee.",
+                        2 => "Receipt cancelled. Amount refunded to the parent.",
+                        _ => "Receipt cancelled successfully."
+                    };
+
+                    // refund done: confirmation mail with the refund receipt to the parent.
+                    // The refund is already saved, so a mail failure is only reported, it does not undo the refund.
+                    if (request.SettlementMode == 2)
+                    {
+                        try
+                        {
+                            var mailedTo = await _service.SendRefundConfirmation(new StudentReceiptByIdRequest
+                            {
+                                GroupCode = request.GroupCode,
+                                BranchCode = request.BranchCode,
+                                ReceiptId = request.ReceiptId
+                            });
+                            message += mailedTo != null ? $" Refund receipt mailed to {mailedTo}." : " Parent email not found, refund receipt was not mailed.";
+                        }
+                        catch (Exception mailEx)
+                        {
+                            Console.WriteLine($"Exception: {mailEx.Message}");
+                            message += " Refund receipt mail could not be sent.";
+                        }
+                    }
+                    return Ok(new ApiResponse<object> { Success = true, Message = message, Code = 1, Data = result });
                 }
                 if (result == -1)
                 {
                     return Ok(new ApiResponse<object> { Success = false, Message = "Receipt is invalid or already cancelled.", Code = -1, Data = result });
+                }
+                if (result is -3 or -4 or -5)
+                {
+                    var message = result switch
+                    {
+                        -3 => "Invalid OTP.",
+                        -4 => "OTP has expired or was not sent. Please send OTP again.",
+                        _ => "Too many wrong OTP attempts. Please send OTP again."
+                    };
+                    return Ok(new ApiResponse<object> { Success = false, Message = message, Code = result, Data = result });
                 }
                 return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
                 {
@@ -414,6 +460,264 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                     Code = -1
                 });
             }
+        }
+
+        // ---------------- Cancel -> Refund to Parent: V3M_FIN_GetReceiptRefundContacts / V3M_FIN_SaveReceiptRefundOtp ----------------
+        // contacts are returned masked; the OTP is mailed by the server and never returned
+        [HttpPost("GetReceiptRefundContacts")]
+        public async Task<IActionResult> GetReceiptRefundContacts([FromBody] StudentReceiptByIdRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Group code and branch code are required.", Code = 0 });
+            }
+            if (request.ReceiptId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select receipt.", Code = 0 });
+            }
+            try
+            {
+                var data = await _service.GetReceiptRefundContacts(request);
+                if (data == null)
+                {
+                    return Ok(new ApiResponse<object> { Success = false, Message = "Receipt is invalid or already cancelled.", Code = -1 });
+                }
+                return Ok(new ApiResponse<ReceiptRefundContactsResponse>
+                {
+                    Success = true,
+                    Message = data.HasEmail || data.HasMobile ? "Parent contacts retrieved successfully." : "No email or SMS mobile no. found for the parent.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the parent contacts.",
+                    Code = -1
+                });
+            }
+        }
+
+        [HttpPost("SendReceiptRefundOtp")]
+        public async Task<IActionResult> SendReceiptRefundOtp([FromBody] SendReceiptRefundOtpRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Group code and branch code are required.", Code = 0 });
+            }
+            if (request.ReceiptId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select receipt.", Code = 0 });
+            }
+            if (!string.Equals(request.Channel, "Email", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(request.Channel, "Mobile", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select where the OTP is sent.", Code = 0 });
+            }
+            if (string.IsNullOrWhiteSpace(request.RequestedBy))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "User not found.", Code = 0 });
+            }
+            try
+            {
+                var data = await _service.SendReceiptRefundOtp(request);
+                var message = data.Result switch
+                {
+                    1 => $"OTP sent to {data.SentTo}. It is valid for {data.ValidMinutes} minutes.",
+                    -1 => "Receipt is invalid or already cancelled.",
+                    -2 => "OTP was sent just now. Please wait 30 seconds before sending again.",
+                    -3 => "Selected contact is not available for this parent.",
+                    -4 => "SMS OTP is not available yet. Please send the OTP on email.",
+                    _ => "Unable to send OTP."
+                };
+                return Ok(new ApiResponse<SendReceiptRefundOtpResponse>
+                {
+                    Success = data.Result == 1,
+                    Message = message,
+                    Code = data.Result,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unable to send OTP. Please try again.",
+                    Code = -1
+                });
+            }
+        }
+
+        // refund receipt PDF (base64) of a receipt cancelled with "Refund to Parent", built from the database
+        [HttpPost("GenerateRefundReceiptPdf")]
+        public async Task<IActionResult> GenerateRefundReceiptPdf([FromBody] StudentReceiptByIdRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Group code and branch code are required." });
+            }
+            if (request.ReceiptId <= 0)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Please select receipt." });
+            }
+            try
+            {
+                var pdfBytes = await _service.GenerateRefundReceiptPdf(request);
+                if (pdfBytes == null)
+                {
+                    return Ok(new ApiResponse<string> { Success = false, Message = "Refund receipt is available only for a refunded receipt." });
+                }
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(pdfBytes),
+                    Message = "PDF generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the refund receipt."
+                });
+            }
+        }
+
+        // ---------------- Edit receipt: V3M_FIN_GetStudentReceiptForEdit / V3M_FIN_EditStudentReceipt ----------------
+        [HttpPost("GetStudentReceiptForEdit")]
+        public async Task<IActionResult> GetStudentReceiptForEdit([FromBody] StudentReceiptByIdRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Group code and branch code are required.", Code = 0 });
+            }
+            if (request.ReceiptId <= 0)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select receipt.", Code = 0 });
+            }
+            try
+            {
+                var data = await _service.GetStudentReceiptForEdit(request);
+                if (data?.Header == null)
+                {
+                    return NotFound(new ApiResponse<object> { Success = false, Message = "Receipt record was not found.", Code = 0 });
+                }
+                return Ok(new ApiResponse<StudentReceiptForEditResponse>
+                {
+                    Success = true,
+                    Message = "Receipt retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the receipt.",
+                    Code = -1
+                });
+            }
+        }
+
+        [HttpPost("EditStudentReceipt")]
+        public async Task<IActionResult> EditStudentReceipt([FromBody] EditStudentReceiptRequest request)
+        {
+            var validationMessage = ValidateEditReceipt(request);
+            if (validationMessage != null)
+            {
+                return BadRequest(new ApiResponse<object> { Success = false, Message = validationMessage, Code = 0 });
+            }
+            try
+            {
+                request.EditReason = request.EditReason!.Trim();
+                request.Remark = request.Remark?.Trim() ?? string.Empty;
+                request.ChequeNo = request.ChequeNo?.Trim() ?? string.Empty;
+                request.ChequeBank = request.ChequeBank?.Trim() ?? string.Empty;
+                request.BankBranch = request.BankBranch?.Trim() ?? string.Empty;
+
+                var result = await _service.EditStudentReceipt(request);
+                var message = result.Result switch
+                {
+                    1 => $"Receipt edited successfully. Revised Receipt No: {result.NewReceiptNo}",
+                    2 => "Receipt payment details updated successfully.",
+                    3 => "Receipt cancelled. No fee head was left to re-issue.",
+                    -1 => "Receipt is invalid or already cancelled.",
+                    -2 => "Only the latest receipt of the student can be edited.",
+                    -3 => "A fee head of this receipt was already removed through Edit Invoice (its paid amount is kept as student advance). This receipt cannot be edited.",
+                    -4 => "One or more fee heads are not valid dues of this student.",
+                    -5 => "Paid amount cannot be more than the due amount of a fee head.",
+                    -6 => "A fee head with paid amount cannot be removed from the invoice.",
+                    -7 => "Refund amount cannot be more than the amount received.",
+                    -8 => "No changes found to update.",
+                    _ => null
+                };
+                if (message == null)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "An error occurred while editing the receipt.",
+                        Code = -1
+                    });
+                }
+                return Ok(new ApiResponse<EditStudentReceiptResponse>
+                {
+                    Success = result.Result > 0,
+                    Message = message,
+                    Code = result.Result,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while editing the receipt.",
+                    Code = -1
+                });
+            }
+        }
+
+        private static string? ValidateEditReceipt(EditStudentReceiptRequest? request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+                return "Group code and branch code are required.";
+            if (request.ReceiptId <= 0)
+                return "Please select receipt.";
+            if (string.IsNullOrWhiteSpace(request.EditedBy))
+                return "User not found.";
+            if (string.IsNullOrWhiteSpace(request.EditReason))
+                return "Edit reason is required.";
+            if (request.EditReason.Trim().Length > 250)
+                return "Edit reason cannot exceed 250 characters.";
+            if ((request.Remark?.Trim().Length ?? 0) > 200)
+                return "Remarks cannot exceed 200 characters.";
+            if (string.IsNullOrWhiteSpace(request.PaymentMode))
+                return "Please select payment mode.";
+            if (request.ReceiptDate == null || request.ReceiptDate.Value.Date > DateTime.Today)
+                return "Please select a valid receipt date.";
+            if (request.DifferenceMode != 1 && request.DifferenceMode != 2)
+                return "Please select how the difference amount is settled.";
+            if (request.Lines == null || request.Lines.Any(x => x.DetInvoiceId <= 0 || x.PaidAmount < 0))
+                return "Fee head details are not valid.";
+            if (request.Lines.GroupBy(x => x.DetInvoiceId).Any(g => g.Count() > 1))
+                return "A fee head is selected more than once.";
+            if (request.Lines.Any(x => x.RemoveFromInvoice && x.PaidAmount > 0))
+                return "A fee head with paid amount cannot be removed from the invoice.";
+            return null;
         }
 
         // ---------------- Chq Report: Chq Combine (Fin_GetOnlyChqCombineReport) / Print (V3M_FIN_PrintViewStudentReceipts) ----------------

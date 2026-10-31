@@ -405,6 +405,16 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                         Message = "Fee Head added to student challan successfully."
                     });
                 }
+                // FIN_Usp_RemoveFeeHeadFromChallan: money already received on this fee head
+                if (result == -2)
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Code = -2,
+                        Message = "This fee head is already paid. Remove it from View Student Dues and Receipt -> Edit Invoice, or from View Student Receipt -> Edit."
+                    });
+                }
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,

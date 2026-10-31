@@ -3472,4 +3472,221 @@ namespace Infrastructure.FileGenerate
     }
     #endregion
 
+    #region---------------------- Fee Refund Receipt (View Student Receipt -> Cancel -> Refund to Parent) ------------------
+    public class RefundReceiptPdfDocument : IDocument
+    {
+        private readonly RefundReceiptPrintModel _refund;
+
+        private const string Teal = "#0F766E";
+        private const string TealLight = "#ECFDF5";
+        private const string TealBorder = "#99F6E4";
+        private const string Navy = "#0B2948";
+        private const string Muted = "#64748B";
+
+        // refund icon: circular "money back" arrow around a coin, drawn as SVG so no image file is needed
+        private const string RefundIcon =
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>" +
+            "<circle cx='32' cy='32' r='31' fill='#0F766E'/>" +
+            "<path d='M20 26a14 14 0 1 1-2 12' fill='none' stroke='#ffffff' stroke-width='4' stroke-linecap='round'/>" +
+            "<path d='M12 22l8 4-4 8' fill='none' stroke='#ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/>" +
+            "<circle cx='34' cy='32' r='7' fill='none' stroke='#ffffff' stroke-width='3'/>" +
+            "<path d='M34 28v8' stroke='#ffffff' stroke-width='3' stroke-linecap='round'/>" +
+            "</svg>";
+
+        public RefundReceiptPdfDocument(RefundReceiptPrintModel refund)
+        {
+            _refund = refund;
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(25);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10).FontColor(Colors.Black));
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(12);
+                    col.Item().Element(ComposeHeader);
+                    col.Item().Element(ComposeBanner);
+                    col.Item().Element(ComposeDetails);
+                    col.Item().Element(ComposeFeeTable);
+                    col.Item().Element(ComposeNote);
+                    col.Item().PaddingTop(30).Element(ComposeSignatures);
+                });
+
+                page.Footer().DefaultTextStyle(x => x.FontSize(8)).Element(StudentReceiptListPdfDocument.ComposeFooter);
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+
+            container.BorderBottom(2).BorderColor(Navy).PaddingBottom(8).Row(row =>
+            {
+                if (File.Exists(logo))
+                    row.ConstantItem(64).Height(64).AlignMiddle().Image(logo).FitArea();
+
+                row.RelativeItem().PaddingLeft(8).AlignMiddle().Column(c =>
+                {
+                    c.Item().Text("V3M International School").FontSize(20).Bold().FontColor(Navy);
+                    c.Item().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9).FontColor(Muted);
+                });
+
+                row.ConstantItem(150).AlignMiddle().AlignRight().Column(c =>
+                {
+                    c.Item().Background(Teal).PaddingVertical(5).PaddingHorizontal(10).AlignCenter()
+                        .Text("FEE REFUND RECEIPT").FontSize(10).Bold().FontColor(Colors.White);
+                    if (!string.IsNullOrWhiteSpace(_refund.SessionName))
+                        c.Item().PaddingTop(3).AlignCenter().Text($"Session {_refund.SessionName}").FontSize(8).FontColor(Muted);
+                });
+            });
+        }
+
+        // green banner: refund icon, against which receipt, amount refunded
+        private void ComposeBanner(IContainer container)
+        {
+            container.Background(TealLight).Border(1).BorderColor(TealBorder).Padding(12).Row(row =>
+            {
+                row.ConstantItem(46).Height(46).AlignMiddle().Svg(RefundIcon).FitArea();
+
+                row.RelativeItem().PaddingLeft(12).AlignMiddle().Column(c =>
+                {
+                    c.Item().Text("Fee Refunded").FontSize(16).Bold().FontColor(Teal);
+                    c.Item().Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(9).FontColor(Muted));
+                        text.Span("Against receipt ");
+                        text.Span(_refund.ReceiptNo ?? "").Bold().FontColor(Navy);
+                        text.Span($" dated {_refund.ReceiptDate:dd/MM/yyyy}");
+                    });
+                    if (!string.IsNullOrWhiteSpace(_refund.OtpSentTo))
+                        c.Item().PaddingTop(2).Text($"Verified by OTP sent to parent ({_refund.OtpSentTo})").FontSize(8).FontColor(Teal);
+                });
+
+                row.ConstantItem(170).AlignMiddle().AlignRight().Column(c =>
+                {
+                    c.Item().AlignRight().Text("AMOUNT REFUNDED").FontSize(8).Bold().FontColor(Muted);
+                    c.Item().AlignRight().Text($"Rs. {_refund.RefundAmount:N2}").FontSize(20).Bold().FontColor(Teal);
+                    c.Item().AlignRight().Text($"on {_refund.RefundDate:dd/MM/yyyy}").FontSize(8).FontColor(Muted);
+                });
+            });
+        }
+
+        private void ComposeDetails(IContainer container)
+        {
+            container.Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.RelativeColumn(2);
+                    c.RelativeColumn(3);
+                    c.RelativeColumn(2);
+                    c.RelativeColumn(3);
+                });
+
+                void Pair(string label, string? value)
+                {
+                    table.Cell().PaddingVertical(3).Text(label).FontSize(9).FontColor(Muted);
+                    table.Cell().PaddingVertical(3).Text(string.IsNullOrWhiteSpace(value) ? "-" : value).SemiBold();
+                }
+
+                var paidBy = string.IsNullOrWhiteSpace(_refund.ChequeNo) ? _refund.PaymentMode : $"{_refund.PaymentMode} ({_refund.ChequeNo})";
+
+                Pair("Student Name", _refund.StudentName);
+                Pair("Student No.", _refund.StudentNo);
+                Pair("Father Name", _refund.FatherName);
+                Pair("Class & Section", _refund.ClassSection);
+                Pair("Paid By", paidBy);
+                Pair("Refund Date", _refund.RefundDate?.ToString("dd/MM/yyyy hh:mm tt"));
+                Pair("Refunded By", _refund.RefundedBy);
+                Pair("Reason", _refund.RefundReason);
+            });
+        }
+
+        private void ComposeFeeTable(IContainer container)
+        {
+            var total = _refund.Lines.Sum(x => x.Amount);
+
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.ConstantColumn(40);
+                    c.RelativeColumn(4);
+                    c.RelativeColumn(3);
+                    c.RelativeColumn(2);
+                });
+
+                table.Header(header =>
+                {
+                    static IContainer Head(IContainer cell) => cell.Background(Teal).PaddingVertical(5).PaddingHorizontal(6);
+
+                    header.Cell().Element(Head).Text("S.No.").FontColor(Colors.White).Bold();
+                    header.Cell().Element(Head).Text("Fee Head").FontColor(Colors.White).Bold();
+                    header.Cell().Element(Head).Text("Months").FontColor(Colors.White).Bold();
+                    header.Cell().Element(Head).AlignRight().Text("Refunded (Rs.)").FontColor(Colors.White).Bold();
+                });
+
+                var sNo = 1;
+                foreach (var line in _refund.Lines)
+                {
+                    var background = sNo % 2 == 0 ? "#F8FAFC" : "#FFFFFF";
+                    IContainer Cell(IContainer cell) => cell.Background(background).BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(5).PaddingHorizontal(6);
+
+                    table.Cell().Element(Cell).Text($"{sNo++}.");
+                    table.Cell().Element(Cell).Text(line.FeeHeadName ?? "");
+                    table.Cell().Element(Cell).Text(line.Months ?? "").FontColor(Muted);
+                    table.Cell().Element(Cell).AlignRight().Text(line.Amount.ToString("N2"));
+                }
+
+                table.Cell().ColumnSpan(3).Background(TealLight).PaddingVertical(6).PaddingHorizontal(6).Text("Total Refunded").Bold().FontColor(Teal);
+                table.Cell().Background(TealLight).PaddingVertical(6).PaddingHorizontal(6).AlignRight().Text(total.ToString("N2")).Bold().FontColor(Teal);
+
+                table.Cell().ColumnSpan(4).PaddingTop(6).Text(text =>
+                {
+                    text.Span("In Words : ").Bold();
+                    text.Span($"Rupees {AdmitChildReceiptPdfDocument.AmountInWords(_refund.RefundAmount)}");
+                });
+            });
+        }
+
+        private void ComposeNote(IContainer container)
+        {
+            container.Background("#FFFBEB").Border(1).BorderColor("#FDE68A").Padding(8).Text(text =>
+            {
+                text.DefaultTextStyle(x => x.FontSize(8.5f).FontColor("#92400E"));
+                text.Span("Note : ").Bold();
+                text.Span($"Receipt {_refund.ReceiptNo} is cancelled and the amount above is refunded to the parent. " +
+                          "The fee heads of this receipt are due again for the student and will be collected with the next fee.");
+            });
+        }
+
+        private static void ComposeSignatures(IContainer container)
+        {
+            container.Row(row =>
+            {
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().Width(170).BorderTop(1).BorderColor(Colors.Grey.Darken1);
+                    c.Item().PaddingTop(3).Text("Parent / Guardian Signature").FontSize(9).FontColor(Muted);
+                });
+                row.RelativeItem().AlignRight().Column(c =>
+                {
+                    c.Item().AlignRight().Width(170).BorderTop(1).BorderColor(Colors.Grey.Darken1);
+                    c.Item().PaddingTop(3).AlignRight().Text("Authorised Signatory").FontSize(9).FontColor(Muted);
+                });
+            });
+        }
+    }
+    #endregion
+
 }

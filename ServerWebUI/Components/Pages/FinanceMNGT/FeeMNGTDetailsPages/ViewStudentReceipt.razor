@@ -84,6 +84,18 @@
             color: #fff;
         }
 
+    /* cancel popup: Keep as Advance / Refund to Parent (same look as the Edit Receipt options) */
+    .cancel-settle-title { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+    .cancel-settle-option {
+        border: 2px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; cursor: pointer;
+        display: flex; gap: 8px; align-items: flex-start; height: 100%; background: #fff;
+    }
+    .cancel-settle-option.active { border-color: #f97316; background: #fff7ed; }
+    .cancel-settle-option strong { display: block; font-size: 13px; }
+    .cancel-settle-option span { font-size: 11.5px; color: #6b7280; }
+    .cancel-settle-contact { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; cursor: pointer; }
+    .cancel-settle-warn { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+
     /* loader must show over the Receipt Details popup (.custom-modal is z-index 999999999) */
     .grid-loader-overlay.above-popup {
         z-index: 1000000000;
@@ -234,7 +246,7 @@
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OnPrintListClick">Print</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OnStudentPrintClick">Student Print</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="GenerateStudentReceiptHeadWisePdf">Head Details</button></div>
-                    <div class="form-box"><button type="button" class="table-btn">Edit</button></div>
+                    <div class="form-box"><button type="button" class="table-btn" @onclick="OpenEditReceipt">Edit</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="OnCollectionReportClick">Collection Report</button></div>
                     <div class="form-box"><button type="button" class="table-btn" @onclick="PrintMultiReceipt">Print Multi Receipt</button></div>
                 </div>
@@ -596,7 +608,7 @@
 @if (ShowCancelPopup && cancelReceipt != null)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-6">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">@(IsChequeBounceCancel ? "Cheque Bounce" : "Cancel Receipt") &nbsp;&middot;&nbsp; @cancelReceipt.ReceiptNo</h5>
@@ -641,6 +653,84 @@
                                 }
                             </div>
                         </div>
+
+                        @* Cancel Type = Other: the money received is kept as advance or refunded (cheque bounce = money never received) *@
+                        @if (HasSettlement)
+                        {
+                            <div class="col-12 mb-2">
+                                <div class="cancel-settle-title">Amount ₹ @((cancelReceipt.PaidAmount ?? 0).ToString("N2")) <span class="required">*</span></div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="cancel-settle-option @(settlementMode == 1 ? "active" : "")" @onclick="() => SelectSettlement(1)">
+                                            <input type="radio" name="cancelSettle" checked="@(settlementMode == 1)" />
+                                            <div><strong>Keep as Advance</strong><span>Dues come back, amount stays as student advance and is adjusted in the next fee.</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="cancel-settle-option @(settlementMode == 2 ? "active" : "")" @onclick="() => SelectSettlement(2)">
+                                            <input type="radio" name="cancelSettle" checked="@(settlementMode == 2)" />
+                                            <div><strong>Refund to Parent</strong><span>Dues come back, amount is returned. OTP to the parent is required.</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (settlementMode == 2)
+                            {
+                                <div class="col-12 mb-2">
+                                    @if (refundContacts == null)
+                                    {
+                                        <div class="text-muted small">Loading parent contacts...</div>
+                                    }
+                                    else if (!refundContacts.HasEmail && !refundContacts.HasMobile)
+                                    {
+                                        <div class="cancel-settle-warn"><i class="bi bi-exclamation-triangle-fill"></i> No email or SMS mobile no. found for the parent. Update the parent details to refund.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="cancel-settle-title">Send OTP to</div>
+                                        @if (refundContacts.HasEmail)
+                                        {
+                                            <label class="cancel-settle-contact">
+                                                <input type="radio" name="otpChannel" checked="@(otpChannel == "Email")" @onchange='() => otpChannel = "Email"' />
+                                                <i class="bi bi-envelope"></i> Email &nbsp;<b>@refundContacts.MaskedEmail</b>
+                                            </label>
+                                        }
+                                        @if (refundContacts.HasMobile)
+                                        {
+                                            <label class="cancel-settle-contact">
+                                                <input type="radio" name="otpChannel" checked="@(otpChannel == "Mobile")" @onchange='() => otpChannel = "Mobile"' />
+                                                <i class="bi bi-phone"></i> SMS &nbsp;<b>@refundContacts.MaskedMobile</b>
+                                            </label>
+                                        }
+                                        <div class="d-flex align-items-center gap-2 mt-1">
+                                            <button type="button" class="table-btn" @onclick="SendRefundOtp" disabled="@IsLoading">
+                                                <i class="bi bi-send"></i> @(otpSentTo == null ? "Send OTP" : "Resend OTP")
+                                            </button>
+                                            @if (otpSentTo != null)
+                                            {
+                                                <span class="small text-success">OTP sent to @otpSentTo</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                            @if (otpSentTo != null)
+                            {
+                                <div class="col-12 mb-4 mt-2">
+                                    <div class="form-box-group">
+                                        <input class="floating-input @(OtpError ? "is-required-empty" : "")" placeholder=" " maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                                               @bind="refundOtp" @bind:event="oninput" />
+                                        <label class="floating-label">OTP <span class="required">*</span></label>
+                                        @if (OtpError)
+                                        {
+                                            <div class="validation-message">Please enter the 6 digit OTP.</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            }
+                        }
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -655,6 +745,21 @@
             </div>
         </div>
     </div>
+}
+
+@* ---------------- Edit Receipt popup (bottom Edit button) ---------------- *@
+@if (ShowEditReceiptPopup)
+{
+    <EditStudentReceipt ReceiptId="editReceiptId"
+                        GroupCode="@groupcode"
+                        BranchCode="@branchcode"
+                        UserName="@UserName"
+                        Sessions="sessionlist"
+                        PaymentModes="paymentModeList"
+                        Banks="bankList"
+                        ChequeTypes="chequeTypeList"
+                        OnClose="CloseEditReceipt"
+                        OnSaved="OnReceiptEdited" />
 }
 
 @if (IsLoading)
@@ -1352,6 +1457,83 @@
     private StudentFeeReceiptListResponse? cancelReceipt;
     private ReceiptChqBounceRequest cancelRequest = new();
 
+    // Cancel Type = Other (normal cancel): 1 = Keep as Advance, 2 = Refund to Parent (OTP to the parent)
+    // cheque bounce has no settlement: the money was never received
+    private bool HasSettlement => !IsChequeBounceCancel && cancelRequest.CancelType == 2 && (cancelReceipt?.PaidAmount ?? 0) > 0;
+    private byte settlementMode = 1;
+    private ReceiptRefundContactsResponse? refundContacts;
+    private string otpChannel = "Email";
+    private string? otpSentTo;
+    private string refundOtp = string.Empty;
+    private bool OtpError => cancelSubmitted && HasSettlement && settlementMode == 2 && otpSentTo != null
+                             && (refundOtp.Trim().Length != 6 || !refundOtp.Trim().All(char.IsDigit));
+
+    private async Task SelectSettlement(byte mode)
+    {
+        settlementMode = mode;
+        if (mode != 2 || refundContacts != null || cancelReceipt == null)
+            return;
+
+        try
+        {
+            var response = await httpService.Post<ApiResponse<ReceiptRefundContactsResponse>>("StudentFeeReceipt/GetReceiptRefundContacts",
+                new StudentReceiptByIdRequest { GroupCode = groupcode, BranchCode = branchcode, ReceiptId = cancelReceipt.ReceiptId });
+            refundContacts = response?.Data ?? new ReceiptRefundContactsResponse();
+            // only the contacts the parent has are shown; email is used when it is there
+            otpChannel = refundContacts.HasEmail ? "Email" : "Mobile";
+        }
+        catch (Exception ex)
+        {
+            refundContacts = new ReceiptRefundContactsResponse();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to load parent contacts." : ex.Message);
+        }
+    }
+
+    private async Task SendRefundOtp()
+    {
+        if (cancelReceipt == null)
+            return;
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<SendReceiptRefundOtpResponse>>("StudentFeeReceipt/SendReceiptRefundOtp",
+                new SendReceiptRefundOtpRequest
+                {
+                    GroupCode = groupcode,
+                    BranchCode = branchcode,
+                    ReceiptId = cancelReceipt.ReceiptId,
+                    Channel = otpChannel,
+                    RequestedBy = UserName
+                });
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success)
+            {
+                otpSentTo = response.Data?.SentTo;
+                refundOtp = string.Empty;
+                await Alert.ShowSuccess(response.Message ?? "OTP sent successfully.");
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Unable to send OTP.");
+            }
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to send OTP." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task OpenCancelPopup()
     {
         if (selectedReceiptIds.Count != 1)
@@ -1375,6 +1557,7 @@
         cancelReceipt = row;
         cancelRequest = new ReceiptChqBounceRequest { CancelType = 0, CancelledDate = DateTime.Today, Remark = string.Empty };
         cancelSubmitted = false;
+        ResetSettlement();
         ShowCancelPopup = true;
     }
 
@@ -1383,6 +1566,16 @@
         ShowCancelPopup = false;
         cancelReceipt = null;
         cancelSubmitted = false;
+        ResetSettlement();
+    }
+
+    private void ResetSettlement()
+    {
+        settlementMode = 1;
+        refundContacts = null;
+        otpChannel = "Email";
+        otpSentTo = null;
+        refundOtp = string.Empty;
     }
 
     private async Task SubmitCancelReceipt()
@@ -1393,6 +1586,32 @@
         // missing values -> red message under the field (no alert); Submit works once all three are filled
         cancelSubmitted = true;
         if (CancelTypeError || CancelDateError || CancelReasonError)
+            return;
+
+        var settleMode = HasSettlement ? settlementMode : (byte)0;
+        if (settleMode == 2)
+        {
+            if (refundContacts == null || (!refundContacts.HasEmail && !refundContacts.HasMobile))
+            {
+                await Alert.ShowWarning("No email or SMS mobile no. found for the parent. Refund cannot be verified.");
+                return;
+            }
+            if (otpSentTo == null)
+            {
+                await Alert.ShowWarning("Please send the OTP to the parent first.");
+                return;
+            }
+            if (OtpError)
+                return;
+        }
+
+        var confirmText = settleMode switch
+        {
+            1 => $"Receipt {cancelReceipt.ReceiptNo} will be cancelled and ₹ {(cancelReceipt.PaidAmount ?? 0):N2} kept as student advance. Continue?",
+            2 => $"Receipt {cancelReceipt.ReceiptNo} will be cancelled and ₹ {(cancelReceipt.PaidAmount ?? 0):N2} refunded to the parent. Continue?",
+            _ => null
+        };
+        if (confirmText != null && !await Alert.ShowConfirm(confirmText))
             return;
 
         cancelRequest.GroupCode = groupcode;
@@ -1413,7 +1632,9 @@
                     BranchCode = cancelRequest.BranchCode,
                     ReceiptId = cancelRequest.ReceiptId,
                     CancelledBy = cancelRequest.CancelledBy,
-                    CancelReason = cancelRequest.Remark
+                    CancelReason = cancelRequest.Remark,
+                    SettlementMode = settleMode,
+                    OtpCode = settleMode == 2 ? refundOtp.Trim() : null
                 });
             IsLoading = false;
             StateHasChanged();
@@ -1439,6 +1660,70 @@
         {
             IsLoading = false;
             StateHasChanged();
+        }
+    }
+
+    // ---------------- Edit Receipt popup ----------------
+    // one selected active receipt -> EditStudentReceipt component (StudentFeeReceipt/GetStudentReceiptForEdit + EditStudentReceipt);
+    // after a save the list is searched again and the revised receipt can be opened for print
+    private bool ShowEditReceiptPopup;
+    private long editReceiptId;
+
+    private async Task OpenEditReceipt()
+    {
+        if (selectedReceiptIds.Count != 1)
+        {
+            await Alert.ShowWarning("Please select one receipt to edit.");
+            return;
+        }
+
+        var row = receiptlist.FirstOrDefault(x => x.ReceiptId == selectedReceiptIds.First());
+        if (row == null)
+        {
+            await Alert.ShowWarning("Receipt record was not found.");
+            return;
+        }
+        if (row.Valid != true)
+        {
+            await Alert.ShowWarning("Cancelled receipt cannot be edited.");
+            return;
+        }
+
+        if (chequeTypeList.Count == 0)
+        {
+            try
+            {
+                chequeTypeList = await httpService.Get<List<ChequeTypeModel>>("ChequeType/GetChecktype") ?? new();
+            }
+            catch
+            {
+                chequeTypeList = new();
+            }
+        }
+
+        editReceiptId = row.ReceiptId;
+        ShowEditReceiptPopup = true;
+    }
+
+    private void CloseEditReceipt()
+    {
+        ShowEditReceiptPopup = false;
+        editReceiptId = 0;
+    }
+
+    private async Task OnReceiptEdited(ApiResponse<EditStudentReceiptResponse> response)
+    {
+        CloseEditReceipt();
+        StateHasChanged();
+        await Alert.ShowSuccess(response.Message ?? "Receipt edited successfully.");
+        await SearchReceipt();
+
+        // Result 1 = revised receipt generated -> its details popup has the Print / Parent Format buttons
+        var revised = response.Data;
+        if (revised != null && revised.Result == 1 && revised.NewReceiptId > 0
+            && await Alert.ShowConfirm($"Do you want to print revised receipt {revised.NewReceiptNo}?"))
+        {
+            await OpenReceiptDetails(new StudentFeeReceiptListResponse { ReceiptId = revised.NewReceiptId });
         }
     }
 

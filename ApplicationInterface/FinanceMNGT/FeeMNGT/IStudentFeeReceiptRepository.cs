@@ -24,5 +24,17 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         Task<IEnumerable<ChqCombineReportResponse>> GetChqCombineReport(StudentChequeReportRequest request);
 
         Task<IEnumerable<PrintViewStudentReceiptResponse>> GetPrintViewStudentReceipts(StudentChequeReportRequest request);
+
+        Task<StudentReceiptForEditResponse?> GetStudentReceiptForEdit(StudentReceiptByIdRequest request);
+
+        Task<EditStudentReceiptResponse> EditStudentReceipt(EditStudentReceiptRequest request);
+
+        Task<ReceiptRefundContactsResponse?> GetReceiptRefundContacts(StudentReceiptByIdRequest request);
+
+        Task<SendReceiptRefundOtpResponse> SendReceiptRefundOtp(SendReceiptRefundOtpRequest request);
+
+        Task<byte[]?> GenerateRefundReceiptPdf(StudentReceiptByIdRequest request);
+
+        Task<string?> SendRefundConfirmation(StudentReceiptByIdRequest request);
     }
 }

@@ -1973,6 +1973,9 @@ namespace DomainModel.FinanceMNGT
 
         [StringLength(200)]
         public string? Narration1 { get; set; }
+
+        // remove a PAID fee head (paid amount -> student advance); only View Student Dues and Receipt -> Edit Invoice sends true
+        public bool AllowPaidHead { get; set; }
     }
     public class AdmissionDashboardRequest
     {
@@ -2812,6 +2815,92 @@ namespace DomainModel.FinanceMNGT
         public long ReceiptId { get; set; }
         public string? CancelReason { get; set; }
         public string? CancelledBy { get; set; }
+        // 0 = none (cheque bounce), 1 = keep amount as student advance, 2 = refund to parent (needs OtpCode)
+        public byte SettlementMode { get; set; }
+        public string? OtpCode { get; set; }
+    }
+
+    // V3M_FIN_GetReceiptRefundContacts (server side only: full email / mobile are never sent to the screen)
+    public class ReceiptRefundContactRow
+    {
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public decimal? PaidAmount { get; set; }
+        public bool? Valid { get; set; }
+        public string? FatherEMail { get; set; }
+        public string? SMSMobileNo { get; set; }
+    }
+
+    // Cancel -> Refund to Parent: masked contacts the OTP can be sent to
+    public class ReceiptRefundContactsResponse
+    {
+        public long ReceiptId { get; set; }
+        public decimal PaidAmount { get; set; }
+        public bool HasEmail { get; set; }
+        public string? MaskedEmail { get; set; }
+        public bool HasMobile { get; set; }
+        public string? MaskedMobile { get; set; }
+    }
+
+    public class SendReceiptRefundOtpRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long ReceiptId { get; set; }
+        // "Email" / "Mobile"
+        public string? Channel { get; set; }
+        public string? RequestedBy { get; set; }
+    }
+
+    // V3M_FIN_GetReceiptRefundDetails: refund receipt PDF + confirmation mail (built on the server from the database)
+    public class RefundReceiptPrintModel
+    {
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public DateTime? ReceiptDate { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public decimal RefundAmount { get; set; }
+        public DateTime? RefundDate { get; set; }
+        public string? RefundedBy { get; set; }
+        // receipt remark: "<remark> | Cancelled: <reason>"
+        public string? Remark { get; set; }
+        public string? StudentNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? FatherName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? SessionName { get; set; }
+        // server side only (mail); never returned to the screen
+        [JsonIgnore] public string? FatherEMail { get; set; }
+        public string? OtpSentTo { get; set; }
+        public List<RefundReceiptPrintLine> Lines { get; set; } = new();
+
+        public string RefundReason
+        {
+            get
+            {
+                const string marker = " | Cancelled: ";
+                var remark = Remark ?? string.Empty;
+                var at = remark.LastIndexOf(marker, StringComparison.Ordinal);
+                return at >= 0 ? remark[(at + marker.Length)..].Trim() : remark.Trim();
+            }
+        }
+    }
+
+    public class RefundReceiptPrintLine
+    {
+        public string? FeeHeadName { get; set; }
+        public string? Months { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    // Result: 1 sent, -1 receipt not found / cancelled, -2 sent less than 30 seconds ago,
+    //         -3 no contact for the channel, -4 SMS not configured yet
+    public class SendReceiptRefundOtpResponse
+    {
+        public int Result { get; set; }
+        public string? SentTo { get; set; }
+        public int ValidMinutes { get; set; }
     }
 
     // V3M_FIN_GenerateReceiptChqBounceChallan; CancelType 1 = Cheque Bounce (charges applied), 2 = Other
@@ -2880,6 +2969,122 @@ namespace DomainModel.FinanceMNGT
         public int? DisplayOrder { get; set; }
         public string? FeeApplicableType { get; set; }
     }
+
+    // ---------------- View Student Receipt -> Edit ----------------
+    // V3M_FIN_GetStudentReceiptForEdit: header + receipt lines + other pending dues
+    public class StudentReceiptForEditResponse
+    {
+        public StudentReceiptEditHeader? Header { get; set; }
+        public List<StudentReceiptEditLine> Lines { get; set; } = new();
+        public List<StudentReceiptEditLine> PendingDues { get; set; } = new();
+    }
+
+    public class StudentReceiptEditHeader
+    {
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public long? SessionId { get; set; }
+        public long? StudentId { get; set; }
+        public string? ClassCode { get; set; }
+        public int? SectionId { get; set; }
+        public string? StudentNo { get; set; }
+        public string? ControlNo { get; set; }
+        public int? RollNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? FatherName { get; set; }
+        public string? NextToKinContactNo { get; set; }
+        public decimal? PreviousBalance { get; set; }
+        public decimal? TotalAmount { get; set; }
+        public decimal? Concession { get; set; }
+        public decimal? LateFee { get; set; }
+        public decimal? PaidAmount { get; set; }
+        public decimal? Balance { get; set; }
+        public decimal? PayableAmount { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? ChequeBank { get; set; }
+        public string? ChequeBankBranch { get; set; }
+        public string? ChequeType { get; set; }
+        public int? BankAccountId { get; set; }
+        public string? Remark { get; set; }
+        public bool? Valid { get; set; }
+        // receipt date (the save SP stores @ReceiptDate in CreatedDate)
+        public DateTime? CreatedDate { get; set; }
+        public string? CreatedBy { get; set; }
+        public int? OriginalReceiptId { get; set; }
+        public string? OriginalReceiptNo { get; set; }
+        // V3M_Fin_StudentBalance (negative = advance)
+        public decimal? CurrentAdvance { get; set; }
+        // 1 = can edit, -1 cancelled, -2 a later receipt exists, -3 a head was already removed from its invoice
+        public int EditStatus { get; set; }
+    }
+
+    // one invoice line (DetInvoice) of the receipt / of the pending dues
+    public class StudentReceiptEditLine
+    {
+        public long DetInvoiceId { get; set; }
+        public long InvoiceId { get; set; }
+        public string? InvoiceNo { get; set; }
+        public int FeeHeadId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public int MonthNo { get; set; }
+        public string? MonthName { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Concession { get; set; }
+        public decimal WaiveOff { get; set; }
+        public decimal ReceivedAmt { get; set; }
+        public decimal PaidInReceipt { get; set; }
+        // received on this line through other receipts
+        public decimal PaidElsewhere { get; set; }
+        public bool IsInReceipt { get; set; }
+        public int DisplayOrder { get; set; }
+
+        // ---- edit state (UI only) ----
+        [JsonIgnore] public decimal NewPaid { get; set; }
+        [JsonIgnore] public bool IsRemoved { get; set; }
+        [JsonIgnore] public bool RemoveFromInvoice { get; set; }
+        [JsonIgnore] public decimal MaxPayable => Math.Max(0, Amount - Concession - WaiveOff - PaidElsewhere);
+    }
+
+    // V3M_FIN_EditStudentReceipt
+    public class EditStudentReceiptRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long ReceiptId { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public string? ChequeBank { get; set; }
+        public string? ChequeType { get; set; }
+        public string? BankBranch { get; set; }
+        public int BankAccountId { get; set; }
+        public DateTime? ReceiptDate { get; set; }
+        public string? Remark { get; set; }
+        public string? EditReason { get; set; }
+        // amount reduced: 1 = keep as student advance, 2 = refund
+        public byte DifferenceMode { get; set; } = 1;
+        public string? EditedBy { get; set; }
+        public List<EditStudentReceiptLine> Lines { get; set; } = new();
+    }
+
+    public class EditStudentReceiptLine
+    {
+        public long DetInvoiceId { get; set; }
+        public decimal PaidAmount { get; set; }
+        public bool RemoveFromInvoice { get; set; }
+    }
+
+    public class EditStudentReceiptResponse
+    {
+        public int Result { get; set; }
+        public long NewReceiptId { get; set; }
+        public string? NewReceiptNo { get; set; }
+    }
+
     public class StudentReceiptHeadWiseRequest
     {
         public string? GroupCode { get; set; } 

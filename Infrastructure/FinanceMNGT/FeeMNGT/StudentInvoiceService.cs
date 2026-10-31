@@ -321,6 +321,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 parameters.Add("@CreatedBy", request.CreatedBy);
                 parameters.Add("@Narration1", request.Narration1);
                 parameters.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("@AllowPaidHead", request.AllowPaidHead);
                 await con.ExecuteAsync("FIN_Usp_RemoveFeeHeadFromChallan", parameters, commandType: CommandType.StoredProcedure);
                 int? result = parameters.Get<int?>("@Result");
                 return result ?? 0;

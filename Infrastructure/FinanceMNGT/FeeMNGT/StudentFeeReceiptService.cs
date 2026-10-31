@@ -1,7 +1,12 @@
 using ApplicationInterface.FinanceMNGT.FeeMNGT;
+using ApplicationInterface.GenerateFile;
+using ApplicationInterface.User;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Net.Mail;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using DomainModel.FinanceMNGT;
@@ -14,11 +19,18 @@ namespace SchoolEye.Infrastructure.Admin
     public class StudentFeeReceiptService : IStudentFeeReceiptRepository
     {
         private readonly string _connectionString;
+        private readonly IOtpSenderService _otpSender;
+        private readonly IPrintStudentRec _generateFile;
 
-        public StudentFeeReceiptService(IConfiguration configuration)
+        // cancel -> refund to parent OTP
+        private const int RefundOtpValidMinutes = 5;
+
+        public StudentFeeReceiptService(IConfiguration configuration, IOtpSenderService otpSender, IPrintStudentRec generateFile)
         {
             _connectionString = configuration.GetValue<string>("DatabaseSettings1:ConnectionString") ??
                 throw new ArgumentNullException("DatabaseSettings1:ConnectionString");
+            _otpSender = otpSender;
+            _generateFile = generateFile;
         }
 
         // CancelType column is tinyint: the screen's "Cheque Bounce" / "Other" choice only decides how a
@@ -202,7 +214,8 @@ namespace SchoolEye.Infrastructure.Admin
             }
         }
 
-        // returns @Result: 1 success, -1 receipt not found / already cancelled (SQL errors are thrown)
+        // returns @Result: 1 success, -1 receipt not found / already cancelled,
+        // refund: -3 wrong OTP, -4 OTP not found / expired, -5 too many wrong attempts (SQL errors are thrown)
         public async Task<int> CancelStudentReceipt(CancelStudentReceiptRequest request)
         {
             try
@@ -216,6 +229,9 @@ namespace SchoolEye.Infrastructure.Admin
                 param.Add("@CancelReason", request.CancelReason);
                 param.Add("@CancelType", (byte)1, DbType.Byte);   // 1 = Cancelled (2 = Edited is for the edit flow)
                 param.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                param.Add("@SettleMode", request.SettlementMode, DbType.Byte);
+                // only the hash goes to the database, it is compared with the stored hash in the SP
+                param.Add("@RefundOtpHash", request.SettlementMode == 2 ? HashRefundOtp(request.ReceiptId, request.OtpCode) : null);
 
                 await con.ExecuteAsync(
                     "V3M_FIN_CancelStudentReceipt",
@@ -299,6 +315,267 @@ namespace SchoolEye.Infrastructure.Admin
                     "V3M_FIN_PrintViewStudentReceipts",
                     param,
                     commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // ---------------- Cancel -> Refund to Parent: OTP ----------------
+        private async Task<ReceiptRefundContactRow?> GetRefundContactRow(string? groupCode, string? branchCode, long receiptId)
+        {
+            using var con = new SqlConnection(_connectionString);
+            var param = new DynamicParameters();
+            param.Add("@GroupCode", groupCode);
+            param.Add("@BranchCode", branchCode);
+            param.Add("@ReceiptId", receiptId);
+
+            return await con.QueryFirstOrDefaultAsync<ReceiptRefundContactRow>(
+                "V3M_FIN_GetReceiptRefundContacts",
+                param,
+                commandType: CommandType.StoredProcedure);
+        }
+
+        // parent email / SMS mobile of an active receipt, masked (ni****@gmail.com, ******3210)
+        public async Task<ReceiptRefundContactsResponse?> GetReceiptRefundContacts(StudentReceiptByIdRequest request)
+        {
+            try
+            {
+                var row = await GetRefundContactRow(request.GroupCode, request.BranchCode, request.ReceiptId);
+                if (row == null || row.Valid != true)
+                    return null;
+
+                return new ReceiptRefundContactsResponse
+                {
+                    ReceiptId = row.ReceiptId,
+                    PaidAmount = row.PaidAmount ?? 0,
+                    HasEmail = IsValidEmail(row.FatherEMail),
+                    MaskedEmail = IsValidEmail(row.FatherEMail) ? MaskEmail(row.FatherEMail!) : null,
+                    HasMobile = !string.IsNullOrWhiteSpace(row.SMSMobileNo),
+                    MaskedMobile = string.IsNullOrWhiteSpace(row.SMSMobileNo) ? null : MaskMobile(row.SMSMobileNo!)
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // OTP generated here, only its hash is stored (V3M_FIN_SaveReceiptRefundOtp), then mailed to the parent
+        public async Task<SendReceiptRefundOtpResponse> SendReceiptRefundOtp(SendReceiptRefundOtpRequest request)
+        {
+            try
+            {
+                var row = await GetRefundContactRow(request.GroupCode, request.BranchCode, request.ReceiptId);
+                if (row == null || row.Valid != true)
+                    return new SendReceiptRefundOtpResponse { Result = -1 };
+
+                var isEmail = string.Equals(request.Channel, "Email", StringComparison.OrdinalIgnoreCase);
+                if (isEmail ? !IsValidEmail(row.FatherEMail) : string.IsNullOrWhiteSpace(row.SMSMobileNo))
+                    return new SendReceiptRefundOtpResponse { Result = -3 };
+
+                // SMS gateway is not connected yet: the mobile option is shown, the OTP goes by email only
+                if (!isEmail)
+                    return new SendReceiptRefundOtpResponse { Result = -4, SentTo = MaskMobile(row.SMSMobileNo!) };
+
+                var otp = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+                var sentTo = MaskEmail(row.FatherEMail!);
+
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@ReceiptId", request.ReceiptId);
+                param.Add("@Channel", "Email");
+                param.Add("@SentTo", sentTo);
+                param.Add("@OtpHash", HashRefundOtp(request.ReceiptId, otp));
+                param.Add("@ExpiryUtc", DateTime.UtcNow.AddMinutes(RefundOtpValidMinutes));
+                param.Add("@CreatedBy", request.RequestedBy);
+                param.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync("V3M_FIN_SaveReceiptRefundOtp", param, commandType: CommandType.StoredProcedure);
+
+                var result = param.Get<int?>("@Result") ?? 0;
+                if (result == 1)
+                    await _otpSender.SendReceiptRefundOtpAsync(row.FatherEMail!.Trim(), otp, row.ReceiptNo ?? string.Empty, row.PaidAmount ?? 0, RefundOtpValidMinutes);
+
+                return new SendReceiptRefundOtpResponse { Result = result, SentTo = sentTo, ValidMinutes = RefundOtpValidMinutes };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // refunded receipt (CancelSettlement = 2) from the database; null when the receipt was not refunded
+        private async Task<RefundReceiptPrintModel?> GetRefundReceipt(StudentReceiptByIdRequest request)
+        {
+            using var con = new SqlConnection(_connectionString);
+            var param = new DynamicParameters();
+            param.Add("@GroupCode", request.GroupCode);
+            param.Add("@BranchCode", request.BranchCode);
+            param.Add("@ReceiptId", request.ReceiptId);
+
+            using var multi = await con.QueryMultipleAsync("V3M_FIN_GetReceiptRefundDetails", param, commandType: CommandType.StoredProcedure);
+            // the SP returns no result set at all for a receipt that was not refunded
+            if (multi.IsConsumed)
+                return null;
+
+            var refund = await multi.ReadFirstOrDefaultAsync<RefundReceiptPrintModel>();
+            if (refund == null)
+                return null;
+            refund.Lines = (await multi.ReadAsync<RefundReceiptPrintLine>()).ToList();
+            return refund;
+        }
+
+        public async Task<byte[]?> GenerateRefundReceiptPdf(StudentReceiptByIdRequest request)
+        {
+            try
+            {
+                var refund = await GetRefundReceipt(request);
+                return refund == null ? null : await _generateFile.GenerateRefundReceiptPdf(refund);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // refund confirmation + refund receipt PDF to the parent's email; returns the masked email, null when there is no email
+        public async Task<string?> SendRefundConfirmation(StudentReceiptByIdRequest request)
+        {
+            try
+            {
+                var refund = await GetRefundReceipt(request);
+                if (refund == null || !IsValidEmail(refund.FatherEMail))
+                    return null;
+
+                var pdf = await _generateFile.GenerateRefundReceiptPdf(refund);
+                await _otpSender.SendReceiptRefundConfirmationAsync(refund.FatherEMail!.Trim(), refund.StudentName ?? string.Empty,
+                    refund.ReceiptNo ?? string.Empty, refund.RefundAmount, refund.RefundDate ?? DateTime.Now, pdf);
+                return MaskEmail(refund.FatherEMail!);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // SHA-256 of "ReceiptId:OTP" (hex) — the same OTP of another receipt gives another hash
+        private static string? HashRefundOtp(long receiptId, string? otp)
+        {
+            if (string.IsNullOrWhiteSpace(otp))
+                return null;
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{receiptId}:{otp.Trim()}"));
+            return Convert.ToHexString(bytes);
+        }
+
+        private static bool IsValidEmail(string? email) =>
+            !string.IsNullOrWhiteSpace(email) && MailAddress.TryCreate(email.Trim(), out _);
+
+        private static string MaskEmail(string email)
+        {
+            var value = email.Trim();
+            var at = value.IndexOf('@');
+            if (at <= 0)
+                return "****";
+            var name = value[..at];
+            var visible = name.Length <= 2 ? name[..1] : name[..2];
+            return visible + new string('*', Math.Max(3, name.Length - visible.Length)) + value[at..];
+        }
+
+        private static string MaskMobile(string mobile)
+        {
+            var digits = new string(mobile.Where(char.IsDigit).ToArray());
+            return digits.Length <= 4 ? "****" : new string('*', digits.Length - 4) + digits[^4..];
+        }
+
+        // three result sets: header, receipt lines, other pending dues of the student
+        public async Task<StudentReceiptForEditResponse?> GetStudentReceiptForEdit(StudentReceiptByIdRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@ReceiptId", request.ReceiptId);
+
+                using var multi = await con.QueryMultipleAsync(
+                    "V3M_FIN_GetStudentReceiptForEdit",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                var header = await multi.ReadFirstOrDefaultAsync<StudentReceiptEditHeader>();
+                if (header == null)
+                    return null;
+
+                return new StudentReceiptForEditResponse
+                {
+                    Header = header,
+                    Lines = (await multi.ReadAsync<StudentReceiptEditLine>()).ToList(),
+                    PendingDues = (await multi.ReadAsync<StudentReceiptEditLine>()).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
+        // cancel & re-issue in one SP transaction; returns @Result (see V3M_FIN_EditStudentReceipt), SQL errors are thrown
+        public async Task<EditStudentReceiptResponse> EditStudentReceipt(EditStudentReceiptRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+
+                var lines = new DataTable();
+                lines.Columns.Add("DetInvoiceId", typeof(long));
+                lines.Columns.Add("PaidAmount", typeof(decimal));
+                lines.Columns.Add("RemoveFromInvoice", typeof(bool));
+                foreach (var line in request.Lines)
+                    lines.Rows.Add(line.DetInvoiceId, line.PaidAmount, line.RemoveFromInvoice);
+
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@ReceiptId", request.ReceiptId);
+                param.Add("@PaymentMode", request.PaymentMode);
+                param.Add("@ChequeNo", request.ChequeNo ?? string.Empty);
+                param.Add("@ChequeDate", request.ChequeDate?.Date, DbType.Date);
+                param.Add("@ChequeBank", request.ChequeBank ?? string.Empty);
+                param.Add("@ChequeType", request.ChequeType ?? string.Empty);
+                param.Add("@BankBranch", request.BankBranch ?? string.Empty);
+                param.Add("@BankAccountId", request.BankAccountId);
+                param.Add("@ReceiptDate", request.ReceiptDate?.Date, DbType.Date);
+                param.Add("@Remark", request.Remark ?? string.Empty);
+                param.Add("@EditReason", request.EditReason);
+                param.Add("@DifferenceMode", request.DifferenceMode, DbType.Byte);
+                param.Add("@EditedBy", request.EditedBy);
+                param.Add("@Lines", lines.AsTableValuedParameter("dbo.EditReceiptLineType"));
+                param.Add("@NewReceiptId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+                param.Add("@NewReceiptNo", dbType: DbType.String, size: 50, direction: ParameterDirection.Output);
+                param.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(
+                    "V3M_FIN_EditStudentReceipt",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return new EditStudentReceiptResponse
+                {
+                    Result = param.Get<int?>("@Result") ?? 0,
+                    NewReceiptId = param.Get<long?>("@NewReceiptId") ?? 0,
+                    NewReceiptNo = param.Get<string?>("@NewReceiptNo")
+                };
             }
             catch (Exception ex)
             {
