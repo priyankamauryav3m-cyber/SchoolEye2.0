@@ -36,6 +36,7 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateStudentPdf(RegistrationReceiptResponse students);
         public Task<byte[]> GenerateAdmitChildReceiptPdf(AdmitChildReceiptPrintModel receipt);
         public Task<byte[]> GenerateParentFormatReceiptPdf(ParentFormatReceiptPrintModel receipt);
+        public Task<byte[]> GenerateRefundReceiptPdf(RefundReceiptPrintModel refund);
         public Task<byte[]> GenerateMultiReceiptPdf(List<AdmitChildReceiptPrintModel> receipts);
         public Task<byte[]> GenerateStudentReceiptListPdf(StudentReceiptListPrintRequest request);
         public Task<byte[]> GenerateStudentReceiptListExcel(StudentReceiptListPrintRequest request);

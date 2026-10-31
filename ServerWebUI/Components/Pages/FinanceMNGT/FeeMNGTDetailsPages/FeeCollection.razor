@@ -322,16 +322,20 @@
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">PREVIOUS ADVANCE</div>
-                        <div class="amount-stat-value">@(IsStudentSelected ? Money(selectedStudent.PreviousBalance) : "-")</div>
+                        <div class="amount-stat-value">@(IsStudentSelected ? Money(AdvanceAvailable) : "-")</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">CONCESSION</div>
                         <div class="amount-stat-value">@Money(TotalConcession)</div>
                     </div>
-                    @* payable = total fee - received - concession - waive off + late fee *@
+                    @* payable = total fee - received - concession - waive off + late fee - advance adjusted *@
                     <div class="col-6">
                         <div class="amount-stat-label">PAYABLE</div>
-                        <div class="amount-stat-value">@Money(TotalWithLateFee)</div>
+                        <div class="amount-stat-value">@Money(NetPayable)</div>
+                        @if (AdvanceAdjusted > 0)
+                        {
+                            <div class="amount-stat-label" style="font-size:10px;">@Money(TotalWithLateFee) − advance @Money(AdvanceAdjusted)</div>
+                        }
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">BALANCE</div>
@@ -1239,12 +1243,13 @@ else
             return;
 
         var allDues = allFeeCollectionDues.Sum(x => x.Payable);
-        var fullAmount = allDues + selectedStudent.LateFee;
+        // cash needed for everything = all dues + late fee - student advance
+        var fullAmount = Math.Max(0, allDues + selectedStudent.LateFee - AdvanceAvailable);
 
         // empty / zero -> back to the full payable of the selected months
         if (CashPaymentAmount <= 0)
         {
-            CashPaymentAmount = TotalWithLateFee;
+            CashPaymentAmount = NetPayable;
             return;
         }
 
@@ -1252,12 +1257,13 @@ else
         if (CashPaymentAmount > fullAmount)
             CashPaymentAmount = fullAmount;
 
+        // months reached by cash + advance (the advance pays the oldest dues first)
         decimal cumulative = 0;
         int tillMonth = distinctMonths[^1].MonthNo;
         foreach (var month in distinctMonths)
         {
             cumulative += allFeeCollectionDues.Where(x => x.MonthNo == month.MonthNo).Sum(x => x.Payable);
-            if (cumulative >= CashPaymentAmount)
+            if (cumulative >= CashPaymentAmount + AdvanceAvailable)
             {
                 tillMonth = month.MonthNo;
                 break;
@@ -1267,9 +1273,9 @@ else
         ApplyTillMonthFilter();
 
         // clearing every due charges the late fee, so it must be paid in full
-        if (ApplicableLateFee > 0 && CashPaymentAmount >= TotalPayable && CashPaymentAmount < TotalWithLateFee)
+        if (ApplicableLateFee > 0 && CashPaymentAmount + AdvanceAdjusted >= TotalPayable && CashPaymentAmount < NetPayable)
         {
-            CashPaymentAmount = TotalWithLateFee;
+            CashPaymentAmount = NetPayable;
             StateHasChanged();
             await Alert.ShowWarning($"Late fee of {Money(ApplicableLateFee)} is charged when all dues are cleared, so it is added to the paying amount.");
         }
@@ -1283,7 +1289,7 @@ else
             return;
         SelectedTillMonth = distinctMonths[^1].MonthNo;
         ApplyTillMonthFilter();
-        CashPaymentAmount = TotalWithLateFee;
+        CashPaymentAmount = NetPayable;
         StateHasChanged();
     }
     // Ledger details popup = ViewStudentDuesAndReceipt component (it runs its own search/session/data)
@@ -2064,9 +2070,16 @@ else
     private decimal ApplicableLateFee => IsStudentSelected && IsLastInvoiceSelected ? selectedStudent.LateFee : 0;
     private decimal TotalWithLateFee => TotalPayable + ApplicableLateFee;
 
+    // student advance (V3M_Fin_StudentBalance, negative = advance). The save SP adjusts it in the receipt
+    // ("Pre balance adjusted adv in receipt"), so it is taken off the payable and only the rest is collected:
+    // dues 58000, advance 6000 -> payable / collect 52000, fee heads get 52000 cash + 6000 advance
+    private decimal AdvanceAvailable => IsStudentSelected ? Math.Max(0, -selectedStudent.PreviousBalance) : 0;
+    private decimal AdvanceAdjusted => Math.Min(AdvanceAvailable, TotalWithLateFee);
+    private decimal NetPayable => TotalWithLateFee - AdvanceAdjusted;
+
     // paying = the cash amount entered (UPI / cheque pay the full payable); balance = payable - paying
-    private decimal PayingAmount => SelectedPaymentMode == "Cash" ? CashPaymentAmount : TotalWithLateFee;
-    private decimal RemainingBalance => Math.Max(0, TotalWithLateFee - PayingAmount);
+    private decimal PayingAmount => SelectedPaymentMode == "Cash" ? CashPaymentAmount : NetPayable;
+    private decimal RemainingBalance => Math.Max(0, NetPayable - PayingAmount);
 
     // rupee format used for every amount on this page: ₹1,24,000.00 / ₹0.01 (Indian grouping, always 2 decimals)
     private static readonly System.Globalization.NumberFormatInfo RupeeFormat = new()
@@ -2079,10 +2092,12 @@ else
     private static string Money(decimal value) =>
         (value < 0 ? "-₹" : "₹") + Math.Abs(value).ToString("N2", RupeeFormat);
 
-    // late fee goes on the receipt only when this payment clears every due incl. the late fee
-    private decimal ChargedLateFee => ApplicableLateFee > 0 && PayingAmount >= TotalWithLateFee ? ApplicableLateFee : 0;
-    // part of the paying amount that goes to the fee heads
-    private decimal DuesPayingAmount => Math.Max(0, Math.Min(TotalPayable, PayingAmount - ChargedLateFee));
+    // late fee goes on the receipt only when this payment (cash + advance) clears every due incl. the late fee
+    private decimal ChargedLateFee => ApplicableLateFee > 0 && PayingAmount + AdvanceAdjusted >= TotalWithLateFee ? ApplicableLateFee : 0;
+    // part of cash + advance that goes to the fee heads
+    private decimal DuesPayingAmount => Math.Max(0, Math.Min(TotalPayable, PayingAmount + AdvanceAdjusted - ChargedLateFee));
+    // cash part of the fee heads = receipt PaidAmount sent to the save SP (late fee is added by the SP itself)
+    private decimal DuesCashAmount => Math.Max(0, DuesPayingAmount - AdvanceAdjusted);
 
     // paying amount split over the dues: oldest month first (one-time heads before April), fee head order inside a month
     private Dictionary<FeeCollectionDuesNew, decimal> GetPayingAllocation()
@@ -2233,8 +2248,11 @@ else
             adjustStudentFeeHeadWise.StudentId = selectedStudent.StudentId;
             adjustStudentFeeHeadWise.ClassCode = selectedStudent.ClassCode;
             adjustStudentFeeHeadWise.SectionId = selectedStudent.SectionId;
-            adjustStudentFeeHeadWise.PaidAmount = DuesPayingAmount;
-            adjustStudentFeeHeadWise.Balance = selectedStudent.StudentBalance;
+            // cash only: the advance part of the fee heads is adjusted by the SP from PreviousBalance
+            adjustStudentFeeHeadWise.PaidAmount = DuesCashAmount;
+            // the SP adjusts the whole advance; advance left over (dues smaller than advance) goes back as negative balance
+            var advanceLeft = AdvanceAvailable - AdvanceAdjusted;
+            adjustStudentFeeHeadWise.Balance = advanceLeft > 0 ? -advanceLeft : selectedStudent.StudentBalance;
             adjustStudentFeeHeadWise.PaymentMode = CounterPaymentMode;
             adjustStudentFeeHeadWise.ChequeNo = "";
             adjustStudentFeeHeadWise.ChequeDate = null;
@@ -2328,8 +2346,12 @@ else
         if (fullLateFee > 0)
             feeHeads.Add(new AdmitChildReceiptPrintFeeHead { FeeHeadName = "Late Fee", Amount = fullLateFee });
 
-        var payable = dues.Sum(x => x.Payable) + fullLateFee;
-        var paid = allocation.Values.Sum() + lateFee;
+        // student advance adjusted in this receipt is shown as its own line and taken off payable / paid
+        if (AdvanceAdjusted > 0)
+            feeHeads.Add(new AdmitChildReceiptPrintFeeHead { FeeHeadName = "Less: Advance Adjusted", Amount = -AdvanceAdjusted });
+
+        var payable = dues.Sum(x => x.Payable) + fullLateFee - AdvanceAdjusted;
+        var paid = allocation.Values.Sum() + lateFee - AdvanceAdjusted;
         return new AdmitChildReceiptPrintModel
         {
             ReceiptDate = studentDetailsForFeeRequest.ReceiptDate,
@@ -2393,7 +2415,7 @@ else
             return;
         }
         ApplyTillMonthFilter();
-        CashPaymentAmount = TotalWithLateFee;
+        CashPaymentAmount = NetPayable;
         StateHasChanged();
     }
 
@@ -2443,7 +2465,7 @@ else
                 SelectedTillMonth = distinctMonths.LastOrDefault()?.MonthNo ?? SelectedTillMonth;
 
                 ApplyTillMonthFilter();
-                CashPaymentAmount = TotalWithLateFee;
+                CashPaymentAmount = NetPayable;
             }
             else
             {

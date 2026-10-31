@@ -105,6 +105,84 @@ namespace Infrastructure.User
                 throw new Exception("Password reset email send failed. Please try again.");
             }
         }
+
+        public async Task SendReceiptRefundOtpAsync(string toEmail, string otpCode, string receiptNo, decimal amount, int validMinutes)
+        {
+            using var client = new SmtpClient(_settings.Host, _settings.Port)
+            {
+                Credentials = new NetworkCredential(_settings.Username, _settings.Password),
+                EnableSsl = _settings.EnableSsl
+            };
+
+            var mail = new MailMessage
+            {
+                From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
+                Subject = $"Fee refund verification code - Receipt {receiptNo}",
+                Body = $"Your OTP to confirm the refund of Rs. {amount:N2} against fee receipt {receiptNo} is: {otpCode}\n\n" +
+                       $"This code is valid for {validMinutes} minutes. Share it only with the school fee counter while taking the refund.\n" +
+                       "If you did not ask for a refund, please contact the school.",
+                IsBodyHtml = false
+            };
+            mail.To.Add(toEmail);
+            try
+            {
+                await client.SendMailAsync(mail);
+                // the OTP is a credential — never logged
+                _logger.LogInformation("Receipt refund OTP email sent for receipt {ReceiptNo}", receiptNo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send receipt refund OTP email for receipt {ReceiptNo}", receiptNo);
+                throw new Exception("OTP email send failed. Please try again.");
+            }
+        }
+
+        public async Task SendReceiptRefundConfirmationAsync(string toEmail, string studentName, string receiptNo, decimal amount, DateTime refundDate, byte[] refundReceiptPdf)
+        {
+            using var client = new SmtpClient(_settings.Host, _settings.Port)
+            {
+                Credentials = new NetworkCredential(_settings.Username, _settings.Password),
+                EnableSsl = _settings.EnableSsl
+            };
+
+            var name = WebUtility.HtmlEncode(studentName);
+            var receipt = WebUtility.HtmlEncode(receiptNo);
+            var body = new StringBuilder();
+            body.Append("<div style=\"font-family:Segoe UI,Arial,sans-serif;max-width:560px;border:1px solid #99f6e4;border-radius:10px;overflow:hidden\">")
+                .Append("<div style=\"background:#0f766e;color:#fff;padding:14px 18px;font-size:18px;font-weight:700\">&#10227; Fee Refunded</div>")
+                .Append("<div style=\"padding:16px 18px;color:#1f2937;font-size:14px\">")
+                .Append("<p>Dear Parent,</p>")
+                .Append($"<p>The fee of <b>{name}</b> paid against receipt <b>{receipt}</b> has been refunded.</p>")
+                .Append("<table style=\"border-collapse:collapse;width:100%;margin:10px 0\">")
+                .Append($"<tr><td style=\"padding:6px 0;color:#64748b\">Amount refunded</td><td style=\"padding:6px 0;text-align:right;font-size:18px;font-weight:700;color:#0f766e\">Rs. {amount:N2}</td></tr>")
+                .Append($"<tr><td style=\"padding:6px 0;color:#64748b\">Refund date</td><td style=\"padding:6px 0;text-align:right\">{refundDate:dd/MM/yyyy}</td></tr>")
+                .Append($"<tr><td style=\"padding:6px 0;color:#64748b\">Receipt no.</td><td style=\"padding:6px 0;text-align:right\">{receipt}</td></tr>")
+                .Append("</table>")
+                .Append("<p>The refund receipt is attached. The fee of this receipt is due again and will be collected with the next fee.</p>")
+                .Append("<p style=\"color:#64748b;font-size:12px\">If you did not take this refund, please contact the school immediately.</p>")
+                .Append("</div></div>");
+
+            using var mail = new MailMessage
+            {
+                From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
+                Subject = $"Fee refund confirmation - Receipt {receiptNo}",
+                Body = body.ToString(),
+                IsBodyHtml = true
+            };
+            mail.To.Add(toEmail);
+            using var pdf = new System.IO.MemoryStream(refundReceiptPdf);
+            mail.Attachments.Add(new Attachment(pdf, $"RefundReceipt_{receiptNo}.pdf", "application/pdf"));
+            try
+            {
+                await client.SendMailAsync(mail);
+                _logger.LogInformation("Receipt refund confirmation email sent for receipt {ReceiptNo}", receiptNo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send receipt refund confirmation email for receipt {ReceiptNo}", receiptNo);
+                throw new Exception("Refund confirmation email send failed.");
+            }
+        }
     }
 
 

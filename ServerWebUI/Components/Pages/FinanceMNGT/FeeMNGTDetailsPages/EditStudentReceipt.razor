@@ -1,0 +1,769 @@
+@using MyApp.Common
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+
+@* View Student Receipt -> Edit popup.
+   Left : the receipt as it was (read only).  Right : the revised receipt.
+   Save -> StudentFeeReceipt/EditStudentReceipt (V3M_FIN_EditStudentReceipt): the old receipt is cancelled as "Edited"
+   and a revised receipt with a new number is generated, so the fee head ledger keeps both (reversal + new entries).
+   Amount tiles use the .invoice-amount-tile classes of the parent page (View Student Receipt). *@
+
+<style>
+    .er-popup { max-height: 96vh; display: flex; flex-direction: column; }
+    .er-body { overflow-y: auto; background: #f6f8fb; }
+
+    .er-student {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        background: linear-gradient(135deg, #0b2948, #14577d); color: #fff;
+        border-radius: 12px; padding: 12px 16px; margin-bottom: 10px;
+    }
+    .er-avatar {
+        width: 52px; height: 52px; border-radius: 50%; flex: 0 0 52px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.45);
+        font-size: 19px; font-weight: 700; letter-spacing: .5px;
+    }
+    .er-student-main { flex: 1 1 320px; min-width: 0; }
+    .er-student-name { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .er-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .er-chip {
+        display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+        background: rgba(255,255,255,.14); border-radius: 20px; padding: 3px 10px; white-space: nowrap;
+    }
+    .er-receipt-meta { text-align: right; flex: 0 0 auto; }
+    .er-receipt-meta .er-rno { font-size: 20px; font-weight: 700; }
+    .er-receipt-meta small { display: block; opacity: .8; font-size: 12px; }
+
+    .er-card { border: 1px solid #e3e8ef; border-radius: 12px; overflow: hidden; background: #fff; }
+    .er-card-head {
+        display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+        font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .er-card-head small { text-transform: none; font-weight: 500; opacity: .75; margin-left: auto; }
+    .er-head-actual { background: #f1f5f9; color: #475569; border-bottom: 1px solid #e2e8f0; }
+    .er-head-revised { background: #fff7ed; color: #c2410c; border-bottom: 1px solid #fed7aa; }
+
+    .er-kv { font-size: 12.5px; color: #475569; }
+    .er-kv b { color: #1f2937; font-weight: 600; }
+
+    .er-table-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .er-table { margin: 0; font-size: 13px; }
+    .er-table thead th { background: #f8fafc; color: #334155; font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
+    .er-table td { vertical-align: middle; }
+    .er-table .er-num { text-align: right; white-space: nowrap; }
+    .er-table tr.er-removed td { background: #fef2f2; color: #9ca3af; }
+    .er-table tr.er-removed .er-head-name { text-decoration: line-through; }
+    .er-table tr.er-added td { background: #f0fdf4; }
+    .er-inv { display: block; font-size: 11px; color: #94a3b8; }
+    .er-amount { width: 110px; text-align: right; border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 6px; }
+    .er-amount:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 2px rgba(249,115,22,.15); }
+    .er-icon-btn { border: none; background: transparent; font-size: 17px; line-height: 1; padding: 2px 4px; }
+    .er-icon-btn.er-del { color: #dc2626; }
+    .er-icon-btn.er-undo { color: #2563eb; }
+    .er-also { font-size: 11.5px; color: #b91c1c; display: flex; align-items: center; gap: 4px; margin-top: 2px; white-space: nowrap; }
+
+    .er-dues { border: 1px dashed #93c5fd; background: #eff6ff; border-radius: 10px; padding: 8px; margin-bottom: 8px; max-height: 190px; overflow-y: auto; }
+    .er-due-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px; border-radius: 6px; font-size: 12.5px; }
+    .er-due-item:hover { background: #dbeafe; }
+
+    .invoice-amount-tile.tile-red { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    .er-option {
+        border: 2px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; cursor: pointer;
+        display: flex; gap: 8px; align-items: flex-start; height: 100%; background: #fff;
+    }
+    .er-option.active { border-color: #f97316; background: #fff7ed; }
+    .er-option strong { display: block; font-size: 13px; }
+    .er-option span { font-size: 12px; color: #6b7280; }
+
+    .er-banner { border-radius: 10px; padding: 8px 12px; font-size: 13px; display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .er-banner.er-warn { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .er-banner.er-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+    .er-footer { gap: 10px; flex-wrap: nowrap; align-items: flex-end; }
+    .er-footer .er-reason { flex: 1 1 auto; }
+    .er-save { background: #f97316 !important; border-color: #f97316 !important; color: #fff !important; }
+
+    @@media (max-width: 767.98px) {
+        .er-receipt-meta { text-align: left; }
+        .er-footer { flex-wrap: wrap; }
+        .er-footer .er-reason { flex-basis: 100%; }
+    }
+</style>
+
+<div class="custom-modal row m-0 align-items-center">
+    <div class="col-12">
+        <div class="modal-content clearfix main-popup er-popup">
+            <div class="head-btn">
+                <h5 class="modal-title">Edit Receipt @(header == null ? "" : $"· {header.ReceiptNo}")</h5>
+                <button data-access="Close" type="button" @onclick="Close" class="close"><span aria-hidden="true">×</span></button>
+            </div>
+
+            <div class="modal-body er-body scrollbar-thin">
+                @if (header == null)
+                {
+                    <div class="text-center text-muted py-5">@(IsLoading ? "Loading receipt..." : "Receipt record was not found.")</div>
+                }
+                else
+                {
+                    @* ---------- student strip ---------- *@
+                    <div class="er-student">
+                        <div class="er-avatar">@Initials(header.StudentName)</div>
+                        <div class="er-student-main">
+                            <div class="er-student-name">
+                                @header.StudentName
+                                @if (!string.IsNullOrWhiteSpace(header.OriginalReceiptNo))
+                                {
+                                    <span class="badge rounded-pill bg-info text-dark">Revised of @header.OriginalReceiptNo</span>
+                                }
+                            </div>
+                            <div class="er-chips">
+                                <span class="er-chip"><i class="bi bi-person-badge"></i> @header.StudentNo</span>
+                                <span class="er-chip"><i class="bi bi-mortarboard"></i> @(string.IsNullOrWhiteSpace(header.ClassSection) ? header.ClassName : header.ClassSection)</span>
+                                @if (header.RollNo > 0)
+                                {
+                                    <span class="er-chip"><i class="bi bi-hash"></i> Roll @header.RollNo</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(header.FatherName))
+                                {
+                                    <span class="er-chip"><i class="bi bi-person"></i> @header.FatherName</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(header.NextToKinContactNo))
+                                {
+                                    <span class="er-chip"><i class="bi bi-telephone"></i> @header.NextToKinContactNo</span>
+                                }
+                                <span class="er-chip"><i class="bi bi-calendar3"></i> @SessionName</span>
+                                @if ((header.CurrentAdvance ?? 0) < 0)
+                                {
+                                    <span class="er-chip"><i class="bi bi-piggy-bank"></i> Advance ₹ @((-(header.CurrentAdvance ?? 0)).ToString("N2"))</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="er-receipt-meta">
+                            <small>Receipt No.</small>
+                            <div class="er-rno">@header.ReceiptNo</div>
+                            <small>@(header.CreatedDate?.ToString("dd/MM/yyyy")) · by @header.CreatedBy</small>
+                        </div>
+                    </div>
+
+                    @if (!CanEdit)
+                    {
+                        <div class="er-banner er-warn"><i class="bi bi-exclamation-octagon-fill"></i> @EditBlockedMessage</div>
+                    }
+                    else
+                    {
+                        <div class="er-banner er-info">
+                            <i class="bi bi-info-circle-fill"></i>
+                            Changing fee heads, amount, payment mode or date cancels this receipt as <b>&nbsp;Edited&nbsp;</b> and generates a revised receipt with a new number. Cheque details / remarks only are updated in the same receipt.
+                        </div>
+                    }
+
+                    <div class="row g-2">
+                        @* ---------- actual receipt (read only) ---------- *@
+                        <div class="col-12 col-xl-4">
+                            <div class="er-card h-100">
+                                <div class="er-card-head er-head-actual"><i class="bi bi-lock-fill"></i> Actual Receipt <small>read only</small></div>
+                                <div class="p-2">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-blue"><span>Prev. Balance</span><strong>₹ @((header.PreviousBalance ?? 0).ToString("N2"))</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-blue"><span>Total Fee</span><strong>₹ @((header.TotalAmount ?? 0).ToString("N2"))</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-green"><span>Concession</span><strong>₹ @((header.Concession ?? 0).ToString("N2"))</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-amber"><span>Late Fee</span><strong>₹ @((header.LateFee ?? 0).ToString("N2"))</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-green"><span>Total Paid</span><strong>₹ @OldPaid.ToString("N2")</strong></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="invoice-amount-tile tile-navy"><span>Balance</span><strong>₹ @((header.Balance ?? 0).ToString("N2"))</strong></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="er-kv mt-2 d-flex flex-wrap gap-3">
+                                        <span>Mode: <b>@header.PaymentMode</b></span>
+                                        @if (!string.IsNullOrWhiteSpace(header.ChequeNo))
+                                        {
+                                            <span>Chq/Txn: <b>@header.ChequeNo</b></span>
+                                            <span>Date: <b>@(header.ChequeDate?.ToString("dd/MM/yyyy"))</b></span>
+                                            <span>Bank: <b>@header.ChequeBank</b></span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(header.Remark))
+                                        {
+                                            <span>Remarks: <b>@header.Remark</b></span>
+                                        }
+                                    </div>
+
+                                    <div class="er-table-wrap mt-2">
+                                        <table class="table er-table">
+                                            <thead>
+                                                <tr><th>Fee Head</th><th class="text-center">Month</th><th class="er-num">Paid</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var line in originalLines)
+                                                {
+                                                    <tr>
+                                                        <td>@line.FeeHeadName<span class="er-inv">@line.InvoiceNo</span></td>
+                                                        <td class="text-center">@line.MonthName</td>
+                                                        <td class="er-num">@line.PaidInReceipt.ToString("N2")</td>
+                                                    </tr>
+                                                }
+                                                @if (originalLines.Count == 0)
+                                                {
+                                                    <tr><td colspan="3" class="text-center text-muted">No fee heads.</td></tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* ---------- revised receipt ---------- *@
+                        <div class="col-12 col-xl-8">
+                            <div class="er-card h-100">
+                                <div class="er-card-head er-head-revised"><i class="bi bi-pencil-square"></i> Revised Receipt <small>new receipt no. on save</small></div>
+                                <div class="p-2">
+                                    <div class="row g-2 form-row m-0">
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="form-box-group static-label">
+                                                <select class="floating-input" value="@paymentMode" @onchange="OnPaymentModeChanged" disabled="@(!CanEdit)">
+                                                    @foreach (var mode in ModeOptions)
+                                                    {
+                                                        <option value="@mode">@mode</option>
+                                                    }
+                                                </select>
+                                                <label class="floating-label">Payment Mode <span class="required">*</span></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-6 mb-2">
+                                            <div class="form-box-group static-label">
+                                                <input type="date" class="floating-input" title="Date of the revised receipt (used only when fee heads / amount / mode change)"
+                                                       min="@OriginalReceiptDate.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                                       @bind="receiptDate" @bind:format="yyyy-MM-dd" disabled="@(!CanEdit)" />
+                                                <label class="floating-label">Revised Receipt Date <span class="required">*</span></label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-12 mb-2">
+                                            <div class="form-box-group">
+                                                <input class="floating-input" placeholder=" " maxlength="200" autocomplete="off" @bind="remark" disabled="@(!CanEdit)" />
+                                                <label class="floating-label">Remarks</label>
+                                            </div>
+                                        </div>
+                                        @if (!IsCash)
+                                        {
+                                            <div class="col-md-3 col-6 mb-2">
+                                                <div class="form-box-group">
+                                                    <input class="floating-input" placeholder=" " maxlength="50" autocomplete="off" @bind="chequeNo" disabled="@(!CanEdit)" />
+                                                    <label class="floating-label">Cheque / Txn No.</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-2">
+                                                <div class="form-box-group static-label">
+                                                    <input type="date" class="floating-input" @bind="chequeDate" @bind:format="yyyy-MM-dd" disabled="@(!CanEdit)" />
+                                                    <label class="floating-label">Cheque / Txn Date</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-2">
+                                                <div class="form-box-group static-label">
+                                                    <select class="floating-input" value="@chequeBank" @onchange="OnBankChanged" disabled="@(!CanEdit)">
+                                                        <option value="">-- Select --</option>
+                                                        @foreach (var bank in BankOptions)
+                                                        {
+                                                            <option value="@bank">@bank</option>
+                                                        }
+                                                    </select>
+                                                    <label class="floating-label">Bank</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3 col-6 mb-2">
+                                                <div class="form-box-group static-label">
+                                                    <select class="floating-input" @bind="chequeType" disabled="@(!CanEdit)">
+                                                        <option value="">-- Select --</option>
+                                                        @foreach (var type in ChequeTypeOptions)
+                                                        {
+                                                            <option value="@type">@type</option>
+                                                        }
+                                                    </select>
+                                                    <label class="floating-label">Cheque Type</label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center my-2">
+                                        <span class="fw-bold text-secondary"><i class="bi bi-list-check"></i> Fee Heads</span>
+                                        @if (CanEdit)
+                                        {
+                                            <button type="button" class="table-btn" @onclick="() => ShowDues = !ShowDues">
+                                                <i class="bi @(ShowDues ? "bi-x-circle" : "bi-plus-circle")"></i> @(ShowDues ? "Close" : "Add Fee Head")
+                                            </button>
+                                        }
+                                    </div>
+
+                                    @if (ShowDues)
+                                    {
+                                        <div class="er-dues scrollbar-thin">
+                                            @if (pendingDues.Count == 0)
+                                            {
+                                                <div class="text-muted small text-center">No other pending dues for this student.</div>
+                                            }
+                                            @foreach (var due in pendingDues)
+                                            {
+                                                <div class="er-due-item">
+                                                    <span><b>@due.FeeHeadName</b> · @due.MonthName <span class="er-inv d-inline">@due.InvoiceNo</span></span>
+                                                    <span class="d-flex align-items-center gap-2">
+                                                        <span>Due ₹ @due.MaxPayable.ToString("N2")</span>
+                                                        <button type="button" class="table-btn py-0" @onclick="() => AddDue(due)">Add</button>
+                                                    </span>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="er-table-wrap">
+                                        <table class="table er-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Fee Head</th>
+                                                    <th class="text-center">Month</th>
+                                                    <th class="er-num">Due</th>
+                                                    <th class="er-num">Paid Earlier</th>
+                                                    <th class="er-num">In Receipt</th>
+                                                    <th class="er-num">Paying Now</th>
+                                                    <th class="text-center"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var line in editLines)
+                                                {
+                                                    <tr class="@(line.IsRemoved ? "er-removed" : !line.IsInReceipt ? "er-added" : "")">
+                                                        <td>
+                                                            <span class="er-head-name">@line.FeeHeadName</span>
+                                                            <span class="er-inv">@line.InvoiceNo</span>
+                                                            @if (line.IsRemoved)
+                                                            {
+                                                                <label class="er-also" title="@(line.PaidElsewhere > 0 ? "Also paid in another receipt" : "Fee head is removed from the invoice as well")">
+                                                                    <input type="checkbox" checked="@line.RemoveFromInvoice" disabled="@(line.PaidElsewhere > 0)"
+                                                                           @onchange="e => line.RemoveFromInvoice = e.Value is bool b && b" />
+                                                                    Remove from invoice also
+                                                                </label>
+                                                            }
+                                                        </td>
+                                                        <td class="text-center">@line.MonthName</td>
+                                                        <td class="er-num">@((line.Amount - line.Concession - line.WaiveOff).ToString("N2"))</td>
+                                                        <td class="er-num">@line.PaidElsewhere.ToString("N2")</td>
+                                                        <td class="er-num">@line.PaidInReceipt.ToString("N2")</td>
+                                                        <td class="er-num">
+                                                            <input type="number" class="er-amount" min="0" max="@line.MaxPayable" step="0.01"
+                                                                   value="@line.NewPaid" @onchange="e => SetPaid(line, e)"
+                                                                   disabled="@(!CanEdit || line.IsRemoved)" />
+                                                        </td>
+                                                        <td class="text-center">
+                                                            @if (CanEdit)
+                                                            {
+                                                                @if (line.IsRemoved)
+                                                                {
+                                                                    <button type="button" class="er-icon-btn er-undo" title="Restore" @onclick="() => RestoreLine(line)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <button type="button" class="er-icon-btn er-del" title="Remove" @onclick="() => RemoveLine(line)"><i class="bi bi-x-circle-fill"></i></button>
+                                                                }
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                @if (editLines.Count == 0)
+                                                {
+                                                    <tr><td colspan="7" class="text-center text-muted">No fee heads. Use Add Fee Head.</td></tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    @* ---------- live amounts ---------- *@
+                                    <div class="row g-2 mt-1">
+                                        <div class="col-6 col-md-3">
+                                            <div class="invoice-amount-tile tile-blue"><span>Old Receipt</span><strong>₹ @OldPaid.ToString("N2")</strong></div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="invoice-amount-tile tile-teal"><span>Fee Heads Now</span><strong>₹ @NewLinesTotal.ToString("N2")</strong></div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="invoice-amount-tile @DifferenceTileClass">
+                                                <span>@(Reduced > 0 ? "Reduced" : Reduced < 0 ? "Extra to Collect" : "Difference")</span>
+                                                <strong>₹ @Math.Abs(Reduced).ToString("N2")</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-3">
+                                            <div class="invoice-amount-tile tile-navy"><span>Revised Receipt</span><strong>₹ @NewReceiptAmount.ToString("N2")</strong></div>
+                                        </div>
+                                    </div>
+
+                                    @if (Reduced > 0 && CanEdit)
+                                    {
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-md-6">
+                                                <div class="er-option @(differenceMode == 1 ? "active" : "")" @onclick="() => differenceMode = 1">
+                                                    <input type="radio" name="erDiff" checked="@(differenceMode == 1)" />
+                                                    <div><strong>Keep as Advance</strong><span>₹ @Reduced.ToString("N2") stays with the school as student advance and is adjusted in the next fee.</span></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="er-option @(differenceMode == 2 ? "active" : "")" @onclick="() => differenceMode = 2">
+                                                    <input type="radio" name="erDiff" checked="@(differenceMode == 2)" />
+                                                    <div><strong>Refund to Parent</strong><span>₹ @Reduced.ToString("N2") is returned; the revised receipt shows ₹ @((OldPaid - Reduced).ToString("N2")).</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer er-footer">
+                <div class="er-reason">
+                    <div class="form-box-group mb-0">
+                        <input class="floating-input @(reasonError ? "is-required-empty" : "")" placeholder=" " maxlength="250" autocomplete="off"
+                               @bind="editReason" @bind:event="oninput" disabled="@(!CanEdit)" />
+                        <label class="floating-label">Edit Reason <span class="required">*</span></label>
+                        @if (reasonError)
+                        {
+                            <div class="validation-message">Edit reason is required.</div>
+                        }
+                    </div>
+                </div>
+                <div class="form-group btn-gr d-flex gap-2 mb-0">
+                    <button type="button" class="table-btn" @onclick="Close">Close</button>
+                    @if (CanEdit)
+                    {
+                        <button type="button" class="table-btn er-save" @onclick="Save" disabled="@IsLoading">
+                            <i class="bi bi-check2-circle"></i> Save Revised Receipt
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay above-popup">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public long ReceiptId { get; set; }
+    [Parameter] public string? GroupCode { get; set; }
+    [Parameter] public string? BranchCode { get; set; }
+    [Parameter] public string? UserName { get; set; }
+    [Parameter] public List<SessionModel> Sessions { get; set; } = new();
+    [Parameter] public List<PaymentModel> PaymentModes { get; set; } = new();
+    [Parameter] public List<BankModel> Banks { get; set; } = new();
+    [Parameter] public List<ChequeTypeModel> ChequeTypes { get; set; } = new();
+    [Parameter] public EventCallback OnClose { get; set; }
+    // the API response of a successful save (message + revised receipt id / no)
+    [Parameter] public EventCallback<ApiResponse<EditStudentReceiptResponse>> OnSaved { get; set; }
+
+    private bool IsLoading;
+    private StudentReceiptEditHeader? header;
+    private List<StudentReceiptEditLine> originalLines = new();
+    private List<StudentReceiptEditLine> editLines = new();
+    private List<StudentReceiptEditLine> pendingDues = new();
+    private bool ShowDues;
+
+    private string paymentMode = string.Empty;
+    private DateTime? receiptDate;
+    private string? remark;
+    private string? chequeNo;
+    private DateTime? chequeDate;
+    private string? chequeBank;
+    private string? bankBranch;
+    private string? chequeType;
+    private byte differenceMode = 1;
+    private string editReason = string.Empty;
+    private bool reasonSubmitted;
+    private bool reasonError => reasonSubmitted && string.IsNullOrWhiteSpace(editReason);
+
+    private bool CanEdit => header?.EditStatus == 1;
+    private string EditBlockedMessage => header?.EditStatus switch
+    {
+        -1 => "This receipt is cancelled and cannot be edited.",
+        -2 => "A later receipt exists for this student. Only the latest receipt can be edited (cancel / edit the later receipt first).",
+        -3 => "A fee head of this receipt was already removed through View Student Dues and Receipt -> Edit Invoice (its paid amount is kept as student advance). This receipt cannot be edited.",
+        _ => "This receipt cannot be edited."
+    };
+
+    private bool IsCash => string.Equals(paymentMode, "Cash", StringComparison.OrdinalIgnoreCase);
+    private DateTime OriginalReceiptDate => header?.CreatedDate?.Date ?? DateTime.Today;
+    private string SessionName => Sessions.FirstOrDefault(x => x.SessionId == (header?.SessionId ?? 0))?.SessionName ?? string.Empty;
+
+    // ---------- amounts (same rules as V3M_FIN_EditStudentReceipt) ----------
+    private decimal OldPaid => header?.PaidAmount ?? 0;
+    private decimal OldLinesTotal => originalLines.Sum(x => x.PaidInReceipt);
+    private decimal NewLinesTotal => editLines.Where(x => !x.IsRemoved).Sum(x => x.NewPaid);
+    // > 0 fee heads reduced, < 0 fee heads increased
+    private decimal Reduced => OldLinesTotal - NewLinesTotal;
+    private decimal NewReceiptAmount => Reduced > 0 && differenceMode == 2 ? OldPaid - Reduced : OldPaid + Math.Max(0, -Reduced);
+    private string DifferenceTileClass => Reduced > 0 ? "tile-red" : Reduced < 0 ? "tile-amber" : "tile-green";
+
+    // dropdowns keep the receipt's own value even when it is not in the master any more
+    private IEnumerable<string> ModeOptions => WithCurrent(PaymentModes.Select(x => x.ModeName), header?.PaymentMode);
+    private IEnumerable<string> BankOptions => WithCurrent(Banks.Select(x => x.BankName), header?.ChequeBank);
+    private IEnumerable<string> ChequeTypeOptions => WithCurrent(ChequeTypes.Where(x => x.IsValid).Select(x => x.ChequeTypeName), header?.ChequeType);
+
+    private static IEnumerable<string> WithCurrent(IEnumerable<string?> items, string? current)
+    {
+        var list = items.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!).Distinct().ToList();
+        if (!string.IsNullOrWhiteSpace(current) && !list.Contains(current, StringComparer.OrdinalIgnoreCase))
+            list.Insert(0, current);
+        return list;
+    }
+
+    private static string Initials(string? name)
+    {
+        var parts = (name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 0 ? "?" : string.Concat(parts.Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var response = await httpService.Post<ApiResponse<StudentReceiptForEditResponse>>("StudentFeeReceipt/GetStudentReceiptForEdit",
+                new StudentReceiptByIdRequest { GroupCode = GroupCode, BranchCode = BranchCode, ReceiptId = ReceiptId });
+
+            if (response == null || !response.Success || response.Data?.Header == null)
+            {
+                IsLoading = false;
+                await Alert.ShowWarning(response?.Message ?? "Receipt record was not found.");
+                return;
+            }
+
+            header = response.Data.Header;
+            originalLines = response.Data.Lines;
+            pendingDues = response.Data.PendingDues;
+            // the revised receipt starts as a copy of the actual receipt
+            editLines = response.Data.Lines.Select(CopyLine).ToList();
+
+            paymentMode = header.PaymentMode ?? string.Empty;
+            // today by default: the cancel posts its reversal today, so the revised entries land on the same day
+            // and the original day's collection stays as counted
+            receiptDate = DateTime.Today;
+            remark = header.Remark;
+            chequeNo = header.ChequeNo;
+            chequeDate = header.ChequeDate?.Date;
+            chequeBank = header.ChequeBank;
+            bankBranch = header.ChequeBankBranch;
+            chequeType = header.ChequeType;
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to load receipt details." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private static StudentReceiptEditLine CopyLine(StudentReceiptEditLine x) => new()
+    {
+        DetInvoiceId = x.DetInvoiceId,
+        InvoiceId = x.InvoiceId,
+        InvoiceNo = x.InvoiceNo,
+        FeeHeadId = x.FeeHeadId,
+        FeeHeadName = x.FeeHeadName,
+        MonthNo = x.MonthNo,
+        MonthName = x.MonthName,
+        Amount = x.Amount,
+        Concession = x.Concession,
+        WaiveOff = x.WaiveOff,
+        ReceivedAmt = x.ReceivedAmt,
+        PaidInReceipt = x.PaidInReceipt,
+        PaidElsewhere = x.PaidElsewhere,
+        IsInReceipt = x.IsInReceipt,
+        DisplayOrder = x.DisplayOrder,
+        NewPaid = x.IsInReceipt ? x.PaidInReceipt : x.MaxPayable
+    };
+
+    private void OnPaymentModeChanged(ChangeEventArgs e)
+    {
+        paymentMode = e.Value?.ToString() ?? string.Empty;
+        if (IsCash)
+        {
+            chequeNo = chequeBank = bankBranch = chequeType = string.Empty;
+            chequeDate = null;
+        }
+    }
+
+    private void OnBankChanged(ChangeEventArgs e)
+    {
+        chequeBank = e.Value?.ToString() ?? string.Empty;
+        bankBranch = Banks.FirstOrDefault(x => string.Equals(x.BankName, chequeBank, StringComparison.OrdinalIgnoreCase))?.BranchName
+                     ?? (string.Equals(chequeBank, header?.ChequeBank, StringComparison.OrdinalIgnoreCase) ? header?.ChequeBankBranch : string.Empty);
+    }
+
+    // paying amount stays between 0 and what is still due on the line
+    private void SetPaid(StudentReceiptEditLine line, ChangeEventArgs e)
+    {
+        var value = decimal.TryParse(e.Value?.ToString(), out var amount) ? Math.Round(amount, 2) : 0;
+        line.NewPaid = Math.Clamp(value, 0, line.MaxPayable);
+    }
+
+    private void RemoveLine(StudentReceiptEditLine line)
+    {
+        // a due added in this edit just goes back to the pending list
+        if (!line.IsInReceipt)
+        {
+            editLines.Remove(line);
+            pendingDues.Add(line);
+            return;
+        }
+        line.IsRemoved = true;
+        line.NewPaid = 0;
+        line.RemoveFromInvoice = false;
+    }
+
+    private void RestoreLine(StudentReceiptEditLine line)
+    {
+        line.IsRemoved = false;
+        line.RemoveFromInvoice = false;
+        line.NewPaid = Math.Min(line.PaidInReceipt, line.MaxPayable);
+    }
+
+    private void AddDue(StudentReceiptEditLine due)
+    {
+        pendingDues.Remove(due);
+        due.IsRemoved = false;
+        due.RemoveFromInvoice = false;
+        due.NewPaid = due.MaxPayable;
+        editLines.Add(due);
+        if (pendingDues.Count == 0)
+            ShowDues = false;
+    }
+
+    private async Task Save()
+    {
+        if (header == null || !CanEdit)
+            return;
+
+        reasonSubmitted = true;
+        if (string.IsNullOrWhiteSpace(editReason))
+            return;
+        if (receiptDate == null || receiptDate.Value.Date > DateTime.Today || receiptDate.Value.Date < OriginalReceiptDate)
+        {
+            await Alert.ShowWarning("Revised receipt date must be between the original receipt date and today.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(paymentMode))
+        {
+            await Alert.ShowWarning("Please select payment mode.");
+            return;
+        }
+
+        var lines = editLines
+            .Where(x => (!x.IsRemoved && x.NewPaid > 0) || (x.IsRemoved && x.RemoveFromInvoice))
+            .Select(x => new EditStudentReceiptLine
+            {
+                DetInvoiceId = x.DetInvoiceId,
+                PaidAmount = x.IsRemoved ? 0 : x.NewPaid,
+                RemoveFromInvoice = x.IsRemoved && x.RemoveFromInvoice
+            })
+            .ToList();
+
+        // the revised receipt date is used only for a re-issue; a details-only edit keeps the original date
+        var moneyChanged = Reduced != 0 || lines.Any(x => x.RemoveFromInvoice)
+                           || editLines.Any(x => !x.IsRemoved && x.NewPaid != x.PaidInReceipt)
+                           || !string.Equals(paymentMode, header.PaymentMode, StringComparison.OrdinalIgnoreCase);
+
+        string confirmMessage;
+        if (!moneyChanged)
+        {
+            confirmMessage = $"Payment details of receipt {header.ReceiptNo} will be updated. Continue?";
+        }
+        else if (NewLinesTotal <= 0 && NewReceiptAmount <= 0)
+        {
+            confirmMessage = $"All fee heads are removed. Receipt {header.ReceiptNo} will be cancelled and ₹ {Reduced:N2} refunded. Continue?";
+        }
+        else
+        {
+            var difference = Reduced > 0
+                ? (differenceMode == 2 ? $" ₹ {Reduced:N2} will be refunded." : $" ₹ {Reduced:N2} will be kept as student advance.")
+                : Reduced < 0 ? $" Extra ₹ {-Reduced:N2} will be collected." : string.Empty;
+            confirmMessage = $"Receipt {header.ReceiptNo} will be cancelled as Edited and a revised receipt of ₹ {NewReceiptAmount:N2} will be generated.{difference} Continue?";
+        }
+
+        if (!await Alert.ShowConfirm(confirmMessage))
+            return;
+
+        var request = new EditStudentReceiptRequest
+        {
+            GroupCode = GroupCode,
+            BranchCode = BranchCode,
+            ReceiptId = header.ReceiptId,
+            PaymentMode = paymentMode,
+            ChequeNo = IsCash ? string.Empty : chequeNo?.Trim(),
+            ChequeDate = IsCash ? null : chequeDate,
+            ChequeBank = IsCash ? string.Empty : chequeBank,
+            ChequeType = IsCash ? string.Empty : chequeType,
+            BankBranch = IsCash ? string.Empty : bankBranch,
+            // the school bank account is not changed by an edit (same journal ledger as the receipt)
+            BankAccountId = header.BankAccountId ?? 0,
+            ReceiptDate = moneyChanged ? receiptDate : OriginalReceiptDate,
+            Remark = remark?.Trim(),
+            EditReason = editReason.Trim(),
+            DifferenceMode = Reduced > 0 ? differenceMode : (byte)1,
+            EditedBy = UserName,
+            Lines = lines
+        };
+
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<EditStudentReceiptResponse>>("StudentFeeReceipt/EditStudentReceipt", request);
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success)
+                await OnSaved.InvokeAsync(response);
+            else
+                await Alert.ShowWarning(response?.Message ?? "Unable to edit the receipt.");
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to edit the receipt." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private Task Close() => OnClose.InvokeAsync();
+}

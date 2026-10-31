@@ -5,7 +5,16 @@
 @inject SweetAlertService Alert
 @inject IStringLocalizer<Resource> Localizer
 <style>
-  
+    /* narration is required for every change on the invoice (add / remove fee head, apply / remove concession) */
+    .edit-invoice-narration {
+        position: relative;
+        margin-bottom: 22px;
+    }
+
+    .edit-invoice-narration .form-input.is-required-empty {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
 
 
 
@@ -276,9 +285,14 @@
                                                 </div>
                                             </div>
                                             <div class="col-12 mt-2">
-                                                <div class="form-box">
-                                                    <label class="form-label">Narration</label>
-                                                    <InputTextArea class="form-input" @bind-Value="studentConcessionOnChallanRequest.Narration" rows="3" placeholder="Enter narration"></InputTextArea>
+                                                <div class="form-box edit-invoice-narration">
+                                                    <label class="form-label">Narration <span class="required">*</span></label>
+                                                    <textarea class="form-input @(NarrationError ? "is-required-empty" : "")" rows="3" maxlength="200" placeholder="Enter narration"
+                                                              @bind="studentConcessionOnChallanRequest.Narration" @bind:event="oninput"></textarea>
+                                                    @if (NarrationError)
+                                                    {
+                                                        <div class="validation-message">Narration is required.</div>
+                                                    }
                                                 </div>
                                             </div>
                                         </div>
@@ -694,6 +708,11 @@
     // Calling page passes true to open the Edit Invoice popup.
     [Parameter] public bool ShowEditInvoice { get; set; }
 
+    // A paid invoice (money received) is edited only from View Student Dues and Receipt, which passes true.
+    // There a paid fee head can be removed: its paid amount becomes student advance (adjusted in the next fee)
+    // and the parent's receipt stays as it is. Other pages cannot change a paid invoice.
+    [Parameter] public bool AllowPaidInvoiceEdit { get; set; }
+
     // Local visibility of the Edit Invoice popup. It is hidden while any alert
     // is on screen and shown again once the alert is dismissed.
     private bool IsEditInvoiceOpen;
@@ -892,8 +911,33 @@
         }
     }
 
+    // narration is required for add / remove fee head and apply / remove concession:
+    // red message under the field after the button is clicked, cleared as soon as it is typed
+    private bool narrationTouched;
+    private bool NarrationError => narrationTouched && string.IsNullOrWhiteSpace(studentConcessionOnChallanRequest.Narration);
+
+    private bool IsNarrationValid()
+    {
+        narrationTouched = true;
+        StateHasChanged();
+        return !NarrationError;
+    }
+
+    // paid invoice opened from a page other than View Student Dues and Receipt: no change allowed
+    private bool IsPaidInvoice => InvoiceMaster.ReceivedAmount > 0 || FeeHeadList.Any(x => x.ReceivedAmt > 0);
+
+    private async Task<bool> IsPaidInvoiceLocked()
+    {
+        if (!IsPaidInvoice || AllowPaidInvoiceEdit)
+            return false;
+        await ShowInfoAlert("This invoice is already paid. Please edit it from View Student Dues and Receipt.");
+        StateHasChanged();
+        return true;
+    }
+
     private async Task CloseEditInvoice()
     {
+        narrationTouched = false;
         feeHeadToStudent = new();
         challanDueDate = new();
         removeStudentConcessionFromInvoice = new();
@@ -916,6 +960,8 @@
 
     private async Task ModifyDueDate()
     {
+        if (await IsPaidInvoiceLocked())
+            return;
         challanDueDate.DueDate = InvoiceMaster.DueDate;
         ShowPopupUpdateDueDate = true;
         StateHasChanged();
@@ -1077,7 +1123,17 @@
                 StateHasChanged();
                 return;
             }
-            var submit = await ShowConfirmAlert(() => Alert.ShowConfirm("Are you sure,you want to remove selected fee head?"));
+            if (await IsPaidInvoiceLocked())
+                return;
+            if (!IsNarrationValid())
+                return;
+            // paid head (only reachable from View Student Dues and Receipt): the parent keeps the receipt,
+            // the paid amount is reversed and kept as student advance for the next fee
+            var paidOnHead = result[0].ReceivedAmt;
+            var confirmMessage = paidOnHead > 0
+                ? $"₹ {paidOnHead:N2} is already paid on this fee head. It will be removed from the invoice and ₹ {paidOnHead:N2} will be kept as student advance (adjusted in the next fee). The parent's receipt is not changed. Continue?"
+                : "Are you sure,you want to remove selected fee head?";
+            var submit = await ShowConfirmAlert(() => Alert.ShowConfirm(confirmMessage));
             if (!submit)
             {
                 StateHasChanged();
@@ -1095,15 +1151,23 @@
             feeHeadToStudent.CreatedBy = UserName;
             feeHeadToStudent.Narration1 = studentConcessionOnChallanRequest.Narration;
             feeHeadToStudent.SelectMonthNo = selecteddata.MonthNo;
+            feeHeadToStudent.AllowPaidHead = AllowPaidInvoiceEdit && paidOnHead > 0;
             var response = await httpService.Post<ApiResponse<object>>("StudentFeeInvoice/RemoveFeeHeadToStudentChallan", feeHeadToStudent);
             if (response.Success && response.Code == 1)
             {
-                await ShowSweetAlert(() => Alert.ShowSuccess("Fee head removed successfully."));
+                await ShowSweetAlert(() => Alert.ShowSuccess(paidOnHead > 0
+                    ? $"Fee head removed successfully. ₹ {paidOnHead:N2} kept as student advance."
+                    : "Fee head removed successfully."));
                 studentConcessionOnChallanRequest.Narration = "";
+                narrationTouched = false;
                 DataChanged = true;
                 await LoadInvoiceForEdit();
                 StateHasChanged();
                 feeHeadToStudent = new();
+            }
+            else if (response?.Code == -2)
+            {
+                await ShowInfoAlert(response.Message ?? "This fee head is already paid. Please remove it from View Student Receipt -> Edit.");
             }
         }
         catch (Exception)
@@ -1127,6 +1191,10 @@
                 StateHasChanged();
                 return;
             }
+            if (await IsPaidInvoiceLocked())
+                return;
+            if (!IsNarrationValid())
+                return;
 
             bool submit = await ShowConfirmAlert(() => customAlert.ShowConfirmationAlert("Are you sure,you want to remove applied concession on selected invoice?"));
             if (!submit)
@@ -1150,6 +1218,8 @@
             {
                 await ShowInfoAlert("Concession removed successfully.");
                 removeStudentConcessionFromInvoice = new();
+                studentConcessionOnChallanRequest.Narration = "";
+                narrationTouched = false;
                 DataChanged = true;
                 await LoadInvoiceForEdit();
                 StateHasChanged();
@@ -1201,6 +1271,12 @@
                 await ShowInfoAlert("Invoice not found for the selected student !");
                 return;
             }
+            // narration field is on the page behind this popup: close it so the red message is visible
+            if (!IsNarrationValid())
+            {
+                Showpopupapplyconcession = false;
+                return;
+            }
             bool submit = await ShowConfirmAlert(() => customAlert.ShowConfirmationAlert("Are you sure,you want to apply concession on this Invoice?"));
             if (!submit)
             {
@@ -1246,6 +1322,8 @@
                 if (result.ResultValue == 10)
                 {
                     await ShowInfoAlert(message);
+                    studentConcessionOnChallanRequest.Narration = "";
+                    narrationTouched = false;
                     DataChanged = true;
                     await LoadInvoiceForEdit();
                 }
@@ -1297,6 +1375,10 @@
                 StateHasChanged();
                 return;
             }
+            if (await IsPaidInvoiceLocked())
+                return;
+            if (!IsNarrationValid())
+                return;
             searchAny.GroupCode = GroupCode;
             searchAny.BranchCode = BranchCode;
             searchAny.SessionId = SessionId;
@@ -1336,6 +1418,12 @@
                 await ShowInfoAlert("Please select student first !");
                 return;
             }
+            // narration field is on the page behind this popup: close it so the red message is visible
+            if (!IsNarrationValid())
+            {
+                ShowPopupAddFeehead = false;
+                return;
+            }
             feeHeadToStudent.InvoiceId = SelectedStudent.InvoiceId;
             feeHeadToStudent.StudentId = SelectedStudent.StudentId;
             feeHeadToStudent.HeadId = SelectedFeeHeadId;
@@ -1371,6 +1459,7 @@
                 DataChanged = true;
                 await LoadInvoiceForEdit();
                 studentConcessionOnChallanRequest.Narration = "";
+                narrationTouched = false;
                 if (IsTransport)
                 {
                     await OnTransportChanged();
@@ -1406,8 +1495,12 @@
             {
                 await ShowSweetAlert(() => Alert.ShowWarning("Please select a student"));
                 StateHasChanged();
-                return; 
+                return;
             }
+            if (await IsPaidInvoiceLocked())
+                return;
+            if (!IsNarrationValid())
+                return;
             searchAny.RequestId = SelectedStudent.TemplateId;
             MaxNewMonths = null;
             var response = await httpService.Post<ApiResponse<List<FeeHeadDropdownModel>>>("StudentFeeInvoice/GetFeeHeadWithAmount", searchAny) ?? new();
