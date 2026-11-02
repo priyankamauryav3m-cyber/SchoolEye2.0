@@ -106,6 +106,52 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
 
             return Ok(result);
         }
+        [HttpPost("GetFeeManagementDashboard")]
+        public async Task<ApiResponse<FeeManagementDashboardModel>> GetFeeManagementDashboard([FromBody] AdmissionDashboardRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode) || request.SessionId <= 0)
+            {
+                return new ApiResponse<FeeManagementDashboardModel>
+                {
+                    Success = false,
+                    Code = 0,
+                    Message = "Please select a valid session."
+                };
+            }
+
+            if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate.Value.Date > request.ToDate.Value.Date)
+            {
+                return new ApiResponse<FeeManagementDashboardModel>
+                {
+                    Success = false,
+                    Code = 0,
+                    Message = "From date cannot be after To date."
+                };
+            }
+
+            try
+            {
+                var data = await _service.GetFeeManagementDashboard(request);
+                return new ApiResponse<FeeManagementDashboardModel>
+                {
+                    Success = true,
+                    Code = 1,
+                    Message = "Fee dashboard data fetched successfully.",
+                    Data = data
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetFeeManagementDashboard failed: {ex.Message}");
+                return new ApiResponse<FeeManagementDashboardModel>
+                {
+                    Success = false,
+                    Code = 0,
+                    Message = "Unable to load the fee dashboard right now. Please try again."
+                };
+            }
+        }
+
         [HttpPost("GetAdmissionDashboardData")]
         public async Task<ApiResponse<AdmissionDashboardModel>> GetAdmissionDas([FromBody] AdmissionDashboardRequest request)
         {
