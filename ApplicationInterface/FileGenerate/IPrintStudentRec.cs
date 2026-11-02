@@ -42,6 +42,9 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateStudentReceiptListPdf(StudentReceiptListPrintRequest request);
         public Task<byte[]> GenerateStudentReceiptListExcel(StudentReceiptListPrintRequest request);
         public Task<byte[]> GenerateCollectionReportExcel(StudentReceiptListPrintRequest request);
+        // Collection Report with status: collection, active, advance, refund, cheque bounce, cash in hand
+        public Task<byte[]> GenerateStudentCollectionReportPdf(StudentCollectionReport report);
+        public Task<byte[]> GenerateStudentCollectionReportExcel(StudentCollectionReport report);
         public Task<byte[]> GenerateChqCombinePdf(StudentChequeReportRequest request, List<ChqCombineReportResponse> data);
         public Task<byte[]> GenerateChqCombineExcel(StudentChequeReportRequest request, List<ChqCombineReportResponse> data);
         public Task<byte[]> GeneratePrintViewReceiptsPdf(StudentChequeReportRequest request, List<PrintViewStudentReceiptResponse> data);

@@ -115,7 +115,7 @@ BEGIN
       AND (@ClassCode     IS NULL OR rm.ClassCode = @ClassCode)
       AND (@PaymentMode   IS NULL OR rm.PaymentMode = @PaymentMode)
       AND (@StudentNo     IS NULL OR vs.ControlNo = @StudentNo)
-      AND (@Status        = -1    OR rm.IsActive = @Status)
+      AND (@Status        = -1    OR rm.Valid = @Status)   -- Valid: 1 = active, 0 = cancelled (IsActive stays 1 after a cancel)
       AND (@FirstName     IS NULL OR vs.StudentName LIKE '%' + @FirstName + '%')
       AND (@ChequeNo      IS NULL OR rm.ChequeNo = @ChequeNo)
       AND (@ReceiptMode   = -1    OR rm.IsAdmissionReceipt = @ReceiptMode)

@@ -2088,6 +2088,9 @@ namespace DomainModel.FinanceMNGT
         public int SectionId { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal Balance { get; set; }
+        // receipt master TotalAmount = student's total dues before this receipt (e.g. 124000; next receipt 84000);
+        // null -> the SP keeps its own fee head total
+        public decimal? ReceiptTotalAmount { get; set; }
         public string PaymentMode { get; set; }
         public string ChequeNo { get; set; }
         public DateTime? ChequeDate { get; set; }
@@ -2769,6 +2772,122 @@ namespace DomainModel.FinanceMNGT
     {
         public string ChqType { get; set; } = "";       // "" = all cheque types
         public string ReceiptIds { get; set; } = "";    // "4,5,9"; empty = all receipts of the filter (Print only)
+    }
+
+    // V3M_FIN_GetStudentCollectionReport: one row per receipt with its current status
+    // Section : PERIOD = made in the period, EARLIER = made before it and cancelled / refunded / bounced in it
+    // Status  : ACTIVE, BOUNCED, ADVANCE, REFUND, CANCELLED, EDITED (EventDate = when the status happened)
+    public class StudentCollectionReportRow
+    {
+        public string Section { get; set; } = "PERIOD";
+        public long ReceiptId { get; set; }
+        public string? ReceiptNo { get; set; }
+        public string? StudentNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? ClassSection { get; set; }
+        public string? PaymentMode { get; set; }
+        public string? ChequeNo { get; set; }
+        public string? ChequeBank { get; set; }
+        public DateTime? ChequeDate { get; set; }
+        public DateTime? ReceiptDate { get; set; }
+        public decimal PaidAmount { get; set; }
+        public string? CreatedBy { get; set; }
+        public string Status { get; set; } = "ACTIVE";
+        public DateTime? EventDate { get; set; }
+        public string? CancelBy { get; set; }
+        public string? Remark { get; set; }
+        public string? OriginalReceiptNo { get; set; }
+
+        public bool IsPeriod => Section == "PERIOD";
+
+        public string StatusText => Status switch
+        {
+            "ACTIVE" => "Active",
+            "BOUNCED" => "Cheque Bounce",
+            "ADVANCE" => "Cancelled - Advance",
+            "REFUND" => "Cancelled - Refund",
+            "CANCELLED" => "Cancelled",
+            "EDITED" => "Edited (replaced)",
+            _ => Status
+        };
+    }
+
+    public class CollectionAmount
+    {
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+
+        public static CollectionAmount Of(IEnumerable<StudentCollectionReportRow> rows)
+        {
+            var list = rows.ToList();
+            return new CollectionAmount { Count = list.Count, Amount = list.Sum(x => x.PaidAmount) };
+        }
+    }
+
+    public class CollectionModeSummary
+    {
+        public string Mode { get; set; } = "";
+        public CollectionAmount Collected { get; set; } = new();
+        public CollectionAmount Active { get; set; } = new();
+        public CollectionAmount Advance { get; set; } = new();
+        public CollectionAmount Refund { get; set; } = new();
+        public CollectionAmount Bounced { get; set; } = new();
+        public CollectionAmount Cancelled { get; set; } = new();
+    }
+
+    // Collection Report (PDF + Excel): all totals are worked out here once, both files show the same numbers.
+    //  Collection   = receipts made in the period (edited receipts are left out, their revised receipt counts)
+    //  Cash in hand = Collection - refunds - cheque bounces that happened in the period (also of earlier receipts)
+    //  Advance      = cancelled receipts kept as student advance in the period (money stays with the school)
+    public class StudentCollectionReport
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public List<StudentCollectionReportRow> Rows { get; set; } = new();
+
+        public List<StudentCollectionReportRow> PeriodRows => Rows.Where(x => x.IsPeriod && x.Status != "EDITED").ToList();
+        public List<StudentCollectionReportRow> EditedRows => Rows.Where(x => x.IsPeriod && x.Status == "EDITED").ToList();
+        public List<StudentCollectionReportRow> EarlierRows => Rows.Where(x => !x.IsPeriod).ToList();
+
+        private bool InPeriod(DateTime? date) => date.HasValue && date.Value.Date >= FromDate.Date && date.Value.Date <= ToDate.Date;
+        private CollectionAmount PeriodStatus(string status) => CollectionAmount.Of(PeriodRows.Where(x => x.Status == status));
+        private CollectionAmount EarlierStatus(string status) => CollectionAmount.Of(EarlierRows.Where(x => x.Status == status));
+
+        // receipts of the period, by current status
+        public CollectionAmount Collected => CollectionAmount.Of(PeriodRows);
+        public CollectionAmount Active => PeriodStatus("ACTIVE");
+        public CollectionAmount Advance => PeriodStatus("ADVANCE");
+        public CollectionAmount Refund => PeriodStatus("REFUND");
+        public CollectionAmount Bounced => PeriodStatus("BOUNCED");
+        public CollectionAmount Cancelled => PeriodStatus("CANCELLED");
+        public CollectionAmount Edited => CollectionAmount.Of(EditedRows);
+
+        // earlier receipts whose status changed in the period
+        public CollectionAmount EarlierAdvance => EarlierStatus("ADVANCE");
+        public CollectionAmount EarlierRefund => EarlierStatus("REFUND");
+        public CollectionAmount EarlierBounced => EarlierStatus("BOUNCED");
+        public CollectionAmount EarlierCancelled => EarlierStatus("CANCELLED");
+
+        // money that left / never came in during the period (a period receipt cancelled after the period does not count here)
+        public decimal RefundedInPeriod => Rows.Where(x => x.Status == "REFUND" && InPeriod(x.EventDate)).Sum(x => x.PaidAmount);
+        public decimal BouncedInPeriod => Rows.Where(x => x.Status == "BOUNCED" && InPeriod(x.EventDate)).Sum(x => x.PaidAmount);
+        public decimal AdvanceInPeriod => Rows.Where(x => x.Status == "ADVANCE" && InPeriod(x.EventDate)).Sum(x => x.PaidAmount);
+        public decimal CashInHand => Collected.Amount - RefundedInPeriod - BouncedInPeriod;
+
+        public List<CollectionModeSummary> ByMode => PeriodRows
+            .GroupBy(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? "Other" : x.PaymentMode!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key)
+            .Select(g => new CollectionModeSummary
+            {
+                Mode = g.Key,
+                Collected = CollectionAmount.Of(g),
+                Active = CollectionAmount.Of(g.Where(x => x.Status == "ACTIVE")),
+                Advance = CollectionAmount.Of(g.Where(x => x.Status == "ADVANCE")),
+                Refund = CollectionAmount.Of(g.Where(x => x.Status == "REFUND")),
+                Bounced = CollectionAmount.Of(g.Where(x => x.Status == "BOUNCED")),
+                Cancelled = CollectionAmount.Of(g.Where(x => x.Status == "CANCELLED"))
+            })
+            .ToList();
     }
 
     // Fin_GetOnlyChqCombineReport: one row per cheque (receipts of the same cheque combined)

@@ -391,6 +391,178 @@ namespace Infrastructure.StudentDocument
         }
 
         // ---------------- Chq Report (Chq Combine / Print) ----------------
+        // ---------------- Collection Report (with status) ----------------
+        public async Task<byte[]> GenerateStudentCollectionReportPdf(StudentCollectionReport report)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            return new StudentCollectionReportPdfDocument(report).GeneratePdf();
+        }
+
+        // same numbers as the PDF: summary, cash in hand, mode wise, receipts of the period, earlier receipts, edited receipts
+        public async Task<byte[]> GenerateStudentCollectionReportExcel(StudentCollectionReport report)
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Collection Report");
+            const int lastCol = 11;
+            const string money = "#,##,##0.00";
+            var navy = XLColor.FromHtml("#0B2948");
+            var grey = XLColor.FromHtml("#E2E8F0");
+
+            void Title(int r, string text, double size, bool bold = true)
+            {
+                ws.Range(r, 1, r, lastCol).Merge();
+                ws.Cell(r, 1).Value = text;
+                ws.Cell(r, 1).Style.Font.Bold = bold;
+                ws.Cell(r, 1).Style.Font.FontSize = size;
+                ws.Cell(r, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            void SectionTitle(int r, string text)
+            {
+                ws.Range(r, 1, r, lastCol).Merge();
+                ws.Cell(r, 1).Value = text;
+                ws.Cell(r, 1).Style.Font.Bold = true;
+                ws.Cell(r, 1).Style.Font.FontSize = 12;
+                ws.Cell(r, 1).Style.Font.FontColor = navy;
+            }
+
+            void HeaderRow(int r, string[] headers)
+            {
+                for (int c = 0; c < headers.Length; c++)
+                    ws.Cell(r, c + 1).Value = headers[c];
+                var range = ws.Range(r, 1, r, headers.Length);
+                range.Style.Font.Bold = true;
+                range.Style.Font.FontColor = XLColor.White;
+                range.Style.Fill.BackgroundColor = navy;
+                range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            void Box(int fromRow, int toRow, int cols)
+            {
+                var range = ws.Range(fromRow, 1, toRow, cols);
+                range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            }
+
+            var period = report.FromDate.Date == report.ToDate.Date
+                ? $"{report.FromDate:dd/MMM/yyyy}"
+                : $"{report.FromDate:dd/MMM/yyyy} to {report.ToDate:dd/MMM/yyyy}";
+
+            Title(1, "V3M International School", 18);
+            Title(2, "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017", 11);
+            Title(3, $"Fee Collection Report : {period}", 13);
+
+            // ===== SUMMARY =====
+            int row = 5;
+            SectionTitle(row++, "Summary");
+            HeaderRow(row, new[] { "Particulars", "Receipts", "Amount", "Note" });
+            int summaryStart = row++;
+            void SummaryLine(string label, int? count, decimal amount, string note, string? color = null, bool bold = false)
+            {
+                ws.Cell(row, 1).Value = label;
+                if (count.HasValue) ws.Cell(row, 2).Value = count.Value;
+                ws.Cell(row, 3).Value = amount;
+                ws.Cell(row, 4).Value = note;
+                var line = ws.Range(row, 1, row, 4);
+                if (color != null) line.Style.Font.FontColor = XLColor.FromHtml(color);
+                if (bold) { line.Style.Font.Bold = true; line.Style.Fill.BackgroundColor = grey; }
+                row++;
+            }
+            SummaryLine("Total Collection", report.Collected.Count, report.Collected.Amount, "receipts made in the period", bold: true);
+            SummaryLine("Active Receipts", report.Active.Count, report.Active.Amount, "still valid", "#15803D");
+            SummaryLine("Cancelled - Kept as Advance", report.Advance.Count, report.Advance.Amount, "amount stays with the school, adjusted in the next fee", "#1D4ED8");
+            SummaryLine("Cancelled - Refunded", report.Refund.Count, report.Refund.Amount, "amount returned to the parent", "#B91C1C");
+            SummaryLine("Cheque Bounce", report.Bounced.Count, report.Bounced.Amount, "money not received", "#B45309");
+            if (report.Cancelled.Count > 0)
+                SummaryLine("Cancelled (no settlement)", report.Cancelled.Count, report.Cancelled.Amount, "cancelled before the advance / refund option, not deducted", "#7C2D12");
+            if (report.EarlierRows.Count > 0)
+            {
+                SummaryLine("Earlier receipts - Refunded in period", report.EarlierRefund.Count, report.EarlierRefund.Amount, "receipt date before the period", "#B91C1C");
+                SummaryLine("Earlier receipts - Kept as Advance in period", report.EarlierAdvance.Count, report.EarlierAdvance.Amount, "receipt date before the period", "#1D4ED8");
+                SummaryLine("Earlier receipts - Cheque Bounce in period", report.EarlierBounced.Count, report.EarlierBounced.Amount, "receipt date before the period", "#B45309");
+            }
+            SummaryLine("Less : Refunded in period", null, report.RefundedInPeriod, "all refunds made in the period", "#B91C1C");
+            SummaryLine("Less : Cheque Bounce in period", null, report.BouncedInPeriod, "all cheque bounces in the period", "#B45309");
+            SummaryLine("Cash in Hand", null, report.CashInHand, "Collection - Refunded - Cheque Bounce", bold: true);
+            SummaryLine("Advance kept with the school in period", null, report.AdvanceInPeriod, "part of cash in hand, adjusted in the student's next fee", "#1D4ED8");
+            if (report.Edited.Count > 0)
+                SummaryLine("Edited receipts (not counted)", report.Edited.Count, report.Edited.Amount, "replaced by revised receipts", "#475569");
+            Box(summaryStart, row - 1, 4);
+            ws.Range(summaryStart + 1, 3, row - 1, 3).Style.NumberFormat.Format = money;
+
+            // ===== MODE WISE =====
+            row += 2;
+            SectionTitle(row++, "Payment mode wise");
+            HeaderRow(row, new[] { "Mode", "Collection", "Active", "Advance", "Refunded", "Cheque Bounce", "Cash in Hand", "Receipts" });
+            int modeStart = row++;
+            void ModeLine(string mode, CollectionAmount collected, CollectionAmount active, CollectionAmount advance, CollectionAmount refund, CollectionAmount bounced, bool bold = false)
+            {
+                ws.Cell(row, 1).Value = mode;
+                ws.Cell(row, 2).Value = collected.Amount;
+                ws.Cell(row, 3).Value = active.Amount;
+                ws.Cell(row, 4).Value = advance.Amount;
+                ws.Cell(row, 5).Value = refund.Amount;
+                ws.Cell(row, 6).Value = bounced.Amount;
+                ws.Cell(row, 7).Value = collected.Amount - refund.Amount - bounced.Amount;
+                ws.Cell(row, 8).Value = collected.Count;
+                if (bold) { ws.Range(row, 1, row, 8).Style.Font.Bold = true; ws.Range(row, 1, row, 8).Style.Fill.BackgroundColor = grey; }
+                row++;
+            }
+            foreach (var m in report.ByMode)
+                ModeLine(m.Mode, m.Collected, m.Active, m.Advance, m.Refund, m.Bounced);
+            ModeLine("Total", report.Collected, report.Active, report.Advance, report.Refund, report.Bounced, bold: true);
+            Box(modeStart, row - 1, 8);
+            ws.Range(modeStart + 1, 2, row - 1, 7).Style.NumberFormat.Format = money;
+
+            // ===== RECEIPT LISTS =====
+            void ReceiptTable(string title, List<StudentCollectionReportRow> rows)
+            {
+                row += 2;
+                SectionTitle(row++, $"{title} ({rows.Count})");
+                HeaderRow(row, new[] { "S.No", "Receipt No", "Receipt Date", "Student No", "Student Name", "Class", "Mode", "Cheque No", "Amount", "Status", "Status Date" });
+                int start = row++;
+                int sNo = 1;
+                foreach (var r in rows)
+                {
+                    ws.Cell(row, 1).Value = sNo++;
+                    ws.Cell(row, 2).SetValue(string.IsNullOrWhiteSpace(r.OriginalReceiptNo) ? r.ReceiptNo ?? "" : $"{r.ReceiptNo} (rev. of {r.OriginalReceiptNo})");
+                    ws.Cell(row, 3).Value = r.ReceiptDate?.ToString("dd-MM-yyyy");
+                    ws.Cell(row, 4).SetValue(r.StudentNo ?? "");
+                    ws.Cell(row, 5).Value = r.StudentName;
+                    ws.Cell(row, 6).Value = r.ClassSection;
+                    ws.Cell(row, 7).Value = r.PaymentMode;
+                    ws.Cell(row, 8).SetValue(r.ChequeNo ?? "");
+                    ws.Cell(row, 9).Value = r.PaidAmount;
+                    ws.Cell(row, 10).Value = r.StatusText;
+                    ws.Cell(row, 10).Style.Font.FontColor = XLColor.FromHtml(StudentCollectionReportPdfDocument.StatusColor(r.Status).Text);
+                    ws.Cell(row, 10).Style.Font.Bold = true;
+                    ws.Cell(row, 11).Value = r.EventDate?.ToString("dd-MM-yyyy") ?? "";
+                    row++;
+                }
+                ws.Range(row, 1, row, 8).Merge();
+                ws.Cell(row, 1).Value = "Total";
+                ws.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                ws.Cell(row, 9).Value = rows.Sum(x => x.PaidAmount);
+                ws.Range(row, 1, row, lastCol).Style.Font.Bold = true;
+                ws.Range(row, 1, row, lastCol).Style.Fill.BackgroundColor = grey;
+                Box(start, row, lastCol);
+                ws.Range(start + 1, 9, row, 9).Style.NumberFormat.Format = money;
+                row++;
+            }
+            ReceiptTable("Receipts of the period", report.PeriodRows);
+            if (report.EarlierRows.Count > 0)
+                ReceiptTable("Earlier receipts cancelled / refunded / bounced in this period", report.EarlierRows);
+            if (report.EditedRows.Count > 0)
+                ReceiptTable("Edited receipts (replaced, not counted in collection)", report.EditedRows);
+
+            ws.Columns(1, lastCol).AdjustToContents(5, row);
+            ws.Column(1).Width = Math.Max(ws.Column(1).Width, 28);
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+
         public async Task<byte[]> GenerateChqCombinePdf(StudentChequeReportRequest request, List<ChqCombineReportResponse> data)
         {
             QuestPDF.Settings.License = LicenseType.Community;

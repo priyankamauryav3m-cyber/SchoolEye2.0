@@ -3706,4 +3706,282 @@ namespace Infrastructure.FileGenerate
     }
     #endregion
 
+    #region---------------------- Fee Collection Report (View Student Receipt -> Collection Report) ------------------
+    // collection of the period, what happened to it (active / advance / refund / cheque bounce) and cash in hand
+    public class StudentCollectionReportPdfDocument : IDocument
+    {
+        private readonly StudentCollectionReport _report;
+
+        private const string Navy = "#0B2948";
+        private const string Muted = "#64748B";
+        private static readonly System.Globalization.CultureInfo IndianCulture = new("en-IN");
+
+        public StudentCollectionReportPdfDocument(StudentCollectionReport report)
+        {
+            _report = report;
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        internal static string Rs(decimal amount) => "Rs. " + amount.ToString("N2", IndianCulture);
+
+        // status colours: text, background
+        internal static (string Text, string Back) StatusColor(string status) => status switch
+        {
+            "ACTIVE" => ("#15803D", "#F0FDF4"),
+            "ADVANCE" => ("#1D4ED8", "#EFF6FF"),
+            "REFUND" => ("#B91C1C", "#FEF2F2"),
+            "BOUNCED" => ("#B45309", "#FFFBEB"),
+            "EDITED" => ("#475569", "#F1F5F9"),
+            _ => ("#7C2D12", "#FFF7ED")
+        };
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(18);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8.5f).FontColor(Colors.Black));
+
+                page.Header().Element(ComposeHeader);
+                page.Content().PaddingTop(8).Column(col =>
+                {
+                    col.Spacing(10);
+                    col.Item().Element(ComposeCards);
+                    col.Item().Element(ComposeCashWorking);
+                    if (_report.EarlierRows.Count > 0)
+                        col.Item().Element(ComposeEarlierSummary);
+                    col.Item().Element(ComposeModeTable);
+                    col.Item().Element(x => ComposeReceiptTable(x, "Receipts of the period", _report.PeriodRows, false));
+                    if (_report.EarlierRows.Count > 0)
+                        col.Item().Element(x => ComposeReceiptTable(x, "Earlier receipts cancelled / refunded / bounced in this period", _report.EarlierRows, true));
+                    if (_report.EditedRows.Count > 0)
+                        col.Item().Element(x => ComposeReceiptTable(x, "Edited receipts (replaced by a revised receipt, not counted in collection)", _report.EditedRows, false));
+                });
+                page.Footer().DefaultTextStyle(x => x.FontSize(8)).Element(StudentReceiptListPdfDocument.ComposeFooter);
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var period = _report.FromDate.Date == _report.ToDate.Date
+                ? $"{_report.FromDate:dd MMM yyyy}"
+                : $"{_report.FromDate:dd MMM yyyy}  to  {_report.ToDate:dd MMM yyyy}";
+
+            container.BorderBottom(2).BorderColor(Navy).PaddingBottom(6).Row(row =>
+            {
+                if (File.Exists(logo))
+                    row.ConstantItem(50).Height(46).AlignMiddle().Image(logo).FitArea();
+
+                row.RelativeItem().PaddingLeft(8).AlignMiddle().Column(c =>
+                {
+                    c.Item().Text("V3M International School").FontSize(16).Bold().FontColor(Navy);
+                    c.Item().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(8).FontColor(Muted);
+                });
+
+                row.ConstantItem(230).AlignMiddle().AlignRight().Column(c =>
+                {
+                    c.Item().AlignRight().Background(Navy).PaddingVertical(4).PaddingHorizontal(10)
+                        .Text("FEE COLLECTION REPORT").FontSize(10).Bold().FontColor(Colors.White);
+                    c.Item().PaddingTop(3).AlignRight().Text(period).FontSize(9).SemiBold();
+                });
+            });
+        }
+
+        // six cards: collection, active, advance, refund, cheque bounce, cash in hand
+        private void ComposeCards(IContainer container)
+        {
+            void Card(RowDescriptor row, string title, string note, CollectionAmount? value, decimal? amount, string text, string back, bool strong = false)
+            {
+                row.RelativeItem().Background(back).Border(1).BorderColor(strong ? text : Colors.Grey.Lighten2).Padding(7).Column(c =>
+                {
+                    c.Item().Text(title).FontSize(7.5f).Bold().FontColor(text);
+                    c.Item().PaddingTop(2).Text(Rs(value?.Amount ?? amount ?? 0)).FontSize(strong ? 13 : 12).Bold().FontColor(text);
+                    c.Item().PaddingTop(1).Text(value != null ? $"{value.Count} receipt(s) · {note}" : note).FontSize(7).FontColor(Muted);
+                });
+            }
+
+            container.Row(row =>
+            {
+                row.Spacing(6);
+                Card(row, "TOTAL COLLECTION", "received in the period", _report.Collected, null, Navy, "#F8FAFC");
+                Card(row, "ACTIVE RECEIPTS", "still valid", _report.Active, null, "#15803D", "#F0FDF4");
+                Card(row, "CANCELLED - KEPT AS ADVANCE", "with school, next fee", _report.Advance, null, "#1D4ED8", "#EFF6FF");
+                Card(row, "CANCELLED - REFUNDED", "returned to parent", _report.Refund, null, "#B91C1C", "#FEF2F2");
+                Card(row, "CHEQUE BOUNCE", "money not received", _report.Bounced, null, "#B45309", "#FFFBEB");
+                Card(row, "CASH IN HAND", "collection - refund - bounce", null, _report.CashInHand, Colors.White, Navy, true);
+            });
+        }
+
+        // Collection - Refunded - Cheque bounce = Cash in hand; advance and old cancels as notes
+        private void ComposeCashWorking(IContainer container)
+        {
+            container.Background("#F8FAFC").Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(c =>
+            {
+                c.Item().Text(text =>
+                {
+                    text.DefaultTextStyle(x => x.FontSize(9));
+                    text.Span("Cash in hand : ").Bold();
+                    text.Span($"Collection {Rs(_report.Collected.Amount)}");
+                    text.Span($"  -  Refunded {Rs(_report.RefundedInPeriod)}").FontColor("#B91C1C");
+                    text.Span($"  -  Cheque bounce {Rs(_report.BouncedInPeriod)}").FontColor("#B45309");
+                    text.Span($"  =  {Rs(_report.CashInHand)}").Bold().FontColor(Navy);
+                });
+                c.Item().PaddingTop(3).Text(text =>
+                {
+                    text.DefaultTextStyle(x => x.FontSize(8).FontColor(Muted));
+                    text.Span("Advance kept with the school in this period : ").SemiBold();
+                    text.Span(Rs(_report.AdvanceInPeriod)).Bold().FontColor("#1D4ED8");
+                    text.Span("  (cancelled receipts, amount adjusted in the student's next fee - it stays in cash in hand)");
+                });
+                if (_report.Cancelled.Count > 0)
+                    c.Item().PaddingTop(2).Text($"Cancelled without settlement : {Rs(_report.Cancelled.Amount)} ({_report.Cancelled.Count}) - cancelled before the advance / refund option; not deducted above.")
+                        .FontSize(8).FontColor("#7C2D12");
+                if (_report.Edited.Count > 0)
+                    c.Item().PaddingTop(2).Text($"Edited receipts : {_report.Edited.Count} ({Rs(_report.Edited.Amount)}) replaced by revised receipts - only the revised receipts are counted.")
+                        .FontSize(8).FontColor(Muted);
+            });
+        }
+
+        private void ComposeEarlierSummary(IContainer container)
+        {
+            container.Background("#FFF7ED").Border(1).BorderColor("#FED7AA").Padding(8).Text(text =>
+            {
+                text.DefaultTextStyle(x => x.FontSize(8.5f).FontColor("#7C2D12"));
+                text.Span("Earlier receipts changed in this period : ").Bold();
+                text.Span($"Refunded {Rs(_report.EarlierRefund.Amount)} ({_report.EarlierRefund.Count})   ·   ");
+                text.Span($"Kept as advance {Rs(_report.EarlierAdvance.Amount)} ({_report.EarlierAdvance.Count})   ·   ");
+                text.Span($"Cheque bounce {Rs(_report.EarlierBounced.Amount)} ({_report.EarlierBounced.Count})");
+                if (_report.EarlierCancelled.Count > 0)
+                    text.Span($"   ·   Cancelled {Rs(_report.EarlierCancelled.Amount)} ({_report.EarlierCancelled.Count})");
+                text.Span("   - refunds and bounces are deducted from this period's cash in hand.");
+            });
+        }
+
+        private void ComposeModeTable(IContainer container)
+        {
+            var modes = _report.ByMode;
+
+            container.Column(col =>
+            {
+                col.Item().PaddingBottom(3).Text("Payment mode wise").FontSize(10).Bold().FontColor(Navy);
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.RelativeColumn(2);
+                        for (int i = 0; i < 6; i++)
+                            c.RelativeColumn(2);
+                    });
+
+                    static IContainer Head(IContainer cell) => cell.Background(Navy).PaddingVertical(4).PaddingHorizontal(5);
+                    table.Header(header =>
+                    {
+                        header.Cell().Element(Head).Text("Mode").FontColor(Colors.White).Bold();
+                        foreach (var h in new[] { "Collection", "Active", "Advance", "Refunded", "Cheque Bounce", "Cash in Hand" })
+                            header.Cell().Element(Head).AlignRight().Text(h).FontColor(Colors.White).Bold();
+                    });
+
+                    static string Cell(CollectionAmount a) => a.Count == 0 ? "-" : $"{Rs(a.Amount)} ({a.Count})";
+                    static IContainer Body(IContainer cell) => cell.BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(4).PaddingHorizontal(5);
+
+                    foreach (var m in modes)
+                    {
+                        table.Cell().Element(Body).Text(m.Mode).SemiBold();
+                        table.Cell().Element(Body).AlignRight().Text(Cell(m.Collected));
+                        table.Cell().Element(Body).AlignRight().Text(Cell(m.Active)).FontColor("#15803D");
+                        table.Cell().Element(Body).AlignRight().Text(Cell(m.Advance)).FontColor("#1D4ED8");
+                        table.Cell().Element(Body).AlignRight().Text(Cell(m.Refund)).FontColor("#B91C1C");
+                        table.Cell().Element(Body).AlignRight().Text(Cell(m.Bounced)).FontColor("#B45309");
+                        table.Cell().Element(Body).AlignRight().Text(Rs(m.Collected.Amount - m.Refund.Amount - m.Bounced.Amount)).SemiBold();
+                    }
+
+                    static IContainer Total(IContainer cell) => cell.Background("#E2E8F0").PaddingVertical(4).PaddingHorizontal(5);
+                    table.Cell().Element(Total).Text("Total").Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Cell(_report.Collected)).Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Cell(_report.Active)).Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Cell(_report.Advance)).Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Cell(_report.Refund)).Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Cell(_report.Bounced)).Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Rs(_report.Collected.Amount - _report.Refund.Amount - _report.Bounced.Amount)).Bold();
+                });
+                col.Item().PaddingTop(2).Text("Mode wise cash in hand is for the receipts of this period by their current status; refunds / bounces of earlier receipts are in the section above.")
+                    .FontSize(7).Italic().FontColor(Muted);
+            });
+        }
+
+        private static void ComposeReceiptTable(IContainer container, string title, List<StudentCollectionReportRow> rows, bool earlier)
+        {
+            container.Column(col =>
+            {
+                col.Item().PaddingBottom(3).Text($"{title}  ({rows.Count})").FontSize(10).Bold().FontColor(Navy);
+                if (rows.Count == 0)
+                {
+                    col.Item().Text("No receipts.").FontColor(Muted);
+                    return;
+                }
+
+                col.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(c =>
+                    {
+                        c.ConstantColumn(26);   // S.No
+                        c.RelativeColumn(1.4f); // receipt no
+                        c.RelativeColumn(1.4f); // receipt date
+                        c.RelativeColumn(1.5f); // student no
+                        c.RelativeColumn(3);    // student
+                        c.RelativeColumn(1.3f); // class
+                        c.RelativeColumn(2);    // mode / cheque
+                        c.RelativeColumn(1.6f); // amount
+                        c.RelativeColumn(2.1f); // status
+                        c.RelativeColumn(1.5f); // status date
+                        c.RelativeColumn(1.4f); // by
+                    });
+
+                    static IContainer Head(IContainer cell) => cell.Background("#334155").PaddingVertical(4).PaddingHorizontal(4);
+                    table.Header(header =>
+                    {
+                        foreach (var h in new[] { "S.No", "Receipt No", "Receipt Date", "Student No", "Student Name", "Class", "Mode / Cheque", "Amount", "Status", "Status Date", "By" })
+                            header.Cell().Element(Head).Text(h).FontSize(7.5f).FontColor(Colors.White).Bold();
+                    });
+
+                    var sNo = 1;
+                    foreach (var r in rows)
+                    {
+                        var back = sNo % 2 == 0 ? "#F8FAFC" : "#FFFFFF";
+                        IContainer Body(IContainer cell) => cell.Background(back).BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(3).PaddingHorizontal(4);
+                        var (statusText, statusBack) = StatusColor(r.Status);
+                        var mode = string.IsNullOrWhiteSpace(r.ChequeNo) ? r.PaymentMode : $"{r.PaymentMode} ({r.ChequeNo})";
+                        var receiptNo = string.IsNullOrWhiteSpace(r.OriginalReceiptNo) ? r.ReceiptNo : $"{r.ReceiptNo} (rev. of {r.OriginalReceiptNo})";
+                        var by = r.Status == "ACTIVE" ? r.CreatedBy : r.CancelBy ?? r.CreatedBy;
+
+                        table.Cell().Element(Body).Text($"{sNo++}");
+                        table.Cell().Element(Body).Text(receiptNo ?? "");
+                        table.Cell().Element(Body).Text(r.ReceiptDate?.ToString("dd/MM/yyyy") ?? "");
+                        table.Cell().Element(Body).Text(r.StudentNo ?? "");
+                        table.Cell().Element(Body).Text(r.StudentName ?? "");
+                        table.Cell().Element(Body).Text(r.ClassSection ?? "");
+                        table.Cell().Element(Body).Text(mode ?? "");
+                        table.Cell().Element(Body).AlignRight().Text(Rs(r.PaidAmount)).SemiBold();
+                        table.Cell().Element(Body).Element(c => c.Background(statusBack).PaddingHorizontal(3))
+                            .Text(r.StatusText).FontSize(7.5f).Bold().FontColor(statusText);
+                        table.Cell().Element(Body).Text(r.EventDate?.ToString("dd/MM/yyyy") ?? "-");
+                        table.Cell().Element(Body).Text(by ?? "");
+                    }
+
+                    static IContainer Total(IContainer cell) => cell.Background("#E2E8F0").PaddingVertical(4).PaddingHorizontal(4);
+                    table.Cell().ColumnSpan(7).Element(Total).AlignRight().Text("Total").Bold();
+                    table.Cell().Element(Total).AlignRight().Text(Rs(rows.Sum(x => x.PaidAmount))).Bold();
+                    table.Cell().ColumnSpan(3).Element(Total).Text(earlier ? "receipt date is before this period" : "").FontSize(7).FontColor(Muted);
+                });
+            });
+        }
+    }
+    #endregion
+
 }
