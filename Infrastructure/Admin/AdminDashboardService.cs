@@ -168,5 +168,23 @@ namespace Infrastructure.Admin
             }
         }
 
+        public async Task<FeeManagementDashboardModel> GetFeeManagementDashboard(AdmissionDashboardRequest request)
+        {
+            using var con = new SqlConnection(_connectionString);
+            var param = new DynamicParameters();
+            param.Add("@GroupCode", request.GroupCode);
+            param.Add("@BranchCode", request.BranchCode);
+            param.Add("@SessionId", request.SessionId);
+            param.Add("@FromDate", request.FromDate?.Date, DbType.Date);
+            param.Add("@ToDate", request.ToDate?.Date, DbType.Date);
+
+            var result = await con.QueryFirstOrDefaultAsync<FeeManagementDashboardModel>(
+                "V3M_FIN_GetFeeManagementDashboard",
+                param,
+                commandType: CommandType.StoredProcedure);
+
+            return result ?? new FeeManagementDashboardModel();
+        }
+
     }
 }

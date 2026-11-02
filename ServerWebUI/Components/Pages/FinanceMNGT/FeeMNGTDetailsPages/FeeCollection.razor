@@ -2163,6 +2163,36 @@ else
         StateHasChanged();
     }
 
+    // Reloads StudentBalance / PreviousBalance of the selected student after a receipt is saved
+    private async Task RefreshSelectedStudentBalance()
+    {
+        if (selectedStudent.StudentId <= 0 || string.IsNullOrWhiteSpace(selectedStudent.ControlNo))
+            return;
+
+        try
+        {
+            var request = new StudentDetailsForFeeRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                ControlNo = selectedStudent.ControlNo,
+                StudentName = string.Empty,
+                ReceiptDate = studentDetailsForFeeRequest.ReceiptDate,
+                UpToDate = studentDetailsForFeeRequest.UpToDate
+            };
+
+            var response = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", request);
+            var fresh = response?.Data?.FirstOrDefault(s => s.StudentId == selectedStudent.StudentId);
+            if (response?.Success == true && fresh != null)
+                selectedStudent = fresh;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing student balance: {ex.Message}");
+        }
+    }
+
     private async Task SelectStudent(StudentDetailsForFee item)
     {
         selectedStudent = item;
@@ -2304,6 +2334,9 @@ else
 
                 await Alert.ShowSuccess($"Fee collected successfully. Receipt No: {response.Data.StudentReceiptNo}");
                 adjustStudentFeeHeadWise = new();
+                // student's balance / advance changed with this receipt: reload them so the next receipt
+                // for the same student does not use the old values
+                await RefreshSelectedStudentBalance();
                 await GetStudentFeeDetails();
                 StateHasChanged();
             }

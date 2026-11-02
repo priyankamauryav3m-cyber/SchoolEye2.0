@@ -1629,6 +1629,39 @@ namespace DomainModel.Admin
 
     }
 
+    /// <summary>Fee Management dashboard (/FeeManagement) - one row from V3M_FIN_GetFeeManagementDashboard.</summary>
+    public class FeeManagementDashboardModel
+    {
+        public int TotalStudents { get; set; }
+        public int TransportUsers { get; set; }
+        public int TotalStaff { get; set; }
+        public int EwsStudents { get; set; }
+
+        // Session totals
+        public decimal TotalFeeDue { get; set; }
+        public decimal TotalConcession { get; set; }
+        public decimal TotalWaiveOff { get; set; }
+        public decimal LateFine { get; set; }
+        public decimal TotalReceived { get; set; }
+        public decimal TotalOutstanding { get; set; }
+        public decimal PreSessionAdvance { get; set; }
+        public decimal CurrentAdvance { get; set; }
+
+        // Selected period (Today / This Week / This Month / This Year)
+        public decimal PeriodCollected { get; set; }
+        public decimal PeriodCash { get; set; }
+        public decimal PeriodCheque { get; set; }
+        public decimal PeriodOnline { get; set; }
+        public decimal PeriodOther { get; set; }
+        public int PeriodReceiptCount { get; set; }
+
+        public decimal TotalExpenses { get; set; }
+        public decimal TodayExpenses { get; set; }
+
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+    }
+
     public class FeeHeadCollectionDto
     {
         public int FeeHeadId { get; set; }

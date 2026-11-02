@@ -15,6 +15,7 @@ namespace ApplicationInterface.Admin
         public Task<AdmissionDashboardModel> GetAdmissionData(SearchAnyRequestModel model);
         Task<EnquiryDashboardResponse> GetDashboardAsync(EnquiryDashboardSearchRequest model);
         Task<AdmissionDashboardModel> GetAdmissionHeadDashboard(AdmissionDashboardRequest request);
+        Task<FeeManagementDashboardModel> GetFeeManagementDashboard(AdmissionDashboardRequest request);
 
 
 

@@ -29,6 +29,52 @@
         color: #1e7fb0 !important;
     }
 
+    /* 03 - collection total: bigger and bolder so it stands out */
+    .collection-total-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 14px 18px;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #ecfdf5 0%, #f0f9ff 100%);
+        border: 1px solid #d1fae5;
+    }
+
+    .collection-total-box .collection-total-label {
+        font-size: .9rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .collection-total-box .collection-total-label small {
+        display: block;
+        font-weight: 500;
+        color: #94a3b8;
+    }
+
+    .collection-total-box .collection-total-amount {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: #047857;
+        letter-spacing: .3px;
+        white-space: nowrap;
+    }
+
+    .collection-total-box .collection-total-amount .rupee {
+        font-weight: 800;
+        margin-right: 4px;
+    }
+
+    @@media (max-width: 576px) {
+        .collection-total-box .collection-total-amount {
+            font-size: 1.6rem;
+        }
+    }
+
 </style>
 <section class="main-container">
     <div class="row m-0 main-row">
@@ -57,7 +103,7 @@
                             </button>
                         </div>
                         <div class="form-box">
-                            <InputSelect @bind-Value="@CurrentSession" class="form-input">
+                            <InputSelect @bind-Value="@CurrentSession" @bind-Value:after="OnSessionChanged" class="form-input">
                                 <option value="0">-- Select Session --</option>
                                 @foreach (var data in sessionlist.Where(x => x.IsValid == true))
                                 {
@@ -127,7 +173,7 @@
                                     <h5 class="card-title-custom mb-0">
                                         <span class="status-badge me-2">02</span>Fees &amp; balances
                                     </h5>
-                                    <span class="text-muted small">All amounts in INR</span>
+                                    <span class="text-muted small">Session total · All amounts in INR</span>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6 col-md-3">
@@ -172,14 +218,17 @@
                             <div class="dashboard-card h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h6 class="card-title-custom mb-0">
-                                        <span class="status-badge me-2">03</span>Today's collection
+                                        <span class="status-badge me-2">03</span>@CollectionTitle
                                     </h6>
                                     <span class="text-muted small">By payment mode</span>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <span class="text-muted small">Total collected</span>
-                                    <h4 class="fw-bold mb-0">₹ @dashAnimator.Amount(TodayTotalCollected)</h4>
+                                <div class="collection-total-box">
+                                    <div class="collection-total-label">
+                                        Total collected
+                                        <small>@PeriodText · @dashAnimator.Count(feeDashboard.PeriodReceiptCount) receipt(s)</small>
+                                    </div>
+                                    <div class="collection-total-amount"><span class="rupee">₹</span>@dashAnimator.Amount(TodayTotalCollected)</div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-6">
@@ -257,29 +306,93 @@
     // Cards entrance + number count-up animation (shared with other dashboards)
     private readonly DashboardCountAnimator dashAnimator = new();
 
-    // TODO: Static values for now - replace with API data (FeeManagement dashboard endpoint) later
-    private int TotalStudents = 1886;
-    private int TransportUsers = 352;
-    private int TotalStaff = 20;
-    private int EwsStudents = 0;
+    // Live data from AdminDashboard/GetFeeManagementDashboard (SP V3M_FIN_GetFeeManagementDashboard)
+    private FeeManagementDashboardModel feeDashboard = new();
 
-    private decimal TotalFeeDue = 128536473.00m;
-    private decimal TotalConcession = 287270.00m;
-    private decimal TotalWaiveOff = 5000.00m;
-    private decimal LateFine = 0.00m;
-    private decimal TotalReceived = 1224841.00m;
-    private decimal TotalOutstanding = 127028422.00m;
-    private decimal PreSessionAdvance = 1485.00m;
-    private decimal CurrentAdvance = -5545.00m;
+    private int TotalStudents => feeDashboard.TotalStudents;
+    private int TransportUsers => feeDashboard.TransportUsers;
+    private int TotalStaff => feeDashboard.TotalStaff;
+    private int EwsStudents => feeDashboard.EwsStudents;
 
-    private decimal TodayTotalCollected = 136160.00m;
-    private decimal TodayCash = 136160.00m;
-    private decimal TodayCheque = 0.00m;
-    private decimal TodayOnline = 0.00m;
-    private decimal TodayOther = 0.00m;
+    private decimal TotalFeeDue => feeDashboard.TotalFeeDue;
+    private decimal TotalConcession => feeDashboard.TotalConcession;
+    private decimal TotalWaiveOff => feeDashboard.TotalWaiveOff;
+    private decimal LateFine => feeDashboard.LateFine;
+    private decimal TotalReceived => feeDashboard.TotalReceived;
+    private decimal TotalOutstanding => feeDashboard.TotalOutstanding;
+    private decimal PreSessionAdvance => feeDashboard.PreSessionAdvance;
+    private decimal CurrentAdvance => feeDashboard.CurrentAdvance;
 
-    private decimal TotalExpenses = 0.00m;
-    private decimal TodayExpenses = 0.00m;
+    private decimal TodayTotalCollected => feeDashboard.PeriodCollected;
+    private decimal TodayCash => feeDashboard.PeriodCash;
+    private decimal TodayCheque => feeDashboard.PeriodCheque;
+    private decimal TodayOnline => feeDashboard.PeriodOnline;
+    private decimal TodayOther => feeDashboard.PeriodOther;
+
+    private decimal TotalExpenses => feeDashboard.TotalExpenses;
+    private decimal TodayExpenses => feeDashboard.TodayExpenses;
+
+    private string CollectionTitle => SelectedPeriod switch
+    {
+        "ThisWeek" => "This week's collection",
+        "ThisMonth" => "This month's collection",
+        "ThisYear" => "This year's collection",
+        _ => "Today's collection"
+    };
+
+    private string PeriodText
+    {
+        get
+        {
+            var from = searchAnyRequest.FromDate ?? DateTime.Today;
+            var to = searchAnyRequest.ToDate ?? from;
+            return from.Date == to.Date
+                ? from.ToString("dd MMM yyyy")
+                : $"{from:dd MMM yyyy} - {to:dd MMM yyyy}";
+        }
+    }
+
+    private async Task GetFeeManagementDashboard()
+    {
+        if (CurrentSession <= 0 || string.IsNullOrWhiteSpace(groupcode) || string.IsNullOrWhiteSpace(branchcode))
+        {
+            feeDashboard = new();
+            return;
+        }
+
+        var request = new AdmissionDashboardRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            FromDate = searchAnyRequest.FromDate,
+            ToDate = searchAnyRequest.ToDate
+        };
+
+        try
+        {
+            var response = await httpService.Post<ApiResponse<FeeManagementDashboardModel>>("AdminDashboard/GetFeeManagementDashboard", request);
+            if (response?.Success == true)
+            {
+                feeDashboard = response.Data ?? new();
+            }
+            else
+            {
+                feeDashboard = new();
+                await customAlert.ShowCustomAlert(response?.Message ?? "Unable to load the fee dashboard.", false);
+            }
+        }
+        catch (Exception)
+        {
+            feeDashboard = new();
+            await customAlert.ShowCustomAlert("Unable to load the fee dashboard.", false);
+        }
+    }
+
+    private async Task OnSessionChanged()
+    {
+        await ApplyPeriodFilter(SelectedPeriod);
+    }
 
     public void Dispose() => dashAnimator.Dispose();
     string fromDateString = "", toDateString = "";
@@ -411,11 +524,8 @@
             searchAnyRequest.GroupCode = groupcode;
             searchAnyRequest.BranchCode = branchcode;
             searchAnyRequest.SessionId = CurrentSession;
-            var apiResponse = await httpService.Post<ApiResponse<AdmissionDashboardModel>>("AdminDashboard/GetAdmissionDashboardData", searchAnyRequest) ?? new();
-            if (apiResponse.Success == true)
-            {
-                admissionDashboardpipeline = apiResponse.Data ?? new();
-            }
+            // Fee dashboard cards (02, 03, 04 and the top counts) come from this one call
+            await GetFeeManagementDashboard();
         }
         finally
         {
