@@ -119,10 +119,10 @@ namespace Infrastructure.StudentDocument
             var document = new ParentFormatReceiptPdfDocument(receipt);
             return document.GeneratePdf();
         }
-        public async Task<byte[]> GenerateRefundReceiptPdf(RefundReceiptPrintModel refund)
+        public async Task<byte[]> GenerateRefundReceiptPdf(RefundReceiptPrintModel refund, bool withCopies = false)
         {
             QuestPDF.Settings.License = LicenseType.Community;
-            var document = new RefundReceiptPdfDocument(refund);
+            var document = new RefundReceiptPdfDocument(refund, withCopies ? new[] { "SCHOOL COPY", "PARENT COPY" } : null);
             return document.GeneratePdf();
         }
         public async Task<byte[]> GenerateStudentReceiptListPdf(StudentReceiptListPrintRequest request)

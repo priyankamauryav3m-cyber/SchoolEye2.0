@@ -84,17 +84,69 @@
             color: #fff;
         }
 
-    /* cancel popup: Keep as Advance / Refund to Parent (same look as the Edit Receipt options) */
-    .cancel-settle-title { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
-    .cancel-settle-option {
-        border: 2px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; cursor: pointer;
-        display: flex; gap: 8px; align-items: flex-start; height: 100%; background: #fff;
+    /* ---------- Cancel Receipt popup: receipt summary + 2 cards ---------- */
+    .cr-summary {
+        display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center;
+        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 10px 16px; margin-bottom: 14px;
     }
+    .cr-summary-item span { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; color: #64748b; }
+    .cr-summary-item strong { font-size: 14px; color: #0f172a; }
+    .cr-summary-item strong small { color: #64748b; font-weight: 500; }
+    .cr-summary-amount { margin-left: auto; text-align: right; }
+    .cr-summary-amount strong { font-size: 18px; color: #b91c1c; }
+
+    .cr-card { border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; height: 100%; box-shadow: 0 1px 3px rgba(15, 23, 42, .06); }
+    .cr-card-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }
+    .cr-card-head h6 { margin: 0; font-size: 14px; font-weight: 700; color: #0f172a; }
+    .cr-card-head small { color: #64748b; font-size: 12px; }
+    .cr-card-icon { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    .cr-icon-red { background: #fef2f2; color: #dc2626; }
+    .cr-icon-orange { background: #fff7ed; color: #ea580c; }
+    .cr-card-body { padding: 18px 16px 12px; }
+    .cr-reason { min-height: 84px; resize: vertical; padding-top: 10px; }
+    .cr-counter { text-align: right; font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    /* settlement options (Keep as Advance / Refund to Parent) */
+    .cancel-settle-title { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; }
+    .cancel-settle-option {
+        border: 2px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+        display: flex; gap: 10px; align-items: center; background: #fff; transition: border-color .15s, background .15s;
+    }
+    .cancel-settle-option:hover { border-color: #fdba74; }
     .cancel-settle-option.active { border-color: #f97316; background: #fff7ed; }
-    .cancel-settle-option strong { display: block; font-size: 13px; }
+    .cancel-settle-option strong { display: block; font-size: 13px; color: #0f172a; }
     .cancel-settle-option span { font-size: 11.5px; color: #6b7280; }
-    .cancel-settle-contact { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; cursor: pointer; }
-    .cancel-settle-warn { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+    .cancel-settle-option .cr-option-icon {
+        width: 32px; height: 32px; border-radius: 8px; background: #f1f5f9; color: #475569;
+        display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+    }
+    .cancel-settle-option.active .cr-option-icon { background: #ffedd5; color: #ea580c; }
+
+    /* refund OTP section */
+    .cr-otp-box { margin-top: 12px; padding: 12px; border: 1px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; }
+    .cancel-settle-contact {
+        display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 7px 10px; cursor: pointer; margin: 0;
+        border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;
+    }
+    .cancel-settle-contact.active { border-color: #f97316; background: #fff7ed; }
+    .cancel-settle-contact b { margin-left: auto; color: #0f172a; }
+    .cr-otp-input { letter-spacing: 6px; font-weight: 700; text-align: center; }
+    .cancel-settle-warn { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+
+    /* right card when there is nothing to settle */
+    .cr-empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        gap: 6px; min-height: 200px; padding: 16px; color: #64748b;
+        border: 1px dashed #e2e8f0; border-radius: 10px; background: #f8fafc;
+    }
+    .cr-empty i { font-size: 28px; color: #94a3b8; }
+    .cr-empty strong { color: #334155; font-size: 14px; }
+    .cr-empty span { font-size: 12.5px; max-width: 320px; }
+
+    @@media (max-width: 575px) {
+        .cr-summary-amount { margin-left: 0; text-align: left; }
+    }
 
     /* loader must show over the Receipt Details popup (.custom-modal is z-index 999999999) */
     .grid-loader-overlay.above-popup {
@@ -191,11 +243,11 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentNo) ? " " : x.StudentNo)" Title="Student No" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? (x.ClassName ?? " ") : x.ClassSection)" Title="Class" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => RowTotal(x).ToString("N2"))" Title="Total" Class="text-right" Align="Align.Right" />
-                                <PropertyColumn Property="@(x => (x.PaidAmount ?? 0).ToString("N2"))" Title="Paid" Class="text-right" Align="Align.Right" />
-                                <PropertyColumn Property="@(x => (x.Concession ?? 0).ToString("N2"))" Title="Concession" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => Money(RowTotal(x)))" Title="Total" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => Money(x.PaidAmount))" Title="Paid" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => Money(x.Concession))" Title="Concession" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ConcessionName) ? " " : x.ConcessionName)" Title="Concession Name" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => (x.Balance ?? 0).ToString("N2"))" Title="Balance" Class="text-right" Align="Align.Right" />
+                                <PropertyColumn Property="@(x => Money(x.Balance))" Title="Balance" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? " " : x.PaymentMode)" Title="Mode" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PeriodName) ? " " : x.PeriodName)" Title="Period" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remark) ? " " : x.Remark)" Title="Remarks" Align="Align.Left" />
@@ -222,9 +274,9 @@
                         @* totals of the whole searched list, shown inside the grid above the pager *@
                         <div class="d-flex align-items-center gap-3 px-2 py-1 fw-bold border-top flex-wrap">
                             <span>Receipt(s) : @receiptlist.Count</span>
-                            <span class="text-danger">Total : @receiptlist.Sum(RowTotal).ToString("N2")</span>
-                            <span class="text-success">Received : @receiptlist.Sum(x => x.PaidAmount ?? 0).ToString("N2")</span>
-                            <span class="text-info">Concession : @receiptlist.Sum(x => x.Concession ?? 0).ToString("N2")</span>
+                            <span class="text-danger">Total : @Money(receiptlist.Sum(RowTotal))</span>
+                            <span class="text-success">Received : @Money(receiptlist.Sum(x => x.PaidAmount ?? 0))</span>
+                            <span class="text-info">Concession : @Money(receiptlist.Sum(x => x.Concession ?? 0))</span>
                         </div>
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center">
@@ -489,10 +541,10 @@
                                         <div class="grid-box scrollbar-thin" style="max-height: 300px; min-height:100px;">
                                             <QuickGrid Items="@receiptDetailQuery" Class="table">
                                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.HeadName) ? " " : x.HeadName)" Title="Fee Head" Align="Align.Left" />
-                                                <PropertyColumn Property="@(x => (x.HeadAmount ?? 0).ToString("N2"))" Title="Head Amount" Class="text-right" Align="Align.Right" />
-                                                <PropertyColumn Property="@(x => (x.TotalAmount ?? 0).ToString("N2"))" Title="Amount" Class="text-right" Align="Align.Right" />
-                                                <PropertyColumn Property="@(x => (x.Concession ?? 0).ToString("N2"))" Title="Concession" Class="text-right" Align="Align.Right" />
-                                                <PropertyColumn Property="@(x => (x.PaidAmount ?? 0).ToString("N2"))" Title="Paid Amount" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => Money(x.HeadAmount))" Title="Head Amount" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => Money(x.TotalAmount))" Title="Amount" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => Money(x.Concession))" Title="Concession" Class="text-right" Align="Align.Right" />
+                                                <PropertyColumn Property="@(x => Money(x.PaidAmount))" Title="Paid Amount" Class="text-right" Align="Align.Right" />
                                             </QuickGrid>
                                         </div>
                                     </div>
@@ -508,43 +560,43 @@
                                         <div class="col-6">
                                             <div class="invoice-amount-tile tile-blue">
                                                 <span>Prev. Balance</span>
-                                                <strong>₹ @((receiptHeader.PreviousBalance ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.PreviousBalance)</strong>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <div class="invoice-amount-tile tile-blue">
                                                 <span>Total Fee</span>
-                                                <strong>₹ @((receiptHeader.TotalAmount ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.TotalAmount)</strong>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <div class="invoice-amount-tile tile-green">
                                                 <span>Concession</span>
-                                                <strong>₹ @((receiptHeader.Concession ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.Concession)</strong>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <div class="invoice-amount-tile tile-amber">
                                                 <span>Late Fee</span>
-                                                <strong>₹ @((receiptHeader.LateFee ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.LateFee)</strong>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <div class="invoice-amount-tile tile-teal">
                                                 <span>Payable</span>
-                                                <strong>₹ @((receiptHeader.PayableAmount ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.PayableAmount)</strong>
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <div class="invoice-amount-tile tile-green">
                                                 <span>Total Paid</span>
-                                                <strong>₹ @((receiptHeader.PaidAmount ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.PaidAmount)</strong>
                                             </div>
                                         </div>
                                         <div class="col-12">
                                             <div class="invoice-amount-tile tile-navy">
                                                 <span>Curr. Balance</span>
-                                                <strong>₹ @((receiptHeader.Balance ?? 0).ToString("N2"))</strong>
+                                                <strong>@Money(receiptHeader.Balance)</strong>
                                             </div>
                                         </div>
                                     </div>
@@ -605,132 +657,207 @@
 }
 
 @* ---------------- Cancel Receipt popup (bottom Cancel button) ---------------- *@
+@* left card: cancel type / date / reason, right card: what happens to the received amount (advance / refund + OTP) *@
 @if (ShowCancelPopup && cancelReceipt != null)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+        <div class="col-12 col-lg-11 col-xl-9">
             <div class="modal-content clearfix main-popup">
                 <div class="head-btn">
                     <h5 class="modal-title">@(IsChequeBounceCancel ? "Cheque Bounce" : "Cancel Receipt") &nbsp;&middot;&nbsp; @cancelReceipt.ReceiptNo</h5>
                     <button data-access="Close" type="button" @onclick="CloseCancelPopup" class="close"><span aria-hidden="true">×</span></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row m-0 form-row">
-                        @* required messages show in red under each field after Submit and clear as soon as the value is filled *@
-                        <div class="col-12 mb-4">
-                            <div class="form-box-group static-label">
-                                <InputSelect class="@CancelTypeInputClass" placeholder=" " @bind-Value="cancelRequest.CancelType">
-                                    <option value="0">-- Select --</option>
-                                    <option value="1">Cheque Bounce</option>
-                                    <option value="2">Other</option>
-                                </InputSelect>
-                                <label class="floating-label">Cancel Type <span class="required">*</span></label>
-                                @if (CancelTypeError)
-                                {
-                                    <div class="validation-message">Please select cancel type.</div>
-                                }
-                            </div>
+                    @* selected receipt summary *@
+                    <div class="cr-summary">
+                        <div class="cr-summary-item">
+                            <span>Receipt No.</span>
+                            <strong>@cancelReceipt.ReceiptNo</strong>
                         </div>
-                        <div class="col-12 mb-4">
-                            <div class="form-box-group static-label">
-                                <InputDate class="@CancelDateInputClass" placeholder=" " @bind-Value="cancelRequest.CancelledDate" />
-                                <label class="floating-label">Date <span class="required">*</span></label>
-                                @if (CancelDateError)
-                                {
-                                    <div class="validation-message">Please select date.</div>
-                                }
-                            </div>
+                        <div class="cr-summary-item">
+                            <span>Student</span>
+                            <strong>@cancelReceipt.StudentName <small>(@cancelReceipt.StudentNo)</small></strong>
                         </div>
-                        <div class="col-12 mb-4">
-                            <div class="form-box-group">
-                                <input class="floating-input @(CancelReasonError ? "is-required-empty" : "")"
-                                       placeholder=" " maxlength="250" autocomplete="off"
-                                       @bind="cancelRequest.Remark" @bind:event="oninput" />
-                                <label class="floating-label">Cancel Reason <span class="required">*</span></label>
-                                @if (CancelReasonError)
-                                {
-                                    <div class="validation-message">Cancel reason is required.</div>
-                                }
-                            </div>
+                        <div class="cr-summary-item">
+                            <span>Class</span>
+                            <strong>@(string.IsNullOrWhiteSpace(cancelReceipt.ClassSection) ? cancelReceipt.ClassName : cancelReceipt.ClassSection)</strong>
                         </div>
+                        <div class="cr-summary-item">
+                            <span>Receipt Date</span>
+                            <strong>@(cancelReceipt.ReceiptDate?.ToString("dd/MM/yyyy"))</strong>
+                        </div>
+                        <div class="cr-summary-item cr-summary-amount">
+                            <span>Paid Amount</span>
+                            <strong>@Money(cancelReceipt.PaidAmount)</strong>
+                        </div>
+                    </div>
 
-                        @* Cancel Type = Other: the money received is kept as advance or refunded (cheque bounce = money never received) *@
-                        @if (HasSettlement)
-                        {
-                            <div class="col-12 mb-2">
-                                <div class="cancel-settle-title">Amount ₹ @((cancelReceipt.PaidAmount ?? 0).ToString("N2")) <span class="required">*</span></div>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="cancel-settle-option @(settlementMode == 1 ? "active" : "")" @onclick="() => SelectSettlement(1)">
-                                            <input type="radio" name="cancelSettle" checked="@(settlementMode == 1)" />
-                                            <div><strong>Keep as Advance</strong><span>Dues come back, amount stays as student advance and is adjusted in the next fee.</span></div>
+                    <div class="row g-3">
+                        @* ---------- Card 1 : cancellation details ---------- *@
+                        <div class="col-12 col-lg-6">
+                            <div class="cr-card">
+                                <div class="cr-card-head">
+                                    <span class="cr-card-icon cr-icon-red"><i class="bi bi-x-octagon"></i></span>
+                                    <div>
+                                        <h6>Cancellation Details</h6>
+                                        <small>Why and when this receipt is cancelled</small>
+                                    </div>
+                                </div>
+                                <div class="cr-card-body">
+                                    @* required messages show in red under each field after Submit and clear as soon as the value is filled *@
+                                    <div class="mb-4">
+                                        <div class="form-box-group static-label">
+                                            <InputSelect class="@CancelTypeInputClass" placeholder=" " @bind-Value="cancelRequest.CancelType">
+                                                <option value="0">-- Select --</option>
+                                                <option value="1">Cheque Bounce</option>
+                                                <option value="2">Other</option>
+                                            </InputSelect>
+                                            <label class="floating-label">Cancel Type <span class="required">*</span></label>
+                                            @if (CancelTypeError)
+                                            {
+                                                <div class="validation-message">Please select cancel type.</div>
+                                            }
                                         </div>
                                     </div>
-                                    <div class="col-6">
-                                        <div class="cancel-settle-option @(settlementMode == 2 ? "active" : "")" @onclick="() => SelectSettlement(2)">
-                                            <input type="radio" name="cancelSettle" checked="@(settlementMode == 2)" />
-                                            <div><strong>Refund to Parent</strong><span>Dues come back, amount is returned. OTP to the parent is required.</span></div>
+                                    <div class="mb-4">
+                                        <div class="form-box-group static-label">
+                                            <InputDate class="@CancelDateInputClass" placeholder=" " @bind-Value="cancelRequest.CancelledDate" />
+                                            <label class="floating-label">Date <span class="required">*</span></label>
+                                            @if (CancelDateError)
+                                            {
+                                                <div class="validation-message">Please select date.</div>
+                                            }
                                         </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="form-box-group">
+                                            <textarea class="floating-input cr-reason @(CancelReasonError ? "is-required-empty" : "")"
+                                                      placeholder=" " maxlength="250" rows="3" autocomplete="off"
+                                                      @bind="cancelRequest.Remark" @bind:event="oninput"></textarea>
+                                            <label class="floating-label">Cancel Reason <span class="required">*</span></label>
+                                            @if (CancelReasonError)
+                                            {
+                                                <div class="validation-message">Cancel reason is required.</div>
+                                            }
+                                        </div>
+                                        <div class="cr-counter">@(cancelRequest.Remark?.Length ?? 0)/250</div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            @if (settlementMode == 2)
-                            {
-                                <div class="col-12 mb-2">
-                                    @if (refundContacts == null)
+                        @* ---------- Card 2 : amount settlement (Cancel Type = Other only; cheque bounce = money never received) ---------- *@
+                        <div class="col-12 col-lg-6">
+                            <div class="cr-card">
+                                <div class="cr-card-head">
+                                    <span class="cr-card-icon cr-icon-orange"><i class="bi bi-wallet2"></i></span>
+                                    <div>
+                                        <h6>Amount Settlement</h6>
+                                        <small>What happens to @Money(cancelReceipt.PaidAmount) received</small>
+                                    </div>
+                                </div>
+                                <div class="cr-card-body">
+                                    @if (HasSettlement)
                                     {
-                                        <div class="text-muted small">Loading parent contacts...</div>
-                                    }
-                                    else if (!refundContacts.HasEmail && !refundContacts.HasMobile)
-                                    {
-                                        <div class="cancel-settle-warn"><i class="bi bi-exclamation-triangle-fill"></i> No email or SMS mobile no. found for the parent. Update the parent details to refund.</div>
+                                        <div class="cancel-settle-title">Choose an option <span class="required">*</span></div>
+                                        <div class="d-flex flex-column gap-2">
+                                            <div class="cancel-settle-option @(settlementMode == 1 ? "active" : "")" @onclick="() => SelectSettlement(1)">
+                                                <input type="radio" name="cancelSettle" checked="@(settlementMode == 1)" />
+                                                <span class="cr-option-icon"><i class="bi bi-piggy-bank"></i></span>
+                                                <div><strong>Keep as Advance</strong><span>Dues come back, amount stays as student advance and is adjusted in the next fee.</span></div>
+                                            </div>
+                                            <div class="cancel-settle-option @(settlementMode == 2 ? "active" : "")" @onclick="() => SelectSettlement(2)">
+                                                <input type="radio" name="cancelSettle" checked="@(settlementMode == 2)" />
+                                                <span class="cr-option-icon"><i class="bi bi-arrow-return-left"></i></span>
+                                                <div><strong>Refund to Parent</strong><span>Dues come back, amount is returned. OTP to the parent is required.</span></div>
+                                            </div>
+                                        </div>
+
+                                        @if (settlementMode == 2)
+                                        {
+                                            <div class="cr-otp-box">
+                                                @if (refundContacts == null)
+                                                {
+                                                    <div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span> Loading parent contacts...</div>
+                                                }
+                                                else if (!refundContacts.HasEmail && !refundContacts.HasMobile)
+                                                {
+                                                    <div class="cancel-settle-warn"><i class="bi bi-exclamation-triangle-fill"></i> No email or SMS mobile no. found for the parent. Update the parent details to refund.</div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="cancel-settle-title"><i class="bi bi-shield-lock"></i> Verify with OTP &middot; send to</div>
+                                                    <div class="d-flex flex-column gap-2">
+                                                        @if (refundContacts.HasEmail)
+                                                        {
+                                                            <label class="cancel-settle-contact @(otpChannel == "Email" ? "active" : "")">
+                                                                <input type="radio" name="otpChannel" checked="@(otpChannel == "Email")" @onchange='() => otpChannel = "Email"' />
+                                                                <i class="bi bi-envelope"></i> Email <b>@refundContacts.MaskedEmail</b>
+                                                            </label>
+                                                        }
+                                                        @if (refundContacts.HasMobile)
+                                                        {
+                                                            <label class="cancel-settle-contact @(otpChannel == "Mobile" ? "active" : "")">
+                                                                <input type="radio" name="otpChannel" checked="@(otpChannel == "Mobile")" @onchange='() => otpChannel = "Mobile"' />
+                                                                <i class="bi bi-phone"></i> SMS <b>@refundContacts.MaskedMobile</b>
+                                                            </label>
+                                                        }
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                                        <button type="button" class="table-btn" @onclick="SendRefundOtp" disabled="@IsLoading">
+                                                            <i class="bi bi-send"></i> @(otpSentTo == null ? "Send OTP" : "Resend OTP")
+                                                        </button>
+                                                        @if (otpSentTo != null)
+                                                        {
+                                                            <span class="small text-success"><i class="bi bi-check-circle-fill"></i> OTP sent to @otpSentTo</span>
+                                                        }
+                                                    </div>
+
+                                                    @if (otpSentTo != null)
+                                                    {
+                                                        <div class="mt-3 mb-2">
+                                                            <div class="form-box-group">
+                                                                <input class="floating-input cr-otp-input @(OtpError ? "is-required-empty" : "")" placeholder=" " maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                                                                       @bind="refundOtp" @bind:event="oninput" />
+                                                                <label class="floating-label">OTP <span class="required">*</span></label>
+                                                                @if (OtpError)
+                                                                {
+                                                                    <div class="validation-message">Please enter the 6 digit OTP.</div>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                }
+                                            </div>
+                                        }
                                     }
                                     else
                                     {
-                                        <div class="cancel-settle-title">Send OTP to</div>
-                                        @if (refundContacts.HasEmail)
-                                        {
-                                            <label class="cancel-settle-contact">
-                                                <input type="radio" name="otpChannel" checked="@(otpChannel == "Email")" @onchange='() => otpChannel = "Email"' />
-                                                <i class="bi bi-envelope"></i> Email &nbsp;<b>@refundContacts.MaskedEmail</b>
-                                            </label>
-                                        }
-                                        @if (refundContacts.HasMobile)
-                                        {
-                                            <label class="cancel-settle-contact">
-                                                <input type="radio" name="otpChannel" checked="@(otpChannel == "Mobile")" @onchange='() => otpChannel = "Mobile"' />
-                                                <i class="bi bi-phone"></i> SMS &nbsp;<b>@refundContacts.MaskedMobile</b>
-                                            </label>
-                                        }
-                                        <div class="d-flex align-items-center gap-2 mt-1">
-                                            <button type="button" class="table-btn" @onclick="SendRefundOtp" disabled="@IsLoading">
-                                                <i class="bi bi-send"></i> @(otpSentTo == null ? "Send OTP" : "Resend OTP")
-                                            </button>
-                                            @if (otpSentTo != null)
+                                        @* nothing to settle: show why *@
+                                        <div class="cr-empty">
+                                            @if (IsChequeBounceCancel || cancelRequest.CancelType == 1)
                                             {
-                                                <span class="small text-success">OTP sent to @otpSentTo</span>
+                                                <i class="bi bi-bank"></i>
+                                                <strong>No settlement needed</strong>
+                                                <span>Cheque bounce: the amount was never received, so there is nothing to keep as advance or refund. Dues of this receipt come back.</span>
+                                            }
+                                            else if ((cancelReceipt.PaidAmount ?? 0) <= 0)
+                                            {
+                                                <i class="bi bi-info-circle"></i>
+                                                <strong>No amount received</strong>
+                                                <span>This receipt has no paid amount, so there is nothing to settle.</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-hand-index"></i>
+                                                <strong>Select Cancel Type</strong>
+                                                <span>Choose Cancel Type = Other to keep the amount as advance or refund it to the parent.</span>
                                             }
                                         </div>
                                     }
                                 </div>
-
-                            @if (otpSentTo != null)
-                            {
-                                <div class="col-12 mb-4 mt-2">
-                                    <div class="form-box-group">
-                                        <input class="floating-input @(OtpError ? "is-required-empty" : "")" placeholder=" " maxlength="6" inputmode="numeric" autocomplete="one-time-code"
-                                               @bind="refundOtp" @bind:event="oninput" />
-                                        <label class="floating-label">OTP <span class="required">*</span></label>
-                                        @if (OtpError)
-                                        {
-                                            <div class="validation-message">Please enter the 6 digit OTP.</div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                            }
-                        }
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1607,8 +1734,8 @@
 
         var confirmText = settleMode switch
         {
-            1 => $"Receipt {cancelReceipt.ReceiptNo} will be cancelled and ₹ {(cancelReceipt.PaidAmount ?? 0):N2} kept as student advance. Continue?",
-            2 => $"Receipt {cancelReceipt.ReceiptNo} will be cancelled and ₹ {(cancelReceipt.PaidAmount ?? 0):N2} refunded to the parent. Continue?",
+            1 => $"Receipt {cancelReceipt.ReceiptNo} will be cancelled and {Money(cancelReceipt.PaidAmount)} kept as student advance. Continue?",
+            2 => $"Receipt {cancelReceipt.ReceiptNo} will be cancelled and {Money(cancelReceipt.PaidAmount)} refunded to the parent. Continue?",
             _ => null
         };
         if (confirmText != null && !await Alert.ShowConfirm(confirmText))
@@ -1641,8 +1768,14 @@
 
             if (response != null && response.Success)
             {
+                // CloseCancelPopup clears cancelReceipt: keep the id for the refund receipt print
+                var cancelledReceiptId = cancelRequest.ReceiptId;
+                var isRefund = !IsChequeBounceCancel && settleMode == 2;
                 CloseCancelPopup();
                 await Alert.ShowSuccess(response.Message ?? "Receipt cancelled successfully.");
+                // refunded: the same refund receipt as in the mail opens for print (School Copy + Parent Copy)
+                if (isRefund)
+                    await PrintRefundReceipt(cancelledReceiptId);
                 await SearchReceipt();
             }
             else
@@ -1655,6 +1788,38 @@
             IsLoading = false;
             StateHasChanged();
             await Alert.ShowError(string.IsNullOrWhiteSpace(ex.Message) ? "Unable to cancel the receipt." : ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // refund receipt (StudentFeeReceipt/GenerateRefundReceiptPdf): School Copy + Parent Copy, opens in a new tab.
+    // The refund is already saved, so a print failure is only a warning.
+    private async Task PrintRefundReceipt(long receiptId)
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<string>>("StudentFeeReceipt/GenerateRefundReceiptPdf",
+                new StudentReceiptByIdRequest { GroupCode = groupcode, BranchCode = branchcode, ReceiptId = receiptId });
+            IsLoading = false;
+            StateHasChanged();
+
+            if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
+                await JS.InvokeVoidAsync("viewPdf", response.Data);
+            else
+                await Alert.ShowWarning(response?.Message ?? "Unable to generate the refund receipt.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing refund receipt: {ex.Message}");
+            IsLoading = false;
+            StateHasChanged();
+            await Alert.ShowWarning("Receipt is refunded, but the refund receipt could not be printed.");
         }
         finally
         {
@@ -1731,6 +1896,10 @@
     // then it is what was due on the receipt = paid + concession + balance
     private static decimal RowTotal(StudentFeeReceiptListResponse x) =>
         (x.TotalAmount ?? 0) > 0 ? x.TotalAmount!.Value : (x.PaidAmount ?? 0) + (x.Concession ?? 0) + (x.Balance ?? 0);
+
+    // amounts on this page in Indian currency format, e.g. ₹1,23,456.00 (same hi-IN currency format as Edit Invoice)
+    private static readonly System.Globalization.CultureInfo IndianCurrency = new("hi-IN");
+    private static string Money(decimal? amount) => (amount ?? 0).ToString("C2", IndianCurrency);
 
     // ---------------- Print Multi Receipt ----------------
     // ticked receipts -> StudentFeeReceipt/GenerateMultiReceiptPdf, 4 receipts per A4 page, opens in a new tab

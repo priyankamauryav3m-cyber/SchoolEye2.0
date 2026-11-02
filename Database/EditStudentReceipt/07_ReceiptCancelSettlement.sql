@@ -177,7 +177,9 @@ BEGIN
     OUTER APPLY (
         SELECT TOP 1 o.SentTo
         FROM dbo.V3M_FIN_ReceiptRefundOtp o WITH (NOLOCK)
-        WHERE o.ReceiptId = rm.ReceiptId AND o.GroupCode = rm.GroupCode AND o.BranchCode = rm.BranchCode
+        WHERE o.ReceiptId = rm.ReceiptId
+          AND o.GroupCode COLLATE DATABASE_DEFAULT = rm.GroupCode COLLATE DATABASE_DEFAULT
+          AND o.BranchCode COLLATE DATABASE_DEFAULT = rm.BranchCode COLLATE DATABASE_DEFAULT
           AND o.IsUsed = 1 AND o.UsedDate IS NOT NULL
         ORDER BY o.RefundOtpId DESC
     ) otp
