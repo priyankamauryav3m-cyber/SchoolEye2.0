@@ -868,12 +868,17 @@
         try
         {
             IsLoading = true;
-            searchAny.GroupCode = GroupCode;
-            searchAny.BranchCode = BranchCode;
-            searchAny.RequestName = SelectedStudent.InvoiceId.ToString();
-            // searchAny.IsActive = true;
-            searchAny.RequestName2 = "EditInvoice";
-            var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", searchAny);
+            // own request object: the shared searchAny gets RequestId = TemplateId when the Add Fee Head popup opens,
+            // and RequestId is sent as @InvType -> V3M_FIN_GetInvoiceMasterDetails then returned no fee head rows
+            // (fee head grid went empty after adding a fee head)
+            var invoiceRequest = new SearchAnyRequestModel
+            {
+                GroupCode = GroupCode,
+                BranchCode = BranchCode,
+                RequestName = SelectedStudent.InvoiceId.ToString(),
+                RequestName2 = "EditInvoice"
+            };
+            var response = await httpService.Post<ApiResponse<List<InvoiceDetailsResponse>>>("StudentFeeInvoice/GetStudentInvoicePreview", invoiceRequest);
             if (response.Data.Count != 0 && response.Success)
             {
                 InvoiceList = response.Data ?? new();

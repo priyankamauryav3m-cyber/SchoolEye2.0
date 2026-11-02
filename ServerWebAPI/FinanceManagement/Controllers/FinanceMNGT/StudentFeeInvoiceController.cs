@@ -352,9 +352,36 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                     Message = "Request data is required."
                 });
             }
+            if (request.MonthNo == null || !request.MonthNo.Any(m => m >= 1 && m <= 12))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Code = 0,
+                    Message = "Please select atleast one month."
+                });
+            }
             try
             {
                 var result = await _service.AddFeeHeadToStudentChallanData(request);
+                if (result == -3)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Code = -3,
+                        Message = "Transport fee is not configured for the student's distance. Please check transport mapping and transport fee."
+                    });
+                }
+                if (result == -11)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Code = -11,
+                        Message = "Concession amount cannot be more than the fee head amount."
+                    });
+                }
                 if (result == 1)
                 {
                     return Ok(new ApiResponse<object>

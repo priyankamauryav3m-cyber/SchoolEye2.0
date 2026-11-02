@@ -85,7 +85,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
             try
             {
                 using var con = new SqlConnection(_connectionString);
-                string query = @" SELECT InvoiceTypeId, InvoiceTypeName, IsValid, CreatedDate FROM V3M_FIN_MstInvoicetype WHERE IsValid = 1 AND InvoiceTypeId NOT IN (4, 5, 6);";
+                string query = @" SELECT InvoiceTypeId, InvoiceTypeName, IsValid, CreatedDate FROM V3M_FIN_MstInvoicetype WHERE IsValid = 1 AND InvoiceTypeId NOT IN (4, 5, 6, 7);";
                 var result = await con.QueryAsync<InvoiceTypeModel>(query);
                 return result.ToList();
             }
@@ -280,11 +280,12 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
         {
             try
             {
+                
                 using var con = new SqlConnection(_connectionString);
                 await con.OpenAsync();
                 var dt = new DataTable();
                 dt.Columns.Add("MonthNo", typeof(int));
-                foreach (var month in request.MonthNo) { dt.Rows.Add(month);   }
+                foreach (var month in request.MonthNo.Where(m => m >= 1 && m <= 12).Distinct()) { dt.Rows.Add(month); }
                 var parameters = new DynamicParameters();
                 parameters.Add("@StudentId", request.StudentId);
                 parameters.Add("@InvoiceId", request.InvoiceId);
@@ -293,8 +294,8 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 parameters.Add("@CreatedBy", request.CreatedBy);
                 parameters.Add("@Narration1", request.Narration1);
                 parameters.Add("@MonthNo", dt.AsTableValuedParameter("dbo.TVP_MonthNo"));
-                parameters.Add( "@Result", dbType: DbType.Int32,direction: ParameterDirection.Output);
-                await con.ExecuteAsync("FIN_Usp_AddFeeHeadToStudentChallan", parameters,commandType: CommandType.StoredProcedure);
+                parameters.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                await con.ExecuteAsync("FIN_Usp_AddFeeHeadToStudentChallan", parameters, commandType: CommandType.StoredProcedure);
                 int? result = parameters.Get<int?>("@Result");
                 return result ?? 0;
             }

@@ -3493,9 +3493,14 @@ namespace Infrastructure.FileGenerate
             "<path d='M34 28v8' stroke='#ffffff' stroke-width='3' stroke-linecap='round'/>" +
             "</svg>";
 
-        public RefundReceiptPdfDocument(RefundReceiptPrintModel refund)
+        // copies: null -> one page without a copy label (confirmation mail to the parent);
+        // print after the refund -> "SCHOOL COPY" + "PARENT COPY", the same receipt on one page each
+        private readonly IReadOnlyList<string?> _copies;
+
+        public RefundReceiptPdfDocument(RefundReceiptPrintModel refund, IReadOnlyList<string>? copies = null)
         {
             _refund = refund;
+            _copies = copies is { Count: > 0 } ? copies.Cast<string?>().ToList() : new List<string?> { null };
         }
 
         public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
@@ -3504,26 +3509,38 @@ namespace Infrastructure.FileGenerate
 
         public void Compose(IDocumentContainer container)
         {
-            container.Page(page =>
+            foreach (var copyName in _copies)
             {
-                page.Size(PageSizes.A4);
-                page.Margin(25);
-                page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10).FontColor(Colors.Black));
-
-                page.Content().Column(col =>
+                container.Page(page =>
                 {
-                    col.Spacing(12);
-                    col.Item().Element(ComposeHeader);
-                    col.Item().Element(ComposeBanner);
-                    col.Item().Element(ComposeDetails);
-                    col.Item().Element(ComposeFeeTable);
-                    col.Item().Element(ComposeNote);
-                    col.Item().PaddingTop(30).Element(ComposeSignatures);
-                });
+                    page.Size(PageSizes.A4);
+                    page.Margin(25);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontColor(Colors.Black));
 
-                page.Footer().DefaultTextStyle(x => x.FontSize(8)).Element(StudentReceiptListPdfDocument.ComposeFooter);
-            });
+                    page.Content().Column(col =>
+                    {
+                        col.Spacing(12);
+                        if (!string.IsNullOrWhiteSpace(copyName))
+                            col.Item().Element(x => ComposeCopyLabel(x, copyName));
+                        col.Item().Element(ComposeHeader);
+                        col.Item().Element(ComposeBanner);
+                        col.Item().Element(ComposeDetails);
+                        col.Item().Element(ComposeFeeTable);
+                        col.Item().Element(ComposeNote);
+                        col.Item().PaddingTop(30).Element(ComposeSignatures);
+                    });
+
+                    page.Footer().DefaultTextStyle(x => x.FontSize(8)).Element(StudentReceiptListPdfDocument.ComposeFooter);
+                });
+            }
+        }
+
+        // small tag at the top right: which copy this page is
+        private static void ComposeCopyLabel(IContainer container, string copyName)
+        {
+            container.AlignRight().Border(1).BorderColor(Navy).PaddingVertical(3).PaddingHorizontal(10)
+                .Text(copyName).FontSize(9).Bold().LetterSpacing(0.1f).FontColor(Navy);
         }
 
         private void ComposeHeader(IContainer container)

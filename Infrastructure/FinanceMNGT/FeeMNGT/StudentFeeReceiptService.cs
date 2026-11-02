@@ -437,7 +437,8 @@ namespace SchoolEye.Infrastructure.Admin
             try
             {
                 var refund = await GetRefundReceipt(request);
-                return refund == null ? null : await _generateFile.GenerateRefundReceiptPdf(refund);
+                // print after the refund: School Copy + Parent Copy (the confirmation mail sends one page)
+                return refund == null ? null : await _generateFile.GenerateRefundReceiptPdf(refund, withCopies: true);
             }
             catch (Exception ex)
             {
