@@ -1407,39 +1407,60 @@
     }
 
     // ---------------- Collection Report (bottom Collection Report button) ----------------
-    // Excel only; always the active receipts of the searched list, whatever the Status filter is
+    // StudentFeeReceipt/GenerateCollectionReportPdf|Excel (V3M_FIN_GetStudentCollectionReport), same filters as the search;
+    // every status is shown (collection, active, kept as advance, refunded, cheque bounce, cash in hand),
+    // so the Status / Receipt No. / Student / Cheque No. filters are not used
     private async Task OnCollectionReportClick()
     {
-        if (receiptlist.Count == 0)
+        if (request.FromDate == default || request.ToDate == default)
         {
-            await Alert.ShowWarning("Please search receipts first.");
+            await Alert.ShowWarning("Please select from date and to date.");
+            return;
+        }
+        if (request.FromDate.Date > request.ToDate.Date)
+        {
+            await Alert.ShowWarning("From date cannot be greater than to date.");
             return;
         }
 
-        var activeReceipts = receiptlist.Where(x => x.Valid == true).ToList();
-        if (activeReceipts.Count == 0)
-        {
-            await Alert.ShowWarning("No active receipts found to print.");
+        var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("showPrintConfirm");
+        var isPdf = result.TryGetProperty("isConfirmed", out var confirmed) && confirmed.GetBoolean();
+        var isExcel = result.TryGetProperty("isDenied", out var denied) && denied.GetBoolean();
+        if (!isPdf && !isExcel)
             return;
-        }
 
-        var reportRequest = new StudentReceiptListPrintRequest
+        var reportRequest = new StudentFeeReceiptListRequest
         {
-            FromDate = searchedFromDate,
-            ToDate = searchedToDate,
-            Receipts = activeReceipts
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = request.SessionId,
+            GroupClassCode = request.GroupClassCode ?? string.Empty,
+            ClassCode = request.ClassCode ?? string.Empty,
+            PaymentMode = request.PaymentMode ?? string.Empty,
+            ReceiptMode = request.ReceiptMode,
+            FromDate = request.FromDate,
+            ToDate = request.ToDate,
+            SocietyId = request.SocietyId,
+            BankAccountId = request.BankAccountId,
+            FeeReceivedBy = request.FeeReceivedBy?.Trim() ?? string.Empty
         };
 
         IsLoading = true;
         StateHasChanged();
         try
         {
-            var response = await httpService.Post<ApiResponse<string>>("Export/GenerateCollectionReportExcel", reportRequest);
+            var apiUrl = isPdf ? "StudentFeeReceipt/GenerateCollectionReportPdf" : "StudentFeeReceipt/GenerateCollectionReportExcel";
+            var response = await httpService.Post<ApiResponse<string>>(apiUrl, reportRequest);
             IsLoading = false;
             StateHasChanged();
 
             if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
-                await JS.InvokeVoidAsync("downloadExcel", response.Data, "CollectionReport.xlsx");
+            {
+                if (isPdf)
+                    await JS.InvokeVoidAsync("viewPdf", response.Data);
+                else
+                    await JS.InvokeVoidAsync("downloadExcel", response.Data, "CollectionReport.xlsx");
+            }
             else
                 await Alert.ShowWarning(response?.Message ?? "Unable to generate the collection report.");
         }

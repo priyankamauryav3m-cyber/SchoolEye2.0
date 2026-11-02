@@ -2250,9 +2250,16 @@ else
             adjustStudentFeeHeadWise.SectionId = selectedStudent.SectionId;
             // cash only: the advance part of the fee heads is adjusted by the SP from PreviousBalance
             adjustStudentFeeHeadWise.PaidAmount = DuesCashAmount;
-            // the SP adjusts the whole advance; advance left over (dues smaller than advance) goes back as negative balance
+            // the SP adjusts the whole advance; advance left over (dues smaller than advance) goes back as negative balance.
+            // Otherwise the receipt balance = student's total dues before this receipt - cash paid now
+            // (124000 - 40000 = 84000; next receipt 84000 - 18000 = 66000). The SP stores it on the receipt and
+            // sets V3M_Fin_StudentBalance to 0 for a positive value, so the advance is not changed by it.
             var advanceLeft = AdvanceAvailable - AdvanceAdjusted;
-            adjustStudentFeeHeadWise.Balance = advanceLeft > 0 ? -advanceLeft : selectedStudent.StudentBalance;
+            var duesBefore = Math.Max(0, selectedStudent.StudentBalance);
+            adjustStudentFeeHeadWise.Balance = advanceLeft > 0 ? -advanceLeft : Math.Max(0, duesBefore - DuesCashAmount);
+            // receipt master Total = total dues before this receipt + late fee charged now; the late fee SP adds the
+            // late fee to the receipt's PaidAmount, so Total - Paid = Balance stays true on the receipt
+            adjustStudentFeeHeadWise.ReceiptTotalAmount = duesBefore + lateFee;
             adjustStudentFeeHeadWise.PaymentMode = CounterPaymentMode;
             adjustStudentFeeHeadWise.ChequeNo = "";
             adjustStudentFeeHeadWise.ChequeDate = null;

@@ -755,6 +755,54 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 return data.Count == 0 ? null : await _generateFile.GeneratePrintViewReceiptsExcel(request, data);
             }, "Receipt Excel generated successfully.");
 
+        // ---------------- Collection Report (V3M_FIN_GetStudentCollectionReport) ----------------
+        // collection of the period with status (active / advance / refund / cheque bounce) and cash in hand
+        [HttpPost("GenerateCollectionReportPdf")]
+        public Task<IActionResult> GenerateCollectionReportPdf([FromBody] StudentFeeReceiptListRequest request) =>
+            GenerateCollectionReport(request, report => _generateFile.GenerateStudentCollectionReportPdf(report), "Collection report PDF generated successfully.");
+
+        [HttpPost("GenerateCollectionReportExcel")]
+        public Task<IActionResult> GenerateCollectionReportExcel([FromBody] StudentFeeReceiptListRequest request) =>
+            GenerateCollectionReport(request, report => _generateFile.GenerateStudentCollectionReportExcel(report), "Collection report Excel generated successfully.");
+
+        private async Task<IActionResult> GenerateCollectionReport(StudentFeeReceiptListRequest request, Func<StudentCollectionReport, Task<byte[]>> generate, string successMessage)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode))
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Group code and branch code are required.", Code = 0 });
+            }
+            if (request.FromDate == default || request.ToDate == default || request.FromDate.Date > request.ToDate.Date)
+            {
+                return BadRequest(new ApiResponse<string> { Success = false, Message = "Please provide a valid date range.", Code = 0 });
+            }
+            try
+            {
+                var report = await _service.GetStudentCollectionReport(request);
+                if (report.Rows.Count == 0)
+                {
+                    return Ok(new ApiResponse<string> { Success = false, Message = "No receipts found for the collection report.", Code = 0 });
+                }
+                var bytes = await generate(report);
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Message = successMessage,
+                    Code = 1,
+                    Data = Convert.ToBase64String(bytes)
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unable to generate the collection report.",
+                    Code = -1
+                });
+            }
+        }
+
         // shared validation / response of the four cheque report endpoints; generate returns null when there is no data
         private async Task<IActionResult> GenerateChequeReport(StudentChequeReportRequest request, Func<Task<byte[]?>> generate, string successMessage)
         {

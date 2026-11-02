@@ -57,6 +57,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 param.Add("@SectionId", request.SectionId);
                 param.Add("@PaidAmount", request.PaidAmount);
                 param.Add("@Balance", request.Balance);
+                param.Add("@ReceiptTotalAmount", request.ReceiptTotalAmount);
                 param.Add("@PaymentMode", request.PaymentMode);
                 param.Add("@ChequeNo", request.ChequeNo);
                 param.Add("@ChequeDate", request.ChequeDate);

@@ -284,6 +284,44 @@ namespace SchoolEye.Infrastructure.Admin
             }
         }
 
+        public async Task<StudentCollectionReport> GetStudentCollectionReport(StudentFeeReceiptListRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@GroupClassCode", request.GroupClassCode ?? string.Empty);
+                param.Add("@ClassCode", request.ClassCode ?? string.Empty);
+                param.Add("@PaymentMode", request.PaymentMode ?? string.Empty);
+                param.Add("@ReceiptMode", request.ReceiptMode);
+                param.Add("@FromDate", request.FromDate.Date, DbType.Date);
+                param.Add("@ToDate", request.ToDate.Date, DbType.Date);
+                param.Add("@SocietyId", request.SocietyId);
+                param.Add("@BankAccountId", request.BankAccountId);
+                param.Add("@FeeReceivedBy", request.FeeReceivedBy ?? string.Empty);
+
+                var rows = await con.QueryAsync<StudentCollectionReportRow>(
+                    "V3M_FIN_GetStudentCollectionReport",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+
+                return new StudentCollectionReport
+                {
+                    FromDate = request.FromDate.Date,
+                    ToDate = request.ToDate.Date,
+                    Rows = rows.ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<PrintViewStudentReceiptResponse>> GetPrintViewStudentReceipts(StudentChequeReportRequest request)
         {
             try

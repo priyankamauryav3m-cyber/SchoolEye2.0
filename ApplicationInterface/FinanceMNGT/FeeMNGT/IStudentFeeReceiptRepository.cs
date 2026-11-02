@@ -23,6 +23,9 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
 
         Task<IEnumerable<ChqCombineReportResponse>> GetChqCombineReport(StudentChequeReportRequest request);
 
+        // Collection Report: receipts of the period + earlier receipts cancelled / refunded / bounced in it
+        Task<StudentCollectionReport> GetStudentCollectionReport(StudentFeeReceiptListRequest request);
+
         Task<IEnumerable<PrintViewStudentReceiptResponse>> GetPrintViewStudentReceipts(StudentChequeReportRequest request);
 
         Task<StudentReceiptForEditResponse?> GetStudentReceiptForEdit(StudentReceiptByIdRequest request);
