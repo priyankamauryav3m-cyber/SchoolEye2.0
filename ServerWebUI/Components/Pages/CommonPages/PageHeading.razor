@@ -9,6 +9,9 @@
 
     <p class="m-0 page-name px-1">
 
+        @* optional content before the title (e.g. Back to Student Fee Account); empty for every other page *@
+        @LeadingContent
+
         @if (ShowBackButton)
         {
             <button type="button"
@@ -40,6 +43,10 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    // shown before the title (optional)
+    [Parameter]
+    public RenderFragment? LeadingContent { get; set; }
 
     [Parameter]
     public string? Tittle { get; set; }

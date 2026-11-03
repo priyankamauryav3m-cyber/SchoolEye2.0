@@ -346,9 +346,8 @@
     <div class="main-container">
         <div class="row m-0 main-row">
             <div class="col-12 p-1" id="main-header">
-                <div class="page-heading d-flex align-items-center justify-content-between">
-                    <p class="m-0 page-name px-1">View Student</p>
-                    <div class="d-flex align-items-center gap-2">
+                @* PageHeading: shows the Back icon (Dashboard / ...) when opened from the Fee Management dashboard *@
+                <PageHeading Tittle="View Student">
 
                         <div class="form-box">
                             <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
@@ -433,8 +432,7 @@
                                 </div>
                             </button>
                         </div>
-                    </div>
-                </div>
+                </PageHeading>
             </div>
 
             <div class="col-12 p-1">
@@ -476,14 +474,27 @@
                                             </div>
                                         </ColumnOptions>
                                     </TemplateColumn>
-                                    <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
-
+                                    <TemplateColumn Sortable="true" SortBy="@(GridSort<ViewStudentModal>.ByAscending(x => x.StudentName))" Title="Student Name">
+                                        <ChildContent>
+                                            @if (roleId == "8" && !string.IsNullOrWhiteSpace(context.StudentName) && !string.IsNullOrWhiteSpace(context.ControlNo))
+                                            {
+                                                @* fee login (role 8): name click -> Student Fee Account of this student *@
+                                                <button type="button" class="btn btn-link p-0 text-start" title="Open fee account"
+                                                        @onclick="() => OpenFeeAccount(context)" @onclick:stopPropagation="true">
+                                                    @context.StudentName
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                @(string.IsNullOrWhiteSpace(context.StudentName) ? " " : context.StudentName)
+                                            }
+                                        </ChildContent>
                                         <ColumnOptions>
                                             <div class="search-box">
                                                 <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student Name...." />
                                             </div>
                                         </ColumnOptions>
-                                    </PropertyColumn>
+                                    </TemplateColumn>
                                     <PropertyColumn Property="@(x => x.Gender)" Title="Gender">
                                     </PropertyColumn>
                                     <TemplateColumn Title="Class">
@@ -967,6 +978,15 @@ else
     public bool IsSelected { get; set; }
     private List<BranchClassModel> classlist = new();
     private bool IsLoading = false;
+
+    // fee login (role 8): student name click -> /StudentFeeAccount opens with this student
+    private void OpenFeeAccount(ViewStudentModal student)
+    {
+        if (roleId != "8") return;
+        IsLoading = true;
+        StateHasChanged();
+        Nav.NavigateTo($"/StudentFeeAccount?StudentNo={Uri.EscapeDataString(student.ControlNo ?? "")}&SessionId={CurrentSession}");
+    }
     private List<GenderModal> genderModallist = new();
     private List<SessionModel> sessionlist = new();
     private List<ViewStudentModal> viewStudentlist = new();
@@ -991,6 +1011,12 @@ else
     private SearchAnyRequestModel searchAny = new();
     private StudentRequest studentRequest = new();
     private GetSearchedStudentRequestModel studentRequestModel = new();
+
+    // opened from the Fee Management dashboard "Total students" card:
+    // /viewstudent?AdmFrom=yyyy-MM-dd&AdmTo=yyyy-MM-dd&SessionId=..  (back icon comes from PageHeading)
+    [SupplyParameterFromQuery(Name = "AdmFrom")] public string? QueryAdmFrom { get; set; }
+    [SupplyParameterFromQuery(Name = "AdmTo")] public string? QueryAdmTo { get; set; }
+    [SupplyParameterFromQuery(Name = "SessionId")] public long? QuerySessionId { get; set; }
     private string? branchcode;
     private string? groupcode;
     private string? currentUrl;
@@ -1384,8 +1410,41 @@ else
             }
 
             await GetSearchedStudent();
+
+            if (roleId == "8" && TryReadAdmissionRange(out var admFrom, out var admTo))
+                await SearchByAdmissionDate(admFrom, admTo);
+
             StateHasChanged();
         }
+    }
+
+    private bool TryReadAdmissionRange(out DateTime admFrom, out DateTime admTo)
+    {
+        admTo = default;
+        var formats = new[] { "yyyy-MM-dd" };
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        if (!DateTime.TryParseExact(QueryAdmFrom, formats, culture, System.Globalization.DateTimeStyles.None, out admFrom))
+            return false;
+        if (!DateTime.TryParseExact(QueryAdmTo, formats, culture, System.Globalization.DateTimeStyles.None, out admTo))
+            admTo = admFrom;
+        if (admTo < admFrom)
+            (admFrom, admTo) = (admTo, admFrom);
+        return true;
+    }
+
+    // same search as the Search button, filtered on admission date (dashboard period)
+    private async Task SearchByAdmissionDate(DateTime admFrom, DateTime admTo)
+    {
+        if (QuerySessionId is > 0)
+            CurrentSession = QuerySessionId.Value;
+
+        studentRequest = new StudentRequest
+        {
+            IsSearchOnAdmDate = 1,
+            AdmFromDate = admFrom.Date,
+            AdmToDate = admTo.Date
+        };
+        await SearchStudentData();
     }
     private async Task OpenDateFrom(string value)
     {

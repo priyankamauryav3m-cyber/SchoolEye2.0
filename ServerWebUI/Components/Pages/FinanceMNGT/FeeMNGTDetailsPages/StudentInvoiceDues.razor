@@ -267,7 +267,7 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
-                                <option  value="" selected>--Select--</option>
+                                <option value="">All</option>
                                 @foreach (var data in PeriodTypeList)
                                 {
                                 <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
@@ -279,7 +279,7 @@
                         <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                             <div class="form-box-group static-label">
                                 <InputSelect class="floating-input" placeholder=" " @bind-Value="searchModel.PeriodId">
-                                <option  value="" selected>--Select--</option>
+                                <option value="0">All</option>
                                 @foreach (var data in feeCollectionPeriodlist.Where(x => string.Equals(x.PeriodType, searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)))
                                 {
                                 <option value="@data.PeriodId">@data.PeriodName</option>
@@ -499,6 +499,8 @@ else
     }
     private async Task OnPeriodTypeChanged()
     {
+        // new type -> period back to "All" (0)
+        searchModel.PeriodId = 0;
         try
         {
             searchAny.GroupCode = groupcode;
@@ -571,14 +573,11 @@ else
         string ApiUri2 = "Society/ListSociety";
         societyModellist = await httpService.Get<List<SocietyModel>>(ApiUri2) ?? new();
         PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
-        if (PeriodTypeList.Any(x => x.PeriodTypeName.Equals("Quarterly", StringComparison.OrdinalIgnoreCase)))
-        {
-            searchModel.PeriodType = "Quarterly";
-            await OnPeriodTypeChanged();
-            searchModel.PeriodId = feeCollectionPeriodlist.Where(x => x.PeriodType.Equals(searchModel.PeriodType, StringComparison.OrdinalIgnoreCase)).Select(x => x.PeriodId).FirstOrDefault();
-            await SearchStudentInvoiceData();
-        }
-         await OnClassAllChanged();
+        await OnClassAllChanged();
+        // default: Period Type = All ("") and Period = All (0) -> SP returns every due (also miscellaneous invoices)
+        searchModel.PeriodType = "";
+        searchModel.PeriodId = 0;
+        await SearchStudentInvoiceData();
         StateHasChanged();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -615,20 +614,8 @@ else
         searchModel.SessionId = CurrentSession;
         searchModel.ClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
         searchModel.SectionId = string.Join(",", sectionModellist.Where(x => x.IsSelected).Select(x => x.SectionId));
-        if (string.IsNullOrEmpty(searchModel.PeriodType))
-        {
-            await Alert.ShowWarning("Please select a period type.");
-            ShowPopup = true;
-            StateHasChanged();
-            return;
-        }
-        if (searchModel.PeriodId == 0)
-        {
-            await Alert.ShowWarning("Please select a period ");
-            ShowPopup = true;
-            StateHasChanged();
-            return;
-        }
+        // Period Type "" / Period 0 = All (USP_GetStudentInvoiceDues returns all dues incl. miscellaneous)
+        searchModel.PeriodType ??= "";
 
         IsLoading = true;
         StateHasChanged();

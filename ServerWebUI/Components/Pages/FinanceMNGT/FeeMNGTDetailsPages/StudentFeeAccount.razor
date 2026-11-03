@@ -1,0 +1,1458 @@
+@page "/StudentFeeAccount"
+@using DomainModel.Admin
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using System.Globalization
+@using System.Text.RegularExpressions
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@inject NavigationManager Nav
+@implements IDisposable
+@rendermode InteractiveServer
+
+@*
+    Student Fee Account: one student's dues, invoices, receipts, bank receipts, advance & refunds, statement and concessions.
+    Only existing APIs are used:
+      StudentFee/GetStudentLedgerChallanMiniDetails      student search (same as View Student Dues & Receipt)
+      StudentFee/GetStudentDetailsForFee                  advance (PreviousBalance < 0) + late fee
+      StudentFee/GetStudentFeeCollectionDues              what is due (fee head wise, same as Fee Collection)
+      StudentFee/GetStudentChallan                        invoices
+      StudentFeeInvoice/GetStudentGenerateInvoiceFee      invoice due date / received (same as Invoice Generation)
+      StudentFeeReceipt/GetStudentFeeReceiptListData      receipts with Valid / cancelled status (same as View Student Receipt)
+      StudentFeeInvoice/GetStudentLedgerNew               statement + advance movements
+      Concession/GetStudentMappedConcession               assigned concessions
+*@
+
+<style>
+    .sfa { --sfa-ink: #172033; --sfa-muted: #64748b; --sfa-line: #e6eaf0; --sfa-navy: #1f3a5f; --sfa-amber: #b7791f; --sfa-amber-soft: #fdf3e1; --sfa-green: #2f7d57; --sfa-green-soft: #e6f3ec; --sfa-red: #c0392b; --sfa-red-soft: #fdecea; }
+    .sfa .sfa-search-card { overflow: visible !important; z-index: 5; }
+    .sfa .student-search-wrap { position: relative; width: 300px; }
+    .sfa .student-suggest-box-popup { position: absolute; top: 100%; right: -70px; width: 550px; max-width: 92vw; margin-top: 2px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; max-height: 400px; overflow-y: auto; box-shadow: 0 8px 20px rgba(0,0,0,.15); z-index: 2000; }
+    .sfa .student-suggest-item { display: grid; grid-template-columns: 2fr 1.4fr 1fr 1.6fr; gap: 20px; padding: 10px 14px; cursor: pointer; background: #fff; border-bottom: 1px solid #f1f3f5; }
+    .sfa .student-suggest-item:hover, .sfa .student-suggest-item.active { background: #f7f9fc; }
+    .sfa .student-suggest-column { display: flex; flex-direction: column; min-width: 0; }
+    .sfa .student-suggest-label { font-size: 12px; font-weight: 500; margin-bottom: 2px; color: #263238; }
+    .sfa .student-suggest-value { font-size: 11px; font-weight: 600; color: #8a94a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sfa .student-suggest-empty { padding: 14px; color: #6c757d; font-size: 13px; }
+
+    .sfa .sfa-inline-loader { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px 13px; color: #68778a; font-weight: 600; }
+    .sfa .sfa-spinner { width: 16px; height: 16px; border: 2px solid #cbd8e5; border-top-color: #118c91; border-radius: 50%; display: inline-block; animation: sfa-spin .7s linear infinite; }
+    @@keyframes sfa-spin { to { transform: rotate(360deg); } }
+
+    /* ---------- header ---------- */
+    .sfa .sfa-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding: 6px 4px 14px; }
+    .sfa .sfa-name { font-size: 26px; font-weight: 800; letter-spacing: .2px; color: var(--sfa-ink); text-transform: uppercase; line-height: 1.15; margin: 0; }
+    .sfa .sfa-sub { color: var(--sfa-muted); font-size: 14px; margin-top: 4px; }
+    .sfa .sfa-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sfa .sfa-btn { border: 1px solid #cdd5df; background: #fff; color: #000000; border-radius: 6px; padding: 7px 13px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: background .15s, border-color .15s; }
+    .sfa .sfa-btn:hover { background: var(--sfa-navy); color: white; }
+    .sfa .sfa-btn.primary { background: var(--sfa-navy); border-color: var(--sfa-navy); color: #fff; font-weight: 600; }
+    .sfa .sfa-btn.primary:hover { background: #17304f; }
+    .sfa .sfa-btn.green { color: var(--sfa-green); border-color: #cfe3d8; }
+    .sfa .sfa-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* ---------- balance strip ---------- */
+    /* balance strip follows the app theme: card / border / radius / shadow vars, dues = metric-orange, advance = metric-green, centre = --primary */
+    .sfa .sfa-balance { --bal-due: #b06a12; --bal-due-soft: #fdf3e7; --bal-due-line: #f6e3c8; --bal-adv: #0f7a54; --bal-adv-soft: #e8f9f1; --bal-adv-line: #cdeedd;
+                        display: grid; grid-template-columns: 1fr 1.3fr 1fr; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--se-radius, 14px); box-shadow: var(--se-shadow, none); overflow: hidden; }
+    .sfa .sfa-bal-cell { padding: 18px 26px; }
+    .sfa .sfa-bal-dues { background: linear-gradient(90deg, var(--bal-due-soft), var(--card-bg, #fff)); border-left: 5px solid var(--bal-due); }
+    .sfa .sfa-bal-adv { background: linear-gradient(270deg, var(--bal-adv-soft), var(--card-bg, #fff)); border-right: 5px solid var(--bal-adv); text-align: right; }
+    .sfa .sfa-bal-mid { border-left: 1px dashed var(--border-color, #e2e8f0); border-right: 1px dashed var(--border-color, #e2e8f0); text-align: center; }
+    .sfa .sfa-bal-label { color: var(--text-muted, #64748b); font-size: 13px; }
+    .sfa .sfa-bal-amt { font-size: 24px; font-weight: 700; margin-top: 2px; }
+    .sfa .sfa-bal-amt.amber, .sfa .sfa-bal-big.amber { color: var(--bal-due); }
+    .sfa .sfa-bal-amt.green, .sfa .sfa-bal-big.green { color: var(--bal-adv); }
+    .sfa .sfa-bal-big { font-size: 34px; font-weight: 800; line-height: 1.1; color: var(--primary, #1e7fb0); }
+    .sfa .sfa-bal-note { color: var(--text-muted, #64748b); font-size: 12px; margin-top: 2px; }
+    .sfa .sfa-bar { position: relative; height: 10px; border-radius: 6px; background: var(--bg-secondary, #f1f5f9); width: 80%; margin: 0 auto 10px; }
+    .sfa .sfa-bar-left { position: absolute; right: 50%; top: 0; bottom: 0; background: var(--bal-due); border-radius: 6px 0 0 6px; }
+    .sfa .sfa-bar-right { position: absolute; left: 50%; top: 0; bottom: 0; background: var(--bal-adv); border-radius: 0 6px 6px 0; }
+    .sfa .sfa-bar-mark { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 2px; background: var(--primary, #1e7fb0); }
+    /* dark mode: soft tints instead of light backgrounds */
+    html.dark-mode .sfa .sfa-balance { --bal-due: #f0a64a; --bal-due-soft: rgba(240,166,74,.12); --bal-adv: #34d399; --bal-adv-soft: rgba(52,211,153,.12); }
+
+    /* ---------- tabs ---------- */
+    .sfa .sfa-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--sfa-line);  }
+    .sfa .sfa-tab { background: none; border: none; padding: 11px 14px; color: #4b5565; font-size: 15px; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+    .sfa .sfa-tab:hover { color: var(--sfa-ink); }
+    .sfa .sfa-tab.active { color: var(--sfa-ink); font-weight: 600; border-bottom-color: var(--sfa-navy); }
+    .sfa .sfa-tab .sfa-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 6px; border-radius: 10px; background: #eef1f5; color: #4b5565; font-size: 11px; font-weight: 600; line-height: 18px; }
+    .sfa .sfa-tab-body { padding-top: 10px; }
+    .sfa .sfa-section-title { font-size: 15px; font-weight: 600; color: var(--sfa-ink); margin: 14px 2px 8px; display: flex; justify-content: space-between; align-items: center; }
+    .sfa .sfa-section-title small { color: var(--sfa-muted); font-weight: 400; font-size: 12.5px; }
+
+    /* ---------- grids (project QuickGrid, lighter look) ---------- */
+    .sfa .sfa-grid { background: #fff; border: 1px solid var(--sfa-line); border-radius: 8px; overflow: hidden; }
+    .sfa .sfa-grid .quickgrid { margin-bottom: 0; }
+    .sfa .sfa-grid .quickgrid thead th { background: #fff; color: #475569; font-size: 12.5px; font-weight: 600; border-bottom: 1px solid var(--sfa-line); }
+    .sfa .sfa-grid .quickgrid tbody td { font-size: 14px; color: var(--sfa-ink); vertical-align: middle; border-bottom: 1px solid #f0f2f6; padding-top: 9px; padding-bottom: 9px; }
+    /* grid-box (project grid wrapper): many rows -> scroll down, many columns -> scroll sideways; header stays on top */
+    .sfa .sfa-grid .grid-box { height: auto; min-height: 0; max-height: calc(100vh - 380px); overflow: auto; scrollbar-width: thin; border: none; border-radius: 0; margin-bottom: 0; }
+    .sfa .sfa-grid .grid-box .quickgrid { min-width: 820px; }
+    .sfa .sfa-grid .grid-box .quickgrid thead th { position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+    .sfa .sfa-grid .footer-pagination { padding: 6px 12px; border-top: 1px solid var(--sfa-line); }
+    @@media (max-width: 767px) { .sfa .sfa-grid .grid-box { max-height: 60vh; } }
+
+    /* one alignment for header + cell: text left, amounts right, status centre */
+    .sfa .sfa-grid .quickgrid th, .sfa .sfa-grid .quickgrid td { text-align: left; padding-left: 12px; padding-right: 12px; border-left: none; border-right: none; }
+    .sfa .sfa-grid .quickgrid th .col-header-content { justify-content: flex-start; }
+    .sfa .sfa-grid .quickgrid th .col-title { margin-left: 0; margin-right: 0; text-align: left; }
+    .sfa .sfa-grid .quickgrid th.sfa-num, .sfa .sfa-grid .quickgrid td.sfa-num { text-align: right; white-space: nowrap; }
+    .sfa .sfa-grid .quickgrid th.sfa-num .col-header-content { justify-content: flex-end; }
+    .sfa .sfa-grid .quickgrid th.sfa-num .col-title { margin-left: auto; text-align: right; }
+    .sfa .sfa-grid .quickgrid th.sfa-center, .sfa .sfa-grid .quickgrid td.sfa-center { text-align: center; }
+    .sfa .sfa-grid .quickgrid th.sfa-center .col-header-content { justify-content: center; }
+    .sfa .sfa-grid .quickgrid th.sfa-center .col-title { margin-left: auto; margin-right: auto; }
+    .sfa .sfa-grid .quickgrid tbody tr.sfa-row-overdue td:first-child { box-shadow: inset 3px 0 0 var(--sfa-red); }
+    .sfa .sfa-grid .quickgrid tbody tr.sfa-row-cancelled td { color: #94a3b8; }
+    .sfa .sfa-grid .quickgrid tbody tr.sfa-row-cancelled td .sfa-amt { text-decoration: line-through; }
+    .sfa .sfa-link { background: none; border: none; padding: 0; color: #1d3b63; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+    .sfa .sfa-link:hover { color: #0d6efd; }
+    .sfa .sfa-small { display: block; color: var(--sfa-muted); font-size: 12px; }
+    .sfa .sfa-late { color: var(--sfa-red); font-size: 12px; margin-left: 4px; }
+    .sfa .sfa-strong { font-weight: 700; }
+    .sfa .sfa-neg { color: var(--sfa-red); }
+    .sfa .sfa-pos { color: var(--sfa-green); }
+    .sfa .sfa-pill { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11.5px; font-weight: 600; }
+    .sfa .sfa-pill.red { background: var(--sfa-red-soft); color: var(--sfa-red); }
+    .sfa .sfa-pill.green { background: var(--sfa-green-soft); color: var(--sfa-green); }
+    .sfa .sfa-pill.amber { background: var(--sfa-amber-soft); color: #8a5a00; }
+    .sfa .sfa-pill.grey { background: #eef1f5; color: #64748b; }
+    .sfa .sfa-total { display: flex; justify-content: space-between; padding: 11px 14px; font-weight: 700; border-top: 1px solid var(--sfa-line); background: #fbfcfd; gap: 12px; flex-wrap: wrap; }
+    .sfa .sfa-total span.muted { color: var(--sfa-muted); font-weight: 500; }
+    .sfa .sfa-empty { color: var(--sfa-muted); font-size: 14px; padding: 18px 4px; }
+    .sfa .sfa-empty-card { min-height: 200px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #fff; border: 1px solid var(--sfa-line); border-radius: 8px; }
+    .sfa .sfa-empty-card i { font-size: 22px; color: #177a9b; background: #eaf3fb; width: 46px; height: 46px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+    .sfa .sfa-empty-card strong { display: block; color: var(--sfa-ink); }
+    .sfa .sfa-empty-card div div { color: #94a3b8; font-size: 13px; }
+    .sfa .sfa-nostudent { min-height: 320px; }
+
+    @@media (max-width: 991px) {
+        .sfa .sfa-balance { grid-template-columns: 1fr; }
+        .sfa .sfa-bal-mid { border: none; border-top: 1px dashed var(--border-color, #e2e8f0); border-bottom: 1px dashed var(--border-color, #e2e8f0); }
+        .sfa .sfa-bal-adv { text-align: left; }
+    }
+    /* ---------- search / change student bar ---------- */
+    .sfa .sfa-searchbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 12px 16px; }
+    .sfa .sfa-searchbar-title { display: flex; align-items: center; gap: 10px; }
+    .sfa .sfa-searchbar-title > i { font-size: 20px; color: var(--sfa-navy); background: #eaf0f7; width: 38px; height: 38px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
+    .sfa .sfa-searchbar-head { font-weight: 700; color: var(--sfa-ink); font-size: 15px; }
+    .sfa .sfa-searchbar-hint { color: var(--sfa-muted); font-size: 12px; }
+    .sfa kbd { background: #f1f4f8; color: #334155; border: 1px solid #d8dee7; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 11px; font-family: inherit; }
+    .sfa .sfa-searchbar-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sfa .sfa-search-box { width: 360px; }
+    .sfa .sfa-search-input { padding-left: 34px !important; padding-right: 32px !important; }
+    .sfa .sfa-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #64748b; cursor: pointer; z-index: 2; }
+    .sfa .sfa-search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; color: #94a3b8; padding: 2px 6px; z-index: 2; }
+    .sfa .sfa-search-clear:hover { color: var(--sfa-ink); }
+    .sfa .sfa-suggest-foot { padding: 7px 14px; font-size: 11.5px; color: var(--sfa-muted); background: #fafbfc; border-top: 1px solid #f1f3f5; position: sticky; bottom: 0; }
+
+    @@media (max-width: 767px) {
+        .sfa .sfa-search-box { width: 100%; }
+        .sfa .sfa-searchbar-tools { width: 100%; }
+        .sfa .student-search-wrap { width: 100%; }
+        .sfa .student-suggest-box-popup { left: 0; right: auto; width: 100%; }
+        .sfa .sfa-name { font-size: 21px; }
+    }
+</style>
+
+<section class="main-container sfa">
+    <div class="row gap-10-0 m-0 main-row">
+
+        @* ---------- search / change student (always on top: Enter or the search icon searches, arrows + Enter pick) ---------- *@
+        <div class="col-12 p-1">
+            <div class="card sfa-search-card">
+                <div class="card-body sfa-searchbar">
+                    <div class="sfa-searchbar-title">
+                        <i class="bi bi-person-lines-fill"></i>
+                        <div>
+                            <div class="sfa-searchbar-head">@(selectedStudent == null ? "Student Fee Account" : "Change student")</div>
+                            <div class="sfa-searchbar-hint">Type control no. or student name, then press <kbd>Enter</kbd></div>
+                        </div>
+                    </div>
+                    <div class="sfa-searchbar-tools">
+                        <div class="form-box">
+                            <select class="form-input" value="@CurrentSession" @onchange="OnSessionChanged" title="Session">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var s in sessionlist.Where(x => x.IsValid))
+                                {
+                                    <option value="@s.SessionId">@s.SessionName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="student-search-wrap sfa-search-box">
+                            <i class="bi bi-search sfa-search-icon" @onclick="SearchStudent" title="Search"></i>
+                            <input @key="searchInputKey" class="form-input w-100 sfa-search-input" placeholder="Control no. or student name" maxlength="200" autocomplete="off"
+                                   @bind-Value="searchText" @bind-Value:event="oninput" @bind-Value:after="OnSearchTextChanged" @onkeydown="HandleSearchKeyDown" />
+                            @if (!string.IsNullOrEmpty(searchText))
+                            {
+                                <button type="button" class="sfa-search-clear" title="Clear" @onclick="ClearSearch"><i class="bi bi-x-lg"></i></button>
+                            }
+                            @if (ShowSuggestions)
+                            {
+                                <div class="student-suggest-box-popup">
+                                    @if (IsSearchingStudents)
+                                    {
+                                        <div class="sfa-inline-loader">
+                                            <span>Loading students</span>
+                                            <span class="sfa-spinner" role="status" aria-hidden="true"></span>
+                                        </div>
+                                    }
+                                    else if (suggestions.Count == 0)
+                                    {
+                                        <div class="student-suggest-empty">No matching student found.</div>
+                                    }
+                                    else
+                                    {
+                                        @for (int i = 0; i < suggestions.Count; i++)
+                                        {
+                                            var item = suggestions[i];
+                                            var index = i;
+                                            var isCurrent = selectedStudent != null && item.StudentId == selectedStudent.StudentId;
+                                            <div class="student-suggest-item @(index == activeSuggestion ? "active" : "")" @onclick="() => SelectStudent(item)" @onmouseover="() => activeSuggestion = index">
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">
+                                                        Student Name
+                                                        @if (isCurrent)
+                                                        {
+                                                            <span class="sfa-pill green ms-1">Current</span>
+                                                        }
+                                                    </span>
+                                                    <span class="student-suggest-value">@Show(item.StudentName)</span>
+                                                </div>
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Control No.</span>
+                                                    <span class="student-suggest-value">@Show(item.ControlNo)</span>
+                                                </div>
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Class</span>
+                                                    <span class="student-suggest-value">@Show(item.ClassSection)</span>
+                                                </div>
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Father</span>
+                                                    <span class="student-suggest-value">@Show(item.FatherName)</span>
+                                                </div>
+                                            </div>
+                                        }
+                                        <div class="sfa-suggest-foot">@suggestions.Count found &middot; <kbd>↑</kbd><kbd>↓</kbd> choose &middot; <kbd>Enter</kbd> open &middot; <kbd>Esc</kbd> close</div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <button type="button" class="sfa-btn primary" @onclick="SearchStudent"><i class="bi bi-search"></i>Search</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (selectedStudent == null)
+        {
+            <div class="col-12 p-1">
+                <div class="sfa-empty-card sfa-nostudent">
+                    <div>
+                        <i class="bi bi-person-vcard"></i>
+                        <strong>No student selected</strong>
+                        <div>Search a student by student no. or name to see dues, invoices, receipts and the full statement.</div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="col-12 p-1">
+                @* ---------- header ---------- *@
+                <div class="sfa-head">
+                    <div>
+                        <h2 class="sfa-name">@selectedStudent.StudentName</h2>
+                        <div class="sfa-sub">
+                            @selectedStudent.ControlNo, class @selectedStudent.ClassSection
+                            @if (!string.IsNullOrWhiteSpace(selectedStudent.FatherName))
+                            {
+                                <span> &middot; Father: @selectedStudent.FatherName</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(selectedStudent.FatherContactNo))
+                            {
+                                <span> &middot; @selectedStudent.FatherContactNo</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="sfa-actions">
+                        @if (OpenedFromLink)
+                        {
+                            <button type="button" class="sfa-btn" @onclick="GoBack" title="Back to View Student"><i class="bi bi-arrow-left"></i>Back</button>
+                        }
+                        <button type="button" class="sfa-btn primary" @onclick="GoToCollectFee"><i class="bi bi-cash-coin"></i>Collect fee</button>
+                        <button type="button" class="sfa-btn" @onclick="OpenNewInvoice"><i class="bi bi-file-earmark-plus"></i>New invoice</button>
+                        <button type="button" class="sfa-btn green" @onclick="GoToCollectFee" disabled="@(AdvanceAmount <= 0 || DuesAmount <= 0)"
+                                title="Advance is adjusted against dues on the Fee Collection page">
+                            <i class="bi bi-arrow-left-right"></i>Use advance for dues
+                        </button>
+                        <button type="button" class="sfa-btn" @onclick="RefreshAll" title="Reload"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                </div>
+
+                @* ---------- balance strip ---------- *@
+                <div class="sfa-balance">
+                    <div class="sfa-bal-cell sfa-bal-dues">
+                        <div class="sfa-bal-label">Dues</div>
+                        <div class="sfa-bal-amt amber">@Money(DuesAmount)</div>
+                        <div class="sfa-bal-note">
+                            @if (OverdueAmount > 0)
+                            {
+                                @($"{Money(OverdueAmount)} overdue")
+                            }
+                            else if (DuesAmount > 0)
+                            {
+                                @("Nothing overdue")
+                            }
+                            else
+                            {
+                                @("No dues")
+                            }
+                            @if (LateFeeAmount > 0)
+                            {
+                                <span> &middot; late fee @Money(LateFeeAmount)</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="sfa-bal-cell sfa-bal-mid">
+                        <div class="sfa-bar">
+                            <div class="sfa-bar-left" style="width:@BarPercent(DuesAmount + LateFeeAmount)%"></div>
+                            <div class="sfa-bar-right" style="width:@BarPercent(AdvanceAmount)%"></div>
+                            <div class="sfa-bar-mark"></div>
+                        </div>
+                        @if (NetPosition >= 0)
+                        {
+                            <div class="sfa-bal-label">Student owes</div>
+                            <div class="sfa-bal-big amber">@Money(NetPosition)</div>
+                        }
+                        else
+                        {
+                            <div class="sfa-bal-label">Advance left after dues</div>
+                            <div class="sfa-bal-big green">@Money(-NetPosition)</div>
+                        }
+                    </div>
+                    <div class="sfa-bal-cell sfa-bal-adv">
+                        <div class="sfa-bal-label">Advance</div>
+                        <div class="sfa-bal-amt green">@Money(AdvanceAmount)</div>
+                        <div class="sfa-bal-note">Unallocated money</div>
+                    </div>
+                </div>
+
+                @* ---------- tabs ---------- *@
+                <div class="sfa-tabs" role="tablist">
+                    @foreach (var tab in Tabs)
+                    {
+                        var t = tab;
+                        <button type="button" role="tab" class="sfa-tab @(ActiveTab == t.Key ? "active" : "")" @onclick="() => OnTabClick(t.Key)">
+                            @t.Title
+                            @if (t.Count() > 0)
+                            {
+                                <span class="sfa-count">@t.Count()</span>
+                            }
+                        </button>
+                    }
+                </div>
+
+                <div class="sfa-tab-body">
+                    @if (IsTabLoading)
+                    {
+                        <div class="sfa-inline-loader">
+                            <span>Loading</span>
+                            <span class="sfa-spinner" role="status" aria-hidden="true"></span>
+                        </div>
+                    }
+                    else if (ActiveTab == TabDue)
+                    {
+                        @* ---------- What is due ---------- *@
+                        @if (dueRows.Count == 0)
+                        {
+                            <div class="sfa-empty-card">
+                                <div>
+                                    <i class="bi bi-check2-circle"></i>
+                                    <strong>Nothing is due</strong>
+                                    <div>Either no invoice is generated for this student or every invoice is paid.</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@dueRows.AsQueryable()" Pagination="@duePagination" Class="table" RowClass="DueRowClass">
+                                        <TemplateColumn Title="Fee head">@Show(context.FeeHeadName)</TemplateColumn>
+                                        <TemplateColumn Title="Month">@Show(context.MonthDisplay)</TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Amount)</TemplateColumn>
+                                        <TemplateColumn Title="Concession" Class="sfa-num">@(context.Concession + context.WaiveOff > 0 ? Money(context.Concession + context.WaiveOff) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Net" Class="sfa-num">@Money(context.Amount - context.Concession - context.WaiveOff)</TemplateColumn>
+                                        <TemplateColumn Title="Paid" Class="sfa-num">@(context.ReceivedAmt > 0 ? Money(context.ReceivedAmt) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@Money(context.Payable)</span></TemplateColumn>
+                                        <TemplateColumn Title="Status" Class="sfa-center">
+                                            @if (context.ReceivedAmt > 0)
+                                            {
+                                                <span class="sfa-pill amber">Part paid</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sfa-pill red">Due</span>
+                                            }
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="sfa-total">
+                                    <span>Total outstanding</span>
+                                    <span>@Money(DuesAmount)</span>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@duePagination" /></div></div>
+                            </div>
+                            @if (LateFeeAmount > 0)
+                            {
+                                <div class="sfa-empty">A late fee of <b>@Money(LateFeeAmount)</b> is added when all due invoices are paid on Fee Collection.</div>
+                            }
+                        }
+                    }
+                    else if (ActiveTab == TabInvoices)
+                    {
+                        @* ---------- Invoices ---------- *@
+                        @if (invoiceRows.Count == 0)
+                        {
+                            <div class="sfa-empty-card">
+                                <div>
+                                    <i class="bi bi-file-earmark-text"></i>
+                                    <strong>No invoices</strong>
+                                    <div>Use <b>New invoice</b> to generate one for this student.</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@invoiceRows.AsQueryable()" Pagination="@invoicePagination" Class="table" RowClass="InvoiceRowClass">
+                                        <TemplateColumn Title="Invoice" Sortable="true" SortBy="@(GridSort<InvoiceRow>.ByAscending(x => x.InvoiceNo))">
+                                            <button type="button" class="sfa-link" title="Open in Invoice Generation" @onclick="() => GoToInvoice(context)">@Show(context.InvoiceNo)</button>
+                                            @if (!string.IsNullOrWhiteSpace(context.TemplateName))
+                                            {
+                                                <span class="sfa-small">@context.TemplateName</span>
+                                            }
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Due date" Sortable="true" SortBy="@(GridSort<InvoiceRow>.ByAscending(x => x.DueDate))">
+                                            @(context.DueDate.HasValue ? context.DueDate.Value.ToString("dd MMM yyyy") : Blank)
+                                            @if (context.DaysLate > 0)
+                                            {
+                                                <span class="sfa-late">@context.DaysLate days late</span>
+                                            }
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
+                                        <TemplateColumn Title="Concession" Class="sfa-num">@(context.Concession + context.WaiveOff > 0 ? Money(context.Concession + context.WaiveOff) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Net" Class="sfa-num">@Money(context.Net)</TemplateColumn>
+                                        <TemplateColumn Title="Paid" Class="sfa-num">@(context.HasReceivedInfo ? Money(context.Received) : "—")</TemplateColumn>
+                                        <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@(context.HasReceivedInfo ? Money(context.Outstanding) : "—")</span></TemplateColumn>
+                                        <TemplateColumn Title="Status" Class="sfa-center"><span class="sfa-pill @context.StatusCss">@context.Status</span></TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@invoicePagination" /></div></div>
+                            </div>
+                        }
+                    }
+                    else if (ActiveTab == TabReceipts)
+                    {
+                        @* ---------- Receipts ---------- *@
+                        @if (receiptRows.Count == 0)
+                        {
+                            <div class="sfa-empty-card">
+                                <div>
+                                    <i class="bi bi-receipt"></i>
+                                    <strong>No receipts</strong>
+                                    <div>Payments collected on Fee Collection will appear here.</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@receiptRows.AsQueryable()" Pagination="@receiptPagination" Class="table" RowClass="ReceiptRowClass">
+                                        <TemplateColumn Title="Receipt" Sortable="true" SortBy="@(GridSort<StudentFeeReceiptListResponse>.ByAscending(x => x.ReceiptNo))">
+                                            <button type="button" class="sfa-link" title="Open in View Student Receipt" @onclick="() => GoToReceipt(context)">@Show(context.ReceiptNo)</button>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Date" Sortable="true" SortBy="@(GridSort<StudentFeeReceiptListResponse>.ByAscending(x => x.ReceiptDate))">
+                                            @(context.ReceiptDate.HasValue ? context.ReceiptDate.Value.ToString("dd MMM yyyy") : Blank)
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Mode">
+                                            @Show(context.PaymentMode)
+                                            @if (!string.IsNullOrWhiteSpace(context.ChequeNo) && context.ChequeNo != "0")
+                                            {
+                                                <span class="sfa-small">Chq @context.ChequeNo</span>
+                                            }
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
+                                        @* receipt PaidAmount already includes the late fee (receipt save SP adds it), so fee paid = PaidAmount - LateFee *@
+                                        <TemplateColumn Title="Fee paid" Class="sfa-num"><span class="sfa-amt">@Money(FeePaid(context))</span></TemplateColumn>
+                                        <TemplateColumn Title="Late fee" Class="sfa-num">@((context.LateFee ?? 0) > 0 ? Money(context.LateFee ?? 0) : "–")</TemplateColumn>
+                                        <TemplateColumn Title="Received" Class="sfa-num"><span class="sfa-amt sfa-strong">@Money(context.PaidAmount ?? 0)</span></TemplateColumn>
+                                        <TemplateColumn Title="Status" Class="sfa-center">
+                                            @if (context.Valid == false)
+                                            {
+                                                <span class="sfa-pill grey">Cancelled</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sfa-pill green">Valid</span>
+                                            }
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="sfa-total">
+                                    <span>Total received <span class="muted">(valid receipts: fee @Money(ValidReceipts.Sum(FeePaid)) + late fee @Money(ValidReceipts.Sum(x => x.LateFee ?? 0)))</span></span>
+                                    <span>@Money(ValidReceipts.Sum(x => x.PaidAmount ?? 0))</span>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@receiptPagination" /></div></div>
+                            </div>
+                        }
+                    }
+                    else if (ActiveTab == TabBank)
+                    {
+                        @* ---------- Bank receipts (not built yet) ---------- *@
+                        <div class="sfa-empty-card">
+                            <div>
+                                <i class="bi bi-bank"></i>
+                                <strong>No bank receipts</strong>
+                                <div>Verified bank payments will appear here.</div>
+                            </div>
+                        </div>
+                    }
+                    else if (ActiveTab == TabAdvance)
+                    {
+                        @* ---------- Advance & refunds ---------- *@
+                        <div class="sfa-section-title">
+                            <span>Advance movements</span>
+                            <small>Current advance <b class="sfa-pos">@Money(AdvanceAmount)</b></small>
+                        </div>
+                        @if (advanceRows.Count == 0)
+                        {
+                            <div class="sfa-empty">No advance movements.</div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@advanceRows.AsQueryable()" Pagination="@advancePagination" Class="table">
+                                        <TemplateColumn Title="Date">@context.Date.ToString("dd MMM yyyy, HH:mm")</TemplateColumn>
+                                        <TemplateColumn Title="What happened">
+                                            @Show(context.Title)
+                                            <span class="sfa-small">@context.Detail</span>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Document">@Show(context.Reference)</TemplateColumn>
+                                        <TemplateColumn Title="Change" Class="sfa-num">
+                                            <span class="@(context.Change < 0 ? "sfa-neg" : "")">@Money(context.Change)</span>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Advance after" Class="sfa-num"><span class="sfa-strong">@Money(context.After)</span></TemplateColumn>
+                                        <TemplateColumn Title="By">@Show(context.By)</TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@advancePagination" /></div></div>
+                            </div>
+                        }
+
+                        <div class="sfa-section-title"><span>Refunds &amp; cancelled receipts</span></div>
+                        @if (refundRows.Count == 0)
+                        {
+                            <div class="sfa-empty">No refunds.</div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@refundRows.AsQueryable()" Pagination="@refundPagination" Class="table">
+                                        <TemplateColumn Title="Date">@(context.Date.HasValue ? context.Date.Value.ToString("dd MMM yyyy") : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Receipt">
+                                            <button type="button" class="sfa-link" @onclick="() => GoToReceipt(context.Receipt)">@Show(context.Receipt.ReceiptNo)</button>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="sfa-num"><span class="sfa-strong">@Money(context.Amount)</span></TemplateColumn>
+                                        <TemplateColumn Title="Where the money went">
+                                            @if (context.KeptAsAdvance)
+                                            {
+                                                <span class="sfa-pill green">Kept as advance</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="sfa-pill red">Refunded / not received</span>
+                                            }
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Reason">@Show(context.Reason)</TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@refundPagination" /></div></div>
+                            </div>
+                        }
+                    }
+                    else if (ActiveTab == TabStatement)
+                    {
+                        @* ---------- Statement ---------- *@
+                        @if (statementRows.Count == 0)
+                        {
+                            <div class="sfa-empty-card">
+                                <div>
+                                    <i class="bi bi-journal-text"></i>
+                                    <strong>No statement entries</strong>
+                                    <div>Invoices, concessions, receipts and cancellations will appear here.</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@statementRows.AsQueryable()" Pagination="@statementPagination" Class="table">
+                                        <TemplateColumn Title="Date">@context.Date.ToString("dd MMM yyyy")</TemplateColumn>
+                                        <TemplateColumn Title="Reference">@Show(context.Reference)</TemplateColumn>
+                                        <TemplateColumn Title="Entry">
+                                            @Show(context.Title)
+                                            <span class="sfa-small">@context.Detail</span>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Charged" Class="sfa-num">@(context.Charged > 0 ? Money(context.Charged) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Paid / credited" Class="sfa-num">@(context.Credited > 0 ? Money(context.Credited) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Balance" Class="sfa-num"><span class="sfa-strong @(context.Balance < 0 ? "sfa-pos" : "")">@Money(context.Balance)</span></TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="sfa-total">
+                                    <span>Total &nbsp;<span class="muted">charged @Money(statementRows.Sum(x => x.Charged)) &middot; paid / credited @Money(statementRows.Sum(x => x.Credited))</span></span>
+                                    <span>Closing balance @Money(statementRows[^1].Balance)</span>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@statementPagination" /></div></div>
+                            </div>
+                        }
+                    }
+                    else if (ActiveTab == TabConcessions)
+                    {
+                        @* ---------- Concessions ---------- *@
+                        <div class="sfa-section-title"><span>Assigned concessions</span></div>
+                        @if (concessionRows.Count == 0)
+                        {
+                            <div class="sfa-empty">No concessions assigned. Assign one from the Concessions page or Fee Collection.</div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@concessionRows.AsQueryable()" Pagination="@concessionPagination" Class="table">
+                                        <TemplateColumn Title="Concession">@Show(context.ConcessionName)</TemplateColumn>
+                                        <TemplateColumn Title="Fee head">@Show(context.FeeHeadName)</TemplateColumn>
+                                        <TemplateColumn Title="Value" Class="sfa-num">
+                                            @(context.ConcessionType == 1 ? Money(context.ConcessionValue) : $"{context.ConcessionValue:0.##}%")
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="Valid">@context.ValidFrom.ToString("dd MMM yyyy") – @context.ValidUpto.ToString("dd MMM yyyy")</TemplateColumn>
+                                        <TemplateColumn Title="Status" Class="sfa-center">
+                                            <span class="sfa-pill @(context.Status == 1 ? "green" : context.Status == 2 ? "red" : "amber")">
+                                                @(context.Status == 1 ? "Approved" : context.Status == 2 ? "Rejected" : "Pending")
+                                            </span>
+                                        </TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@concessionPagination" /></div></div>
+                            </div>
+                        }
+
+                        <div class="sfa-section-title"><span>Concession given on invoices</span></div>
+                        @if (ConcessionInvoices.Count == 0)
+                        {
+                            <div class="sfa-empty">No concession has been applied on this student's invoices.</div>
+                        }
+                        else
+                        {
+                            <div class="sfa-grid quick-main">
+                                <div class="grid-box">
+                                    <QuickGrid Items="@ConcessionInvoices.AsQueryable()" Pagination="@concessionInvoicePagination" Class="table">
+                                        <TemplateColumn Title="Invoice">
+                                            <button type="button" class="sfa-link" @onclick="() => GoToInvoice(context)">@Show(context.InvoiceNo)</button>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
+                                        <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
+                                        <TemplateColumn Title="Concession" Class="sfa-num">@Money(context.Concession)</TemplateColumn>
+                                        <TemplateColumn Title="Waive off" Class="sfa-num">@(context.WaiveOff > 0 ? Money(context.WaiveOff) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Net" Class="sfa-num"><span class="sfa-strong">@Money(context.Net)</span></TemplateColumn>
+                                    </QuickGrid>
+                                </div>
+                                <div class="sfa-total">
+                                    <span>Total concession given</span>
+                                    <span>@Money(ConcessionInvoices.Sum(x => x.Concession + x.WaiveOff))</span>
+                                </div>
+                                <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@concessionInvoicePagination" /></div></div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@if (ShowNewInvoice && selectedStudent != null)
+{
+    <GenerateInvoicePopup SessionId="@CurrentSession"
+                          GroupCode="@groupcode"
+                          BranchCode="@branchcode"
+                          UserName="@UserName"
+                          SocietyId="@selectedStudent.SocietyId"
+                          Title="@($"New invoice · {selectedStudent.StudentName} ({selectedStudent.ControlNo})")"
+                          SubmitText="Generate Invoice"
+                          PreselectClassCode="@selectedStudent.ClassCode"
+                          PreselectStudentId="@selectedStudent.StudentId"
+                          OnClose="CloseNewInvoice" />
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    // ======================= state =======================
+
+    // /StudentFeeAccount?StudentNo=...&SessionId=... opens the student straight away
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "StudentNo")]
+    public string? QueryStudentNo { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "SessionId")]
+    public long QuerySessionId { get; set; }
+
+    private const string TabDue = "due", TabInvoices = "invoices", TabReceipts = "receipts", TabBank = "bank",
+                         TabAdvance = "advance", TabStatement = "statement", TabConcessions = "concessions";
+
+    private record TabInfo(string Key, string Title, Func<int> Count);
+    private List<TabInfo> Tabs => new()
+    {
+        new(TabDue, "What is due", () => dueRows.Count),
+        new(TabInvoices, "Invoices", () => invoiceRows.Count),
+        new(TabReceipts, "Receipts", () => receiptRows.Count),
+        new(TabBank, "Bank receipts", () => 0),
+        new(TabAdvance, "Advance & refunds", () => advanceRows.Count + refundRows.Count),
+        new(TabStatement, "Statement", () => statementRows.Count),
+        new(TabConcessions, "Concessions", () => concessionRows.Count)
+    };
+
+    // opened from View Student (fee login, student name click): no search bar, Back button instead
+    // decided once on first load (the URL changes later when the student is changed)
+    private bool OpenedFromLink;
+
+    private void GoBack()
+    {
+        ShowPageLoader();
+        Nav.NavigateTo("/viewstudent");
+    }
+
+    private string ActiveTab = TabDue;
+    private bool IsLoading;
+    private bool IsTabLoading;
+    private bool ShowNewInvoice;
+
+    private string? groupcode;
+    private string? branchcode;
+    private string? UserName;
+    private long CurrentSession;
+    private List<SessionModel> sessionlist = new();
+
+    // search
+    private string? searchText;
+    private string searchInputKey = Guid.NewGuid().ToString();
+    private bool ShowSuggestions;
+    private bool IsSearchingStudents;
+    private int activeSuggestion = -1;
+    private List<StudentLedgerChallanMiniDetailsResponse> suggestions = new();
+    private CancellationTokenSource? typingCts;
+
+    // student + data
+    private StudentLedgerChallanMiniDetailsResponse? selectedStudent;
+    private StudentDetailsForFee? feeDetails;
+    private List<FeeCollectionDuesNew> dueRows = new();
+    private List<InvoiceRow> invoiceRows = new();
+    private List<StudentFeeReceiptListResponse> receiptRows = new();
+    private List<StudentLedgerResponse> ledgerRows = new();
+    private List<StatementRow> statementRows = new();
+    private List<AdvanceRow> advanceRows = new();
+    private List<RefundRow> refundRows = new();
+    private List<StudentMappedConcessionDto> concessionRows = new();
+
+    private PaginationState duePagination = new() { ItemsPerPage = 15 };
+    private PaginationState invoicePagination = new() { ItemsPerPage = 10 };
+    private PaginationState receiptPagination = new() { ItemsPerPage = 10 };
+    private PaginationState advancePagination = new() { ItemsPerPage = 10 };
+    private PaginationState statementPagination = new() { ItemsPerPage = 15 };
+    private PaginationState refundPagination = new() { ItemsPerPage = 10 };
+    private PaginationState concessionPagination = new() { ItemsPerPage = 10 };
+    private PaginationState concessionInvoicePagination = new() { ItemsPerPage = 10 };
+
+    private IEnumerable<StudentFeeReceiptListResponse> ValidReceipts => receiptRows.Where(x => x.Valid != false);
+    private List<InvoiceRow> ConcessionInvoices => invoiceRows.Where(x => x.Concession + x.WaiveOff > 0).ToList();
+
+    // ======================= summary =======================
+
+    private decimal DuesAmount => dueRows.Sum(x => x.Payable);
+    private decimal LateFeeAmount => feeDetails?.LateFee ?? 0;
+    // V3M_Fin_StudentBalance: negative = advance (same rule as Fee Collection)
+    private decimal AdvanceAmount => Math.Max(0, -(feeDetails?.PreviousBalance ?? 0));
+    private decimal NetPosition => DuesAmount + LateFeeAmount - AdvanceAmount;
+    private decimal OverdueAmount => Math.Min(DuesAmount, invoiceRows.Where(x => x.DaysLate > 0 && x.HasReceivedInfo).Sum(x => x.Outstanding));
+
+    private string BarPercent(decimal value)
+    {
+        var max = Math.Max(DuesAmount + LateFeeAmount, AdvanceAmount);
+        if (max <= 0 || value <= 0) return "0";
+        return (Math.Round(value / max * 45m, 2)).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private string? DueRowClass(FeeCollectionDuesNew row) => OverdueAmount > 0 ? "sfa-row-overdue" : null;
+    private string? InvoiceRowClass(InvoiceRow row) => row.Status == "Overdue" ? "sfa-row-overdue" : null;
+    private string? ReceiptRowClass(StudentFeeReceiptListResponse row) => row.Valid == false ? "sfa-row-cancelled" : null;
+
+    // ======================= lifecycle =======================
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        OpenedFromLink = !string.IsNullOrWhiteSpace(QueryStudentNo);
+
+        groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+        branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+        UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        CurrentSession = QuerySessionId > 0 ? QuerySessionId : await _commonmethod.SetCurrentSessionData();
+
+        if (!string.IsNullOrWhiteSpace(QueryStudentNo))
+        {
+            searchText = QueryStudentNo.Trim();
+            searchInputKey = Guid.NewGuid().ToString();
+            IsLoading = true;
+            StateHasChanged();
+            var results = await FetchStudents(searchText);
+            IsLoading = false;
+            var match = results.FirstOrDefault(x => string.Equals(x.ControlNo, searchText, StringComparison.OrdinalIgnoreCase))
+                        ?? (results.Count == 1 ? results[0] : null);
+            if (match != null)
+                await SelectStudent(match);
+        }
+        StateHasChanged();
+    }
+
+    // ======================= search =======================
+
+    private async Task<List<StudentLedgerChallanMiniDetailsResponse>> FetchStudents(string term)
+    {
+        var request = new StudentLedgerChallanMiniDetailsRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            ControlNo = string.Empty,
+            StudentName = string.Empty
+        };
+        // a term with a digit = student no., otherwise student name
+        if (term.Any(char.IsDigit))
+            request.ControlNo = term;
+        else
+            request.StudentName = term;
+
+        var response = await httpService.Post<ApiResponse<List<StudentLedgerChallanMiniDetailsResponse>>>("StudentFee/GetStudentLedgerChallanMiniDetails", request);
+        return (response != null && response.Success && response.Data != null) ? response.Data : new();
+    }
+
+    private async Task OnSearchTextChanged()
+    {
+        typingCts?.Cancel();
+        var term = searchText?.Trim() ?? "";
+        if (term.Length < 3 || CurrentSession <= 0)
+        {
+            ShowSuggestions = false;
+            suggestions = new();
+            return;
+        }
+
+        var cts = typingCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(400, cts.Token);
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+            var results = await FetchStudents(term);
+            if (cts.IsCancellationRequested) return;
+            suggestions = results;
+            activeSuggestion = results.Count > 0 ? 0 : -1;
+        }
+        catch (TaskCanceledException) { }
+        catch (Exception ex)
+        {
+            ShowSuggestions = false;
+            Console.WriteLine($"Error fetching student suggestions: {ex.Message}");
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                IsSearchingStudents = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task SearchStudent()
+    {
+        typingCts?.Cancel();
+        var term = searchText?.Trim();
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            await Alert.ShowWarning("Please enter student name or student no to search.");
+            return;
+        }
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+
+        try
+        {
+            suggestions = new();
+            activeSuggestion = -1;
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+
+            var results = await FetchStudents(term);
+            IsSearchingStudents = false;
+
+            if (results.Count == 1)
+            {
+                ShowSuggestions = false;
+                await SelectStudent(results[0]);
+                return;
+            }
+            suggestions = results;
+            activeSuggestion = results.Count > 0 ? 0 : -1;
+            ShowSuggestions = true;
+            if (results.Count == 0)
+                await Alert.ShowWarning("No student found.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching student: {ex.Message}");
+            ShowSuggestions = false;
+        }
+        finally
+        {
+            IsSearchingStudents = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown" when ShowSuggestions && suggestions.Count > 0:
+                activeSuggestion = (activeSuggestion + 1) % suggestions.Count;
+                break;
+            case "ArrowUp" when ShowSuggestions && suggestions.Count > 0:
+                activeSuggestion = activeSuggestion <= 0 ? suggestions.Count - 1 : activeSuggestion - 1;
+                break;
+            case "Escape":
+                ShowSuggestions = false;
+                break;
+            case "Enter":
+                if (ShowSuggestions && activeSuggestion >= 0 && activeSuggestion < suggestions.Count)
+                    await SelectStudent(suggestions[activeSuggestion]);
+                else
+                    await SearchStudent();
+                break;
+        }
+    }
+
+    private async Task OnSessionChanged(ChangeEventArgs e)
+    {
+        long.TryParse(e.Value?.ToString(), out var sessionId);
+        CurrentSession = sessionId;
+        ShowSuggestions = false;
+        if (selectedStudent != null && CurrentSession > 0)
+            await LoadAll();
+    }
+
+    private async Task SelectStudent(StudentLedgerChallanMiniDetailsResponse item)
+    {
+        typingCts?.Cancel();
+        bool isChange = selectedStudent != null;
+        selectedStudent = item;
+        ShowSuggestions = false;
+        suggestions = new();
+        // box is emptied so the next student can be searched straight away
+        searchText = string.Empty;
+        searchInputKey = Guid.NewGuid().ToString();
+        // changing student keeps the tab you were on; first selection starts on "What is due"
+        if (!isChange)
+            ActiveTab = TabDue;
+        // address bar follows the student (refresh / Back from other pages open this student)
+        Nav.NavigateTo($"/StudentFeeAccount?StudentNo={Uri.EscapeDataString(item.ControlNo ?? "")}&SessionId={CurrentSession}", replace: true);
+        await LoadAll();
+    }
+
+    private void ClearSearch()
+    {
+        typingCts?.Cancel();
+        searchText = string.Empty;
+        searchInputKey = Guid.NewGuid().ToString();
+        ShowSuggestions = false;
+        suggestions = new();
+        activeSuggestion = -1;
+    }
+
+    // ======================= data =======================
+
+    private async Task RefreshAll() => await LoadAll();
+
+    // everything for the header + every tab, in parallel, behind the page loader
+    private async Task LoadAll()
+    {
+        if (selectedStudent == null) return;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            await Task.WhenAll(LoadFeeDetails(), LoadDues(), LoadInvoices(), LoadReceipts(), LoadLedger(), LoadConcessions());
+            BuildDerivedRows();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading student fee account: {ex.Message}");
+            await Alert.ShowError("Unable to load the student's fee details.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // tab click: loader first, then that tab's data is fetched again
+    private async Task OnTabClick(string key)
+    {
+        if (selectedStudent == null) return;
+        ActiveTab = key;
+        IsTabLoading = true;
+        StateHasChanged();
+        try
+        {
+            var minimum = Task.Delay(350);
+            switch (key)
+            {
+                case TabDue: await Task.WhenAll(LoadDues(), LoadFeeDetails()); break;
+                case TabInvoices: await LoadInvoices(); break;
+                case TabReceipts: await LoadReceipts(); break;
+                case TabAdvance: await Task.WhenAll(LoadLedger(), LoadReceipts(), LoadFeeDetails()); break;
+                case TabStatement: await LoadLedger(); break;
+                case TabConcessions: await Task.WhenAll(LoadConcessions(), LoadInvoices()); break;
+            }
+            BuildDerivedRows();
+            await minimum;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tab {key}: {ex.Message}");
+        }
+        finally
+        {
+            IsTabLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFeeDetails()
+    {
+        var request = new StudentDetailsForFeeRequest
+        {
+            GroupCode = groupcode ?? "",
+            BranchCode = branchcode ?? "",
+            SessionId = CurrentSession,
+            ControlNo = selectedStudent!.ControlNo ?? "",
+            StudentName = string.Empty
+        };
+        var response = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", request);
+        feeDetails = response?.Success == true
+            ? response.Data?.FirstOrDefault(x => x.StudentId == selectedStudent.StudentId)
+            : null;
+    }
+
+    private async Task LoadDues()
+    {
+        var request = new GetStudentFeeHeadDuesForAdjustmentRequest
+        {
+            GroupCode = groupcode ?? "",
+            BranchCode = branchcode ?? "",
+            SessionId = CurrentSession,
+            StudentId = selectedStudent!.StudentId,
+            BankAccountId = "0",
+            TillDate = ""
+        };
+        var response = await httpService.Post<ApiResponse<List<FeeCollectionDuesNew>>>("StudentFee/GetStudentFeeCollectionDues", request);
+        dueRows = (response?.Success == true && response.Data != null)
+            ? response.Data.Where(x => x.Payable > 0).OrderBy(x => SessionMonthOrder(x.MonthNo)).ToList()
+            : new();
+    }
+
+    private async Task LoadInvoices()
+    {
+        var challanTask = httpService.Post<ApiResponse<List<StudentChallanResponse>>>("StudentFee/GetStudentChallan", new StudentChallanRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = selectedStudent!.StudentId
+        });
+        // same API as Invoice Generation: due date + received amount per invoice
+        var balanceTask = httpService.Post<ApiResponse<List<SearchStudentBalanceDto>>>("StudentFeeInvoice/GetStudentGenerateInvoiceFee", new SearchStudentBalanceDto
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            ClassCode = selectedStudent.ClassCode,
+            SectionId = selectedStudent.SectionId > 0 ? selectedStudent.SectionId.ToString() : "",
+            StudentNo = selectedStudent.ControlNo
+        });
+
+        List<StudentChallanResponse> challans = new();
+        List<SearchStudentBalanceDto> balances = new();
+        try
+        {
+            var r = await challanTask;
+            if (r?.Success == true && r.Data != null)
+                challans = r.Data.Where(x => x.InvoiceId != 0).ToList();
+        }
+        catch (Exception ex) { Console.WriteLine($"Error fetching invoices: {ex.Message}"); }
+        try
+        {
+            var r = await balanceTask;
+            if (r?.Success == true && r.Data != null)
+                balances = r.Data.Where(x => x.StudentId == 0 || x.StudentId == selectedStudent.StudentId).ToList();
+        }
+        catch (Exception ex) { Console.WriteLine($"Error fetching invoice balances: {ex.Message}"); }
+
+        invoiceRows = challans.Select(c =>
+        {
+            var b = balances.FirstOrDefault(x => x.InvoiceId == c.InvoiceId)
+                    ?? balances.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.InvoiceNo) && x.InvoiceNo == c.InvoiceNo);
+            return new InvoiceRow
+            {
+                Source = c,
+                InvoiceId = c.InvoiceId,
+                InvoiceNo = c.InvoiceNo ?? "",
+                PeriodName = c.PeriodName,
+                TemplateName = c.TemplateName,
+                Total = c.TotalAmount,
+                Concession = c.TotalConcession,
+                WaiveOff = c.TotalWaiveOff,
+                Received = b?.ReceivedAmount ?? 0,
+                HasReceivedInfo = b != null,
+                DueDate = ParseDate(b?.DueDate)
+            };
+        }).OrderByDescending(x => x.InvoiceId).ToList();
+    }
+
+    private async Task LoadReceipts()
+    {
+        var request = new StudentFeeReceiptListRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentNo = selectedStudent!.ControlNo ?? "",
+            Status = -1,
+            CancelType = "-1",
+            FromDate = DateTime.Today.AddYears(-5),
+            ToDate = DateTime.Today
+        };
+        var response = await httpService.Post<ApiResponse<List<StudentFeeReceiptListResponse>>>("StudentFeeReceipt/GetStudentFeeReceiptListData", request);
+        receiptRows = (response?.Success == true && response.Data != null)
+            ? response.Data.Where(x => x.StudentId == 0 || x.StudentId == selectedStudent.StudentId)
+                           .OrderByDescending(x => x.ReceiptDate).ThenByDescending(x => x.ReceiptId).ToList()
+            : new();
+    }
+
+    private async Task LoadLedger()
+    {
+        var request = new StudentLedgerRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = selectedStudent!.StudentId,
+            StudentNo = selectedStudent.ControlNo ?? "",
+            StudentName = ""
+        };
+        var response = await httpService.Post<ApiResponse<List<StudentLedgerResponse>>>("StudentFeeInvoice/GetStudentLedgerNew", request);
+        ledgerRows = (response?.Success == true && response.Data != null)
+            ? response.Data.Where(x => x.StudentId == 0 || x.StudentId == selectedStudent.StudentId).ToList()
+            : new();
+    }
+
+    private async Task LoadConcessions()
+    {
+        var request = new SearchAnyRequestModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            RequestId = Convert.ToInt32(selectedStudent!.StudentId)
+        };
+        var response = await httpService.Post<ApiResponse<List<StudentMappedConcessionDto>>>("Concession/GetStudentMappedConcession", request);
+        concessionRows = response?.Success == true ? response.Data ?? new() : new();
+    }
+
+    // statement, advance movements and refunds come from the ledger + receipts
+    private void BuildDerivedRows()
+    {
+        statementRows = ledgerRows.Select(l => new StatementRow
+        {
+            Date = l.TransactionDate == default ? l.CreatedDate : l.TransactionDate,
+            Reference = ReferenceOf(l),
+            Title = EntryTitle(l),
+            Detail = l.Narration,
+            Charged = l.Amount > 0 ? l.Amount : 0,
+            Credited = l.Amount < 0 ? -l.Amount : 0,
+            Balance = l.RunningBalance
+        }).ToList();
+
+        // advance rows: ledger rows of type "Advance" or with "advance" in the narration; credit (negative) = advance up
+        decimal running = 0;
+        advanceRows = new();
+        foreach (var l in ledgerRows.Where(IsAdvanceEntry))
+        {
+            var change = -l.Amount;
+            running += change;
+            advanceRows.Add(new AdvanceRow
+            {
+                Date = l.CreatedDate == default ? l.TransactionDate : l.CreatedDate,
+                Title = change >= 0 ? "Added to advance" : "Advance used / taken back",
+                Detail = l.Narration,
+                Reference = ReferenceOf(l),
+                Change = change,
+                After = running,
+                By = l.TransactionBy
+            });
+        }
+
+        refundRows = receiptRows.Where(r => r.Valid == false).Select(r =>
+        {
+            var no = r.ReceiptNo ?? "";
+            var kept = !string.IsNullOrWhiteSpace(no) && ledgerRows.Any(l =>
+                (l.Narration ?? "").Contains(no, StringComparison.OrdinalIgnoreCase) &&
+                (l.Narration ?? "").Contains("advance", StringComparison.OrdinalIgnoreCase) &&
+                !(l.Narration ?? "").StartsWith("Reversal", StringComparison.OrdinalIgnoreCase));
+            var remark = r.Remark ?? "";
+            var idx = remark.IndexOf("Cancelled:", StringComparison.OrdinalIgnoreCase);
+            return new RefundRow
+            {
+                Receipt = r,
+                Date = r.ReceiptDate,
+                Amount = r.PaidAmount ?? 0,
+                KeptAsAdvance = kept,
+                Reason = idx >= 0 ? remark[(idx + "Cancelled:".Length)..].Trim() : remark.Trim(' ', '|')
+            };
+        }).ToList();
+    }
+
+    private static bool IsAdvanceEntry(StudentLedgerResponse l) =>
+        string.Equals(l.ReferenceType, "Advance", StringComparison.OrdinalIgnoreCase) ||
+        ((l.Narration ?? "").Contains("advance", StringComparison.OrdinalIgnoreCase) &&
+         !(l.Narration ?? "").StartsWith("Reversal", StringComparison.OrdinalIgnoreCase));
+
+    private static readonly Regex DocNoRegex = new(@"\b(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{5,}\b", RegexOptions.Compiled);
+
+    private static string ReferenceOf(StudentLedgerResponse l)
+    {
+        if (!string.IsNullOrWhiteSpace(l.ReferenceNo)) return l.ReferenceNo!;
+        var m = DocNoRegex.Match(l.Narration ?? "");
+        return m.Success ? m.Value : "";
+    }
+
+    private static string EntryTitle(StudentLedgerResponse l)
+    {
+        var n = l.Narration ?? "";
+        bool Has(string s) => n.Contains(s, StringComparison.OrdinalIgnoreCase);
+        if (Has("Reversal")) return "REVERSAL";
+        if (Has("cancel")) return "RECEIPT CANCEL";
+        if (Has("advance")) return "ADVANCE";
+        if (Has("refund")) return "REFUND";
+        if (Has("concession")) return "CONCESSION";
+        if (Has("revision")) return "INVOICE REVISION";
+        if (Has("receipt")) return "STUDENT RECEIPT";
+        if (Has("challan") || Has("invoice")) return "INVOICE";
+        if (!string.IsNullOrWhiteSpace(l.ReferenceType)) return l.ReferenceType!.ToUpperInvariant();
+        return l.Amount >= 0 ? "CHARGE" : "PAYMENT";
+    }
+
+    // ======================= navigation =======================
+
+    private void ShowPageLoader()
+    {
+        IsLoading = true;
+        StateHasChanged();
+    }
+
+    // link back to this student's account; the target page shows a Back button with it (BackToFeeAccount)
+    private string ReturnUrlParam => "&ReturnUrl=" + Uri.EscapeDataString(
+        $"/StudentFeeAccount?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}&SessionId={CurrentSession}");
+
+    private void GoToInvoice(InvoiceRow row)
+    {
+        ShowPageLoader();
+        Nav.NavigateTo($"/invoicegeneration?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}{ReturnUrlParam}");
+    }
+
+    private void GoToReceipt(StudentFeeReceiptListResponse row)
+    {
+        ShowPageLoader();
+        Nav.NavigateTo($"/ViewStudentReceipt?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}&ReceiptNo={Uri.EscapeDataString(row.ReceiptNo ?? "")}&SessionId={CurrentSession}{ReturnUrlParam}");
+    }
+
+    private void GoToCollectFee()
+    {
+        ShowPageLoader();
+        Nav.NavigateTo($"/feecollectionnew?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}&SessionId={CurrentSession}{ReturnUrlParam}");
+    }
+
+    private void OpenNewInvoice()
+    {
+        ShowNewInvoice = true;
+        StateHasChanged();
+    }
+
+    private async Task CloseNewInvoice(bool generated)
+    {
+        ShowNewInvoice = false;
+        StateHasChanged();
+        if (generated)
+            await LoadAll();
+    }
+
+    // ======================= helpers =======================
+
+    // QuickGrid css hides any row that has an empty cell (tr:has(td:empty)), so a blank cell gets one space
+    private const string Blank = " ";
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? Blank : value;
+    private static decimal FeePaid(StudentFeeReceiptListResponse r) => Math.Max(0, (r.PaidAmount ?? 0) - (r.LateFee ?? 0));
+
+    // academic session April -> March; month 0 (one-time heads) first
+    private static int SessionMonthOrder(int monthNo) => monthNo == 0 ? -1 : (monthNo - 4 + 12) % 12;
+
+    private static readonly NumberFormatInfo RupeeFormat = new()
+    {
+        NumberGroupSizes = new[] { 3, 2 },
+        NumberGroupSeparator = ",",
+        NumberDecimalSeparator = "."
+    };
+
+    // ₹1,00,000 / ₹34,970.50 / -₹50,000 (Indian grouping, decimals only when needed)
+    private static string Money(decimal value)
+    {
+        var abs = Math.Abs(value);
+        // always 2 decimals, same as View Student Ledger / View Fee Head Ledger (₹1,23,456.00)
+        var text = abs.ToString("N2", RupeeFormat);
+        return (value < 0 ? "-₹" : "₹") + text;
+    }
+
+    private static readonly string[] DateFormats = { "dd/MM/yyyy", "dd-MM-yyyy", "dd/MM/yyyy HH:mm:ss", "dd-MM-yyyy HH:mm:ss", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss", "dd MMM yyyy", "dd-MMM-yyyy", "MM/dd/yyyy", "MM/dd/yyyy HH:mm:ss", "MM/dd/yyyy hh:mm:ss tt" };
+
+    private static DateTime? ParseDate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (DateTime.TryParseExact(value.Trim(), DateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)) return d;
+        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out d)) return d;
+        return null;
+    }
+
+    public void Dispose()
+    {
+        typingCts?.Cancel();
+        typingCts?.Dispose();
+    }
+
+    // ======================= view models =======================
+
+    private class InvoiceRow
+    {
+        public StudentChallanResponse Source { get; set; } = new();
+        public long InvoiceId { get; set; }
+        public string InvoiceNo { get; set; } = "";
+        public string? PeriodName { get; set; }
+        public string? TemplateName { get; set; }
+        public DateTime? DueDate { get; set; }
+        public decimal Total { get; set; }
+        public decimal Concession { get; set; }
+        public decimal WaiveOff { get; set; }
+        public decimal Received { get; set; }
+        public bool HasReceivedInfo { get; set; }
+        public decimal Net => Total - Concession - WaiveOff;
+        public decimal Outstanding => Math.Max(0, Net - Received);
+        public int DaysLate => DueDate.HasValue && Outstanding > 0 && DueDate.Value.Date < DateTime.Today ? (DateTime.Today - DueDate.Value.Date).Days : 0;
+        public string Status => !HasReceivedInfo ? "Generated"
+                              : Outstanding <= 0 ? "Paid"
+                              : DaysLate > 0 ? "Overdue"
+                              : Received > 0 ? "Part paid"
+                              : "Due";
+        public string StatusCss => Status switch
+        {
+            "Paid" => "green",
+            "Overdue" => "red",
+            "Part paid" => "amber",
+            _ => "grey"
+        };
+    }
+
+    private class StatementRow
+    {
+        public DateTime Date { get; set; }
+        public string Reference { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Detail { get; set; } = "";
+        public decimal Charged { get; set; }
+        public decimal Credited { get; set; }
+        public decimal Balance { get; set; }
+    }
+
+    private class AdvanceRow
+    {
+        public DateTime Date { get; set; }
+        public string Title { get; set; } = "";
+        public string Detail { get; set; } = "";
+        public string Reference { get; set; } = "";
+        public decimal Change { get; set; }
+        public decimal After { get; set; }
+        public string By { get; set; } = "";
+    }
+
+    private class RefundRow
+    {
+        public StudentFeeReceiptListResponse Receipt { get; set; } = new();
+        public DateTime? Date { get; set; }
+        public decimal Amount { get; set; }
+        public bool KeptAsAdvance { get; set; }
+        public string Reason { get; set; } = "";
+    }
+}

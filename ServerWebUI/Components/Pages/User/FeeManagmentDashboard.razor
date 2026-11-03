@@ -119,12 +119,13 @@
                 <div class="dash-animated">
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.05s">
-                            <div class="stat-card p-3 bg-white">
+                            @* follows the Today / This Week / This Month / This Year filter; click -> View Student searched on the same admission dates *@
+                            <div class="stat-card p-3 bg-white" style="cursor:pointer" role="button" title="View students admitted @PeriodText" @onclick="GoToViewStudent">
                                 <div class="state-icon--bxds">
                                     <div class="stat-icon blue"><i class="fas fa-user-graduate"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="stat-label text-nowrap text-muted small">Total students</div>
-                                        <div class="stat-value fw-bold fs-4">@dashAnimator.Count(TotalStudents)</div>
+                                        <div class="stat-value fw-bold fs-4">@dashAnimator.Count(PeriodStudents)</div>
                                     </div>
                                 </div>
                             </div>
@@ -310,6 +311,45 @@
     private FeeManagementDashboardModel feeDashboard = new();
 
     private int TotalStudents => feeDashboard.TotalStudents;
+    // Total students card = number of rows View Student shows for the same admission dates
+    // (same API + same request as View Student, so both screens always show the same count)
+    private int PeriodStudents;
+    private string periodClassCodes = "";
+
+    private async Task GetPeriodStudentCount()
+    {
+        PeriodStudents = 0;
+        if (CurrentSession <= 0 || string.IsNullOrWhiteSpace(groupcode) || string.IsNullOrWhiteSpace(branchcode))
+            return;
+
+        try
+        {
+            // View Student searches with every class selected
+            if (string.IsNullOrEmpty(periodClassCodes))
+            {
+                var classes = await httpService.Get<List<DomainModel.Admin.BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+                periodClassCodes = string.Join(",", classes.Select(x => x.ClassCode));
+            }
+
+            var request = new StudentRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                ClassCode = periodClassCodes,
+                SectionId = "",
+                IsSearchOnAdmDate = 1,
+                AdmFromDate = searchAnyRequest.FromDate ?? DateTime.Today,
+                AdmToDate = searchAnyRequest.ToDate ?? searchAnyRequest.FromDate ?? DateTime.Today
+            };
+            var response = await httpService.Post<ApiResponse<List<ViewStudentModal>>>("ViewStudent/ViewStudentList", request);
+            PeriodStudents = response?.Success == true ? response.Data?.Count ?? 0 : 0;
+        }
+        catch (Exception)
+        {
+            PeriodStudents = 0;
+        }
+    }
     private int TransportUsers => feeDashboard.TransportUsers;
     private int TotalStaff => feeDashboard.TotalStaff;
     private int EwsStudents => feeDashboard.EwsStudents;
@@ -459,6 +499,20 @@
         public string StatusName { get; set; } = "";
         public int Count { get; set; }
     }
+    // "Total students" card -> View Student, searched on admission date = the selected period (loader while the page opens)
+    private void GoToViewStudent()
+    {
+        var from = (searchAnyRequest.FromDate ?? DateTime.Today).ToString("yyyy-MM-dd");
+        var to = (searchAnyRequest.ToDate ?? searchAnyRequest.FromDate ?? DateTime.Today).ToString("yyyy-MM-dd");
+        IsLoading = true;
+        StateHasChanged();
+        // PageHeading on View Student shows the Back icon (same as the admission dashboard links);
+        // DashboardValue keeps the selected period so Back reopens the dashboard on it
+        EnquiryState.DashboardValue = SelectedPeriod;
+        EnquiryState.CameFromDashboard = true;
+        NavigationManager.NavigateTo($"/viewstudent?AdmFrom={from}&AdmTo={to}&SessionId={CurrentSession}");
+    }
+
     private void GoToEnquiry(string value)
     {
         if (value == "TotalEnquiry")
@@ -525,7 +579,7 @@
             searchAnyRequest.BranchCode = branchcode;
             searchAnyRequest.SessionId = CurrentSession;
             // Fee dashboard cards (02, 03, 04 and the top counts) come from this one call
-            await GetFeeManagementDashboard();
+            await Task.WhenAll(GetFeeManagementDashboard(), GetPeriodStudentCount());
         }
         finally
         {
@@ -567,6 +621,12 @@
             CurrentSession = await CommonMethod.SetCurrentSessionData();
             await LoadData();
             await minLoaderTask;
+            // Back from View Student -> reopen on the period that was selected
+            if (EnquiryState.DashboardValue is "Today" or "ThisWeek" or "ThisMonth" or "ThisYear")
+            {
+                SelectedPeriod = EnquiryState.DashboardValue;
+                EnquiryState.DashboardValue = null;
+            }
             await ApplyPeriodFilter(SelectedPeriod);
         }
     }

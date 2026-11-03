@@ -64,6 +64,8 @@
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="View Invoice Dues">
+                <LeadingContent><BackToFeeAccount /></LeadingContent>
+                <ChildContent>
                 <div class="form-box">
                     <select class="form-input">
                         @foreach (var data in societyModellist.Where(x => x.IsValid == true))
@@ -96,6 +98,7 @@
                         </div>
                     </button>
                 </div>
+                </ChildContent>
             </PageHeading>
         </div>
 
@@ -516,6 +519,10 @@ else
     private List<SectionModel> sectionModellist = new();
     PaginationState pagination = new() { ItemsPerPage = 15 };
     private bool IsAllSelected;
+    // /invoicegeneration?StudentNo=... (Student Fee Account -> invoice no. click)
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "StudentNo")]
+    public string? QueryStudentNo { get; set; }
     private SearchStudentBalanceDto searchModel = new();
     private StudentInvoice studentInvoice = new();
     private List<SearchStudentBalanceDto> studentResponselist = new();
@@ -563,6 +570,9 @@ else
         if (firstRender)
         {
             CurrentSession = await _commonmethod.SetCurrentSessionData();
+            // opened from Student Fee Account (invoice no. click): show only that student's invoices
+            if (!string.IsNullOrWhiteSpace(QueryStudentNo))
+                searchModel.StudentNo = QueryStudentNo.Trim();
 
             foreach (var item in classlist)
             {
@@ -579,8 +589,10 @@ else
             var result = studentResponselist.AsQueryable();
             if (!string.IsNullOrEmpty(nameFilter))
             {
+                // grid search boxes: Invoice No / Admission No / Student Name
                 result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
+            (x.AdmissionNo != null && x.AdmissionNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
+            (x.InvoiceNo != null && x.InvoiceNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
 
             }
             return result;

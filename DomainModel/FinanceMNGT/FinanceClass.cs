@@ -2263,6 +2263,9 @@ namespace DomainModel.FinanceMNGT
         public DateTime TransactionDate { get; set; }
         public DateTime CreatedDate { get; set; }
         public string TransactionBy { get; set; } = string.Empty;
+        // V3M_FIN_StudentLedger.ReferenceNo / ReferenceType (filled when the ledger SP returns them; empty otherwise)
+        public string? ReferenceNo { get; set; }
+        public string? ReferenceType { get; set; }
     }
     #endregion
     #region---- View Fee Head ladger ------------------------
