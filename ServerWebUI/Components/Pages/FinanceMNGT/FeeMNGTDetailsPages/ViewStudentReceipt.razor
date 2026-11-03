@@ -159,6 +159,8 @@
 
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="View Student Receipt">
+                <LeadingContent><BackToFeeAccount /></LeadingContent>
+                <ChildContent>
                 @* Status: All = -1, Active = 1, Cancelled = 0 *@
                 <div class="form-box">
                     <div class="border-box d-flex justify-content-center align-items-center gap-3">
@@ -214,6 +216,7 @@
                 <button class="icon-btn icon-btn-white open-popup" @onclick="OpenSearch" data-id="popup" tabindex="0">
                     <i class="bi bi-sliders"></i>
                 </button>
+                </ChildContent>
             </PageHeading>
         </div>
 
@@ -948,8 +951,32 @@
 
             await LoadData();
             StateHasChanged();
+
+            // opened from Student Fee Account (receipt no. click): search that student's receipts straight away
+            if (!string.IsNullOrWhiteSpace(QueryStudentNo) || !string.IsNullOrWhiteSpace(QueryReceiptNo))
+            {
+                request.StudentNo = QueryStudentNo?.Trim() ?? string.Empty;
+                request.ReceiptNo = QueryReceiptNo?.Trim() ?? string.Empty;
+                if (QuerySessionId > 0)
+                    request.SessionId = QuerySessionId;
+                // receipt can be from an earlier year -> wide date range, the student / receipt no. narrows it
+                request.FromDate = DateTime.Today.AddYears(-5);
+                request.ToDate = DateTime.Today;
+                await SearchReceipt();
+            }
         }
     }
+
+    // /ViewStudentReceipt?StudentNo=...&ReceiptNo=...&SessionId=... (Student Fee Account)
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "StudentNo")]
+    public string? QueryStudentNo { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "ReceiptNo")]
+    public string? QueryReceiptNo { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "SessionId")]
+    public long QuerySessionId { get; set; }
 
     // academic year starts in April -> From Date = 1 Apr of the running year, To Date = today
     private static StudentFeeReceiptListRequest NewRequest()

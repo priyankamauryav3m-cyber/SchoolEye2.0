@@ -9,10 +9,10 @@
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
 @inject ICommonMethod _commonmethod
+@implements IDisposable
 @rendermode InteractiveServer
 
 <style>
-
     .student-avatar {
         width: 42px;
         height: 42px;
@@ -37,49 +37,123 @@
         color: #6c757d;
     }
 
-    .student-match-item {
-        cursor: pointer;
+    /* one search box: name -> list below to pick, student no. + Enter -> that student */
+    .student-search-wrap {
+        position: relative;
+        width: 300px;
     }
 
-        .student-match-item:hover td {
-            background-color: #e7f1ff !important;
+    .student-suggest-box-popup {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        width: 550px;
+        max-width: 92vw;
+        margin-top: 2px;
+        border: 1px solid #d9d9d9;
+        border-radius: 8px;
+        background: #fff;
+        max-height: 400px;
+        overflow-y: auto;
+        box-shadow: 0 8px 20px rgba(0,0,0,.15);
+        z-index: 2000;
+    }
+
+    .student-suggest-item {
+        display: grid;
+        grid-template-columns: 2fr 1.4fr 1fr 1.6fr;
+        gap: 20px;
+        padding: 10px 14px;
+        cursor: pointer;
+        background: #fff;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+        .student-suggest-item:last-child {
+            border-bottom: none;
         }
+
+        .student-suggest-item:hover,
+        .student-suggest-item.active {
+            background: #f7f9fc;
+        }
+
+    .student-suggest-column {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .student-suggest-label {
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 2px;
+        color: #263238;
+    }
+
+    .student-suggest-value {
+        font-size: 11px;
+        font-weight: 600;
+        color: #8a94a6;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .student-suggest-empty {
+        padding: 14px;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    .ledger-inline-loader {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 24px 13px;
+        color: #68778a;
+        font-weight: 600;
+    }
+
+    .ledger-inline-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #cbd8e5;
+        border-top-color: #118c91;
+        border-radius: 50%;
+        display: inline-block;
+        animation: ledger-inline-spin .7s linear infinite;
+    }
+
+    @@keyframes ledger-inline-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@media (max-width: 767px) {
+        .student-search-wrap {
+            width: 100%;
+        }
+
+        .student-suggest-box-popup {
+            left: 0;
+            width: 100%;
+        }
+    }
 </style>
 
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="View Students Ledger">
-                <div class="form-box">
-                    <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
-                        <option value="0">-- Select Session --</option>
-                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
-                        {
-                            <option value="@data.SessionId">@data.SessionName </option>
-                        }
-                    </InputSelect>
-                </div>
-                <div class="form-box">
-                    <input class="form-input" placeholder="StudentNo..." maxlength="50"
-                           @bind="searchModel.ControlNo" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" />
-                </div>
-                <div class="form-box">
-                    <input class="form-input" placeholder="StudentName..." maxlength="200"
-                           @bind="searchModel.StudentName" @bind:event="oninput" @onkeydown="HandleSearchKeyDown" />
-                </div>
-                <div class="form-box">
-                    <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudentLedger">
-                        <div class="visible content justify-content-center">Search</div>
-                        <div class="hidden content">
-                            <i class="bi bi-search"></i>
-                        </div>
-                    </button>
-                </div>
             </PageHeading>
         </div>
 
+        @* student details (left) + session / search (right) *@
         <div class="col-12 p-1">
-            <div class="card">
+            <div class="card overflow-visible">
                 <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-2">
                         <div class="student-avatar">
@@ -92,17 +166,79 @@
                             <div class="student-sub">
                                 @if (IsStudentSelected)
                                 {
-                                    @:Admission no. @selectedStudent!.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @GetMobileNo(selectedStudent)
-                                }
-                                else if (studentMatchList.Count > 1)
-                                {
-                                    @:@studentMatchList.Count students found. Select a student from the list below.
+                                    @:Admission no. @selectedStudent!.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedStudent.FatherContactNo
                                 }
                                 else
                                 {
-                                    @:Enter student no. or student name and press Enter / Search to view ledger.
+                                    @:Type student name and pick from the list, or enter student no. and press Enter.
                                 }
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="form-box">
+                            <select class="form-input" value="@CurrentSession" @onchange="OnSessionChanged">
+                                <option value="0">-- Select Session --</option>
+                                @foreach (var s in sessionlist.Where(x => x.IsValid))
+                                {
+                                    <option value="@s.SessionId">@s.SessionName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-box student-search-wrap">
+                            <input @key="searchInputKey" class="form-input w-100" placeholder="Student no. or student name" maxlength="200" autocomplete="off"
+                                   @bind-Value="searchText" @bind-Value:event="oninput" @bind-Value:after="OnSearchTextChanged" @onkeydown="HandleSearchKeyDown" />
+                            @if (ShowSuggestions)
+                            {
+                                <div class="student-suggest-box-popup">
+                                    @if (IsSearchingStudents)
+                                    {
+                                        <div class="ledger-inline-loader">
+                                            <span>Loading students</span>
+                                            <span class="ledger-inline-spinner" role="status" aria-hidden="true"></span>
+                                        </div>
+                                    }
+                                    else if (suggestions.Count == 0)
+                                    {
+                                        <div class="student-suggest-empty">No matching student found.</div>
+                                    }
+                                    else
+                                    {
+                                        @for (int i = 0; i < suggestions.Count; i++)
+                                        {
+                                            var item = suggestions[i];
+                                            var index = i;
+                                            <div class="student-suggest-item @(index == activeSuggestion ? "active" : "")" @onclick="() => SelectStudent(item)" @onmouseover="() => activeSuggestion = index">
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Student Name</span>
+                                                    <span class="student-suggest-value">@Show(item.StudentName)</span>
+                                                </div>
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Student No.</span>
+                                                    <span class="student-suggest-value">@Show(item.ControlNo)</span>
+                                                </div>
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Class</span>
+                                                    <span class="student-suggest-value">@Show(item.ClassSection)</span>
+                                                </div>
+                                                <div class="student-suggest-column">
+                                                    <span class="student-suggest-label">Father</span>
+                                                    <span class="student-suggest-value">@Show(item.FatherName)</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="form-box">
+                            <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="SearchStudent">
+                                <div class="visible content justify-content-center">Search</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-search"></i>
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -113,67 +249,30 @@
             <div class="card">
                 <div class="card-body table-card p-0">
                     <div class="quick-main">
-                        @if (!IsStudentSelected && studentMatchList.Count > 1)
-                        {
-                            <div class="grid-box">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center">Student No.</th>
-                                            <th>Student Name</th>
-                                            <th class="text-center">Class Section</th>
-                                            <th>Father Name</th>
-                                            <th class="text-center">Mobile No.</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var item in studentMatchList)
-                                        {
-                                            <tr class="student-match-item" @onclick="() => SelectStudent(item)">
-                                                <td class="text-center">@item.ControlNo</td>
-                                                <td>@item.StudentName</td>
-                                                <td class="text-center">@item.ClassSection</td>
-                                                <td>@item.FatherName</td>
-                                                <td class="text-center">@GetMobileNo(item)</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="grid-box-with-btn">
-                                <QuickGrid Items="@ledgerQuery" Pagination="@pagination" Class="table">
-                                    <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Control No." Align="Align.Center">
-                                        <ColumnOptions>
+                        <div class="grid-box-with-btn">
+                            <QuickGrid Items="@ledgerQuery" Pagination="@pagination" Class="table">
+                                <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.ControlNo) ? " " : x.ControlNo)" Title="Control No." Align="Align.Center" />
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name" />
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration">
+                                    <ColumnOptions>
                                         <div class="search-box">
-                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Control No...." />
+                                            <input type="search" @bind="narrationFilter" @bind:event="oninput" placeholder="Narration...." />
                                         </div>
                                     </ColumnOptions>
-                                    </PropertyColumn>
-                                        <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.StudentName) ? " " : x.StudentName)" Title="Student Name">
-                                       <ColumnOptions>
-                                        <div class="search-box">
-                                            <input type="search" @bind="nameFilter" @bind:event="oninput" placeholder="Student  name...." />
-                                        </div>
-                                    </ColumnOptions>
-                                    </PropertyColumn>
-                                     <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" />
-                                    <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.TransactionBy) ? " " : x.TransactionBy)" Title="Transaction By" />
-                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.Amount)" Title="Amount (₹)" Align="Align.Right" />
-                                    <PropertyColumn Format="N2" Class="text-right" Property="@(x => x.RunningBalance)" Title="Balance (₹)" Align="Align.Right" />
-                                   <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TransactionDate)" Title="Date" Align="Align.Center" />
-                                </QuickGrid>
-                            </div>
-                            <div class="footer-pagination">
-                                <div class="d-flex align-items-center">
-                                    <div class="welcome-text w-100">
-                                        <Paginator State="@pagination" />
-                                    </div>
+                                </PropertyColumn>
+                                <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.TransactionBy) ? " " : x.TransactionBy)" Title="Transaction By" />
+                                <TemplateColumn Title="Amount" Class="text-right" Align="Align.Right" Sortable="true" SortBy="@(GridSort<StudentLedgerResponse>.ByAscending(x => x.Amount))">@Money(context.Amount)</TemplateColumn>
+                                <TemplateColumn Title="Balance" Class="text-right" Align="Align.Right" Sortable="true" SortBy="@(GridSort<StudentLedgerResponse>.ByAscending(x => x.RunningBalance))">@Money(context.RunningBalance)</TemplateColumn>
+                                <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TransactionDate)" Title="Date" Align="Align.Center" />
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
                                 </div>
                             </div>
-                        }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -202,32 +301,34 @@
     private string? groupcode;
     private long CurrentSession;
     private List<SessionModel> sessionlist = new();
-    private StudentDetailsForFeeRequest searchModel = new();
-    private StudentDetailsForFee? selectedStudent;
-    private List<StudentDetailsForFee> studentMatchList = new();
-    private StudentLedgerRequest ledgerRequest = new();
+    private StudentLedgerChallanMiniDetailsResponse? selectedStudent;
     private List<StudentLedgerResponse> ledgerList = new();
-    private string? nameFilter;
+    private string? narrationFilter;
     PaginationState pagination = new() { ItemsPerPage = 20 };
+
+    // search box
+    private string? searchText;
+    private string searchInputKey = Guid.NewGuid().ToString();
+    private bool ShowSuggestions;
+    private bool IsSearchingStudents;
+    private int activeSuggestion = -1;
+    private List<StudentLedgerChallanMiniDetailsResponse> suggestions = new();
+    private CancellationTokenSource? typingCts;
 
     private bool IsStudentSelected => selectedStudent != null;
 
-        protected IQueryable<StudentLedgerResponse> ledgerQuery
+    protected IQueryable<StudentLedgerResponse> ledgerQuery
+    {
+        get
         {
-            get
+            var result = ledgerList.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(narrationFilter))
             {
-                var result = ledgerList.AsQueryable();
-
-                if (!string.IsNullOrEmpty(nameFilter))
-                {
-                    result = result.Where(x =>
-                        (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-                        (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
-                }
-
-                return result;
+                result = result.Where(x => x.Narration != null && x.Narration.Contains(narrationFilter, StringComparison.CurrentCultureIgnoreCase));
             }
+            return result;
         }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -255,69 +356,196 @@
         }
     }
 
-    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    // a term with a digit = student no., otherwise student name (same API as View Student Dues & Receipt)
+    private async Task<List<StudentLedgerChallanMiniDetailsResponse>> FetchStudents(string term)
     {
-        if (e.Key == "Enter" || e.Key == "NumpadEnter")
+        var request = new StudentLedgerChallanMiniDetailsRequest
         {
-            await SearchStudentLedger();
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            ControlNo = string.Empty,
+            StudentName = string.Empty
+        };
+        if (term.Any(char.IsDigit))
+            request.ControlNo = term;
+        else
+            request.StudentName = term;
+
+        var response = await httpService.Post<ApiResponse<List<StudentLedgerChallanMiniDetailsResponse>>>("StudentFee/GetStudentLedgerChallanMiniDetails", request);
+        return (response != null && response.Success && response.Data != null) ? response.Data : new();
+    }
+
+    // typing a name (3+ letters) opens the list below the box; student no. waits for Enter / Search
+    private async Task OnSearchTextChanged()
+    {
+        typingCts?.Cancel();
+        var term = searchText?.Trim() ?? "";
+        if (term.Length < 3 || CurrentSession <= 0 || term.Any(char.IsDigit))
+        {
+            ShowSuggestions = false;
+            suggestions = new();
+            return;
+        }
+
+        var cts = typingCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(400, cts.Token);
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+            var results = await FetchStudents(term);
+            if (cts.IsCancellationRequested) return;
+            suggestions = results;
+            activeSuggestion = results.Count > 0 ? 0 : -1;
+        }
+        catch (TaskCanceledException) { }
+        catch (Exception ex)
+        {
+            ShowSuggestions = false;
+            Console.WriteLine($"Error fetching student suggestions: {ex.Message}");
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                IsSearchingStudents = false;
+                StateHasChanged();
+            }
         }
     }
 
-    private async Task SelectStudent(StudentDetailsForFee student)
+    // Enter / Search: student no. -> that student's ledger; name -> one match opens, more matches show the list
+    private async Task SearchStudent()
     {
-        searchModel.ControlNo = student.ControlNo;
-        searchModel.StudentName = "";
-        await SearchStudentLedger();
-    }
-
-    private async Task SearchStudentLedger()
-    {
+        typingCts?.Cancel();
+        var term = searchText?.Trim();
         if (CurrentSession <= 0)
         {
             await Alert.ShowWarning("Please select a session.");
             return;
         }
-        if (string.IsNullOrWhiteSpace(searchModel.ControlNo) && string.IsNullOrWhiteSpace(searchModel.StudentName))
+        if (string.IsNullOrWhiteSpace(term))
         {
             await Alert.ShowWarning("Please enter student no. or student name.");
             return;
         }
 
-        var request = new StudentDetailsForFeeRequest
+        List<StudentLedgerChallanMiniDetailsResponse> results;
+        try
         {
-            GroupCode = groupcode ?? "",
-            BranchCode = branchcode ?? "",
-            SessionId = CurrentSession,
-            ControlNo = searchModel.ControlNo?.Trim() ?? "",
-            StudentName = searchModel.StudentName?.Trim() ?? "",
-            UpToDate = null
-        };
+            suggestions = new();
+            activeSuggestion = -1;
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+            results = await FetchStudents(term);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching student: {ex.Message}");
+            results = new();
+        }
+        finally
+        {
+            IsSearchingStudents = false;
+        }
 
-        selectedStudent = null;
-        studentMatchList = new();
+        var exact = results.FirstOrDefault(x => string.Equals(x.ControlNo?.Trim(), term, StringComparison.OrdinalIgnoreCase));
+        if (exact != null || results.Count == 1)
+        {
+            await SelectStudent(exact ?? results[0]);
+            return;
+        }
+
+        suggestions = results;
+        activeSuggestion = results.Count > 0 ? 0 : -1;
+        ShowSuggestions = results.Count > 0;
+        StateHasChanged();
+        if (results.Count == 0)
+            await Alert.ShowWarning("Student record was not found.");
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown" when ShowSuggestions && suggestions.Count > 0:
+                activeSuggestion = (activeSuggestion + 1) % suggestions.Count;
+                break;
+            case "ArrowUp" when ShowSuggestions && suggestions.Count > 0:
+                activeSuggestion = activeSuggestion <= 0 ? suggestions.Count - 1 : activeSuggestion - 1;
+                break;
+            case "Escape":
+                ShowSuggestions = false;
+                break;
+            case "Enter":
+            case "NumpadEnter":
+                if (ShowSuggestions && activeSuggestion >= 0 && activeSuggestion < suggestions.Count)
+                    await SelectStudent(suggestions[activeSuggestion]);
+                else
+                    await SearchStudent();
+                break;
+        }
+    }
+
+    private async Task OnSessionChanged(ChangeEventArgs e)
+    {
+        long.TryParse(e.Value?.ToString(), out var sessionId);
+        CurrentSession = sessionId;
+        ShowSuggestions = false;
+        suggestions = new();
+        if (selectedStudent != null && CurrentSession > 0)
+            await LoadStudentLedger();
+    }
+
+    private async Task SelectStudent(StudentLedgerChallanMiniDetailsResponse student)
+    {
+        typingCts?.Cancel();
+        selectedStudent = student;
+        ShowSuggestions = false;
+        suggestions = new();
+        searchText = student.ControlNo;
+        searchInputKey = Guid.NewGuid().ToString();
+        await LoadStudentLedger();
+    }
+
+    // ledger of the selected student only (by its student no.)
+    private async Task LoadStudentLedger()
+    {
+        if (selectedStudent == null) return;
+
         ledgerList = new();
-        nameFilter = null;
+        narrationFilter = null;
         IsLoading = true;
         StateHasChanged();
         try
         {
-            var studentResponse = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", request);
-            studentMatchList = studentResponse?.Data ?? new();
-
-            if (studentMatchList.Count == 0)
+            var request = new StudentLedgerRequest
             {
-                await Alert.ShowWarning("Student record was not found.");
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = CurrentSession,
+                StudentId = selectedStudent.StudentId,
+                StudentNo = selectedStudent.ControlNo?.Trim() ?? "",
+                StudentName = ""
+            };
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentLedgerResponse>>>("StudentFeeInvoice/GetStudentLedgerNew", request);
+            if (apiResponse != null && apiResponse.Success)
+            {
+                ledgerList = apiResponse.Data ?? new();
             }
-            else if (studentMatchList.Count > 0)
+            else
             {
-                selectedStudent = studentMatchList[0];
-                await LoadStudentLedger(selectedStudent);
+                await Alert.ShowWarning(apiResponse?.Message ?? "Unable to load student ledger.");
             }
             await pagination.SetCurrentPageIndexAsync(0);
         }
         catch (Exception ex)
         {
-            await Alert.ShowWarning(ex.Message);
+            Console.WriteLine($"Error loading student ledger: {ex.Message}");
+            await Alert.ShowWarning("Unable to load student ledger.");
         }
         finally
         {
@@ -326,32 +554,9 @@
         }
     }
 
-    private async Task LoadStudentLedger(StudentDetailsForFee student)
-    {
-        ledgerRequest = new StudentLedgerRequest
-        {
-            GroupCode = groupcode,
-            BranchCode = branchcode,
-            SessionId = CurrentSession,
-            StudentNo=searchModel.ControlNo?.Trim() ?? "",
-            StudentName=searchModel.StudentName?.Trim() ?? ""
-        };
-        var apiResponse = await httpService.Post<ApiResponse<List<StudentLedgerResponse>>>("StudentFeeInvoice/GetStudentLedgerNew", ledgerRequest);
-        if (apiResponse != null && apiResponse.Success)
-        {
-            ledgerList = apiResponse.Data ?? new List<StudentLedgerResponse>();
-        }
-        else
-        {
-            ledgerList = new List<StudentLedgerResponse>();
-            await Alert.ShowWarning(apiResponse?.Message ?? "Unable to load student ledger.");
-        }
-    }
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? " " : value;
 
-    private static string GetMobileNo(StudentDetailsForFee student)
-        => !string.IsNullOrWhiteSpace(student.FatherContactNo) ? student.FatherContactNo : student.SMSMobileNo;
-
-    private string GetInitials(string? name)
+    private static string GetInitials(string? name)
     {
         if (string.IsNullOrWhiteSpace(name))
             return "?";
@@ -362,4 +567,21 @@
 
         return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
     }
+
+    public void Dispose()
+    {
+        typingCts?.Cancel();
+        typingCts?.Dispose();
+    }
+
+    // ₹ with Indian grouping (1,23,456.00); negative = -₹
+    private static readonly System.Globalization.NumberFormatInfo RupeeFormat = new()
+    {
+        NumberGroupSizes = new[] { 3, 2 },
+        NumberGroupSeparator = ",",
+        NumberDecimalSeparator = "."
+    };
+
+    private static string Money(decimal value)
+        => (value < 0 ? "-₹" : "₹") + Math.Abs(value).ToString("N2", RupeeFormat);
 }

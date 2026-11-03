@@ -273,196 +273,12 @@
 
 @if (ShowPopupGenerateInvoice)
 {
-    <div class="custom-modal row m-0 ">
-        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-10">
-            <div class="modal-content clearfix main-popup overflow-visible">
-                <div class="head-btn">
-                    <h5 class="modal-title">Generate Invoice For All Class</h5>
-                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row gap-10-0">
-                        <div class="col-6 p-2">
-                            <div class="card">
-                                <div class="card-body table-card p-0">
-                                    <div class="quick-main">
-                                        <div class="grid-box-with-btn">
-                                            <QuickGrid Items="@StudentmoduleQuery" Pagination="@pagination" Class="table">
-                                                <TemplateColumn Title="" Align="Align.Center">
-                                                    <HeaderTemplate>
-                                                        <div class="d-flex align-items-center justify-content-center">
-                                                            <input type="checkbox" @bind="IsAllStudentSelected" @bind:after="ToggleAllStudent" @onclick:stopPropagation="true"
-                                                                   disabled="@IsStudentSelectionDisabled" title="@(IsStudentSelectionDisabled ? "Select only one class to choose students" : null)" />
-                                                        </div>
-                                                    </HeaderTemplate>
-                                                    <ChildContent>
-                                                        <div class="d-flex align-items-center justify-content-center">
-                                                            <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true"
-                                                                   disabled="@IsStudentSelectionDisabled" title="@(IsStudentSelectionDisabled ? "Select only one class to choose students" : null)" />
-                                                        </div>
-                                                    </ChildContent>
-                                                </TemplateColumn>
-
-                                                <PropertyColumn Class="text-center" Property="@(x => x.ControlNo)" Title="Student No." Align="Align.Center">
-                                                    <ColumnOptions>
-                                                        <div class="search-box">
-                                                            <input type="search" @bind="studentnameFilter" @bind:event="oninput" placeholder="StudentNo...." />
-                                                        </div>
-                                                    </ColumnOptions>
-                                                </PropertyColumn>
-                                                <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Student Name">
-                                                    <ColumnOptions>
-                                                        <div class="search-box">
-                                                            <input type="search" @bind="studentnameFilter" @bind:event="oninput" placeholder="StudentNo...." />
-                                                        </div>
-                                                    </ColumnOptions>
-                                                </PropertyColumn>
-
-                                                <TemplateColumn Title="Class Section" Align="Align.Left">
-                                                    <ChildContent>
-                                                        @(string.IsNullOrWhiteSpace(context.ClassSection) ? " " : context.ClassSection)
-                                                    </ChildContent>
-
-                                                </TemplateColumn>
-
-                                                
-                                            </QuickGrid>
-                                        </div>
-                                        <div class="footer-pagination">
-                                            <div class="d-flex align-items-center">
-                                                <div class="welcome-text w-100">
-                                                    <Paginator State="@pagination" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-6 p-2">
-                            <div class="row m-0 h-100">
-
-                                <div class="card p-0">
-                                    <div class="card-body  p-0">
-                                        <div class="col-12 p-2">
-                                            <div class="form-box">
-                                                <label for="student-name" class="form-label">Class</label>
-                                                <div class="position-relative">
-                                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                                        @SelectedText
-                                                    </button>
-                                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
-                                                        @* label wraps checkbox + text: clicking the class name also ticks it *@
-                                                        <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
-                                                            <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
-                                                            <span class="form-check-label" style="cursor:pointer"> All</span>
-                                                        </label>
-                                                        @foreach (var item in classlist.Where(x => x.IsValid == true))
-                                                        {
-                                                            <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
-                                                                <InputCheckbox class="form-check-input  map-checkbox" @bind-Value="item.IsSelected" @bind-Value:after="UpdateSelectAllClass" />
-                                                                <span class="form-check-label" style="cursor:pointer">@item.ClassName</span>
-                                                            </label>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-12 p-2 mt-2">
-                                            <div class="form-box-group static-label">
-                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="studentInvoice.PeriodType" @bind-Value:after="OnPeriodTypeChanged">
-                                                    <option value="" selected>--Select--</option>
-                                                    @foreach (var data in PeriodTypeList)
-                                                    {
-                                                        <option value="@data.PeriodTypeName">@data.PeriodTypeName</option>
-                                                    }
-                                                </InputSelect>
-                                                <label class="floating-label">Period Type</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-12 p-2">
-                                            <div class="form-box">
-                                                <label for="period-name" class="form-label">Period</label>
-                                                <div class="position-relative">
-                                                    @* auto-close outside: dropdown stays open while ticking several periods *@
-                                                    <button class="form-input w-webkit" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                                        @SelectedPeriodText
-                                                    </button>
-                                                    <div class="dropdown-menu cu-dropdown" style="max-height:350px; overflow-y:auto; align-items:center; align-content:center; scrollbar-width: thin;">
-                                                        @if (string.IsNullOrEmpty(studentInvoice.PeriodType))
-                                                        {
-                                                            <div class="form-check">
-                                                                <span> Select Period Type</span>
-                                                            </div>
-                                                        }
-                                                        else if (!feeCollectionPeriodlist.Any())
-                                                        {
-                                                            <div class="form-check">
-                                                                <span> No Period Found</span>
-                                                            </div>
-                                                        }
-                                                        else
-                                                        {
-                                                            @* label wraps checkbox + text: clicking the name also ticks it *@
-                                                            <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
-                                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAllPeriod" @bind:after="ToggleSelectAllPeriod" />
-                                                                <span class="form-check-label" style="cursor:pointer"> All</span>
-                                                            </label>
-
-                                                            @foreach (var data in feeCollectionPeriodlist)
-                                                            {
-                                                                <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
-                                                                    <InputCheckbox class="form-check-input map-checkbox" @bind-Value="data.IsSelected" @bind-Value:after="UpdateSelectAllPeriod" />
-                                                                    <span class="form-check-label" style="cursor:pointer">@data.PeriodName</span>
-                                                                </label>
-                                                            }
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-12 p-2">
-                                            <div class="form-box-group static-label">
-                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="studentInvoice.InvoiceTypeId">
-                                                    <option value="" selected>--Select--</option>
-                                                    @foreach (var data in InvoiceTypelist)
-                                                    {
-                                                        <option value="@data.InvoiceTypeId" selected="@(data.InvoiceTypeName == "With Transport")"> @data.InvoiceTypeName </option>
-                                                    }
-                                                </InputSelect>
-                                                <label class="floating-label">Invoice type</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-12 p-2">
-                                            <div class="form-box-group static-label">
-                                                <InputSelect class="floating-input" placeholder=" " @bind-Value="studentInvoice.InvoiceFor">
-                                                    <option value="" selected>--Select--</option>
-                                                    <option value="1">Regular</option>
-                                                    <option value="2">Admission</option>
-                                                </InputSelect>
-                                                <label class="floating-label">Invoice For</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="GenerateStudentInvoiveAllClass">
-                        <div class="visible content">Generate Invoice All Class</div>
-                        <div class="hidden content">
-                            <i class="bi bi-receipt-cutoff"></i>
-                        </div>
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </div>
+    <GenerateInvoicePopup SessionId="@CurrentSession"
+                          GroupCode="@groupcode"
+                          BranchCode="@branchcode"
+                          UserName="@UserName"
+                          SocietyId="@studentInvoice.SocietyId"
+                          OnClose="CloseGenerateInvoice" />
 }
 
 
@@ -487,149 +303,11 @@ else
 }
 
 @code {
-
-
-    private List<StudentClassModal> Students = new();
-    private string SelectedText
-    {
-        get
-        {
-            var selected = classlist.Where(x => x.IsSelected).Select(x => x.ClassName).ToList();
-
-            if (!selected.Any())
-                return "Select Class";
-
-            if (SelectAll)
-                return "All Class Selected";
-
-            if (selected.Count <= 4)
-                return string.Join(", ", selected);
-
-            return $"{string.Join(", ", selected.Take(4))} +{selected.Count - 4} more";
-        }
-    }
-    private string SelectedPeriodText
-    {
-        get
-        {
-
-            var selected = feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodName).ToList();
-
-            if (!selected.Any())
-                return "Select Period";
-
-            if (SelectAllPeriod)
-                return "All Period Selected";
-
-            if (selected.Count == 1)
-                return selected[0];
-
-            if (selected.Count == 2)
-                return $"{selected[0]}, {selected[1]}";
-
-            return $"{selected[0]}, {selected[1]} +{selected.Count - 2} more";
-        }
-    }
-    private async Task ToggleSelectAll()
-    {
-        try
-        {
-            foreach (var item in classlist)
-            {
-                item.IsSelected = SelectAll;
-            }
-            await SearchStudentSelect();
-
-        }
-        catch (Exception)
-        {
-
-            throw;
-        }
-
-
-    }
-    protected IQueryable<StudentClassModal> StudentmoduleQuery
-    {
-        get
-        {
-            var result = Students.AsQueryable();
-            if (!string.IsNullOrWhiteSpace(studentnameFilter))
-            {
-                result = result.Where(x => x.StudentName.Contains(studentnameFilter, StringComparison.OrdinalIgnoreCase)
-                  || x.ControlNo.Contains(studentnameFilter, StringComparison.OrdinalIgnoreCase)
-                );
-            }
-            return result;
-        }
-    }
-    private async Task SearchStudentSelect()
-    {
-        try
-        {
-
-            SelectedClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
-            IsAllStudentSelected = false;   // student list is reloaded -> nothing selected
-            if (!string.IsNullOrWhiteSpace(SelectedClassCode))
-            {
-                searchAny.GroupCode = groupcode;
-                searchAny.BranchCode = branchcode;
-                searchAny.RequestName = SelectedClassCode;
-                searchAny.SessionId = CurrentSession;
-                Students = await httpService.Post<List<StudentClassModal>>("StudentFeeInvoice/ClassBasedStudent", searchAny) ?? new();
-            }
-            else
-            {
-                Students = new();
-            }
-
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
-    }
-    // feeCollectionPeriodlist is already loaded for the popup's period type (OnPeriodTypeChanged)
-    private Task ToggleSelectAllPeriod()
-    {
-        foreach (var item in feeCollectionPeriodlist)
-        {
-            item.IsSelected = SelectAllPeriod;
-        }
-
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-    // any period unticked -> "All" unticked; every period ticked -> "All" ticked
-    private Task UpdateSelectAllPeriod()
-    {
-        SelectAllPeriod = feeCollectionPeriodlist.Any() && feeCollectionPeriodlist.All(x => x.IsSelected);
-
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-    private async Task UpdateSelectAllClass()
-    {
-        var updateclass = classlist.Where(x => x.IsValid == true).ToList();
-        SelectAll = updateclass.Any() && updateclass.All(x => x.IsSelected);
-        await SearchStudentSelect();
-        StateHasChanged();
-    }
-    private bool SelectAll = true;
-    private bool SelectAllPeriod = false;
-    private string searchText = "";
-    private string studentnameFilter = "";
-    private string? SelectedStudentId;
-    private string? SelectedClassCode;
-    private string? SelectedPeriodId;
     private string? currentUrl;
-    private bool IsAllSelected;
-    private bool IsAllStudentSelected;
-    public bool IsSelected { get; set; }
     private List<BranchClassModel> classlist = new();
     private bool IsLoading = false;
     private StudentForInvoiceRequestModel searchModel = new();
+    // header Society select (sent with the generated invoice)
     private StudentInvoice studentInvoice = new();
     private List<SessionModel> sessionlist = new();
     private List<SectionModel> sectionModellist = new();
@@ -641,72 +319,43 @@ else
     private string? nameFilter;
     private string? branchcode;
     private string? groupcode;
-    private string UserName;
+    private string? UserName;
     private long CurrentSession;
     private SearchAnyRequestModel searchAny = new();
     private List<PeriodMaster> PeriodTypeList = new();
     private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
-    private List<InvoiceTypeModel> InvoiceTypelist = new();
 
     protected override void OnInitialized()
     {
-
         PermissionState.OnChange += StateHasChanged;
         currentUrl = Nav.Uri;
         searchModel.PeriodType = "";
-        StateHasChanged();
-
     }
 
-    private void ToggleAll()
-    {
-        foreach (var row in moduleQuery)
-            row.IsSelected = IsAllSelected;
-    }
-    // students can be picked only when exactly one class is selected
-    private bool IsStudentSelectionDisabled => classlist.Count(x => x.IsSelected) > 1;
-
-    private void ToggleAllStudent()
-    {
-        if (IsStudentSelectionDisabled)
-            return;
-
-        foreach (var row in StudentmoduleQuery)
-            row.IsSelected = IsAllStudentSelected;
-    }
+    // search popup: periods of the selected period type
     private async Task OnPeriodTypeChanged()
     {
         try
         {
-            feeCollectionPeriodlist.Clear();
-            SelectAllPeriod = false;
-            searchAny.GroupCode = groupcode;
-            searchAny.BranchCode = branchcode;
-            searchAny.SessionId = CurrentSession;
-            if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+            feeCollectionPeriodlist = new();
+            if (string.IsNullOrEmpty(searchModel.PeriodType))
             {
                 StateHasChanged();
                 return;
             }
-            searchAny.RequestName = studentInvoice.PeriodType;
-
-            string ApiUri3 = "FeeCollectionPeriodConfig/GetFeeCollectionPeriod";
-
-            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>(ApiUri3, searchAny) ?? new();
-            SelectAll = false;
-
-            foreach (var item in feeCollectionPeriodlist)
-            {
-                item.IsSelected = false;
-            }
+            searchAny.GroupCode = groupcode;
+            searchAny.BranchCode = branchcode;
+            searchAny.SessionId = CurrentSession;
+            searchAny.RequestName = searchModel.PeriodType;
+            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>("FeeCollectionPeriodConfig/GetFeeCollectionPeriod", searchAny) ?? new();
         }
         catch (Exception)
         {
             return;
         }
-
         StateHasChanged();
     }
+
     private async Task GetSectionData()
     {
         try
@@ -714,51 +363,41 @@ else
             searchAny.GroupCode = groupcode;
             searchAny.BranchCode = branchcode;
             searchAny.RequestName = searchModel.ClassCode;
-            string ApiUri1 = "ClassSection/GetClassWithSection";
-            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>(ApiUri1, searchAny) ?? new();
+            var apiResponse = await httpService.Post<ApiResponse<List<SectionModel>>>("ClassSection/GetClassWithSection", searchAny) ?? new();
             if (apiResponse.Success)
             {
                 sectionModellist = apiResponse.Data ?? new();
             }
-
         }
         catch (Exception)
         {
-
             return;
         }
     }
 
     private async Task LoadData()
     {
-        var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
-        branchcode = branchResult.Value;
-        var groupResult = await sessionStorage.GetAsync<string>("GroupCode");
-        groupcode = groupResult.Value;
-        var username = await sessionStorage.GetAsync<string>("UserName");
-        UserName = username.Value;
-        string ApiUri1 = "Session/GetSession";
-        sessionlist = await httpService.Get<List<SessionModel>>(ApiUri1) ?? new();
-        string ApiUri = "BranchClass/GetClassCode";
-        classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
-        string ApiUri2 = "Society/ListSociety";
-        societyModellist = await httpService.Get<List<SocietyModel>>(ApiUri2) ?? new();
+        branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+        groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+        UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        classlist = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+        societyModellist = await httpService.Get<List<SocietyModel>>("Society/ListSociety") ?? new();
         PeriodTypeList = await httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName") ?? new();
-        InvoiceTypelist = await httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList") ?? new();
         StateHasChanged();
         await SearchStudentInvoiceData();
     }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-
             CurrentSession = await _commonmethod.SetCurrentSessionData();
             await LoadData();
-            //  await OnPeriodTypeChanged();
             StateHasChanged();
         }
     }
+
     // Roll No. column: search box and sorting by number (2 before 10)
     private string? rollNoFilter;
     private GridSort<StudentFeeInvoiceResponseModel> RollNoSort = GridSort<StudentFeeInvoiceResponseModel>.ByAscending(x => x.RollNo == null ? 0 : x.RollNo.Length).ThenAscending(x => x.RollNo);
@@ -771,15 +410,14 @@ else
             if (!string.IsNullOrEmpty(nameFilter))
             {
                 result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) ||
-            (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
-
+                                           (x.ControlNo != null && x.ControlNo.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
             }
-            // Roll No. column search
             if (!string.IsNullOrWhiteSpace(rollNoFilter))
                 result = result.Where(x => x.RollNo != null && x.RollNo.Contains(rollNoFilter.Trim(), StringComparison.CurrentCultureIgnoreCase));
             return result;
         }
     }
+
     private async Task SearchStudentInvoiceData()
     {
         ShowPopup = false;
@@ -790,17 +428,10 @@ else
         StateHasChanged();
         try
         {
-            string apiUrl = "StudentFeeInvoice/GetForStudentGenerateInvoice";
-            var apiResponse = await httpService.Post<ApiResponse<List<StudentFeeInvoiceResponseModel>>>(apiUrl, searchModel);
-            if (apiResponse.Success)
-            {
-                studentFeeInvoiceResponselist = apiResponse.Data ?? new List<StudentFeeInvoiceResponseModel>();
-            }
-            else
-            {
-                studentFeeInvoiceResponselist = new List<StudentFeeInvoiceResponseModel>();
-            }
-
+            var apiResponse = await httpService.Post<ApiResponse<List<StudentFeeInvoiceResponseModel>>>("StudentFeeInvoice/GetForStudentGenerateInvoice", searchModel);
+            studentFeeInvoiceResponselist = apiResponse != null && apiResponse.Success
+                ? apiResponse.Data ?? new List<StudentFeeInvoiceResponseModel>()
+                : new List<StudentFeeInvoiceResponseModel>();
         }
         catch
         {
@@ -813,131 +444,30 @@ else
         }
     }
 
-    private async Task GenerateStudentInvoiveAllClass()
-    {
-        ShowPopupGenerateInvoice = false;
-        studentInvoice.ClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
-        studentInvoice.GroupCode = groupcode;
-        studentInvoice.BranchCode = branchcode;
-        studentInvoice.CreatedBy = UserName;
-        studentInvoice.SessionId = CurrentSession;
-        // multiple classes -> students cannot be picked, invoice is for the whole classes
-        studentInvoice.StudentId = IsStudentSelectionDisabled
-            ? string.Empty
-            : string.Join(",", Students.Where(x => x.IsSelected).Select(x => x.StudentId));
-        studentInvoice.PeriodId = string.Join(",", feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodId));
-        if (string.IsNullOrEmpty(studentInvoice.ClassCode))
-        {
-            await Alert.ShowWarning("Please select a class first.");
-            ShowPopupGenerateInvoice = true;
-            StateHasChanged();
-            return;
-
-        }
-        else if (string.IsNullOrEmpty(studentInvoice.PeriodType))
-        {
-            await Alert.ShowWarning("Please select a period type.");
-            ShowPopupGenerateInvoice = true;
-            StateHasChanged();
-            return;
-
-        }
-        else if (string.IsNullOrEmpty(studentInvoice.PeriodId))
-        {
-            await Alert.ShowWarning("Please select a period first.");
-            ShowPopupGenerateInvoice = true;
-            StateHasChanged();
-            return;
-
-        }
-        else if (studentInvoice.InvoiceTypeId == 0)
-        {
-            await Alert.ShowWarning("Please select a invoice type");
-            ShowPopupGenerateInvoice = true;
-            StateHasChanged();
-            return;
-
-        }
-        try
-        {
-            ShowPopupGenerateInvoice = false;
-            var submit = await Alert.ShowConfirm("Do you want to submit details?");
-            if (!submit)
-            {
-                ShowPopupGenerateInvoice = true;
-                StateHasChanged();
-                return;
-            }
-            string apiurl = "StudentFeeInvoice/StudentChallanGenerate";
-            var apiResponse = await httpService.Post<ApiResponse<string>>(apiurl, studentInvoice);
-            if (apiResponse.Success && apiResponse.Code == 1)
-            {
-                await Alert.ShowSuccess("Invoice Generated Successfully");
-                await SearchStudentInvoiceData();
-                studentInvoice = new();
-                StateHasChanged();
-                ClosePopup();
-
-            }
-            else
-            {
-                await Alert.ShowCustomAlert(@Localizer["Admin"]);
-                StateHasChanged();
-                ClosePopup();
-                return;
-            }
-
-            
-        }
-        catch (Exception)
-        {
-
-            return;
-        }
-        finally
-        {
-            StateHasChanged();
-        }
-    }
-
     private void OpenSearch()
     {
-
         ShowPopup = true;
         StateHasChanged();
     }
+
+    // "Generate Invoice For All Class" -> shared GenerateInvoicePopup component
     private void OpenGenerateInvoice()
     {
-
         ShowPopupGenerateInvoice = true;
         StateHasChanged();
     }
-    private void ClosePopup()
+
+    private async Task CloseGenerateInvoice(bool generated)
     {
-        SelectAll = false;
-        foreach (var item in classlist)
-        {
-            item.IsSelected = false;
-        }
-        foreach (var item in Students)
-        {
-            item.IsSelected = false;
-        }
-        searchText = string.Empty;
-        Students = new();
-        SelectAllPeriod = false;
-        IsAllStudentSelected = false;
-        foreach (var item in feeCollectionPeriodlist)
-        {
-            item.IsSelected = false;
-        }
-        ShowPopup = false;
         ShowPopupGenerateInvoice = false;
         StateHasChanged();
+        if (generated)
+            await SearchStudentInvoiceData();
     }
 
-
-
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        StateHasChanged();
+    }
 }
-
-

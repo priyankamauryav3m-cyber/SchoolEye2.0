@@ -1,0 +1,61 @@
+@using Microsoft.AspNetCore.WebUtilities
+
+@*
+    Back button shown on Invoice Generation / View Student Receipt / Fee Collection
+    only when they were opened from Student Fee Account (?ReturnUrl=/StudentFeeAccount?...).
+    Click -> back to the same student's fee account.
+*@
+
+@if (!string.IsNullOrEmpty(returnUrl))
+{
+    @* inline (sits inside the page title before the page name) *@
+    <button type="button" class="icon-btn icon-btn-white d-inline-flex align-items-center gap-1 px-2 me-2" style="width:auto"
+            title="Back to Student Fee Account" @onclick="GoBack" disabled="@isNavigating">
+        <i class="bi bi-arrow-left"></i><span class="small">Back</span>
+    </button>
+}
+
+@if (isNavigating)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    // only links back to this page are accepted (no external / other redirects)
+    private const string AllowedPrefix = "/StudentFeeAccount";
+
+    private string? returnUrl;
+    private bool isNavigating;
+
+    protected override void OnInitialized()
+    {
+        var query = QueryHelpers.ParseQuery(new Uri(Nav.Uri).Query);
+        if (query.TryGetValue("ReturnUrl", out var value))
+        {
+            var url = value.ToString();
+            if (url.StartsWith(AllowedPrefix, StringComparison.OrdinalIgnoreCase)
+                && !url.Contains("//") && !url.Contains('\\'))
+            {
+                returnUrl = url;
+            }
+        }
+    }
+
+    private void GoBack()
+    {
+        if (string.IsNullOrEmpty(returnUrl)) return;
+        isNavigating = true;
+        StateHasChanged();
+        Nav.NavigateTo(returnUrl);
+    }
+}

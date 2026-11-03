@@ -76,7 +76,7 @@
                                 </PropertyColumn>
                                 <PropertyColumn Sortable="true" Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.TransDate)" Title="Trans Date" Align="Align.Center" />
                                 <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.MonthNoFor) ? " " : x.MonthNoFor)" Title="Month For" Align="Align.Center" />
-                                <PropertyColumn Sortable="true" Format="N2" Class="text-right" Property="@(x => x.Amount)" Title="Amount (₹)" Align="Align.Right" />
+                                <TemplateColumn Title="Amount" Class="text-right" Align="Align.Right" Sortable="true" SortBy="@(GridSort<FeeHeadLedgerResponse>.ByAscending(x => x.Amount))">@Money(context.Amount)</TemplateColumn>
                                 <PropertyColumn Sortable="true" Property="@(x => string.IsNullOrWhiteSpace(x.Narration) ? " " : x.Narration)" Title="Narration" />
                                 <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.TransType) ? " " : x.TransType)" Title="Trans Type" Align="Align.Center" />
                                 <PropertyColumn Sortable="true" Class="text-center" Property="@(x => string.IsNullOrWhiteSpace(x.StudentNo) ? " " : x.StudentNo)" Title="StudentNo" Align="Align.Center">
@@ -100,7 +100,7 @@
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center justify-content-between">
                                   <Paginator State="@pagination" />
-                                <div class="welcome-text">Total Amount: @totalAmount.ToString("N2")</div>
+                                <div class="welcome-text">Total Amount: @Money(totalAmount)</div>
                             </div>
                         </div>
                     </div>
@@ -301,4 +301,15 @@
             StateHasChanged();
         }
     }
+
+    // ₹ with Indian grouping (1,23,456.00); negative = -₹
+    private static readonly System.Globalization.NumberFormatInfo RupeeFormat = new()
+    {
+        NumberGroupSizes = new[] { 3, 2 },
+        NumberGroupSeparator = ",",
+        NumberDecimalSeparator = "."
+    };
+
+    private static string Money(decimal value)
+        => (value < 0 ? "-₹" : "₹") + Math.Abs(value).ToString("N2", RupeeFormat);
 }

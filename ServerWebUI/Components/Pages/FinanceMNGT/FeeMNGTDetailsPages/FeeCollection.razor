@@ -52,6 +52,8 @@
 
         <div class="col-12 p-1" id="main-header">
             <PageHeading Tittle="Fee Collection">
+                <LeadingContent><BackToFeeAccount /></LeadingContent>
+                <ChildContent>
                 <div class="form-box">
                     <InputSelect @bind-Value="CurrentSession" name="session" class="form-input">
                         <option value="0">-- Select Session --</option>
@@ -116,6 +118,7 @@
                         </div>
                     </button>
                 </div>
+                </ChildContent>
             </PageHeading>
         </div>
         <div class="col-12 p-1">
@@ -1998,6 +2001,54 @@ else
 
             CurrentSession = await _commonmethod.SetCurrentSessionData();
             await LoadData();
+            StateHasChanged();
+            await OpenStudentFromQuery();
+        }
+    }
+
+    // /feecollectionnew?StudentNo=...&SessionId=... (Student Fee Account -> Collect fee): student opens filled
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "StudentNo")]
+    public string? QueryStudentNo { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "SessionId")]
+    public long QuerySessionId { get; set; }
+
+    private async Task OpenStudentFromQuery()
+    {
+        if (string.IsNullOrWhiteSpace(QueryStudentNo))
+            return;
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            if (QuerySessionId > 0)
+                CurrentSession = QuerySessionId;
+            searchTerm = QueryStudentNo.Trim();
+            searchInputKey = Guid.NewGuid().ToString();
+            studentDetailsForFeeRequest.GroupCode = groupcode;
+            studentDetailsForFeeRequest.BranchCode = branchcode;
+            studentDetailsForFeeRequest.SessionId = CurrentSession;
+            studentDetailsForFeeRequest.ControlNo = searchTerm;
+            studentDetailsForFeeRequest.StudentName = string.Empty;
+
+            var response = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", studentDetailsForFeeRequest);
+            studentDetailsForFeeList = response?.Success == true && response.Data != null ? response.Data : new();
+            var student = studentDetailsForFeeList.FirstOrDefault(x => string.Equals(x.ControlNo, searchTerm, StringComparison.OrdinalIgnoreCase))
+                          ?? (studentDetailsForFeeList.Count == 1 ? studentDetailsForFeeList[0] : null);
+            IsLoading = false;
+            if (student != null)
+                await SelectStudent(student);
+            else
+                await Alert.ShowWarning("No student found.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error opening student from link: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
             StateHasChanged();
         }
     }

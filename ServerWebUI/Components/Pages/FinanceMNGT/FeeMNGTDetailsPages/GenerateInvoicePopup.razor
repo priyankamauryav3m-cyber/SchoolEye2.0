@@ -1,0 +1,642 @@
+@using DomainModel.Admin
+@using DomainModel.SchoolMaster
+@using DomainModel.FinanceMNGT
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Common
+@inject Shared.IHttpService httpService
+@inject IStringLocalizer<Resource> Localizer
+@inject SweetAlertService Alert
+
+@*
+    Generate invoice popup, shared by:
+      - /studentgenerateinvoice  (Generate Invoice For All Class: classes -> students)
+      - /StudentFeeAccount       (New invoice: one student comes preselected)
+    API: StudentFeeInvoice/ClassBasedStudent (students of the ticked classes)
+         FeeCollectionPeriodConfig/GetFeeCollectionPeriod (periods of a period type)
+         StudentFeeInvoice/StudentChallanGenerate (save)
+*@
+
+<style>
+    .gip { --gip-ink: #172033; --gip-muted: #64748b; --gip-line: #e6eaf0; --gip-navy: #1f3a5f; --gip-soft: #f6f8fb; --gip-red: #c0392b; }
+
+    .gip .gip-body { max-height: calc(100vh - 230px); overflow-y: auto; }
+    .gip .gip-step { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--gip-ink); margin-bottom: 8px; }
+    .gip .gip-step-no { width: 22px; height: 22px; border-radius: 50%; background: var(--gip-navy); color: #fff; font-size: 11.5px; display: inline-flex; align-items: center; justify-content: center; }
+    .gip .gip-step .gip-step-note { margin-left: auto; font-weight: 500; color: var(--gip-muted); font-size: 12px; }
+    .gip .gip-section { background: #fff; border: 1px solid var(--gip-line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+    .gip .gip-section.invalid { border-color: #f1b5ae; box-shadow: 0 0 0 3px #fdecea; }
+
+    .gip .gip-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .gip .gip-chip { border: 1px solid #d5dce6; background: #fff; color: #334155; border-radius: 18px; padding: 5px 12px; font-size: 13px; line-height: 1.3; display: inline-flex; align-items: center; gap: 6px; transition: all .12s; }
+    .gip .gip-chip:hover { border-color: var(--gip-navy); }
+    .gip .gip-chip.on { background: var(--gip-navy); border-color: var(--gip-navy); color: #fff; }
+    .gip .gip-chip.ghost { border-style: dashed; color: var(--gip-muted); }
+    .gip .gip-empty { color: var(--gip-muted); font-size: 13px; padding: 4px 2px; }
+    .gip .gip-error { color: var(--gip-red); font-size: 12px; margin-top: 6px; }
+
+    .gip .gip-classbtn { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+    .gip .gip-student-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--gip-line); border-radius: 10px; background: var(--gip-soft); }
+    .gip .gip-avatar { width: 42px; height: 42px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+    .gip .gip-student-name { font-weight: 700; color: var(--gip-ink); }
+    .gip .gip-student-sub { font-size: 12.5px; color: var(--gip-muted); }
+    .gip .gip-link { border: none; background: none; padding: 0; color: #1d3b63; font-size: 12.5px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+    .gip .gip-grid { border: 1px solid var(--gip-line); border-radius: 10px; overflow: hidden; }
+    .gip .gip-grid .grid-box { height: auto; min-height: 0; max-height: 320px; overflow: auto; border: none; border-radius: 0; margin: 0; scrollbar-width: thin; }
+    .gip .gip-grid .quickgrid thead th { position: sticky; top: 0; z-index: 2; background: #fff; font-size: 12.5px; font-weight: 600; color: #475569; border-left: none; border-right: none; text-align: left; }
+    .gip .gip-grid .quickgrid td { font-size: 13.5px; border-left: none; border-right: none; vertical-align: middle; }
+    .gip .gip-grid .quickgrid th .col-title { margin-left: 0; text-align: left; }
+    .gip .gip-grid .quickgrid tr.gip-row-on td { background: #eef4fb; }
+    .gip .gip-grid-tools { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--gip-line); background: var(--gip-soft); }
+    .gip .gip-grid-tools .gip-filter { position: relative; flex: 1; }
+    .gip .gip-grid-tools .gip-filter i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gip-muted); }
+    .gip .gip-grid-tools .gip-filter input { padding-left: 30px; }
+    .gip .gip-count { font-size: 12px; color: var(--gip-muted); white-space: nowrap; }
+    .gip .gip-placeholder { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--gip-muted); font-size: 13px; gap: 6px; border: 1px dashed #d5dce6; border-radius: 10px; }
+    .gip .gip-placeholder i { font-size: 24px; color: #94a3b8; }
+    .gip .gip-spinner { width: 16px; height: 16px; border: 2px solid #cbd8e5; border-top-color: #118c91; border-radius: 50%; display: inline-block; animation: gip-spin .7s linear infinite; }
+    @@keyframes gip-spin { to { transform: rotate(360deg); } }
+
+    .gip .gip-summary { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12.5px; color: #334155; }
+    .gip .gip-summary span { background: #fff; border: 1px solid var(--gip-line); border-radius: 14px; padding: 3px 10px; }
+    .gip .gip-summary b { color: var(--gip-ink); }
+</style>
+
+@if (!HideForConfirm)
+{
+    @* project popup frame: custom-modal > main-popup > head-btn / modal-body / modal-footer *@
+    <div class="custom-modal row m-0 gip">
+        <div class="col-12 col-md-11 col-xl-10">
+            <div class="modal-content clearfix main-popup overflow-visible">
+                <div class="head-btn">
+                    <h5 class="modal-title">@Title</h5>
+                    <button data-access="Close" type="button" @onclick="() => Close(false)" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+
+                <div class="modal-body gip-body">
+                    <div class="row g-3">
+                        @* ---------- left: who ---------- *@
+                        <div class="col-12 col-lg-6">
+                            @if (IsSingleStudentMode && !ShowAllStudents)
+                            {
+                                <div class="gip-step"><span class="gip-step-no">1</span>Student</div>
+                                <div class="gip-section">
+                                    @if (PreselectedStudent != null)
+                                    {
+                                        <div class="gip-student-card">
+                                            <span class="gip-avatar">@Initials(PreselectedStudent.StudentName)</span>
+                                            <div class="flex-grow-1 min-w-0">
+                                                <div class="gip-student-name">@PreselectedStudent.StudentName</div>
+                                                <div class="gip-student-sub">@PreselectedStudent.ControlNo &middot; @PreselectedStudent.ClassSection</div>
+                                            </div>
+                                            <i class="bi bi-check-circle-fill" style="color:#2f7d57;font-size:18px"></i>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="gip-empty">Student not found in the class list. Use "Choose other students".</div>
+                                    }
+                                    <div class="mt-2">
+                                        <button type="button" class="gip-link" @onclick="() => ShowAllStudents = true">Choose other students of this class</button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="gip-step"><span class="gip-step-no">1</span>Classes &amp; students</div>
+                                <div class="gip-section @(ShowErrors && SelectedClassCount == 0 ? "invalid" : "")">
+                                    <label class="form-label mb-1">Class</label>
+                                    <div class="position-relative">
+                                        <button class="form-input gip-classbtn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                            <span>@SelectedText</span><i class="bi bi-chevron-down"></i>
+                                        </button>
+                                        <div class="dropdown-menu cu-dropdown w-100" style="max-height:320px; overflow-y:auto; scrollbar-width: thin;">
+                                            <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
+                                                <input class="form-check-input map-checkbox" type="checkbox" @bind="SelectAll" @bind:after="ToggleSelectAll" />
+                                                <span class="form-check-label" style="cursor:pointer"> All</span>
+                                            </label>
+                                            @foreach (var item in classlist.Where(x => x.IsValid == true))
+                                            {
+                                                <label class="form-check d-flex align-items-center gap-1 mb-0" style="cursor:pointer">
+                                                    <InputCheckbox class="form-check-input map-checkbox" @bind-Value="item.IsSelected" @bind-Value:after="UpdateSelectAllClass" />
+                                                    <span class="form-check-label" style="cursor:pointer">@item.ClassName</span>
+                                                </label>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (ShowErrors && SelectedClassCount == 0)
+                                    {
+                                        <div class="gip-error">Select at least one class.</div>
+                                    }
+
+                                    <div class="mt-3">
+                                        @if (IsStudentLoading)
+                                        {
+                                            <div class="gip-placeholder"><span class="gip-spinner"></span>Loading students</div>
+                                        }
+                                        else if (SelectedClassCount == 0)
+                                        {
+                                            <div class="gip-placeholder"><i class="bi bi-people"></i>Select a class to see its students.</div>
+                                        }
+                                        else if (IsStudentSelectionDisabled)
+                                        {
+                                            <div class="gip-placeholder"><i class="bi bi-diagram-3"></i>@SelectedClassCount classes selected &mdash; invoice will be generated for every student of these classes.<br />Select only one class to choose students.</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="gip-grid quick-main">
+                                                <div class="gip-grid-tools">
+                                                    <div class="gip-filter">
+                                                        <i class="bi bi-search"></i>
+                                                        <input type="search" class="form-input w-100" placeholder="Filter by name or student no." @bind="studentnameFilter" @bind:event="oninput" />
+                                                    </div>
+                                                    <span class="gip-count"><b>@SelectedStudentCount</b> of @Students.Count selected</span>
+                                                </div>
+                                                <div class="grid-box">
+                                                    <QuickGrid Items="@StudentmoduleQuery" Pagination="@pagination" Class="table" RowClass="StudentRowClass">
+                                                        <TemplateColumn Title="" Align="Align.Center">
+                                                            <HeaderTemplate>
+                                                                <input type="checkbox" @bind="IsAllStudentSelected" @bind:after="ToggleAllStudent" @onclick:stopPropagation="true" title="Select all" />
+                                                            </HeaderTemplate>
+                                                            <ChildContent>
+                                                                <input type="checkbox" @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Student No.">@Show(context.ControlNo)</TemplateColumn>
+                                                        <TemplateColumn Title="Student Name" Sortable="true" SortBy="@(GridSort<StudentClassModal>.ByAscending(x => x.StudentName))">@Show(context.StudentName)</TemplateColumn>
+                                                        <TemplateColumn Title="Class">@Show(context.ClassSection)</TemplateColumn>
+                                                    </QuickGrid>
+                                                </div>
+                                                <div class="footer-pagination px-2"><div class="welcome-text w-100"><Paginator State="@pagination" /></div></div>
+                                            </div>
+                                            <div class="gip-empty mt-1">No student ticked = invoice for the whole class.</div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @* ---------- right: what ---------- *@
+                        <div class="col-12 col-lg-6">
+                            <div class="gip-step"><span class="gip-step-no">2</span>Period</div>
+                            <div class="gip-section @(ShowErrors && (string.IsNullOrEmpty(studentInvoice.PeriodType) || SelectedPeriodCount == 0) ? "invalid" : "")">
+                                <label class="form-label mb-1">Period type</label>
+                                <div class="gip-chips">
+                                    @if (!PeriodTypeList.Any())
+                                    {
+                                        <span class="gip-empty">No period type found.</span>
+                                    }
+                                    @foreach (var pt in PeriodTypeList)
+                                    {
+                                        var name = pt.PeriodTypeName;
+                                        <button type="button" class="gip-chip @(studentInvoice.PeriodType == name ? "on" : "")" @onclick="() => SelectPeriodType(name)">@name</button>
+                                    }
+                                </div>
+
+                                <label class="form-label mb-1 mt-3 d-flex justify-content-between">
+                                    <span>Periods</span>
+                                    @if (feeCollectionPeriodlist.Any())
+                                    {
+                                        <span class="gip-count">@SelectedPeriodCount of @feeCollectionPeriodlist.Count selected</span>
+                                    }
+                                </label>
+                                @if (IsPeriodLoading)
+                                {
+                                    <div class="gip-empty"><span class="gip-spinner me-2"></span>Loading periods</div>
+                                }
+                                else if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+                                {
+                                    <div class="gip-empty">Choose a period type first.</div>
+                                }
+                                else if (!feeCollectionPeriodlist.Any())
+                                {
+                                    <div class="gip-empty">No period found for this period type.</div>
+                                }
+                                else
+                                {
+                                    <div class="gip-chips">
+                                        <button type="button" class="gip-chip ghost @(SelectAllPeriod ? "on" : "")" @onclick="ToggleAllPeriods">
+                                            <i class="bi @(SelectAllPeriod ? "bi-check2-all" : "bi-ui-checks")"></i>All
+                                        </button>
+                                        @foreach (var p in feeCollectionPeriodlist)
+                                        {
+                                            var period = p;
+                                            <button type="button" class="gip-chip @(period.IsSelected ? "on" : "")" @onclick="() => TogglePeriod(period)">
+                                                @if (period.IsSelected)
+                                                {
+                                                    <i class="bi bi-check2"></i>
+                                                }
+                                                @period.PeriodName
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                                @if (ShowErrors && string.IsNullOrEmpty(studentInvoice.PeriodType))
+                                {
+                                    <div class="gip-error">Select a period type.</div>
+                                }
+                                else if (ShowErrors && SelectedPeriodCount == 0)
+                                {
+                                    <div class="gip-error">Select at least one period.</div>
+                                }
+                            </div>
+
+                            <div class="gip-step"><span class="gip-step-no">3</span>Invoice</div>
+                            <div class="gip-section @(ShowErrors && studentInvoice.InvoiceTypeId == 0 ? "invalid" : "")">
+                                <label class="form-label mb-1">Invoice type</label>
+                                <div class="gip-chips">
+                                    @foreach (var it in InvoiceTypelist)
+                                    {
+                                        var id = it.InvoiceTypeId;
+                                        <button type="button" class="gip-chip @(studentInvoice.InvoiceTypeId == id ? "on" : "")" @onclick="() => studentInvoice.InvoiceTypeId = id">@it.InvoiceTypeName</button>
+                                    }
+                                </div>
+                                @if (ShowErrors && studentInvoice.InvoiceTypeId == 0)
+                                {
+                                    <div class="gip-error">Select an invoice type.</div>
+                                }
+
+                                <label class="form-label mb-1 mt-3">Invoice for</label>
+                                <div class="gip-chips">
+                                    <button type="button" class="gip-chip @(studentInvoice.InvoiceFor == "1" ? "on" : "")" @onclick='() => ToggleInvoiceFor("1")'>Regular</button>
+                                    <button type="button" class="gip-chip @(studentInvoice.InvoiceFor == "2" ? "on" : "")" @onclick='() => ToggleInvoiceFor("2")'>Admission</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* ---------- footer: summary + project buttons ---------- *@
+                <div class="modal-footer justify-content-between">
+                    <div class="gip-summary">
+                        <span>Students: <b>@StudentSummary</b></span>
+                        <span>Periods: <b>@(SelectedPeriodCount == 0 ? "—" : SelectedPeriodText)</b></span>
+                        <span>Type: <b>@(InvoiceTypelist.FirstOrDefault(x => x.InvoiceTypeId == studentInvoice.InvoiceTypeId)?.InvoiceTypeName ?? "—")</b></span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="table-btn" @onclick="() => Close(false)">Cancel</button>
+                        <button type="button" class="ui fade op-1 animated button form-btn" tabindex="0" disabled="@IsLoading" @onclick="GenerateStudentInvoice">
+                            <div class="visible content">@SubmitText</div>
+                            <div class="hidden content"><i class="bi bi-receipt-cutoff"></i></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public long SessionId { get; set; }
+    [Parameter] public string? GroupCode { get; set; }
+    [Parameter] public string? BranchCode { get; set; }
+    [Parameter] public string? UserName { get; set; }
+    [Parameter] public int SocietyId { get; set; }
+    [Parameter] public string Title { get; set; } = "Generate Invoice For All Class";
+    [Parameter] public string SubmitText { get; set; } = "Generate Invoice All Class";
+    // optional: open with this class ticked and this student selected (Student Fee Account -> New invoice)
+    [Parameter] public string? PreselectClassCode { get; set; }
+    [Parameter] public long PreselectStudentId { get; set; }
+    // true = invoice was generated (caller refreshes its data)
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    private List<BranchClassModel> classlist = new();
+    private List<StudentClassModal> Students = new();
+    private List<PeriodMaster> PeriodTypeList = new();
+    private List<FeeCollectionPeriodConfig> feeCollectionPeriodlist = new();
+    private List<InvoiceTypeModel> InvoiceTypelist = new();
+    private StudentInvoice studentInvoice = new() { PeriodType = "", InvoiceFor = "" };
+    private PaginationState pagination = new() { ItemsPerPage = 50 };
+
+    private bool SelectAll;
+    private bool SelectAllPeriod;
+    private bool IsAllStudentSelected;
+    private string studentnameFilter = "";
+    private bool IsLoading;
+    private bool IsStudentLoading;
+    private bool IsPeriodLoading;
+    private bool HideForConfirm;
+    private bool ShowErrors;
+    private bool ShowAllStudents;
+
+    // New invoice from Student Fee Account: one student, shown as a card (list can still be opened)
+    private bool IsSingleStudentMode => PreselectStudentId > 0;
+    private StudentClassModal? PreselectedStudent => Students.FirstOrDefault(x => x.StudentId == PreselectStudentId);
+
+    private int SelectedClassCount => classlist.Count(x => x.IsSelected);
+    private int SelectedStudentCount => Students.Count(x => x.IsSelected);
+    private int SelectedPeriodCount => feeCollectionPeriodlist.Count(x => x.IsSelected);
+
+    // students can be picked only when exactly one class is selected
+    private bool IsStudentSelectionDisabled => SelectedClassCount > 1;
+
+    private string StudentSummary =>
+        SelectedClassCount == 0 ? "—"
+        : IsStudentSelectionDisabled ? $"all of {SelectedClassCount} classes"
+        : SelectedStudentCount == 0 ? "whole class"
+        : SelectedStudentCount == 1 ? (Students.First(x => x.IsSelected).StudentName ?? "1 student")
+        : $"{SelectedStudentCount} students";
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var classTask = httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode");
+            var periodTypeTask = httpService.Get<List<PeriodMaster>>("FeeCollectionPeriodConfig/GetPeriodTypeName");
+            var invoiceTypeTask = httpService.Get<List<InvoiceTypeModel>>("StudentFeeInvoice/GetInvoiceTypeList");
+
+            classlist = await classTask ?? new();
+            PeriodTypeList = await periodTypeTask ?? new();
+            InvoiceTypelist = await invoiceTypeTask ?? new();
+
+            foreach (var item in classlist)
+                item.IsSelected = false;
+
+            // "With Transport" is the default invoice type
+            studentInvoice.InvoiceTypeId = InvoiceTypelist.FirstOrDefault(x => x.InvoiceTypeName == "With Transport")?.InvoiceTypeId ?? 0;
+
+            if (!string.IsNullOrWhiteSpace(PreselectClassCode))
+            {
+                var cls = classlist.FirstOrDefault(x => string.Equals(x.ClassCode, PreselectClassCode, StringComparison.OrdinalIgnoreCase));
+                if (cls != null)
+                {
+                    cls.IsSelected = true;
+                    await SearchStudentSelect();
+                    if (PreselectStudentId > 0)
+                    {
+                        foreach (var s in Students)
+                            s.IsSelected = s.StudentId == PreselectStudentId;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading generate invoice popup: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private string SelectedText
+    {
+        get
+        {
+            var selected = classlist.Where(x => x.IsSelected).Select(x => x.ClassName).ToList();
+            if (!selected.Any()) return "Select class";
+            if (SelectAll) return "All classes";
+            if (selected.Count <= 4) return string.Join(", ", selected);
+            return $"{string.Join(", ", selected.Take(4))} +{selected.Count - 4} more";
+        }
+    }
+
+    private string SelectedPeriodText
+    {
+        get
+        {
+            var selected = feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodName).ToList();
+            if (!selected.Any()) return "—";
+            if (SelectAllPeriod) return "All";
+            if (selected.Count <= 2) return string.Join(", ", selected);
+            return $"{selected[0]}, {selected[1]} +{selected.Count - 2} more";
+        }
+    }
+
+    protected IQueryable<StudentClassModal> StudentmoduleQuery
+    {
+        get
+        {
+            var result = Students.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(studentnameFilter))
+            {
+                result = result.Where(x => (x.StudentName != null && x.StudentName.Contains(studentnameFilter, StringComparison.OrdinalIgnoreCase))
+                                        || (x.ControlNo != null && x.ControlNo.Contains(studentnameFilter, StringComparison.OrdinalIgnoreCase)));
+            }
+            return result;
+        }
+    }
+
+    private string? StudentRowClass(StudentClassModal s) => s.IsSelected ? "gip-row-on" : null;
+
+    // QuickGrid css hides rows with an empty cell -> blank cells get one space
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? " " : value;
+
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 1 ? parts[0][..Math.Min(2, parts[0].Length)].ToUpper() : $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+    }
+
+    // ---------------- classes / students ----------------
+
+    private async Task ToggleSelectAll()
+    {
+        foreach (var item in classlist)
+            item.IsSelected = SelectAll;
+        await SearchStudentSelect();
+    }
+
+    private async Task UpdateSelectAllClass()
+    {
+        var valid = classlist.Where(x => x.IsValid == true).ToList();
+        SelectAll = valid.Any() && valid.All(x => x.IsSelected);
+        await SearchStudentSelect();
+    }
+
+    private async Task SearchStudentSelect()
+    {
+        try
+        {
+            var selectedClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+            IsAllStudentSelected = false;
+            if (string.IsNullOrWhiteSpace(selectedClassCode))
+            {
+                Students = new();
+                return;
+            }
+            IsStudentLoading = true;
+            StateHasChanged();
+            var searchAny = new SearchAnyRequestModel
+            {
+                GroupCode = GroupCode,
+                BranchCode = BranchCode,
+                RequestName = selectedClassCode,
+                SessionId = SessionId
+            };
+            Students = await httpService.Post<List<StudentClassModal>>("StudentFeeInvoice/ClassBasedStudent", searchAny) ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            IsStudentLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleAllStudent()
+    {
+        if (IsStudentSelectionDisabled)
+            return;
+        foreach (var row in StudentmoduleQuery)
+            row.IsSelected = IsAllStudentSelected;
+    }
+
+    // ---------------- period ----------------
+
+    private async Task SelectPeriodType(string? periodType)
+    {
+        if (studentInvoice.PeriodType == periodType)
+            return;
+        studentInvoice.PeriodType = periodType ?? "";
+        await OnPeriodTypeChanged();
+    }
+
+    private async Task OnPeriodTypeChanged()
+    {
+        try
+        {
+            feeCollectionPeriodlist = new();
+            SelectAllPeriod = false;
+            if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+                return;
+
+            IsPeriodLoading = true;
+            StateHasChanged();
+            var searchAny = new SearchAnyRequestModel
+            {
+                GroupCode = GroupCode,
+                BranchCode = BranchCode,
+                SessionId = SessionId,
+                RequestName = studentInvoice.PeriodType
+            };
+            feeCollectionPeriodlist = await httpService.Post<List<FeeCollectionPeriodConfig>>("FeeCollectionPeriodConfig/GetFeeCollectionPeriod", searchAny) ?? new();
+            foreach (var item in feeCollectionPeriodlist)
+                item.IsSelected = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            IsPeriodLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void TogglePeriod(FeeCollectionPeriodConfig period)
+    {
+        period.IsSelected = !period.IsSelected;
+        SelectAllPeriod = feeCollectionPeriodlist.Any() && feeCollectionPeriodlist.All(x => x.IsSelected);
+    }
+
+    private void ToggleAllPeriods()
+    {
+        SelectAllPeriod = !SelectAllPeriod;
+        foreach (var item in feeCollectionPeriodlist)
+            item.IsSelected = SelectAllPeriod;
+    }
+
+    private void ToggleInvoiceFor(string value) =>
+        studentInvoice.InvoiceFor = studentInvoice.InvoiceFor == value ? "" : value;
+
+    // ---------------- generate ----------------
+
+    private async Task GenerateStudentInvoice()
+    {
+        studentInvoice.ClassCode = string.Join(",", classlist.Where(x => x.IsSelected).Select(x => x.ClassCode));
+        studentInvoice.GroupCode = GroupCode;
+        studentInvoice.BranchCode = BranchCode;
+        studentInvoice.CreatedBy = UserName;
+        studentInvoice.SessionId = SessionId;
+        studentInvoice.SocietyId = SocietyId;
+        // multiple classes -> students cannot be picked, invoice is for the whole classes
+        studentInvoice.StudentId = IsStudentSelectionDisabled
+            ? string.Empty
+            : string.Join(",", Students.Where(x => x.IsSelected).Select(x => x.StudentId));
+        studentInvoice.PeriodId = string.Join(",", feeCollectionPeriodlist.Where(x => x.IsSelected).Select(x => x.PeriodId));
+
+        // missing fields are marked red in the popup
+        ShowErrors = true;
+        if (string.IsNullOrEmpty(studentInvoice.ClassCode))
+        {
+            await Alert.ShowWarning("Please select a class first.");
+            return;
+        }
+        if (string.IsNullOrEmpty(studentInvoice.PeriodType))
+        {
+            await Alert.ShowWarning("Please select a period type.");
+            return;
+        }
+        if (string.IsNullOrEmpty(studentInvoice.PeriodId))
+        {
+            await Alert.ShowWarning("Please select a period first.");
+            return;
+        }
+        if (studentInvoice.InvoiceTypeId == 0)
+        {
+            await Alert.ShowWarning("Please select a invoice type");
+            return;
+        }
+
+        // popup is hidden while the confirm dialog is open (same as before)
+        HideForConfirm = true;
+        StateHasChanged();
+        var submit = await Alert.ShowConfirm($"Generate invoice for {StudentSummary} ({SelectedPeriodText})?");
+        if (!submit)
+        {
+            HideForConfirm = false;
+            StateHasChanged();
+            return;
+        }
+
+        IsLoading = true;
+        StateHasChanged();
+        bool generated = false;
+        try
+        {
+            var apiResponse = await httpService.Post<ApiResponse<string>>("StudentFeeInvoice/StudentChallanGenerate", studentInvoice);
+            generated = apiResponse != null && apiResponse.Success && apiResponse.Code == 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating invoice: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+
+        if (generated)
+            await Alert.ShowSuccess("Invoice Generated Successfully");
+        else
+            await Alert.ShowCustomAlert(Localizer["Admin"]);
+
+        await Close(generated);
+    }
+
+    private Task Close(bool generated) => OnClose.InvokeAsync(generated);
+}
