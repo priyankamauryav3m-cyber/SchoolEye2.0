@@ -114,11 +114,21 @@
     .sfa .sfa-grid .quickgrid tbody tr.sfa-row-cancelled td .sfa-amt { text-decoration: line-through; }
     .sfa .sfa-link { background: none; border: none; padding: 0; color: #1d3b63; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
     .sfa .sfa-link:hover { color: #0d6efd; }
+    .sfa .sfa-view { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 10px; color: #1d3b63; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .sfa .sfa-view:hover { background: #eef4ff; border-color: #0d6efd; color: #0d6efd; }
     .sfa .sfa-small { display: block; color: var(--sfa-muted); font-size: 12px; }
     .sfa .sfa-late { color: var(--sfa-red); font-size: 12px; margin-left: 4px; }
     .sfa .sfa-strong { font-weight: 700; }
     .sfa .sfa-neg { color: var(--sfa-red); }
     .sfa .sfa-pos { color: var(--sfa-green); }
+    /* Invoices grid: Status column only shows the status pill */
+    .sfa .sfa-grid .quickgrid th.sfa-status-col, .sfa .sfa-grid .quickgrid td.sfa-status-col { width: 75px; min-width: 75px; max-width: 75px; padding-left: 4px; padding-right: 4px; }
+    .sfa .sfa-grid .quickgrid th.sfa-status-col .col-options-button, .sfa .sfa-grid .quickgrid th.sfa-status-col .col-width-draghandle { display: none; }
+    .sfa .sfa-receipt-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; font-size: 13px; color: var(--sfa-muted); }
+    .sfa .sfa-chip { border: 1px solid #cdd5df; background: #fff; color: #1d3b63; border-radius: 16px; padding: 3px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .sfa .sfa-chip small { color: var(--sfa-muted); font-weight: 500; }
+    .sfa .sfa-chip.active { background: var(--sfa-navy); border-color: var(--sfa-navy); color: #fff; }
+    .sfa .sfa-chip.active small { color: #dbe4f0; }
     .sfa .sfa-pill { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11.5px; font-weight: 600; }
     .sfa .sfa-pill.red { background: var(--sfa-red-soft); color: var(--sfa-red); }
     .sfa .sfa-pill.green { background: var(--sfa-green-soft); color: var(--sfa-green); }
@@ -436,7 +446,7 @@
                                 <div class="grid-box">
                                     <QuickGrid Items="@invoiceRows.AsQueryable()" Pagination="@invoicePagination" Class="table" RowClass="InvoiceRowClass">
                                         <TemplateColumn Title="Invoice" Sortable="true" SortBy="@(GridSort<InvoiceRow>.ByAscending(x => x.InvoiceNo))">
-                                            <button type="button" class="sfa-link" title="Open in Invoice Generation" @onclick="() => GoToInvoice(context)">@Show(context.InvoiceNo)</button>
+                                            <button type="button" class="sfa-link" title="Edit invoice" @onclick="() => OpenEditInvoice(context)">@Show(context.InvoiceNo)</button>
                                             @if (!string.IsNullOrWhiteSpace(context.TemplateName))
                                             {
                                                 <span class="sfa-small">@context.TemplateName</span>
@@ -455,7 +465,10 @@
                                         <TemplateColumn Title="Net" Class="sfa-num">@Money(context.Net)</TemplateColumn>
                                         <TemplateColumn Title="Paid" Class="sfa-num">@(context.HasReceivedInfo ? Money(context.Received) : "—")</TemplateColumn>
                                         <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@(context.HasReceivedInfo ? Money(context.Outstanding) : "—")</span></TemplateColumn>
-                                        <TemplateColumn Title="Status" Class="sfa-center"><span class="sfa-pill @context.StatusCss">@context.Status</span></TemplateColumn>
+                                        <TemplateColumn Title="Status" Class="sfa-center sfa-status-col"><span class="sfa-pill @context.StatusCss">@context.Status</span></TemplateColumn>
+                                        <TemplateColumn Title="Action" Class="sfa-center">
+                                            <button type="button" class="sfa-view" title="Invoice preview" @onclick="() => OpenInvoicePreview(context)"><i class="bi bi-eye"></i>View</button>
+                                        </TemplateColumn>
                                     </QuickGrid>
                                 </div>
                                 <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@invoicePagination" /></div></div>
@@ -477,11 +490,30 @@
                         }
                         else
                         {
+                            @* status filter: Student Print / Chq Report need Active or Cancelled (same rule as View Student Receipt) *@
+                            <div class="sfa-receipt-status">
+                                <span>Show</span>
+                                @foreach (var opt in ReceiptStatusOptions)
+                                {
+                                    <button type="button" class="sfa-chip @(receiptFilter.Status == opt.Value ? "active" : "")" @onclick="() => SetReceiptStatus(opt.Value)">
+                                        @opt.Text <small>(@ReceiptCount(opt.Value))</small>
+                                    </button>
+                                }
+                                <span class="sfa-small ms-auto">Tick receipt(s) for Cancel / Edit / Print Multi Receipt</span>
+                            </div>
                             <div class="sfa-grid quick-main">
                                 <div class="grid-box">
-                                    <QuickGrid Items="@receiptRows.AsQueryable()" Pagination="@receiptPagination" Class="table" RowClass="ReceiptRowClass">
+                                    <QuickGrid Items="@visibleReceipts.AsQueryable()" Pagination="@receiptPagination" Class="table" RowClass="ReceiptRowClass">
+                                        <TemplateColumn Title="" Class="sfa-center">
+                                            <HeaderTemplate>
+                                                <input type="checkbox" checked="@AllReceiptsTicked" @onchange="ToggleAllReceipts" />
+                                            </HeaderTemplate>
+                                            <ChildContent>
+                                                <input type="checkbox" checked="@selectedReceiptIds.Contains(context.ReceiptId)" @onchange="e => ToggleReceipt(context, e)" />
+                                            </ChildContent>
+                                        </TemplateColumn>
                                         <TemplateColumn Title="Receipt" Sortable="true" SortBy="@(GridSort<StudentFeeReceiptListResponse>.ByAscending(x => x.ReceiptNo))">
-                                            <button type="button" class="sfa-link" title="Open in View Student Receipt" @onclick="() => GoToReceipt(context)">@Show(context.ReceiptNo)</button>
+                                            <button type="button" class="sfa-link" title="Receipt details" @onclick="() => OpenReceiptDetails(context)">@Show(context.ReceiptNo)</button>
                                         </TemplateColumn>
                                         <TemplateColumn Title="Date" Sortable="true" SortBy="@(GridSort<StudentFeeReceiptListResponse>.ByAscending(x => x.ReceiptDate))">
                                             @(context.ReceiptDate.HasValue ? context.ReceiptDate.Value.ToString("dd MMM yyyy") : Blank)
@@ -516,6 +548,14 @@
                                 </div>
                                 <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@receiptPagination" /></div></div>
                             </div>
+                            @* same buttons + popups as View Student Receipt *@
+                            <StudentReceiptActions @ref="receiptActions"
+                                                   GroupCode="@groupcode" BranchCode="@branchcode" UserName="@UserName"
+                                                   Sessions="sessionlist"
+                                                   Receipts="visibleReceipts" SelectedReceiptIds="selectedReceiptIds"
+                                                   Filter="receiptFilter" SearchedFromDate="receiptFilter.FromDate" SearchedToDate="receiptFilter.ToDate"
+                                                   ButtonClass="sfa-btn" ButtonBarClass="justify-content-end mt-2"
+                                                   OnChanged="OnReceiptsChanged" />
                         }
                     }
                     else if (ActiveTab == TabBank)
@@ -574,7 +614,7 @@
                                     <QuickGrid Items="@refundRows.AsQueryable()" Pagination="@refundPagination" Class="table">
                                         <TemplateColumn Title="Date">@(context.Date.HasValue ? context.Date.Value.ToString("dd MMM yyyy") : Blank)</TemplateColumn>
                                         <TemplateColumn Title="Receipt">
-                                            <button type="button" class="sfa-link" @onclick="() => GoToReceipt(context.Receipt)">@Show(context.Receipt.ReceiptNo)</button>
+                                            <button type="button" class="sfa-link" title="Receipt details" @onclick="() => OpenRefundReceiptDetails(context.Receipt)">@Show(context.Receipt.ReceiptNo)</button>
                                         </TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num"><span class="sfa-strong">@Money(context.Amount)</span></TemplateColumn>
                                         <TemplateColumn Title="Where the money went">
@@ -592,6 +632,10 @@
                                 </div>
                                 <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@refundPagination" /></div></div>
                             </div>
+                            @* receipt no. click -> Receipt Details popup (no buttons here) *@
+                            <StudentReceiptActions @ref="refundReceiptActions" ShowButtons="false"
+                                                   GroupCode="@groupcode" BranchCode="@branchcode" UserName="@UserName"
+                                                   Sessions="sessionlist" Filter="receiptFilter" />
                         }
                     }
                     else if (ActiveTab == TabStatement)
@@ -672,7 +716,7 @@
                                 <div class="grid-box">
                                     <QuickGrid Items="@ConcessionInvoices.AsQueryable()" Pagination="@concessionInvoicePagination" Class="table">
                                         <TemplateColumn Title="Invoice">
-                                            <button type="button" class="sfa-link" @onclick="() => GoToInvoice(context)">@Show(context.InvoiceNo)</button>
+                                            <button type="button" class="sfa-link" title="Edit invoice" @onclick="() => OpenEditInvoice(context)">@Show(context.InvoiceNo)</button>
                                         </TemplateColumn>
                                         <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
@@ -707,6 +751,20 @@
                           PreselectClassCode="@selectedStudent.ClassCode"
                           PreselectStudentId="@selectedStudent.StudentId"
                           OnClose="CloseNewInvoice" />
+}
+
+@if (ShowEditInvoice)
+{
+    <EditInvoice ShowEditInvoice="@ShowEditInvoice" SelectedStudent="@EditInvoiceStudent"
+                 CurrentSessionInfo="@sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)"
+                 SessionId="@CurrentSession" BranchCode="@branchcode" GroupCode="@groupcode" UserName="@UserName"
+                 OnClose="CloseEditInvoice" />
+}
+
+@if (ShowInvoicePreview)
+{
+    <InvoicePreview ShowInvoicePreview="@ShowInvoicePreview" SelectedStudent="@PreviewInvoiceStudent"
+                    BranchCode="@branchcode" GroupCode="@groupcode" OnClose="CloseInvoicePreview" />
 }
 
 @if (IsLoading)
@@ -1160,6 +1218,7 @@
             return new InvoiceRow
             {
                 Source = c,
+                Balance = b,
                 InvoiceId = c.InvoiceId,
                 InvoiceNo = c.InvoiceNo ?? "",
                 PeriodName = c.PeriodName,
@@ -1184,6 +1243,14 @@
             StudentNo = selectedStudent!.ControlNo ?? "",
             Status = -1,
             CancelType = "-1",
+            GroupClassCode = "",
+            ClassCode = "",
+            PaymentMode = "",
+            ReceiptNo = "",
+            FirstName = "",
+            ChequeNo = "",
+            FeeReceivedBy = "",
+            ReceiptMode = -1,
             FromDate = DateTime.Today.AddYears(-5),
             ToDate = DateTime.Today
         };
@@ -1192,6 +1259,10 @@
             ? response.Data.Where(x => x.StudentId == 0 || x.StudentId == selectedStudent.StudentId)
                            .OrderByDescending(x => x.ReceiptDate).ThenByDescending(x => x.ReceiptId).ToList()
             : new();
+        // the receipt buttons (Chq Report, Head Details ...) use this student's search filter; keep the chosen Show status
+        request.Status = receiptFilter.Status;
+        receiptFilter = request;
+        ApplyReceiptStatus();
     }
 
     private async Task LoadLedger()
@@ -1319,17 +1390,131 @@
     private string ReturnUrlParam => "&ReturnUrl=" + Uri.EscapeDataString(
         $"/StudentFeeAccount?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}&SessionId={CurrentSession}");
 
-    private void GoToInvoice(InvoiceRow row)
+    // ---- invoice popups (same components as Invoice Generation, opened on this page) ----
+    private bool ShowEditInvoice;
+    private SearchStudentBalanceDto EditInvoiceStudent = new();
+    private bool ShowInvoicePreview;
+    private SearchStudentBalanceDto PreviewInvoiceStudent = new();
+
+    // invoice no click -> Edit Invoice popup
+    private void OpenEditInvoice(InvoiceRow row)
     {
-        ShowPageLoader();
-        Nav.NavigateTo($"/invoicegeneration?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}{ReturnUrlParam}");
+        EditInvoiceStudent = ToInvoiceDto(row);
+        ShowEditInvoice = true;
+        StateHasChanged();
     }
 
-    private void GoToReceipt(StudentFeeReceiptListResponse row)
+    private async Task CloseEditInvoice(bool refresh)
     {
-        ShowPageLoader();
-        Nav.NavigateTo($"/ViewStudentReceipt?StudentNo={Uri.EscapeDataString(selectedStudent?.ControlNo ?? "")}&ReceiptNo={Uri.EscapeDataString(row.ReceiptNo ?? "")}&SessionId={CurrentSession}{ReturnUrlParam}");
+        ShowEditInvoice = false;
+        EditInvoiceStudent = new();
+        StateHasChanged();
+        if (refresh)
+            await LoadAll();
     }
+
+    // grid View (eye) -> Invoice Preview popup
+    private void OpenInvoicePreview(InvoiceRow row)
+    {
+        PreviewInvoiceStudent = ToInvoiceDto(row);
+        ShowInvoicePreview = true;
+        StateHasChanged();
+    }
+
+    private void CloseInvoicePreview()
+    {
+        ShowInvoicePreview = false;
+        PreviewInvoiceStudent = new();
+        StateHasChanged();
+    }
+
+    // the popups take the Invoice Generation row; use it when loaded, else build it from the challan
+    private SearchStudentBalanceDto ToInvoiceDto(InvoiceRow row)
+    {
+        if (row.Balance != null && row.Balance.InvoiceId == row.InvoiceId)
+            return row.Balance;
+        var c = row.Source;
+        return new SearchStudentBalanceDto
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            StudentId = c.StudentId != 0 ? c.StudentId : selectedStudent?.StudentId ?? 0,
+            StudentName = c.StudentName ?? selectedStudent?.StudentName,
+            ControlNo = c.ControlNo ?? selectedStudent?.ControlNo,
+            InvoiceId = (int)row.InvoiceId,
+            InvoiceNo = row.InvoiceNo,
+            TemplateId = c.TemplateId,
+            TemplateName = c.TemplateName,
+            InvType = c.InvType,
+            ImagePath = c.ImagePath
+        };
+    }
+
+    // ---- receipts: same buttons + popups as View Student Receipt (StudentReceiptActions), opened on this page ----
+    private StudentReceiptActions? receiptActions;
+    private StudentReceiptActions? refundReceiptActions;
+    // filter of the receipts search (LoadReceipts); Status = the Show chip (All -1 / Active 1 / Cancelled 0)
+    private StudentFeeReceiptListRequest receiptFilter = new() { Status = -1, CancelType = "-1" };
+    private HashSet<long> selectedReceiptIds = new();
+    private List<StudentFeeReceiptListResponse> visibleReceipts = new();
+
+    private static readonly (int Value, string Text)[] ReceiptStatusOptions = { (-1, "All"), (1, "Active"), (0, "Cancelled") };
+
+    private int ReceiptCount(int status) => status switch
+    {
+        1 => receiptRows.Count(x => x.Valid == true),
+        0 => receiptRows.Count(x => x.Valid != true),
+        _ => receiptRows.Count
+    };
+
+    private void ApplyReceiptStatus()
+    {
+        visibleReceipts = receiptFilter.Status switch
+        {
+            1 => receiptRows.Where(x => x.Valid == true).ToList(),
+            0 => receiptRows.Where(x => x.Valid != true).ToList(),
+            _ => receiptRows.ToList()
+        };
+        selectedReceiptIds = new();
+    }
+
+    private async Task SetReceiptStatus(int status)
+    {
+        receiptFilter.Status = status;
+        ApplyReceiptStatus();
+        await receiptPagination.SetCurrentPageIndexAsync(0);
+    }
+
+    private bool AllReceiptsTicked => visibleReceipts.Count > 0 && visibleReceipts.All(x => selectedReceiptIds.Contains(x.ReceiptId));
+
+    private void ToggleAllReceipts(ChangeEventArgs e)
+    {
+        selectedReceiptIds = e.Value is bool on && on ? visibleReceipts.Select(x => x.ReceiptId).ToHashSet() : new();
+    }
+
+    private void ToggleReceipt(StudentFeeReceiptListResponse row, ChangeEventArgs e)
+    {
+        if (e.Value is bool on && on)
+            selectedReceiptIds.Add(row.ReceiptId);
+        else
+            selectedReceiptIds.Remove(row.ReceiptId);
+    }
+
+    private async Task OpenReceiptDetails(StudentFeeReceiptListResponse row)
+    {
+        if (receiptActions != null)
+            await receiptActions.OpenReceiptDetails(row);
+    }
+
+    private async Task OpenRefundReceiptDetails(StudentFeeReceiptListResponse row)
+    {
+        if (refundReceiptActions != null)
+            await refundReceiptActions.OpenReceiptDetails(row);
+    }
+
+    // receipt cancelled / edited: dues, ledger, advance ... change too, so reload the whole account
+    private async Task OnReceiptsChanged() => await LoadAll();
 
     private void GoToCollectFee()
     {
@@ -1398,6 +1583,7 @@
     private class InvoiceRow
     {
         public StudentChallanResponse Source { get; set; } = new();
+        public SearchStudentBalanceDto? Balance { get; set; }
         public long InvoiceId { get; set; }
         public string InvoiceNo { get; set; } = "";
         public string? PeriodName { get; set; }
