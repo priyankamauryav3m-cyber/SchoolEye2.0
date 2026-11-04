@@ -741,7 +741,6 @@
                                                                         </TemplateColumn>
                                                                         <TemplateColumn Title="Action" Align="Align.Center">
                                                                             <ChildContent>
-
                                                                                 <div class="action-btn-group">
                                                                                     @if (context.ConcType != "General")
                                                                                     {
@@ -1468,8 +1467,9 @@ else
                 ConcessionName = names,
                 FeeHeadId = row.FeeHeadId,
                 FeeHeadName = row.FeeHeadName,
-                FromDate = row.FromDate,
-                ToDate = row.ToDate,
+                // dates the user picked above (these are saved); fee head rows only carry today's default date
+                FromDate = concessionDto.FromDate,
+                ToDate = concessionDto.ToDate,
                 IsAmount = !row.IsSelectedPersentage,
                 Amount = row.ConcessionApplicable ?? 0,
                 ConcessionId = ConcessionId.ToString()

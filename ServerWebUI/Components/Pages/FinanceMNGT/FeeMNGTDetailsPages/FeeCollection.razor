@@ -547,6 +547,7 @@
                                                 SearchTerm="@(IsStudentSelected && !string.IsNullOrWhiteSpace(selectedStudent.ControlNo) ? selectedStudent.ControlNo : searchTerm)"
                                                 SessionId="@CurrentSession"
                                                 FeeDues="@feeCollectionDuelist"
+                                                OnInvoiceChanged="OnLedgerInvoiceChanged"
                                                 OnClose="CloseLedgerPopup"></ViewStudentDuesAndReceipt>
                         </div>
                     </div>
@@ -1303,9 +1304,31 @@ else
             await Alert.ShowWarning("Student name or student no. can not be blank.");
             return;
         }
+        ledgerInvoiceChanged = false;
         ShowLedgerPopup = true;
     }
-    private void CloseLedgerPopup() { ShowLedgerPopup = false; StateHasChanged(); }
+
+    // set when Edit Invoice (inside the ledger popup) saved a change, e.g. concession added / removed
+    private bool ledgerInvoiceChanged;
+    private void OnLedgerInvoiceChanged() => ledgerInvoiceChanged = true;
+
+    // closing the ledger popup after an invoice change -> same student is loaded again,
+    // so balance, dues and concession on this page show the updated values
+    private async Task CloseLedgerPopup()
+    {
+        ShowLedgerPopup = false;
+        StateHasChanged();
+        if (!ledgerInvoiceChanged)
+            return;
+
+        ledgerInvoiceChanged = false;
+        if (IsStudentSelected)
+        {
+            await RefreshSelectedStudentBalance();
+            await RefreshAfterConcessionChange();
+        }
+        StateHasChanged();
+    }
 
     private ViewStudentDuesAndReceipt? ledgerReceiptRef;
 
