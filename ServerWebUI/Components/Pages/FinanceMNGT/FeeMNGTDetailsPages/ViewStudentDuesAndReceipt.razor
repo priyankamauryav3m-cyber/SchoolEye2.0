@@ -560,6 +560,8 @@
     [Parameter] public long SessionId { get; set; }                         // session to open with
     [Parameter] public List<FeeCollectionDuesNew>? FeeDues { get; set; }    // Fee Collection passes its dues list (not used until Bank receipts is built)
     [Parameter] public EventCallback OnClose { get; set; }
+    // Edit Invoice saved a change (concession add/remove, due date, fee head) -> Fee Collection reloads that student
+    [Parameter] public EventCallback OnInvoiceChanged { get; set; }
 
     private bool IsPopup => string.IsNullOrEmpty(classs);
 
@@ -965,7 +967,10 @@
         foreach (var invoice in studentChallanlist)
             invoice.IsSelected = false;
         if (refresh)
+        {
             await GetStudentInvoiceDetails();
+            await OnInvoiceChanged.InvokeAsync();
+        }
         StateHasChanged();
     }
 

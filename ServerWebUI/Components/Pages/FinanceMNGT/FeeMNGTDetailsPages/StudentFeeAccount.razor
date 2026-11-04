@@ -400,8 +400,8 @@
                                         <TemplateColumn Title="Month">@Show(context.MonthDisplay)</TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Amount)</TemplateColumn>
                                         <TemplateColumn Title="Concession" Class="sfa-num">@(context.Concession + context.WaiveOff > 0 ? Money(context.Concession + context.WaiveOff) : Blank)</TemplateColumn>
-                                        <TemplateColumn Title="Net" Class="sfa-num">@Money(context.Amount - context.Concession - context.WaiveOff)</TemplateColumn>
-                                        <TemplateColumn Title="Paid" Class="sfa-num">@(context.ReceivedAmt > 0 ? Money(context.ReceivedAmt) : Blank)</TemplateColumn>
+                                        <TemplateColumn Title="Net Amount" Class="sfa-num">@Money(context.Amount - context.Concession - context.WaiveOff)</TemplateColumn>
+                                        <TemplateColumn Title="Paid" Align="Align.Center" Class="sfa-num">@(context.ReceivedAmt > 0 ? Money(context.ReceivedAmt) : Blank)</TemplateColumn>
                                         <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@Money(context.Payable)</span></TemplateColumn>
                                         <TemplateColumn Title="Status" Class="sfa-center">
                                             @if (context.ReceivedAmt > 0)
@@ -459,10 +459,10 @@
                                                 <span class="sfa-late">@context.DaysLate days late</span>
                                             }
                                         </TemplateColumn>
-                                        <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
+                                        <TemplateColumn Title="Period">@Show(context.PeriodName)</TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
                                         <TemplateColumn Title="Concession" Class="sfa-num">@(context.Concession + context.WaiveOff > 0 ? Money(context.Concession + context.WaiveOff) : Blank)</TemplateColumn>
-                                        <TemplateColumn Title="Net" Class="sfa-num">@Money(context.Net)</TemplateColumn>
+                                        <TemplateColumn Title="Net Amount" Class="sfa-num">@Money(context.Net)</TemplateColumn>
                                         <TemplateColumn Title="Paid" Class="sfa-num">@(context.HasReceivedInfo ? Money(context.Received) : "—")</TemplateColumn>
                                         <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@(context.HasReceivedInfo ? Money(context.Outstanding) : "—")</span></TemplateColumn>
                                         <TemplateColumn Title="Status" Class="sfa-center sfa-status-col"><span class="sfa-pill @context.StatusCss">@context.Status</span></TemplateColumn>
@@ -525,7 +525,7 @@
                                                 <span class="sfa-small">Chq @context.ChequeNo</span>
                                             }
                                         </TemplateColumn>
-                                        <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
+                                        <TemplateColumn Title="Period">@Show(context.PeriodName)</TemplateColumn>
                                         @* receipt PaidAmount already includes the late fee (receipt save SP adds it), so fee paid = PaidAmount - LateFee *@
                                         <TemplateColumn Title="Fee paid" Class="sfa-num"><span class="sfa-amt">@Money(FeePaid(context))</span></TemplateColumn>
                                         <TemplateColumn Title="Late fee" Class="sfa-num">@((context.LateFee ?? 0) > 0 ? Money(context.LateFee ?? 0) : "–")</TemplateColumn>
@@ -718,11 +718,11 @@
                                         <TemplateColumn Title="Invoice">
                                             <button type="button" class="sfa-link" title="Edit invoice" @onclick="() => OpenEditInvoice(context)">@Show(context.InvoiceNo)</button>
                                         </TemplateColumn>
-                                        <TemplateColumn Title="For">@Show(context.PeriodName)</TemplateColumn>
+                                        <TemplateColumn Title="Period">@Show(context.PeriodName)</TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
                                         <TemplateColumn Title="Concession" Class="sfa-num">@Money(context.Concession)</TemplateColumn>
                                         <TemplateColumn Title="Waive off" Class="sfa-num">@(context.WaiveOff > 0 ? Money(context.WaiveOff) : Blank)</TemplateColumn>
-                                        <TemplateColumn Title="Net" Class="sfa-num"><span class="sfa-strong">@Money(context.Net)</span></TemplateColumn>
+                                        <TemplateColumn Title="Net Amount" Class="sfa-num"><span class="sfa-strong">@Money(context.Net)</span></TemplateColumn>
                                     </QuickGrid>
                                 </div>
                                 <div class="sfa-total">
