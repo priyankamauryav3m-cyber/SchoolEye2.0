@@ -15,6 +15,7 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    [ServerWebAPI.Authorization.ReportHeader] // PDF / Excel header from V3M_MstReportHeader
     public class ExportController : ControllerBase
     {
         private readonly IPrintStudentRec _generateFile;

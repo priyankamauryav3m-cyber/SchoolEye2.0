@@ -58,6 +58,13 @@
         cursor: pointer;
     }
 
+    /* cancelled invoice: no link, view only */
+    .invoice-no-cancelled {
+        color: #6c757d;
+        text-decoration: line-through;
+        cursor: default;
+    }
+
 </style>
 
 <div class="main-container">
@@ -129,10 +136,14 @@
                                                 </div>
                                             </ColumnOptions>
                                             <ChildContent>
-                                                @* invoice no. click -> Edit Invoice of this invoice *@
+                                                @* invoice no. click -> Edit Invoice of this invoice; cancelled invoice = plain text (view only) *@
                                                 @if (string.IsNullOrEmpty(context.InvoiceNo))
                                                 {
                                                     @(" ")
+                                                }
+                                                else if (IsCancelled(context))
+                                                {
+                                                    <span class="invoice-no-cancelled" title="Cancelled invoice - view only">@context.InvoiceNo</span>
                                                 }
                                                 else
                                                 {
@@ -181,14 +192,22 @@
                                         <TemplateColumn Title="Amount" Class="text-right" Align="Align.Center">
                                             <span>₹ @context.TotalAmount.ToString("N0")</span>
                                         </TemplateColumn>
+                                        @* Status (Ch_Status): 0 Cancel, 1 Due, 2 Part Paid, 3 Paid *@
+                                        <TemplateColumn Title="Status" Align="Align.Center" Class="text-center" Sortable="true" SortBy="GridSort<SearchStudentBalanceDto>.ByAscending(x => InvoiceStatusText(x))">
+                                            @{ var statusText = InvoiceStatusText(context); }
+                                            <span class="badge rounded-pill @InvoiceStatusClass(statusText)">@statusText</span>
+                                        </TemplateColumn>
                                         <TemplateColumn Title="Action" Align="Align.Center">
                                             <div class="action-btn-group">
                                                 <button type="button" class="btn-icon edit-btn custom-tooltip" data-tooltip="Preview" @onclick="() => OpenInvoicePreviewFor(context)" @onclick:stopPropagation="true">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
-                                                <button type="button" class="btn-icon inactive-btn custom-tooltip" data-tooltip="Cancel invoice" @onclick="() => OpenCancelInvoiceFor(context)" @onclick:stopPropagation="true">
-                                                    <i class="bi bi-x-circle"></i>
-                                                </button>
+                                                @if (!IsCancelled(context))
+                                                {
+                                                    <button type="button" class="btn-icon inactive-btn custom-tooltip" data-tooltip="Cancel invoice" @onclick="() => OpenCancelInvoiceFor(context)" @onclick:stopPropagation="true">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                }
                                             </div>
                                         </TemplateColumn>
 
@@ -779,9 +798,35 @@ else
         OpenEditInvoiceFor(data[0]);
     }
 
+    // ---------------- invoice status (V3M_FIN_MstInvoice.Ch_Status via USP_FINGetStudentBalanceList) ----------------
+    // 0 = Cancel (Usp_CancelGeneratedStudentChallan), 1 = Due, 2 = Part Paid, 3 = Paid
+    private static bool IsCancelled(SearchStudentBalanceDto row) => row.Status?.Trim() == "0";
+
+    private static string InvoiceStatusText(SearchStudentBalanceDto row)
+    {
+        if (IsCancelled(row))
+            return "Cancel";
+        if (row.Status?.Trim() == "3" || (row.TotalAmount > 0 && row.ReceivedAmount + row.TotalConcession >= row.TotalAmount))
+            return "Paid";
+        if (row.ReceivedAmount > 0)
+            return "Part Paid";
+        return "Due";
+    }
+
+    private static string InvoiceStatusClass(string statusText) => statusText switch
+    {
+        "Cancel" => "bg-danger",
+        "Paid" => "bg-success",
+        "Part Paid" => "bg-info text-dark",
+        _ => "bg-warning text-dark"
+    };
+
     // grid: invoice no. click -> Edit Invoice of that row
     private void OpenEditInvoiceFor(SearchStudentBalanceDto row)
     {
+        // cancelled invoice is view only (no edit)
+        if (IsCancelled(row))
+            return;
         EditInvoiceStudent = row;
         ShowEditInvoice = true;
         StateHasChanged();
@@ -817,6 +862,11 @@ else
         if (row.InvoiceId <= 0)
         {
             await Alert.ShowWarning("Selected student has no generated invoice.");
+            return;
+        }
+        if (IsCancelled(row))
+        {
+            await Alert.ShowWarning("This invoice is already cancelled.");
             return;
         }
         CancelInvoiceStudent = row;
