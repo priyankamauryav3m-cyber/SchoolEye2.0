@@ -386,7 +386,7 @@
                             <strong>@cancelReceipt.StudentName <small>(@cancelReceipt.StudentNo)</small></strong>
                         </div>
                         <div class="cr-summary-item">
-                            <span>Class</span>
+                            <span>Class-Section</span>
                             <strong>@(string.IsNullOrWhiteSpace(cancelReceipt.ClassSection) ? cancelReceipt.ClassName : cancelReceipt.ClassSection)</strong>
                         </div>
                         <div class="cr-summary-item">
@@ -1418,8 +1418,10 @@
             IsLoading = false;
             StateHasChanged();
 
+            // openPdfOrAsk: opens the PDF; if the browser blocks the new tab (refund + PDF took long),
+            // it shows an "Open PDF" button so the receipt always opens.
             if (response != null && response.Success && !string.IsNullOrEmpty(response.Data))
-                await JS.InvokeVoidAsync("viewPdf", response.Data);
+                await JS.InvokeVoidAsync("openPdfOrAsk", response.Data, $"RefundReceipt_{receiptId}.pdf", "Refund receipt is ready");
             else
                 await Alert.ShowWarning(response?.Message ?? "Unable to generate the refund receipt.");
         }

@@ -48,11 +48,11 @@ namespace Infrastructure.FileGenerate
                 .Padding(10)
                 .Column(col =>
                 {
-                    col.Item().AlignCenter().Text("V3M International School")
+                    col.Item().AlignCenter().Text(ReportHeaderContext.SchoolName)
                         .Bold().FontSize(14);
 
                     col.Item().AlignCenter().Text(
-                        "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017")
+                        ReportHeaderContext.Address)
                         .FontSize(9);
                 });
         }
@@ -167,7 +167,7 @@ namespace Infrastructure.FileGenerate
         private void ComposeHeader(IContainer container)
         {
             byte[] logoBytes = File.ReadAllBytes(
-                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png")
+                ReportHeaderContext.LogoPath
             );
 
             container.Column(col =>
@@ -180,14 +180,14 @@ namespace Infrastructure.FileGenerate
                     {
                         c.Item()
                             .AlignCenter()
-                            .Text("V3M International School")
+                            .Text(ReportHeaderContext.SchoolName)
                             .FontSize(24)
                             .ExtraBold();
 
                         c.Item()
                             .AlignCenter()
                             .PaddingTop(4)
-                            .Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017")
+                            .Text(ReportHeaderContext.Address)
                             .FontSize(11)
                             .SemiBold();
                     });
@@ -311,7 +311,7 @@ namespace Infrastructure.FileGenerate
         {
             foreach (var student in _listResponse)
             {
-                var logoPath = Path.Combine("wwwroot", "uploads", "Logos", "logo (1).png");
+                var logoPath = ReportHeaderContext.LogoPath;
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
@@ -322,8 +322,8 @@ namespace Infrastructure.FileGenerate
                         row.AutoItem().Height(100).Image(logoPath).FitArea();
                         row.RelativeItem().Column(col =>
                         {
-                            col.Item().AlignCenter().Text("CAMBRIDGE SCHOOL ").FontSize(30).FontColor(Colors.Blue.Darken4);
-                            col.Item().AlignRight().Text("Noida").FontSize(25).FontColor(Colors.Blue.Darken4);
+                            col.Item().AlignCenter().Text(ReportHeaderContext.SchoolName.ToUpperInvariant()).FontSize(30).FontColor(Colors.Blue.Darken4);
+                            col.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(12).FontColor(Colors.Blue.Darken4);
                         });
                     });
                     page.Content().Column(col =>
@@ -484,12 +484,13 @@ namespace Infrastructure.FileGenerate
                         col.Spacing(5);
 
                         // ===== HEADER =====
-                        col.Item().AlignCenter().Text("CAMBRIDGE SCHOOL, NOIDA")
+                        col.Item().AlignCenter().Text(ReportHeaderContext.SchoolName.ToUpperInvariant())
                             .Bold().FontSize(14);
 
-                        col.Item().AlignCenter().Text("SECTOR-27, NOIDA, UTTAR PRADESH 201301");
+                        col.Item().AlignCenter().Text(ReportHeaderContext.Address.ToUpperInvariant());
 
-                        col.Item().AlignCenter().Text("CLASS I NOIDA.CAMBRIDGESCHOOL.EDU.IN");
+                        if (ReportHeaderContext.HasWebsite)
+                            col.Item().AlignCenter().Text(ReportHeaderContext.Website.ToUpperInvariant());
 
                         col.Item().PaddingVertical(5)
                             .Text("NOTE: PLEASE FILL THE FORM IN CAPITAL LETTERS")
@@ -728,7 +729,7 @@ namespace Infrastructure.FileGenerate
         }
         public void ComposeHeader(IContainer container)
         {
-            byte[] logoBytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png"));
+            byte[] logoBytes = File.ReadAllBytes(ReportHeaderContext.LogoPath);
 
             container.Column(col =>
             {
@@ -737,7 +738,7 @@ namespace Infrastructure.FileGenerate
                     row.ConstantItem(85).Height(50).AlignMiddle().Image(logoBytes, ImageScaling.FitArea);
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("V3M International School").FontSize(22).ExtraBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(22).ExtraBold();
                         c.Item().PaddingTop(2).AlignCenter().Text("Not Promotion List Of Students").FontSize(11).SemiBold();
                         c.Item().PaddingTop(2).AlignCenter().Text("Session 2025-2026").FontSize(10).SemiBold();
                     });
@@ -857,7 +858,7 @@ namespace Infrastructure.FileGenerate
         }
         public void ComposeHeader(IContainer container)
         {
-            byte[] logoBytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png"));
+            byte[] logoBytes = File.ReadAllBytes(ReportHeaderContext.LogoPath);
 
             container.Column(col =>
             {
@@ -866,8 +867,8 @@ namespace Infrastructure.FileGenerate
                     row.ConstantItem(85).Height(50).AlignMiddle().Image(logoBytes, ImageScaling.FitArea);
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("V3M International School").FontSize(22).ExtraBold();
-                        c.Item().PaddingTop(2).AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(11).SemiBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(22).ExtraBold();
+                        c.Item().PaddingTop(2).AlignCenter().Text(ReportHeaderContext.Address).FontSize(11).SemiBold();
                         c.Item().PaddingTop(2).AlignCenter().Text("Fee Due Report").FontSize(10).SemiBold();
                     });
 
@@ -1026,7 +1027,7 @@ namespace Infrastructure.FileGenerate
         }
         private void ComposeHeader(IContainer container, string copyName)
         {
-            var logo = Path.Combine("wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.Column(col =>
             {
@@ -1047,13 +1048,17 @@ namespace Infrastructure.FileGenerate
 
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("V3M International School").FontSize(15).Bold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(15).Bold();
 
-                        c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza");
+                        var (addressLine1, addressLine2) = ReportHeaderContext.AddressLines;
 
-                        c.Item().AlignCenter().Text("Palam Vihar, 122017");
+                        c.Item().AlignCenter().Text(addressLine1);
 
-                        c.Item().AlignCenter().Text("08373918357");
+                        if (!string.IsNullOrWhiteSpace(addressLine2))
+                            c.Item().AlignCenter().Text(addressLine2);
+
+                        if (ReportHeaderContext.HasPhone)
+                            c.Item().AlignCenter().Text(ReportHeaderContext.Phone);
                     });
                 });
 
@@ -1161,7 +1166,7 @@ namespace Infrastructure.FileGenerate
                 col.Item().Text("1. Payment by cheque is always convenient however, If cheque is dishonoured due to insufficient funds, bank charges will be levied.");
                 col.Item().Text("2. Please write admission no., name, class of the student at the back of cheque.");
                 col.Item().Text("3. Please issue separate cheques for separate child in case of siblings.");
-                col.Item().Text("4. Please issue cheque/DD in favour of 'V3M INTERNATIONAL SCHOOL'.");
+                col.Item().Text($"4. Please issue cheque/DD in favour of '{ReportHeaderContext.SchoolName.ToUpperInvariant()}'.");
                 col.Item().Text("5. Duplicate fee bill will not be issued.");
                 col.Item().Text("6. Please visit our website to pay fee online.");
                 col.Item().Text("7. CASH DEPOSITS at INDIAN OVERSEAS BANK, Alpha I, Greater Noida only.");
@@ -1205,7 +1210,7 @@ namespace Infrastructure.FileGenerate
         }
         private void ComposeHeader(IContainer container)
         {
-            byte[] logoBytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png"));
+            byte[] logoBytes = File.ReadAllBytes(ReportHeaderContext.LogoPath);
 
             container.Column(col =>
             {
@@ -1215,7 +1220,7 @@ namespace Infrastructure.FileGenerate
                     row.RelativeItem()
                        .Column(c =>
                        {
-                           c.Item().AlignCenter().Text("V3M International School").FontSize(18).ExtraBold();
+                           c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(18).ExtraBold();
                            c.Item().PaddingTop(2).AlignCenter().Text("Registration Fee Collection Report").FontSize(11).SemiBold();
 
                            c.Item().PaddingTop(2).AlignCenter().Text(text => { text.Span("Registration Fee Receipt").FontSize(10).SemiBold(); });
@@ -1376,11 +1381,11 @@ namespace Infrastructure.FileGenerate
                 .Padding(10)
                 .Column(col =>
                 {
-                    col.Item().AlignCenter().Text("V3M International School")
+                    col.Item().AlignCenter().Text(ReportHeaderContext.SchoolName)
                         .Bold().FontSize(14);
 
                     col.Item().AlignCenter().Text(
-                        "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017")
+                        ReportHeaderContext.Address)
                         .FontSize(9);
                 });
         }
@@ -1542,12 +1547,7 @@ namespace Infrastructure.FileGenerate
         {
             byte[]? logoBytes = null;
 
-            string logoPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "uploads",
-                "Logos",
-                "logo (1).png");
+            string logoPath = ReportHeaderContext.LogoPath;
 
             if (File.Exists(logoPath))
             {
@@ -1570,11 +1570,12 @@ namespace Infrastructure.FileGenerate
 
                     row.RelativeItem().AlignCenter().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("Cambridge School, Noida").FontSize(16).ExtraBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(16).ExtraBold();
 
-                        c.Item().AlignCenter().Text("Sector-27, Noida, Uttar Pradesh 201301").FontSize(9).ExtraBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(9).ExtraBold();
 
-                        c.Item().AlignCenter().Text("noida.cambridgeschool.edu.in").FontSize(8).Bold();
+                        if (ReportHeaderContext.HasWebsite)
+                            c.Item().AlignCenter().Text(ReportHeaderContext.Website).FontSize(8).Bold();
                     });
 
                     row.ConstantItem(75);
@@ -1752,7 +1753,7 @@ namespace Infrastructure.FileGenerate
 
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("CAMBRIDGE SCHOOL, NOIDA").FontSize(11).Bold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName.ToUpperInvariant()).FontSize(11).Bold();
                         c.Item().PaddingTop(3).AlignCenter().Text("CLASS LIST").FontSize(9).Bold();
                         c.Item().PaddingTop(2).AlignCenter().Text($"{_className ?? ""} - {_sectionName ?? ""} (SESSION {_sessionName ?? ""})").FontSize(8).Bold();
                         c.Item().PaddingTop(2).AlignCenter().Text("CLASS TEACHER : Prakshi Jain").FontSize(8).Bold();
@@ -1980,12 +1981,7 @@ namespace Infrastructure.FileGenerate
         {
             byte[]? logoBytes = null;
 
-            string logoPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "uploads",
-                "Logos",
-                "logo (1).png");
+            string logoPath = ReportHeaderContext.LogoPath;
 
             if (File.Exists(logoPath))
             {
@@ -2006,11 +2002,12 @@ namespace Infrastructure.FileGenerate
 
                     row.RelativeItem().AlignCenter().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("Cambridge School, Noida").FontSize(16).ExtraBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(16).ExtraBold();
 
-                        c.Item().AlignCenter().Text("Sector-27, Noida, Uttar Pradesh 201301").FontSize(8).ExtraBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(8).ExtraBold();
 
-                        c.Item().PaddingTop(2).AlignCenter().Text("noida.cambridgeschool.edu.in").FontSize(8).Bold();
+                        if (ReportHeaderContext.HasWebsite)
+                            c.Item().PaddingTop(2).AlignCenter().Text(ReportHeaderContext.Website).FontSize(8).Bold();
 
                         c.Item().PaddingTop(6).AlignCenter().Text(_isBoardRollNo ? "Student Board Roll No" : "Student CBSE Registration No").FontSize(11).Bold();
                     });
@@ -2170,7 +2167,7 @@ namespace Infrastructure.FileGenerate
 
         private void ComposeHeader(IContainer container)
         {
-            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.Row(row =>
             {
@@ -2179,8 +2176,8 @@ namespace Infrastructure.FileGenerate
 
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().AlignCenter().Text("V3M International School").FontSize(12).Bold();
-                    c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(7);
+                    c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(12).Bold();
+                    c.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(7);
                 });
             });
         }
@@ -2453,7 +2450,7 @@ namespace Infrastructure.FileGenerate
 
         private void ComposeHeader(IContainer container)
         {
-            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.Column(col =>
             {
@@ -2466,8 +2463,8 @@ namespace Infrastructure.FileGenerate
 
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("V3M International School").FontSize(16).Bold();
-                        c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9).SemiBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(16).Bold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(9).SemiBold();
                         c.Item().AlignCenter().Text($"Student Receipts between {_request.FromDate:dd'/'MM'/'yyyy} and {_request.ToDate:dd'/'MM'/'yyyy}").FontSize(10).SemiBold();
                     });
 
@@ -2611,7 +2608,7 @@ namespace Infrastructure.FileGenerate
     {
         internal static void ComposeHeader(IContainer container, DateTime fromDate, DateTime toDate)
         {
-            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.Column(col =>
             {
@@ -2624,8 +2621,8 @@ namespace Infrastructure.FileGenerate
 
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().AlignCenter().Text("V3M International School").FontSize(16).Bold();
-                        c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9).SemiBold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(16).Bold();
+                        c.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(9).SemiBold();
                         c.Item().AlignCenter().Text($"Student Cheque Receipts between {fromDate:dd'/'MM'/'yyyy} and {toDate:dd'/'MM'/'yyyy}").FontSize(11).SemiBold();
                     });
 
@@ -2887,7 +2884,7 @@ namespace Infrastructure.FileGenerate
 
         private void ComposeHeader(IContainer container)
         {
-            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.Row(row =>
             {
@@ -2896,8 +2893,8 @@ namespace Infrastructure.FileGenerate
 
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().AlignCenter().Text("V3M International School").FontSize(24).Bold();
-                    c.Item().AlignCenter().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9);
+                    c.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(24).Bold();
+                    c.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(9);
                 });
             });
         }
@@ -3060,12 +3057,7 @@ namespace Infrastructure.FileGenerate
 
         private void ComposeHeader(IContainer container)
         {
-            var logo = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "uploads",
-                "Logos",
-                "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.Column(col =>
             {
@@ -3087,12 +3079,12 @@ namespace Infrastructure.FileGenerate
                     row.RelativeItem().Column(center =>
                     {
                         center.Item().AlignCenter()
-                            .Text("V3M International School")
+                            .Text(ReportHeaderContext.SchoolName)
                             .FontSize(14)
                             .Bold();
 
                         center.Item().AlignCenter()
-                            .Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017")
+                            .Text(ReportHeaderContext.Address)
                             .FontSize(8);
 
                         center.Item().AlignCenter()
@@ -3545,7 +3537,7 @@ namespace Infrastructure.FileGenerate
 
         private void ComposeHeader(IContainer container)
         {
-            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
 
             container.BorderBottom(2).BorderColor(Navy).PaddingBottom(8).Row(row =>
             {
@@ -3554,8 +3546,8 @@ namespace Infrastructure.FileGenerate
 
                 row.RelativeItem().PaddingLeft(8).AlignMiddle().Column(c =>
                 {
-                    c.Item().Text("V3M International School").FontSize(20).Bold().FontColor(Navy);
-                    c.Item().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(9).FontColor(Muted);
+                    c.Item().Text(ReportHeaderContext.SchoolName).FontSize(20).Bold().FontColor(Navy);
+                    c.Item().Text(ReportHeaderContext.Address).FontSize(9).FontColor(Muted);
                 });
 
                 row.ConstantItem(150).AlignMiddle().AlignRight().Column(c =>
@@ -3768,7 +3760,7 @@ namespace Infrastructure.FileGenerate
 
         private void ComposeHeader(IContainer container)
         {
-            var logo = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "Logos", "logo (1).png");
+            var logo = ReportHeaderContext.LogoPath;
             var period = _report.FromDate.Date == _report.ToDate.Date
                 ? $"{_report.FromDate:dd MMM yyyy}"
                 : $"{_report.FromDate:dd MMM yyyy}  to  {_report.ToDate:dd MMM yyyy}";
@@ -3780,8 +3772,8 @@ namespace Infrastructure.FileGenerate
 
                 row.RelativeItem().PaddingLeft(8).AlignMiddle().Column(c =>
                 {
-                    c.Item().Text("V3M International School").FontSize(16).Bold().FontColor(Navy);
-                    c.Item().Text("FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017").FontSize(8).FontColor(Muted);
+                    c.Item().Text(ReportHeaderContext.SchoolName).FontSize(16).Bold().FontColor(Navy);
+                    c.Item().Text(ReportHeaderContext.Address).FontSize(8).FontColor(Muted);
                 });
 
                 row.ConstantItem(230).AlignMiddle().AlignRight().Column(c =>

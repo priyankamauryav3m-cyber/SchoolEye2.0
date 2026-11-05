@@ -400,7 +400,7 @@
                                         <TemplateColumn Title="Month">@Show(context.MonthDisplay)</TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Amount)</TemplateColumn>
                                         <TemplateColumn Title="Concession" Class="sfa-num">@(context.Concession + context.WaiveOff > 0 ? Money(context.Concession + context.WaiveOff) : Blank)</TemplateColumn>
-                                        <TemplateColumn Title="Net Amount" Class="sfa-num">@Money(context.Amount - context.Concession - context.WaiveOff)</TemplateColumn>
+                                        <TemplateColumn Title="Net Payable" Class="sfa-num">@Money(context.Amount - context.Concession - context.WaiveOff)</TemplateColumn>
                                         <TemplateColumn Title="Paid" Align="Align.Center" Class="sfa-num">@(context.ReceivedAmt > 0 ? Money(context.ReceivedAmt) : Blank)</TemplateColumn>
                                         <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@Money(context.Payable)</span></TemplateColumn>
                                         <TemplateColumn Title="Status" Class="sfa-center">
@@ -462,7 +462,7 @@
                                         <TemplateColumn Title="Period">@Show(context.PeriodName)</TemplateColumn>
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
                                         <TemplateColumn Title="Concession" Class="sfa-num">@(context.Concession + context.WaiveOff > 0 ? Money(context.Concession + context.WaiveOff) : Blank)</TemplateColumn>
-                                        <TemplateColumn Title="Net Amount" Class="sfa-num">@Money(context.Net)</TemplateColumn>
+                                        <TemplateColumn Title="Net Payable" Class="sfa-num">@Money(context.Net)</TemplateColumn>
                                         <TemplateColumn Title="Paid" Class="sfa-num">@(context.HasReceivedInfo ? Money(context.Received) : "—")</TemplateColumn>
                                         <TemplateColumn Title="Outstanding" Class="sfa-num"><span class="sfa-strong">@(context.HasReceivedInfo ? Money(context.Outstanding) : "—")</span></TemplateColumn>
                                         <TemplateColumn Title="Status" Class="sfa-center sfa-status-col"><span class="sfa-pill @context.StatusCss">@context.Status</span></TemplateColumn>
@@ -722,7 +722,7 @@
                                         <TemplateColumn Title="Amount" Class="sfa-num">@Money(context.Total)</TemplateColumn>
                                         <TemplateColumn Title="Concession" Class="sfa-num">@Money(context.Concession)</TemplateColumn>
                                         <TemplateColumn Title="Waive off" Class="sfa-num">@(context.WaiveOff > 0 ? Money(context.WaiveOff) : Blank)</TemplateColumn>
-                                        <TemplateColumn Title="Net Amount" Class="sfa-num"><span class="sfa-strong">@Money(context.Net)</span></TemplateColumn>
+                                        <TemplateColumn Title="Net Payable" Class="sfa-num"><span class="sfa-strong">@Money(context.Net)</span></TemplateColumn>
                                     </QuickGrid>
                                 </div>
                                 <div class="sfa-total">

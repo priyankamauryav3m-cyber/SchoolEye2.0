@@ -25,13 +25,13 @@ namespace Infrastructure.StudentDocument
             var ws = workbook.AddWorksheet("Students");
 
             ws.Range("A2:Y2").Merge();
-            ws.Cell("A2").Value = "V3M International School";
+            ws.Cell("A2").Value = ReportHeaderContext.SchoolName;
             ws.Cell("A2").Style.Font.Bold = true;
             ws.Cell("A2").Style.Font.FontSize = 25;
             ws.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range("A3:Y3").Merge();
-            ws.Cell("A3").Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell("A3").Value = ReportHeaderContext.Address;
             ws.Cell("A3").Style.Font.Bold = true;
             ws.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
@@ -148,13 +148,13 @@ namespace Infrastructure.StudentDocument
 
             // ===== TITLE =====
             ws.Range(1, 1, 1, totalColumns).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, totalColumns).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
@@ -280,13 +280,13 @@ namespace Infrastructure.StudentDocument
 
             // ===== TITLE =====
             ws.Range(1, 1, 1, totalColumns).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, totalColumns).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Font.FontSize = 13;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -448,8 +448,8 @@ namespace Infrastructure.StudentDocument
                 ? $"{report.FromDate:dd/MMM/yyyy}"
                 : $"{report.FromDate:dd/MMM/yyyy} to {report.ToDate:dd/MMM/yyyy}";
 
-            Title(1, "V3M International School", 18);
-            Title(2, "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017", 11);
+            Title(1, ReportHeaderContext.SchoolName, 18);
+            Title(2, ReportHeaderContext.Address, 11);
             Title(3, $"Fee Collection Report : {period}", 13);
 
             // ===== SUMMARY =====
@@ -659,13 +659,13 @@ namespace Infrastructure.StudentDocument
             int totalColumns = headers.Length;
 
             ws.Range(1, 1, 1, totalColumns).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, totalColumns).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
@@ -749,13 +749,13 @@ namespace Infrastructure.StudentDocument
 
             // ===== TITLE =====
             ws.Range(1, 1, 1, 10).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, 10).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
@@ -834,13 +834,13 @@ namespace Infrastructure.StudentDocument
 
             int totalColumns = 5;
             ws.Range(1, 1, 1, totalColumns).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, totalColumns).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             int headerRow = 3;
@@ -880,13 +880,13 @@ namespace Infrastructure.StudentDocument
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Students");
             ws.Range(1, 1, 1, 23).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, 23).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             int headerRow = 3;
@@ -967,13 +967,13 @@ namespace Infrastructure.StudentDocument
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Students");
             ws.Range(1, 1, 1, 16).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, 16).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             ws.Range(3, 1, 3, 16).Merge();
@@ -1043,13 +1043,13 @@ namespace Infrastructure.StudentDocument
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Students");
             ws.Range(1, 1, 1, 11).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             ws.Range(2, 1, 2, 11).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             int headerRow = 3;
@@ -1121,7 +1121,7 @@ namespace Infrastructure.StudentDocument
 
                 // ===== HEADER =====
                 worksheet.Range("A1:F1").Merge();
-                worksheet.Cell("A1").Value = "CAMBRIDGE SCHOOL - Noida";
+                worksheet.Cell("A1").Value = ReportHeaderContext.SchoolName;
                 worksheet.Cell("A1").Style.Font.Bold = true;
                 worksheet.Cell("A1").Style.Font.FontSize = 16;
                 worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1206,7 +1206,7 @@ namespace Infrastructure.StudentDocument
 
                 // ===== HEADER =====
                 worksheet.Range("A1:K1").Merge();
-                worksheet.Cell("A1").Value = "CAMBRIDGE SCHOOL - Noida";
+                worksheet.Cell("A1").Value = ReportHeaderContext.SchoolName;
                 worksheet.Cell("A1").Style.Font.Bold = true;
                 worksheet.Cell("A1").Style.Font.FontSize = 16;
                 worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1299,7 +1299,7 @@ namespace Infrastructure.StudentDocument
 
                 // ===== HEADER =====
                 worksheet.Range("A1:K1").Merge();
-                worksheet.Cell("A1").Value = "CAMBRIDGE SCHOOL - Noida";
+                worksheet.Cell("A1").Value = ReportHeaderContext.SchoolName;
                 worksheet.Cell("A1").Style.Font.Bold = true;
                 worksheet.Cell("A1").Style.Font.FontSize = 16;
                 worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1359,7 +1359,7 @@ namespace Infrastructure.StudentDocument
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("StudentNotPromoted");
             ws.Range(1, 1, 1, 7).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1433,7 +1433,7 @@ namespace Infrastructure.StudentDocument
 
             ws.Range(1, 1, 1, 12).Merge();
 
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
 
             ws.Cell(1, 1).Style.Font.Bold = true;
 
@@ -1443,7 +1443,7 @@ namespace Infrastructure.StudentDocument
 
             ws.Range(2, 1, 2, 12).Merge();
 
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
 
             ws.Cell(2, 1).Style.Font.Bold = true;
 
@@ -1571,12 +1571,12 @@ namespace Infrastructure.StudentDocument
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("ChallanDuesReports");
             ws.Range(1, 1, 1, 12).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             ws.Range(2, 1, 2, 12).Merge();
-            ws.Cell(2, 1).Value = "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+            ws.Cell(2, 1).Value = ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             ws.Range(3, 1, 3, 12).Merge();
@@ -1663,7 +1663,7 @@ namespace Infrastructure.StudentDocument
 
             var ws = workbook.AddWorksheet("Registration Fee Report");
             ws.Range(1, 1, 1, 7).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -1785,7 +1785,7 @@ namespace Infrastructure.StudentDocument
 
             ws.Range(1, 1, 1, totalColumns).Merge();
 
-            ws.Cell(1, 1).Value = "CAMBRIDGE School - Noida";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
 
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
@@ -1802,7 +1802,7 @@ namespace Infrastructure.StudentDocument
             ws.Range(2, 1, 2, totalColumns).Merge();
 
             ws.Cell(2, 1).Value =
-                "Sector-27, NOIDA, G.B. Nagar, Noida UP - 201301";
+                ReportHeaderContext.Address;
 
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Font.FontSize = 12;
@@ -2147,7 +2147,7 @@ namespace Infrastructure.StudentDocument
             {
                 ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
 
-                ws.Cell(currentRow, 1).Value = "CAMBRIDGE SCHOOL, NOIDA";
+                ws.Cell(currentRow, 1).Value = ReportHeaderContext.SchoolName;
                 ws.Cell(currentRow, 1).Style.Font.Bold = true;
                 ws.Cell(currentRow, 1).Style.Font.FontSize = 16;
                 ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -2351,7 +2351,7 @@ namespace Infrastructure.StudentDocument
             int currentRow = 1;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "Cambridge School, Noida";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 16;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -2360,7 +2360,7 @@ namespace Infrastructure.StudentDocument
             currentRow++;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "Sector-27, Noida, Uttar Pradesh 201301";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.Address;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -2368,7 +2368,7 @@ namespace Infrastructure.StudentDocument
             currentRow++;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "noida.cambridgeschool.edu.in";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.Website; // blank when no website in V3M_MstReportHeader
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 9;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -2497,7 +2497,7 @@ namespace Infrastructure.StudentDocument
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
 
-            ws.Cell(currentRow, 1).Value = "CAMBRIDGE School - Noida";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -2509,7 +2509,7 @@ namespace Infrastructure.StudentDocument
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
 
-            ws.Cell(currentRow, 1).Value = "Sector-27, NOIDA, G.B. Nagar, Noida UP - 201301";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.Address;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -3153,7 +3153,7 @@ namespace Infrastructure.StudentDocument
             int currentRow = 1;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "CAMBRIDGE School - Noida";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 14;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -3290,7 +3290,7 @@ namespace Infrastructure.StudentDocument
             var sessionName = students.Count > 0 ? students[0].SessionName : null;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "Cambridge School, Noida";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 16;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -3299,7 +3299,7 @@ namespace Infrastructure.StudentDocument
             currentRow++;
 
             ws.Range(currentRow, 1, currentRow, totalColumns).Merge();
-            ws.Cell(currentRow, 1).Value = "Sector-27, Noida, Uttar Pradesh 201301";
+            ws.Cell(currentRow, 1).Value = ReportHeaderContext.Address;
             ws.Cell(currentRow, 1).Style.Font.Bold = true;
             ws.Cell(currentRow, 1).Style.Font.FontSize = 10;
             ws.Cell(currentRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -3427,7 +3427,7 @@ namespace Infrastructure.StudentDocument
 
             // Title
             ws.Range(1, 1, 1, totalColumns).Merge();
-            ws.Cell(1, 1).Value = "V3M International School";
+            ws.Cell(1, 1).Value = ReportHeaderContext.SchoolName;
             ws.Cell(1, 1).Style.Font.Bold = true;
             ws.Cell(1, 1).Style.Font.FontSize = 20;
             ws.Cell(1, 1).Style.Alignment.Horizontal =
@@ -3435,7 +3435,7 @@ namespace Infrastructure.StudentDocument
 
             ws.Range(2, 1, 2, totalColumns).Merge();
             ws.Cell(2, 1).Value =
-                "FF-231 232, Palam Corporate Plaza, Palam Vihar, 122017";
+                ReportHeaderContext.Address;
             ws.Cell(2, 1).Style.Font.Bold = true;
             ws.Cell(2, 1).Style.Alignment.Horizontal =
                 XLAlignmentHorizontalValues.Center;

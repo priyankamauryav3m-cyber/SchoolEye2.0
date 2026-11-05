@@ -120,6 +120,50 @@ window.viewPdf = function (base64Pdf) {
 
     window.open(url, "_blank");
 };
+
+// PDF made after a long server call (e.g. refund receipt after cancel): the browser blocks window.open
+// when the user's click is too old. Try to open it directly; if blocked, ask once - the button click
+// opens it (a fresh user click is never blocked). Cancel button downloads the file instead.
+window.openPdfOrAsk = function (base64Pdf, fileName, message) {
+    const byteCharacters = atob(base64Pdf);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const url = URL.createObjectURL(new Blob([byteArray], { type: "application/pdf" }));
+
+    const download = function () {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName || "Receipt.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    if (window.open(url, "_blank")) {
+        return Promise.resolve(true);
+    }
+
+    return Swal.fire({
+        icon: "success",
+        title: message || "PDF is ready",
+        text: "Click Open PDF to view / print it.",
+        showCancelButton: true,
+        confirmButtonText: "Open PDF",
+        cancelButtonText: "Download",
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#28a745",
+        allowOutsideClick: false
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            if (!window.open(url, "_blank")) download();
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            download();
+        }
+        return true;
+    });
+};
 // forgot password: the tab that sent the mail closes (or goes to sign in) once the
 // password is reset from the mail link in another tab of the same browser
 window.passwordReset = {

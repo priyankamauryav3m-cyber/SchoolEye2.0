@@ -22,6 +22,22 @@
     min-width: 75px;
 }
     /* receipt popups / cancel styles: StudentReceiptActions.razor */
+    /* long Period / Remarks in the grid: short text, full text on hover + click */
+    .vsr-more {
+        cursor: pointer;
+        color: #0d6efd;
+        white-space: nowrap;
+    }
+    .vsr-more:hover {
+        text-decoration: underline;
+    }
+    .vsr-full-text {
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: 6px 4px;
+    }
 </style>
 
 <div class="main-container">
@@ -122,8 +138,27 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ConcessionName) ? " " : x.ConcessionName)" Title="Concession Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => Money(x.Balance))" Title="Balance" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? " " : x.PaymentMode)" Title="Mode" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PeriodName) ? " " : x.PeriodName)" Title="Period" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Remark) ? " " : x.Remark)" Title="Remarks" Align="Align.Left" />
+                                @* long period / remark: short text + "...", full text on hover (tooltip) and on click (popup) *@
+                                <TemplateColumn Title="Period" Align="Align.Left">
+                                    @if (IsLongPeriod(context.PeriodName))
+                                    {
+                                        <span class="vsr-more" title="@context.PeriodName" @onclick='() => OpenFullText(context, context.PeriodName!, "Period")' @onclick:stopPropagation="true">@ShortPeriod(context.PeriodName!)</span>
+                                    }
+                                    else
+                                    {
+                                        @(string.IsNullOrWhiteSpace(context.PeriodName) ? " " : context.PeriodName)
+                                    }
+                                </TemplateColumn>
+                                <TemplateColumn Title="Remarks" Align="Align.Left">
+                                    @if (IsLongRemark(context.Remark))
+                                    {
+                                        <span class="vsr-more" title="@context.Remark" @onclick='() => OpenFullText(context, context.Remark!, "Remarks")' @onclick:stopPropagation="true">@ShortRemark(context.Remark!)</span>
+                                    }
+                                    else
+                                    {
+                                        @(string.IsNullOrWhiteSpace(context.Remark) ? " " : context.Remark)
+                                    }
+                                </TemplateColumn>
                                 <PropertyColumn Property="@(x => x.ReceiptDate.HasValue ? x.ReceiptDate.Value.ToString("dd/MM/yyyy") : " ")" Title="Date" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
                                     @* active receipt -> Done (green), cancelled -> Not Done (red) *@
@@ -145,15 +180,16 @@
                             </QuickGrid>
                         </div>
                         @* totals of the whole searched list, shown inside the grid above the pager *@
-                        <div class="d-flex align-items-center gap-3 px-2 py-1 fw-bold border-top flex-wrap">
-                            <span>Receipt(s) : @receiptlist.Count</span>
-                            <span class="text-danger">Total : @Money(receiptlist.Sum(RowTotal))</span>
-                            <span class="text-success">Received : @Money(receiptlist.Sum(x => x.PaidAmount ?? 0))</span>
-                            <span class="text-info">Concession : @Money(receiptlist.Sum(x => x.Concession ?? 0))</span>
-                        </div>
+                        
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center">
-                                <div class="welcome-text w-100">
+                                <div class="welcome-text w-100 d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-3 px-2 py-1 fw-bold">
+                                        <span>Receipt(s) : @receiptlist.Count</span>
+                                        <span class="text-danger">Total : @Money(receiptlist.Sum(RowTotal))</span>
+                                        <span class="text-success">Received : @Money(receiptlist.Sum(x => x.PaidAmount ?? 0))</span>
+                                        <span class="text-info">Concession : @Money(receiptlist.Sum(x => x.Concession ?? 0))</span>
+                                    </div>
                                     <Paginator State="@pagination" />
                                 </div>
                             </div>
@@ -329,6 +365,24 @@
 
 @* Receipt Details / Cheque Report / Cancel / Edit Receipt popups are in StudentReceiptActions *@
 
+@* ---------------- Full Period / Remarks popup (grid cell click) ---------------- *@
+@if (fullText != null)
+{
+    <div class="custom-modal row m-0">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@fullTextTitle - Receipt @fullTextReceiptNo</h5>
+                    <button data-access="Close" type="button" @onclick="CloseFullText" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="vsr-full-text">@fullText</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 
 @if (IsLoading)
 {
@@ -359,6 +413,34 @@
 
     private bool IsLoading = false;
     private bool ShowSearchPopup = false;
+
+    // ---------------- grid: long Period / Remarks ----------------
+    // Period comes as "Apr,May,Jun,..." (V3M_FIN_GetStudentFeeReceiptList): first 3 months + "...".
+    // Remarks longer than RemarkMaxLength are cut + "...". Hover = tooltip, click = popup with the full text.
+    private const int PeriodMaxMonths = 3;
+    private const int RemarkMaxLength = 25;
+    private string? fullText;
+    private string? fullTextTitle;
+    private string? fullTextReceiptNo;
+
+    private static string[] PeriodParts(string? period) =>
+        string.IsNullOrWhiteSpace(period)
+            ? Array.Empty<string>()
+            : period.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool IsLongPeriod(string? period) => PeriodParts(period).Length > PeriodMaxMonths;
+    private static string ShortPeriod(string period) => string.Join(", ", PeriodParts(period).Take(PeriodMaxMonths)) + " ...";
+    private static bool IsLongRemark(string? remark) => !string.IsNullOrWhiteSpace(remark) && remark.Trim().Length > RemarkMaxLength;
+    private static string ShortRemark(string remark) => remark.Trim()[..RemarkMaxLength].TrimEnd() + " ...";
+
+    private void OpenFullText(StudentFeeReceiptListResponse row, string text, string title)
+    {
+        fullTextTitle = title;
+        fullTextReceiptNo = row.ReceiptNo;
+        fullText = title == "Period" ? string.Join(", ", PeriodParts(text)) : text.Trim();
+    }
+
+    private void CloseFullText() => fullText = null;
     private string? branchcode;
     private string? groupcode;
       private string? UserName;

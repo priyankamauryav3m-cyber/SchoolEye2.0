@@ -13,6 +13,7 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    [ServerWebAPI.Authorization.ReportHeader] // PDF / Excel header from V3M_MstReportHeader
     public class StudentFeeInvoiceController : ControllerBase
     {
         private readonly IStudentInvoiceRepository _service;
