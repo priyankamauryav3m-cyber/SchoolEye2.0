@@ -3413,6 +3413,13 @@ namespace Infrastructure.StudentDocument
             return await Task.FromResult(document.GeneratePdf());
         }
 
+        public async Task<byte[]> GenerateStudentLedgerPdf(List<StudentLedgerResponse> ledger)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var document = new StudentLedgerPdfDocument(ledger);
+            return await Task.FromResult(document.GeneratePdf());
+        }
+
         public async Task<byte[]> GenerateStudentReceiptHeadWiseExcel( StudentReceiptHeadWiseRequest request, List<StudentReceiptHeadWiseResponse> data)
         {
             var receipts = data ?? new List<StudentReceiptHeadWiseResponse>();
