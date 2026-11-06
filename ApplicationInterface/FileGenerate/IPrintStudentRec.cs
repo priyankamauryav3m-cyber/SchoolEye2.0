@@ -64,5 +64,6 @@ namespace ApplicationInterface.GenerateFile
         public Task<byte[]> GenerateStudentSiblingExcel(List<SiblingListResponse> students);
         Task<byte[]> GenerateStudentReceiptHeadWisePdf(StudentReceiptHeadWiseRequest request, List<StudentReceiptHeadWiseResponse> data);
         Task<byte[]> GenerateStudentReceiptHeadWiseExcel(StudentReceiptHeadWiseRequest request,List<StudentReceiptHeadWiseResponse> data);
+        Task<byte[]> GenerateStudentLedgerPdf(List<StudentLedgerResponse> ledger);
     }
 }

@@ -730,6 +730,37 @@ namespace ServerWebAPI.Addmission.Controllers.FileGenrate
                 Message = "Student Sibling Report Excel generated successfully"
             });
         }
+
+        // View Students Ledger -> Print: prints the ledger list already searched on the page
+        [HttpPost("GenerateStudentLedgerPdf")]
+        public async Task<IActionResult> GenerateStudentLedgerPdf([FromBody] List<StudentLedgerResponse> ledger)
+        {
+            if (ledger == null || ledger.Count == 0)
+            {
+                return Ok(new ApiResponse<object> { Success = false, Code = 0, Message = "No ledger records found to print." });
+            }
+            try
+            {
+                var pdfBytes = await _generateFile.GenerateStudentLedgerPdf(ledger);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Code = 1,
+                    Data = Convert.ToBase64String(pdfBytes),
+                    Message = "Student ledger PDF generated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Code = -1,
+                    Message = "An error occurred while printing the student ledger."
+                });
+            }
+        }
     }
 
 }

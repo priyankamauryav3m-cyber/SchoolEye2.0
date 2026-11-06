@@ -3976,4 +3976,154 @@ namespace Infrastructure.FileGenerate
     }
     #endregion
 
+    #region ---- Student Ledger PDF (View Students Ledger -> Print) ----
+    // Layout: logo + school header (V3M_MstReportHeader) + session, student details,
+    // then Narration / Amount / Running Balance / Trans Date / Trans By / Created Date.
+    public class StudentLedgerPdfDocument : IDocument
+    {
+        private readonly List<StudentLedgerResponse> _rows;
+
+        public StudentLedgerPdfDocument(List<StudentLedgerResponse> rows)
+        {
+            _rows = rows ?? new List<StudentLedgerResponse>();
+        }
+
+        public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
+        public DocumentSettings GetSettings() => DocumentSettings.Default;
+
+        public void Compose(IDocumentContainer container)
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.MarginHorizontal(18);
+                page.MarginVertical(16);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(8.5f).FontFamily("Arial"));
+
+                page.Header().Element(ComposeHeader);
+                page.Content().PaddingTop(6).Element(ComposeTable);
+                page.Footer().Element(ComposeFooter);
+            });
+        }
+
+        private void ComposeHeader(IContainer container)
+        {
+            var logo = ReportHeaderContext.LogoPath;
+            var first = _rows.FirstOrDefault();
+            var studentNo = first?.ControlNo;
+            var sessionName = first?.SessionName;
+
+            container.Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    if (File.Exists(logo))
+                        row.ConstantItem(90).Height(46).AlignMiddle().Image(logo).FitArea();
+                    else
+                        row.ConstantItem(90);
+
+                    row.RelativeItem().Column(center =>
+                    {
+                        center.Item().AlignCenter().Text(ReportHeaderContext.SchoolName).FontSize(18).Bold();
+                        if (!string.IsNullOrWhiteSpace(ReportHeaderContext.Address))
+                            center.Item().AlignCenter().Text(ReportHeaderContext.Address).FontSize(9.5f);
+                        if (!string.IsNullOrWhiteSpace(sessionName))
+                            center.Item().AlignCenter().Text(sessionName).FontSize(11);
+                    });
+
+                    row.ConstantItem(90);
+                });
+
+                col.Item().PaddingTop(8).Row(row =>
+                {
+                    row.RelativeItem().Column(left =>
+                    {
+                        left.Item().Element(c => InfoLine(c, "Student No", studentNo));
+                        left.Item().Element(c => InfoLine(c, "Class-Section", first?.ClassSection));
+                    });
+                    row.RelativeItem().Column(right =>
+                    {
+                        right.Item().Element(c => InfoLine(c, "Student Name", first?.StudentName));
+                        right.Item().Element(c => InfoLine(c, "Father Name", first?.FatherName));
+                    });
+                });
+            });
+        }
+
+        private static void InfoLine(IContainer container, string label, string? value)
+        {
+            container.Row(row =>
+            {
+                row.ConstantItem(85).Text(label).FontSize(9.5f).Bold();
+                row.ConstantItem(10).Text(":").FontSize(9.5f).Bold();
+                row.RelativeItem().Text(string.IsNullOrWhiteSpace(value) ? "-" : value.Trim()).FontSize(9.5f);
+            });
+        }
+
+        private void ComposeTable(IContainer container)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(c =>
+                {
+                    c.RelativeColumn(3.4f); // Narration
+                    c.RelativeColumn(1.1f); // Amount
+                    c.RelativeColumn(1.3f); // Running Balance
+                    c.RelativeColumn(1.1f); // Trans Date
+                    c.RelativeColumn(1.0f); // Trans By
+                    c.RelativeColumn(1.1f); // Created Date
+                });
+
+                table.Header(h =>
+                {
+                    foreach (var title in new[] { "Narration", "Amount", "Running Balance", "Trans Date", "Trans By", "Created Date" })
+                        h.Cell().Element(HeaderCell).Text(title).Bold().FontSize(8);
+                });
+
+                if (_rows.Count == 0)
+                {
+                    table.Cell().ColumnSpan(6).Element(BodyCell).AlignCenter().Text("No records found");
+                    return;
+                }
+
+                foreach (var r in _rows)
+                {
+                    table.Cell().Element(BodyCell).Text(r.Narration ?? "");
+                    table.Cell().Element(BodyCell).AlignCenter().Text(r.Amount.ToString("0.00", CultureInfo.InvariantCulture));
+                    table.Cell().Element(BodyCell).AlignCenter().Text(r.RunningBalance.ToString("0.00", CultureInfo.InvariantCulture));
+                    table.Cell().Element(BodyCell).AlignCenter().Text(ShowDate(r.TransactionDate));
+                    table.Cell().Element(BodyCell).AlignCenter().Text(r.TransactionBy ?? "");
+                    table.Cell().Element(BodyCell).AlignCenter().Text(ShowDate(r.CreatedDate));
+                }
+            });
+        }
+
+        private static string ShowDate(DateTime date) =>
+            date == DateTime.MinValue ? "" : date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
+        private static IContainer HeaderCell(IContainer c) =>
+            c.Border(0.7f).BorderColor(Colors.Black).MinHeight(26).PaddingHorizontal(3).AlignCenter().AlignMiddle();
+
+        private static IContainer BodyCell(IContainer c) =>
+            c.Border(0.7f).BorderColor(Colors.Black).MinHeight(30).PaddingHorizontal(4).PaddingVertical(3).AlignMiddle();
+
+        private static void ComposeFooter(IContainer container)
+        {
+            container.PaddingTop(4).Row(row =>
+            {
+                row.RelativeItem().Text($"Printed on : {DateTime.Now:dd/MM/yyyy hh:mm tt}").FontSize(7);
+                row.RelativeItem().AlignRight().Text(t =>
+                {
+                    t.DefaultTextStyle(x => x.FontSize(7));
+                    t.Span("Page ");
+                    t.CurrentPageNumber();
+                    t.Span(" of ");
+                    t.TotalPages();
+                });
+            });
+        }
+    }
+    #endregion
+
 }

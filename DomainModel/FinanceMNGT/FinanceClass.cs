@@ -2266,6 +2266,8 @@ namespace DomainModel.FinanceMNGT
         // V3M_FIN_StudentLedger.ReferenceNo / ReferenceType (filled when the ledger SP returns them; empty otherwise)
         public string? ReferenceNo { get; set; }
         public string? ReferenceType { get; set; }
+        // not from the SP: set on the page before Print, shown under the school name in the ledger PDF
+        public string? SessionName { get; set; }
     }
     #endregion
     #region---- View Fee Head ladger ------------------------

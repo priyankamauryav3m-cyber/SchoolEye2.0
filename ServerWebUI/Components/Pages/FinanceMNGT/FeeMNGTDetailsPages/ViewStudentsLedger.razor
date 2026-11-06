@@ -9,6 +9,7 @@
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
 @inject ICommonMethod _commonmethod
+@inject IJSRuntime JS
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -147,36 +148,8 @@
 <div class="main-container">
     <div class="row m-0 main-row">
         <div class="col-12 p-1" id="main-header">
+            @* session / student search in the page heading *@
             <PageHeading Tittle="View Students Ledger">
-            </PageHeading>
-        </div>
-
-        @* student details (left) + session / search (right) *@
-        <div class="col-12 p-1">
-            <div class="card overflow-visible">
-                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="student-avatar">
-                            @GetInitials(IsStudentSelected ? selectedStudent!.StudentName : null)
-                        </div>
-                        <div>
-                            <div class="student-name">
-                                @(IsStudentSelected ? selectedStudent!.StudentName : "No student selected")
-                            </div>
-                            <div class="student-sub">
-                                @if (IsStudentSelected)
-                                {
-                                    @:Admission no. @selectedStudent!.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedStudent.FatherContactNo
-                                }
-                                else
-                                {
-                                    @:Type student name and pick from the list, or enter student no. and press Enter.
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <div class="form-box">
                             <select class="form-input" value="@CurrentSession" @onchange="OnSessionChanged">
                                 <option value="0">-- Select Session --</option>
@@ -240,6 +213,41 @@
                                 </div>
                             </button>
                         </div>
+            </PageHeading>
+        </div>
+
+        @* selected student details + Print *@
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="student-avatar">
+                            @GetInitials(IsStudentSelected ? selectedStudent!.StudentName : null)
+                        </div>
+                        <div>
+                            <div class="student-name">
+                                @(IsStudentSelected ? selectedStudent!.StudentName : "No student selected")
+                            </div>
+                            <div class="student-sub">
+                                @if (IsStudentSelected)
+                                {
+                                    @:Admission no. @selectedStudent!.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedStudent.FatherContactNo
+                                }
+                                else
+                                {
+                                    @:Type student name and pick from the list, or enter student no. and press Enter.
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" tabindex="0" @onclick="PrintLedger" disabled="@IsPrinting">
+                            <div class="visible content justify-content-center">Print</div>
+                            <div class="hidden content">
+                                <i class="bi bi-printer"></i>
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -297,6 +305,7 @@
 
 @code {
     private bool IsLoading = false;
+    private bool IsPrinting = false;
     private string? branchcode;
     private string? groupcode;
     private long CurrentSession;
@@ -549,6 +558,55 @@
         }
         finally
         {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Print: student must be searched first, and the ledger must have rows
+    private async Task PrintLedger()
+    {
+        if (!IsStudentSelected || CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please search a student first.");
+            return;
+        }
+        if (!ledgerQuery.Any())
+        {
+            await Alert.ShowWarning("No ledger records found to print.");
+            return;
+        }
+
+        IsPrinting = true;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            // only the searched grid list is sent (narration filter applied); session name rides on the rows for the PDF title
+            var sessionName = sessionlist.FirstOrDefault(x => x.SessionId == CurrentSession)?.SessionName;
+            var ledger = ledgerQuery.ToList();
+            ledger.ForEach(x => x.SessionName = sessionName);
+
+            var response = await httpService.Post<ApiResponse<string>>("Export/GenerateStudentLedgerPdf", ledger);
+            if (response != null && response.Success && !string.IsNullOrWhiteSpace(response.Data))
+            {
+                IsLoading = false;
+                StateHasChanged();
+                await JS.InvokeVoidAsync("openPdfOrAsk", response.Data, $"StudentLedger_{selectedStudent!.ControlNo?.Trim()}.pdf", "Student ledger is ready");
+            }
+            else
+            {
+                await Alert.ShowWarning(response?.Message ?? "Unable to print student ledger.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error printing student ledger: {ex.Message}");
+            await Alert.ShowWarning("Unable to print student ledger.");
+        }
+        finally
+        {
+            IsPrinting = false;
             IsLoading = false;
             StateHasChanged();
         }
