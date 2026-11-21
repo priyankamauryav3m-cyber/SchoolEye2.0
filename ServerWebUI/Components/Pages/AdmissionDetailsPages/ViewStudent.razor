@@ -17,6 +17,7 @@
 @inject IHttpClientFactory ClientFactory
 @inject ICommonMethod _commonmethod
 @inject IJSRuntime JS
+@inject MenuState MenuState
 <style>
     .quickgrid tbody tr.selectRow td {
         background-color: #e7f1ff !important;
@@ -540,9 +541,9 @@
                         <div class="form-box">
                             <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Export" Export="ExportToExcel" />
                         </div>
-                        <div class="form-box">
+                        @* <div class="form-box">
                             <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="New" AdmitClicked="AdmitStudentDirect" />
-                        </div>
+                        </div> *@
                         <AdmitChildButton CurrentUrl="@currentUrl" ButtonText="Details" AdmitClicked="DetailsPopupOpen" />
                         <div class="form-box">
                             <button class="table-btn" @onclick="OpenStudentVisitorDetails">Visitor</button>
@@ -980,6 +981,25 @@ else
     private bool IsLoading = false;
 
     // fee login (role 8): student name click -> /StudentFeeAccount opens with this student
+    // MstModule ids -> the role whose View Student screen that module shows
+    private const int AdmissionModuleId = 1;      // Admission       -> role 4 (AdmissionHead)
+    private const int FeeManagementModuleId = 2;  // Fee Management  -> role 8 (Fee Managment)
+
+    private static string? ResolvePageRole(string? loginRoleId, int activeModuleId)
+    {
+        // Admission / Fee logins keep their own screen
+        if (loginRoleId == "4" || loginRoleId == "8")
+            return loginRoleId;
+
+        // any other role (e.g. 7 School Admin) that was given these modules
+        return activeModuleId switch
+        {
+            AdmissionModuleId => "4",
+            FeeManagementModuleId => "8",
+            _ => loginRoleId
+        };
+    }
+
     private void OpenFeeAccount(ViewStudentModal student)
     {
         if (roleId != "8") return;
@@ -1381,7 +1401,16 @@ else
     {
         IsLoading = true;
         var roleResult = await sessionStorage.GetAsync<string>("RoleId");
-        roleId = roleResult.Value;
+        // same /viewstudent page sits in Admission and Fee Management menus;
+        // the page works as the role of the module it was opened from (set by NavMenu on click)
+        var activeModuleId = MenuState.ActiveModuleId;
+        if (activeModuleId == 0)
+        {
+            // page refreshed: in-memory state is new, read what the menu saved
+            var moduleResult = await sessionStorage.GetAsync<int>("ActiveModuleId");
+            activeModuleId = moduleResult.Success ? moduleResult.Value : 0;
+        }
+        roleId = ResolvePageRole(roleResult.Value, activeModuleId);
         var branchResult = await sessionStorage.GetAsync<string>("BranchCode");
         branchcode = branchResult.Value;
         var groupResult = await sessionStorage.GetAsync<string>("GroupCode");

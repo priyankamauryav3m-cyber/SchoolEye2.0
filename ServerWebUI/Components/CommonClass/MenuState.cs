@@ -8,7 +8,16 @@ namespace ServerWebUI.Components.CommonClass
 
         public string DashboardUrl { get; private set; } = "/";
 
+        // module (MstModule.ModuleId) whose menu opened the current page; 0 = unknown
+        public int ActiveModuleId { get; private set; }
+
         public event Action? OnChange;
+
+        // no OnChange here: only pages read it while loading, the menu does not re-render for it
+        public void SetActiveModule(int moduleId)
+        {
+            ActiveModuleId = moduleId;
+        }
 
         public void SetFeatures(List<SuperAdminModule> features)
         {
@@ -29,6 +38,7 @@ namespace ServerWebUI.Components.CommonClass
         {
             Features = new();
             DashboardUrl = "/";
+            ActiveModuleId = 0;
 
             OnChange?.Invoke();
         }
