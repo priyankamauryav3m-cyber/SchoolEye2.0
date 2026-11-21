@@ -361,7 +361,7 @@
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputDate class="floating-input" placeholder=" " @bind-Value="enquiryModel.EnquiryDate" />
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="enquiryModel.EnquiryDate" min="1900-01-01" max="9999-12-31" />
                                     <label class="floating-label">Enq. Date <span class="required">*</span></label>
                                     <ValidationMessage For="@(() => enquiryModel.EnquiryDate)" />
                                 </div>
@@ -421,7 +421,7 @@
 
                             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                                 <div class="form-box-group">
-                                    <InputDate class="floating-input" placeholder=" " @bind-Value="enquiryModel.DateOfBirth" max="@DateTime.Today.ToString("dd-MM-yyyy")" autocomplete="off" />
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="enquiryModel.DateOfBirth" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" autocomplete="off" />
                                     <label class="floating-label">Date Of Birth</label>
                                 </div>
                             </div>
@@ -683,14 +683,14 @@
                         </div>
                         <div class="col-12 col-sm-6">
                             <div class="form-box-group static-label">
-                                <InputDate class="floating-input" placeholder=" " @bind-Value="addFollowup.ReminderDateTime" autocomplete="off" />
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="addFollowup.ReminderDateTime" min="1900-01-01" max="9999-12-31" autocomplete="off" />
                                 <label class="floating-label">Reminder Date & Time</label>
                             </div>
                         </div>
 
                         <div class="col-12 col-sm-6">
                             <div class="form-box-group">
-                                <InputDate class="floating-input" placeholder=" " @bind-Value="addFollowup.NextFollowupDate" />
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="addFollowup.NextFollowupDate" min="1900-01-01" max="9999-12-31" />
                                 <label class="floating-label">Next Followup Date</label>
                             </div>
                         </div>
@@ -772,13 +772,13 @@
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                             <div class="form-box-group">
-                                <InputDate class="floating-input" placeholder=" " @bind-Value="requestlist.FromDate" />
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="requestlist.FromDate" min="1900-01-01" max="9999-12-31" />
                                 <label class="floating-label">Date From</label>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                             <div class="form-box-group">
-                                <InputDate class="floating-input" placeholder=" " @bind-Value="requestlist.ToDate" />
+                                <InputDate class="floating-input" placeholder=" " @bind-Value="requestlist.ToDate" min="1900-01-01" max="9999-12-31" />
                                 <label class="floating-label">Date To</label>
                             </div>
                         </div>

@@ -2053,6 +2053,21 @@ namespace DomainModel.FinanceMNGT
         public int DetInvoiceId { get; set; }
     }
 
+    // one fee head line of a partly paid month (V3M_FIN_GetStudentPartPaidMonths), incl. lines already paid in full,
+    // so Fee Collection can show "May: total 6000, received 2000, remaining 4000"
+    public class StudentPartPaidMonthLine
+    {
+        public int FeeHeadId { get; set; }
+        public string FeeHeadName { get; set; } = string.Empty;
+        public int MonthNo { get; set; }
+        public string MonthDisplay { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public decimal Concession { get; set; }
+        public decimal WaiveOff { get; set; }
+        public decimal ReceivedAmt { get; set; }
+        public bool IsFullyPaid { get; set; }
+    }
+
     // ⬅️ bahar nikala — ye request hai, FeeCollectionDuesNew ka andar rakhna galat tha
     public class GetStudentFeeHeadDuesForAdjustmentRequest
     {

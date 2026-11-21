@@ -235,6 +235,35 @@
                                 </div>
                             </div>
                         </div>
+                        @* months an earlier receipt paid in part: how much is already received there *@
+                        @foreach (var month in PartPaidMonths)
+                        {
+                            <div class="alert alert-info py-2 px-3 mb-2" style="font-size:13px;">
+                                <div>
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>@month.MonthDisplay</strong> is partly paid:
+                                    total <strong>@Money(month.Total)</strong>,
+                                    already received <strong>@Money(month.Received)</strong>,
+                                    remaining <strong>@Money(month.Remaining)</strong>.
+                                </div>
+                                <div class="mt-1 text-muted">
+                                    @foreach (var line in month.Lines.Where(x => x.ReceivedAmt > 0))
+                                    {
+                                        <span class="me-3">
+                                            @line.FeeHeadName:
+                                            @if (line.IsFullyPaid)
+                                            {
+                                                <span>@Money(line.ReceivedAmt) paid in full</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@Money(line.ReceivedAmt) of @Money(line.Amount - line.Concession - line.WaiveOff) received</span>
+                                            }
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
                         <div class="grid-box">
                             <QuickGrid Items="@moduleQuery" Pagination="@pagination" Class="table">
 
@@ -265,7 +294,9 @@
                                     <ChildContent>@Money(context.Payable)</ChildContent>
                                 </TemplateColumn>
                                 <TemplateColumn Title="Received" Align="Align.Center" class="text-right">
-                                    <ChildContent>@Money(context.ReceivedAmt)</ChildContent>
+                                    <ChildContent>
+                                        <span class="@(context.ReceivedAmt > 0 ? "text-success fw-semibold" : "")">@Money(context.ReceivedAmt)</span>
+                                    </ChildContent>
                                 </TemplateColumn>
                                 @* paying amount is filled month by month (April first) *@
                                 <TemplateColumn Title="Paying" Align="Align.Center" class="text-right">
@@ -277,11 +308,20 @@
                                 <TemplateColumn Title="Status" Align="Align.Center">
                                     <ChildContent>
                                         <div class="text-center">
-                                            <button type="button"
-                                                    class="btn btn-link text-danger p-0"
-                                                    title="Delete">
-                                                <i class="bi bi-trash-fill"></i>
-                                            </button>
+                                            @* Paid = cleared by an earlier receipt (information only), Part paid = something
+                                               received earlier, Due = nothing received yet *@
+                                            @if (IsPaidDisplayRow(context))
+                                            {
+                                                <span class="badge bg-success" title="Paid in full by an earlier receipt">Paid</span>
+                                            }
+                                            else if (context.ReceivedAmt > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark" title="@($"{Money(context.ReceivedAmt)} received earlier, {Money(context.Payable)} still due")">Part paid</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Due</span>
+                                            }
                                         </div>
                                     </ChildContent>
                                 </TemplateColumn>
@@ -322,10 +362,20 @@
                     <div class="col-6">
                         <div class="amount-stat-label">TOTAL RECEIVED</div>
                         <div class="amount-stat-value">@Money(TotalReceived)</div>
+                        @* where the received amount comes from: May 2000 = Library 1000 (paid in full) + Tuition 1000 *@
+                        @foreach (var month in PartPaidMonthsInView)
+                        {
+                            <div class="amount-stat-label" style="font-size:10px; text-transform:none;">
+                                @month.MonthDisplay: @Money(month.Received) received earlier
+                                (@string.Join(" + ", month.Lines.Where(l => l.ReceivedAmt > 0)
+                                    .Select(l => $"{l.FeeHeadName} {Money(l.ReceivedAmt)}{(l.IsFullyPaid ? " paid in full" : "")}")))
+                            </div>
+                        }
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">PREVIOUS ADVANCE</div>
-                        <div class="amount-stat-value">@(IsStudentSelected ? Money(AdvanceAvailable) : "-")</div>
+                        @* advance is money the school owes the student, shown as minus (-₹1,00,000.00) *@
+                        <div class="amount-stat-value">@(IsStudentSelected ? Money(AsMinus(AdvanceAvailable)) : "-")</div>
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">CONCESSION</div>
@@ -342,7 +392,7 @@
                     </div>
                     <div class="col-6">
                         <div class="amount-stat-label">BALANCE</div>
-                        <div class="amount-stat-value">@Money(RemainingBalance)</div>
+                        <div class="amount-stat-value">@Money(DisplayBalance)</div>
                     </div>
                 </div>
                 <div class="amount-divider"></div>
@@ -362,10 +412,14 @@
                     </div>
                 </div>
                 <div class="d-flex align-items-center justify-content-between">
-                    <span>Remaining balance @Money(RemainingBalance)</span>
+                    <span>Remaining balance @Money(DisplayBalance)</span>
                     @if (RemainingBalance > 0)
                     {
                         <span class="balance-badge">Partial payment</span>
+                    }
+                    else if (ExtraToAdvance > 0)
+                    {
+                        <span class="balance-badge" style="background:#0ea5e9;">Extra to advance</span>
                     }
                     else if (PayingAmount > 0)
                     {
@@ -404,6 +458,14 @@
                                    @onchange="ValidateCashPaymentAmount"
                                    placeholder="Optional for cash payment" />
                             <label class="floating-label">Paying</label>
+                            @if (IsStudentSelected && CashPaymentAmount > MaxCashPayable && allFeeCollectionDues.Count > 0)
+                            {
+                                @* paying more than the total due: the extra is kept as the student's advance *@
+                                <div class="text-success small mt-1">
+                                    <i class="bi bi-info-circle"></i>
+                                    Total due is @Money(MaxCashPayable). Extra @Money(CashPaymentAmount - MaxCashPayable) will be added to the student's advance.
+                                </div>
+                            }
                         </div>
                     }
                     else
@@ -497,15 +559,59 @@
                         </div>
                         <div class="receipt-preview-row">
                             <span class="student-suggest-label">Payment mode</span>
-                            <span class="student-suggest-value">@AdvancePaymentMode</span>
+                            <span class="student-suggest-value">@SelectedPaymentMode</span>
                         </div>
                         <div class="receipt-preview-row">
                             <span class="student-suggest-label">Receipt date</span>
                             <span class="student-suggest-value">@studentDetailsForFeeRequest.ReceiptDate.ToString("d MMM yyyy")</span>
                         </div>
                         <div class="receipt-preview-divider"></div>
-                        <div class="receipt-preview-row">
-                            <span class="student-suggest-label" style="font-size:14px;">Amount</span>
+
+                        @* amount breakdown: due -> advance used -> payable -> paying -> advance left -> total *@
+                        <div class="receipt-preview-row justify-content-between">
+                            <span class="student-suggest-label">Total due (incl. late fee)</span>
+                            <span class="student-suggest-value">@Money(TotalWithLateFee)</span>
+                        </div>
+                        @if (AdvanceAvailable > 0)
+                        {
+                            <div class="receipt-preview-row justify-content-between">
+                                <span class="student-suggest-label">Previous advance</span>
+                                <span class="student-suggest-value">@Money(AsMinus(AdvanceAvailable))</span>
+                            </div>
+                            <div class="receipt-preview-row justify-content-between">
+                                <span class="student-suggest-label">Less: advance adjusted</span>
+                                <span class="student-suggest-value">@Money(AsMinus(AdvanceAdjusted))</span>
+                            </div>
+                        }
+                        <div class="receipt-preview-row justify-content-between">
+                            <span class="student-suggest-label">Payable</span>
+                            <span class="student-suggest-value">@Money(NetPayable)</span>
+                        </div>
+                        <div class="receipt-preview-row justify-content-between">
+                            <span class="student-suggest-label">Paying now</span>
+                            <span class="student-suggest-value">@Money(PayingAmount)</span>
+                        </div>
+                        @if (ExtraToAdvance > 0)
+                        {
+                            <div class="receipt-preview-row justify-content-between">
+                                <span class="student-suggest-label">Extra paid (to advance)</span>
+                                <span class="student-suggest-value">@Money(ExtraToAdvance)</span>
+                            </div>
+                        }
+                        @if (RemainingBalance > 0)
+                        {
+                            <div class="receipt-preview-row justify-content-between">
+                                <span class="student-suggest-label">Balance due after this receipt</span>
+                                <span class="student-suggest-value text-danger">@Money(RemainingBalance)</span>
+                            </div>
+                        }
+                        <div class="receipt-preview-row justify-content-between">
+                            <span class="student-suggest-label">Advance after this receipt</span>
+                            <span class="student-suggest-value text-success">@Money(AsMinus(AdvanceAfterReceipt))</span>
+                        </div>
+                        <div class="receipt-preview-divider"></div>
+                        <div class="receipt-preview-row justify-content-between">
+                            <span class="student-suggest-label" style="font-size:14px;">Total</span>
                             <span class="student-suggest-value" style="font-size:18px;">@Money(PayingAmount)</span>
                         </div>
                     </div>
@@ -1239,6 +1345,24 @@ else
     private readonly int academicStartYear = 2026;
 
 
+    // most cash that can be taken: all dues + late fee - student advance (e.g. total due 20000 -> max 20000)
+    private decimal MaxCashPayable => IsStudentSelected
+        ? Math.Max(0, allFeeCollectionDues.Sum(x => x.Payable) + selectedStudent.LateFee - AdvanceAvailable)
+        : 0;
+
+    // cash paid over the total due (all months + late fee) goes to the student's advance:
+    // due 20000, paying 40000 -> 20000 clears the dues, 20000 is saved as advance (V3M_Fin_StudentBalance = -20000)
+    private decimal ExtraToAdvance =>
+        SelectedPaymentMode == "Cash" && IsStudentSelected && IsLastInvoiceSelected
+            ? Math.Max(0, PayingAmount - NetPayable)
+            : 0;
+
+    // student's advance left after this receipt = old advance not used now + extra paid now (same as the save sends)
+    private decimal AdvanceAfterReceipt => Math.Max(0, AdvanceAvailable - AdvanceAdjusted + ExtraToAdvance);
+
+    // balance shown on screen, same as the receipt: dues left, or minus the extra that becomes advance
+    private decimal DisplayBalance => RemainingBalance > 0 ? RemainingBalance : AsMinus(ExtraToAdvance);
+
     // paying edited (on leaving the box): "Collect up to" moves to the month the amount reaches,
     // e.g. dues Apr-Mar = 124000, paying 4000, April = 5000 -> Collect up to = April, balance 1000
     private async Task ValidateCashPaymentAmount(ChangeEventArgs e)
@@ -1246,9 +1370,8 @@ else
         if (!IsStudentSelected || allFeeCollectionDues.Count == 0 || distinctMonths.Count == 0)
             return;
 
-        var allDues = allFeeCollectionDues.Sum(x => x.Payable);
         // cash needed for everything = all dues + late fee - student advance
-        var fullAmount = Math.Max(0, allDues + selectedStudent.LateFee - AdvanceAvailable);
+        var fullAmount = MaxCashPayable;
 
         // empty / zero -> back to the full payable of the selected months
         if (CashPaymentAmount <= 0)
@@ -1257,9 +1380,7 @@ else
             return;
         }
 
-        // more than all dues -> all months, full amount
-        if (CashPaymentAmount > fullAmount)
-            CashPaymentAmount = fullAmount;
+        // more than all dues -> all months are collected and the extra goes to advance (amount is kept as entered)
 
         // months reached by cash + advance (the advance pays the oldest dues first)
         decimal cumulative = 0;
@@ -2119,11 +2240,84 @@ else
 
 
     }
+    // ---------- partly paid months (an earlier receipt paid part of a month) ----------
+    // e.g. April due 28000, paid 30000 -> 2000 went into May: May Library 1000 paid in full, Tuition 1000 of 5000.
+    // The dues list has only Tuition (still due), so the fully paid lines are added to the grid for display only
+    // (Payable 0, never part of paying / saving) and a month summary is shown above the grid.
+    private List<StudentPartPaidMonthLine> partPaidLines = new();
+    private readonly HashSet<FeeCollectionDuesNew> paidDisplayRows = new();
+
+    private record PartPaidMonthSummary(int MonthNo, string MonthDisplay, decimal Total, decimal Received,
+                                        List<StudentPartPaidMonthLine> Lines)
+    {
+        public decimal Remaining => Math.Max(0, Total - Received);
+    }
+
+    private List<PartPaidMonthSummary> PartPaidMonths => partPaidLines
+        .GroupBy(x => x.MonthNo)
+        .OrderBy(g => GetSessionMonthOrder(g.Key))
+        .Select(g => new PartPaidMonthSummary(
+            g.Key,
+            string.IsNullOrWhiteSpace(g.First().MonthDisplay) ? "One-time" : g.First().MonthDisplay,
+            g.Sum(x => x.Amount - x.Concession - x.WaiveOff),
+            g.Sum(x => x.ReceivedAmt),
+            g.ToList()))
+        .ToList();
+
+    private bool IsPaidDisplayRow(FeeCollectionDuesNew row) => paidDisplayRows.Contains(row);
+
+    private async Task LoadPartPaidMonths()
+    {
+        partPaidLines = new();
+        paidDisplayRows.Clear();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<List<StudentPartPaidMonthLine>>>(
+                "StudentFee/GetStudentPartPaidMonths", getStudentFeeHeadDuesForAdjustment);
+            if (response != null && response.Success && response.Data != null)
+                partPaidLines = response.Data;
+        }
+        catch (Exception ex)
+        {
+            // summary is information only, collection keeps working without it
+            Console.WriteLine($"Error loading partly paid months: {ex.Message}");
+        }
+
+        foreach (var line in partPaidLines.Where(x => x.IsFullyPaid))
+        {
+            paidDisplayRows.Add(new FeeCollectionDuesNew
+            {
+                FeeHeadId = line.FeeHeadId,
+                FeeHeadName = line.FeeHeadName,
+                MonthNo = line.MonthNo,
+                MonthDisplay = line.MonthDisplay,
+                Amount = line.Amount,
+                Concession = line.Concession,
+                WaiveOff = line.WaiveOff,
+                ReceivedAmt = line.ReceivedAmt,
+                Payable = 0
+            });
+        }
+    }
+
+    // minus sign only for a real amount, so 0 shows as ₹0.00 and not -₹0.00
+    private static decimal AsMinus(decimal amount) => amount > 0 ? -amount : 0m;
+
     protected IQueryable<FeeCollectionDuesNew> moduleQuery
     {
         get
         {
-            var result = feeCollectionDuelist.AsQueryable();
+            // fully paid lines of the shown months sit next to the due lines of the same month
+            var paidRows = PaidRowsInView;
+            var rows = paidRows.Count == 0
+                ? feeCollectionDuelist
+                : feeCollectionDuelist.Concat(paidRows)
+                    .Select((row, index) => (row, index))
+                    .OrderBy(x => GetSessionMonthOrder(x.row.MonthNo))
+                    .ThenBy(x => x.index)
+                    .Select(x => x.row)
+                    .ToList();
+            var result = rows.AsQueryable();
             if (!string.IsNullOrEmpty(nameFilter))
             {
                 result = result.Where(x => (x.FeeHeadName != null && x.FeeHeadName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)));
@@ -2133,9 +2327,30 @@ else
         }
     }
 
-    private decimal TotalAmount => feeCollectionDuelist.Sum(x => x.Amount);
-    private decimal TotalConcession => feeCollectionDuelist.Sum(x => x.Concession);
-    private decimal TotalReceived => feeCollectionDuelist.Sum(x => x.ReceivedAmt);
+    // display totals include the lines an earlier receipt paid in full in a partly paid month (shown as "Paid"),
+    // so May shows received 2000 (Library 1000 + Tuition 1000) and not only 1000. Payable is not changed by them
+    // (their amount - concession - waive off - received = 0).
+    private List<FeeCollectionDuesNew> PaidRowsInView
+    {
+        get
+        {
+            var tillMonthOrder = GetSessionMonthOrder(SelectedTillMonth);
+            return paidDisplayRows.Where(x => GetSessionMonthOrder(x.MonthNo) <= tillMonthOrder).ToList();
+        }
+    }
+
+    private List<PartPaidMonthSummary> PartPaidMonthsInView
+    {
+        get
+        {
+            var tillMonthOrder = GetSessionMonthOrder(SelectedTillMonth);
+            return PartPaidMonths.Where(x => GetSessionMonthOrder(x.MonthNo) <= tillMonthOrder).ToList();
+        }
+    }
+
+    private decimal TotalAmount => feeCollectionDuelist.Sum(x => x.Amount) + PaidRowsInView.Sum(x => x.Amount);
+    private decimal TotalConcession => feeCollectionDuelist.Sum(x => x.Concession) + PaidRowsInView.Sum(x => x.Concession);
+    private decimal TotalReceived => feeCollectionDuelist.Sum(x => x.ReceivedAmt) + PaidRowsInView.Sum(x => x.ReceivedAmt);
     private decimal TotalPayable => feeCollectionDuelist.Sum(x => x.Payable);
 
     // Late fee is charged by the save SP (V3M_FIN_InsertLateFeeForReceipt) only when the receipt clears every due
@@ -2334,6 +2549,20 @@ else
                 return;
             }
 
+            // extra over the due becomes advance only when every due month is being cleared;
+            // otherwise the extra would be lost, so the user has to collect up to the last month
+            if (PayingAmount > NetPayable && !IsLastInvoiceSelected)
+            {
+                await Alert.ShowWarning("Paying amount is more than the selected months. Select all due months to keep the extra as advance.");
+                StateHasChanged();
+                return;
+            }
+
+            // tell the user before saving how much goes to advance
+            if (ExtraToAdvance > 0 &&
+                !await Alert.ShowConfirm($"Total due is {Money(NetPayable)}. Extra {Money(ExtraToAdvance)} will be added to the student's advance. Continue?"))
+                return;
+
             // No -> nothing changes, the entered details stay as they are
             if (!await Alert.ShowConfirm("Are you sure, you want to submit student fee?"))
                 return;
@@ -2353,12 +2582,15 @@ else
             adjustStudentFeeHeadWise.ClassCode = selectedStudent.ClassCode;
             adjustStudentFeeHeadWise.SectionId = selectedStudent.SectionId;
             // cash only: the advance part of the fee heads is adjusted by the SP from PreviousBalance
-            adjustStudentFeeHeadWise.PaidAmount = DuesCashAmount;
+            // + the extra over the due: receipt / cash ledger get the full cash, fee heads only their dues
+            var extraToAdvance = ExtraToAdvance;
+            adjustStudentFeeHeadWise.PaidAmount = DuesCashAmount + extraToAdvance;
             // the SP adjusts the whole advance; advance left over (dues smaller than advance) goes back as negative balance.
             // Otherwise the receipt balance = student's total dues before this receipt - cash paid now
             // (124000 - 40000 = 84000; next receipt 84000 - 18000 = 66000). The SP stores it on the receipt and
             // sets V3M_Fin_StudentBalance to 0 for a positive value, so the advance is not changed by it.
-            var advanceLeft = AdvanceAvailable - AdvanceAdjusted;
+            // advance after this receipt = old advance not used + extra paid now (negative balance in the SP = advance)
+            var advanceLeft = AdvanceAvailable - AdvanceAdjusted + extraToAdvance;
             var duesBefore = Math.Max(0, selectedStudent.StudentBalance);
             adjustStudentFeeHeadWise.Balance = advanceLeft > 0 ? -advanceLeft : Math.Max(0, duesBefore - DuesCashAmount);
             // receipt master Total = total dues before this receipt + late fee charged now; the late fee SP adds the
@@ -2414,6 +2646,12 @@ else
                 await GetStudentFeeDetails();
                 StateHasChanged();
             }
+            else if (response != null && !response.Success && !string.IsNullOrWhiteSpace(response.Message))
+            {
+                // rejected by the API (e.g. paying more than the due): keep the entered details, show why
+                IsLoading = false;
+                await Alert.ShowWarning(response.Message);
+            }
             else
             {
                 IsLoading = false;
@@ -2464,8 +2702,11 @@ else
         if (AdvanceAdjusted > 0)
             feeHeads.Add(new AdmitChildReceiptPrintFeeHead { FeeHeadName = "Less: Advance Adjusted", Amount = -AdvanceAdjusted });
 
+        // extra paid over the due is the student's new advance: payable stays the real due, paid is the full cash,
+        // balance goes negative = advance (payable 1,25,220, paid 2,25,220 -> balance -1,00,000)
+        var extraToAdvance = ExtraToAdvance;
         var payable = dues.Sum(x => x.Payable) + fullLateFee - AdvanceAdjusted;
-        var paid = allocation.Values.Sum() + lateFee - AdvanceAdjusted;
+        var paid = allocation.Values.Sum() + lateFee - AdvanceAdjusted + extraToAdvance;
         return new AdmitChildReceiptPrintModel
         {
             ReceiptDate = studentDetailsForFeeRequest.ReceiptDate,
@@ -2580,12 +2821,15 @@ else
 
                 ApplyTillMonthFilter();
                 CashPaymentAmount = NetPayable;
+                await LoadPartPaidMonths();
             }
             else
             {
                 allFeeCollectionDues = new();
                 feeCollectionDuelist = new();
                 distinctMonths = new();
+                partPaidLines = new();
+                paidDisplayRows.Clear();
                 CashPaymentAmount = 0;
                 await customAlert.ShowCustomAlert("Either challan is not genereated of this student or fee is already paid.", false);
                 // nothing left to collect (e.g. fully paid) -> page back to a fresh search
