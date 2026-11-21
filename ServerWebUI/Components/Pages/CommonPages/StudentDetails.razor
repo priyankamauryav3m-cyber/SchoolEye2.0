@@ -255,7 +255,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="childDetails.DateOfBirth" autocomplete="off" maxlength="12" @bind-Value:after="OnDOBChanged" />
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="childDetails.DateOfBirth" autocomplete="off" min="@MinDate" max="@Today" @bind-Value:after="OnDOBChanged" />
                                                         <label class="floating-label">Date of Birth  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.DateOfBirth)" />
                                                     </div>
@@ -466,7 +466,7 @@
                                                         <InputDate class="floating-input" placeholder=" "
                                                         @bind-Value="childDetails.PassportIssueDate"
                                                         autocomplete="off"
-                                                        maxlength="15" />
+                                                        min="@MinDate" max="@Today" />
                                                         <label class="floating-label">Issue Date</label>
                                                     </div>
                                                 </div>
@@ -475,7 +475,7 @@
                                                         <InputDate class="floating-input" placeholder=" "
                                                         @bind-Value="childDetails.PassportExpiryDate"
                                                         autocomplete="off"
-                                                        maxlength="15" />
+                                                        min="@MinDate" max="@MaxDate" />
                                                         <label class="floating-label">Expiry Date</label>
                                                     </div>
                                                 </div>
@@ -518,13 +518,13 @@
                                                         <InputDate class="floating-input" placeholder=" "
                                                         @bind-Value="childDetails.VisaIssueDate"
                                                         autocomplete="off"
-                                                        maxlength="100" />
+                                                        min="@MinDate" max="@Today" />
                                                         <label class="floating-label">Issue Date</label>
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="childDetails.VisaExpiryDate" autocomplete="off" maxlength="100" />
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="childDetails.VisaExpiryDate" autocomplete="off" min="@MinDate" max="@MaxDate" />
                                                         <label class="floating-label">Expiry Date</label>
                                                         <ValidationMessage For="@(() => childDetails.VisaExpiryDate)" />
                                                     </div>
@@ -679,7 +679,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherDOB" autocomplete="off" maxlength="50" />
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherDOB" autocomplete="off" min="@MinDate" max="@Today" />
                                                         <label class="floating-label">DOB</label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherDOB)" />
                                                     </div>
@@ -887,7 +887,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
                                                     <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherDOB" autocomplete="off" maxlength="15" />
+                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherDOB" autocomplete="off" min="@MinDate" max="@Today" />
                                                         <label class="floating-label">DOB</label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherDOB)" />
                                                     </div>
@@ -1154,7 +1154,7 @@
                                                     <div class="form-box-group static-label @(_pointsFormDisabled == true ? "disabled" : "")">
                                                         <label for="sibling" class="floating-label">Whether Defence / Police Personnel</label>
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
-                                                            <InputRadioGroup @bind-Value="pointsCriteria.DefencePerson">
+                                                            <InputRadioGroup @bind-Value="pointsCriteria.DefencePerson" @bind-Value:after="OnDefencePersonChanged">
                                                                 <label class="d-flex justify-content-center align-items-center gap-1 mb-0 radio-option">
                                                                     <InputRadio Value="@(true)" />
                                                                     <span class="d-flex align-items-center form-label">
@@ -1173,8 +1173,10 @@
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-6 col-lg-5 px-1">
-                                                    <div class="form-box-group @(_pointsFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.DefenceDetail" autocomplete="off" maxlength="100" />
+                                                    @* organisation name only when "Yes" is chosen; "No" keeps it disabled and empty *@
+                                                    <div class="form-box-group @(_pointsFormDisabled == true || !pointsCriteria.DefencePerson ? "disabled" : "")">
+                                                        <InputText class="floating-input" placeholder=" " @bind-Value="pointsCriteria.DefenceDetail" autocomplete="off" maxlength="100"
+                                                                   disabled="@(!pointsCriteria.DefencePerson)" />
                                                         <label class="floating-label">If Yes Please give the name of the organisation</label>
                                                         <ValidationMessage For="@(() => pointsCriteria.DefenceDetail)" />
                                                     </div>
@@ -2153,6 +2155,18 @@
     }
 
 
+    // Defence / Police "No" -> organisation name is cleared (the box is disabled)
+    private void OnDefencePersonChanged()
+    {
+        if (!pointsCriteria.DefencePerson)
+            pointsCriteria.DefenceDetail = null;
+    }
+
+    // date boxes take a 4-digit year only (without max the browser lets the year run to 5-6 digits)
+    private const string MinDate = "1900-01-01";
+    private const string MaxDate = "9999-12-31";
+    private static string Today => DateTime.Today.ToString("yyyy-MM-dd");
+
     private async Task OnDOBChanged()
     {
         try
@@ -2371,8 +2385,8 @@
     $"Registration/get-registration-child" +
     $"?groupCode={groupcode}" +
     $"&branchCode={branchcode}" +
-  $"&sessionId={SessionId}" +
-    $"&registrationId={RegId}";
+    $"&sessionId={SessionId}" +
+    $"&registrationId={RegId}"; 
 
         childDetails = await httpService.Get<ChildDetails>(url) ?? new();
         _originalSnapshot = CreateSnapshot(childDetails);
@@ -2479,8 +2493,19 @@
     {
         try
         {
+            // "No" -> no organisation name is kept
+            if (!pointsCriteria.DefencePerson)
+                pointsCriteria.DefenceDetail = null;
+
             if (IsEdited(pointsCriteria, _originaloints))
             {
+                // "Yes" needs the organisation name
+                if (pointsCriteria.DefencePerson && string.IsNullOrWhiteSpace(pointsCriteria.DefenceDetail))
+                {
+                    await customAlert.ShowCustomAlert("Please enter the name of the Defence / Police organisation.", false);
+                    return;
+                }
+
                 pointsCriteria.RegistrationId = RegId;
                 pointsCriteria.CreatedBy = username;
                 pointsCriteria.GroupCode = groupcode;

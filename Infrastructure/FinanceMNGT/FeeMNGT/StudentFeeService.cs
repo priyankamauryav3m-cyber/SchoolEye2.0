@@ -151,6 +151,32 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 return Enumerable.Empty<FeeCollectionDuesNew>();
             }
         }
+
+        // all fee head lines (paid in full too) of the student's partly paid months
+        public async Task<IEnumerable<StudentPartPaidMonthLine>> GetStudentPartPaidMonths(GetStudentFeeHeadDuesForAdjustmentRequest request)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@GroupCode", request.GroupCode);
+                parameters.Add("@BranchCode", request.BranchCode);
+                parameters.Add("@SessionId", request.SessionId);
+                parameters.Add("@StudentId", request.StudentId);
+
+                return (await connection.QueryAsync<StudentPartPaidMonthLine>(
+                    "dbo.V3M_FIN_GetStudentPartPaidMonths",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                )).ToList();
+            }
+            catch (Exception)
+            {
+                // the summary is information only; Fee Collection keeps working without it
+                return Enumerable.Empty<StudentPartPaidMonthLine>();
+            }
+        }
         public async Task<IEnumerable<StudentLedgerChallanMiniDetailsResponse>> GetStudentLedgerChallanMiniDetails(StudentLedgerChallanMiniDetailsRequest request)
         {
             try

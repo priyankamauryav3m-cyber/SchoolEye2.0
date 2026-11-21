@@ -90,6 +90,34 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
 
             }
         }
+        // partly paid months of a student with every fee head line (paid in full too) - Fee Collection month summary
+        [HttpPost("GetStudentPartPaidMonths")]
+        public async Task<IActionResult> GetStudentPartPaidMonths([FromBody] GetStudentFeeHeadDuesForAdjustmentRequest request)
+        {
+            try
+            {
+                if (request == null || request.StudentId <= 0)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request."
+                    });
+                }
+
+                var response = await _studentFeeRepository.GetStudentPartPaidMonths(request);
+                return Ok(new ApiResponse<IEnumerable<StudentPartPaidMonthLine>>
+                {
+                    Success = true,
+                    Data = response
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, ApiResponse<string>.Fail("Unable to load the partly paid months."));
+            }
+        }
+
         [HttpPost("AdjustStudentFeeCollection")]
         public async Task<IActionResult> AdjustStudentFeeHeadWiseData([FromBody] AdjustStudentFeeHeadWiseRequest request)
         {
@@ -101,6 +129,17 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                     {
                         Success = false,
                         Message = "Invalid request."
+                    });
+                }
+
+                // paying more than the due makes a negative balance on the receipt (due 20000, paid 40000 -> -20000)
+                var overPayMessage = ValidateFeeCollectionAmounts(request);
+                if (overPayMessage != null)
+                {
+                    return Ok(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = overPayMessage
                     });
                 }
 
@@ -140,6 +179,30 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
+
+        // null = amounts are fine; otherwise the message for the user
+        private static string? ValidateFeeCollectionAmounts(AdjustStudentFeeHeadWiseRequest request)
+        {
+            var details = request.FeeHeadDetails;
+            if (details == null || details.Count == 0)
+                return "No fee dues selected to collect.";
+
+            if (request.PaidAmount < 0 || details.Any(d => d.PaidAmount < 0))
+                return "Paying amount cannot be negative.";
+
+            // each fee head row: paid now cannot be more than what is still due on it
+            if (details.Any(d => d.PaidAmount > d.AdjustAmount))
+                return "Paying amount cannot be more than the due amount.";
+
+            // cash over what the fee heads take is allowed only as advance: the request must carry it as a
+            // negative balance of at least that much (due 20000, paid 40000 -> Balance -20000)
+            var extra = request.PaidAmount - details.Sum(d => d.PaidAmount);
+            if (extra > 0 && request.Balance > -extra)
+                return "Extra amount over the due must be kept as advance.";
+
+            return null;
+        }
+
         [HttpPost("GetStudentLedgerChallanMiniDetails")]
         public async Task<IActionResult> GetStudentLedgerChallanMiniDetails([FromBody] StudentLedgerChallanMiniDetailsRequest request)
         {
