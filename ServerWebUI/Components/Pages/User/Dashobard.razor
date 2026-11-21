@@ -1,4 +1,6 @@
 ﻿@page "/adminDashboard"
+@using ApexCharts
+@using Align = Microsoft.AspNetCore.Components.QuickGrid.Align
 @using DomainModel.Common
 @using DomainModel
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -20,6 +22,8 @@
 @using ServerWebUI.Components.Pages.CommonPages
 @inject IStringLocalizer<Resource> Localizer
 @inject IJSRuntime JS
+@inject MenuState MenuState
+@inject CommonMethod EnquiryState
 <style>
     .stat-spark {
         width: 100%;
@@ -69,8 +73,73 @@
         height: 5px;
     }
 
-    .svg-pt {
-        padding-top: 40px;
+    .fee-status-legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 8px;
+        border-top: 1px solid #eef2f7;
+        padding-top: 12px;
+        margin-top: 8px;
+    }
+
+    .overview-donut {
+        position: relative;
+    }
+
+    .overview-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .oc-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.1;
+    }
+
+    .oc-label {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .fs-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .fs-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+
+    .fs-label {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .fs-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .trend-empty {
+        height: 260px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 13px;
     }
 
     .stat-icon {
@@ -110,7 +179,7 @@
                             </button>
                         </div>
                         <div class="col-6 col-md-6 col-lg-3 col-xll-3">
-                            <button class="qa-btn qa-fee-btn" data-action="collect-fee">
+                            <button class="qa-btn qa-fee-btn" data-action="collect-fee" type="button" @onclick="CollectFee">
                                 <div class="qa-icon green"><i class="fa fa-inr"></i></div>
                                 <div>
                                     <div class="qa-title">Collect Fee</div>
@@ -119,7 +188,7 @@
                             </button>
                         </div>
                         <div class="col-6 col-md-6 col-lg-3 col-xll-3">
-                            <button class="qa-btn qa-search-btn" data-action="search-student">
+                            <button class="qa-btn qa-search-btn" data-action="search-student" type="button" @onclick="SearchStudent">
                                 <div class="qa-icon purple"><i class="fas fa-search"></i></div>
                                 <div>
                                     <div class="qa-title">Search Student</div>
@@ -142,139 +211,157 @@
 
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6 col-xl-3">
-
                     <div class="stat-card">
-                        <div class="row">
-                            <div class="col-6 col-md-8">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label text-nowrap">Total Students</div>
-                                        <div class="stat-value">@adminDashboard.TotalStudent</div>
-                                    </div>
-                                </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @adminDashboard.StudentPercentage vs last session</div>
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <div class="svg-pt">
-                                    <svg class="stat-spark" viewBox="0 0 80 40">
-                                        <defs>
-                                            <linearGradient id="studentAreaShadow" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stop-color="#4f7cff" stop-opacity="0.35" />
-                                                <stop offset="100%" stop-color="#4f7cff" stop-opacity="0" />
-                                            </linearGradient>
-                                        </defs>
-                                        <polygon fill="url(#studentAreaShadow)" stroke="none" points="@GetTotalStudentAreaPoints(adminDashboard.StudentPoint)" />
-                                        <polyline fill="none" stroke="#4f7cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="@GetTotalStudentPoints(adminDashboard.StudentPoint)" />
-                                    </svg>
-                                </div>
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label text-nowrap">Total Students</div>
+                                <div class="stat-value">@adminDashboard.TotalStudent</div>
                             </div>
                         </div>
-                    </div>
-
-                </div>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="stat-card">
-                        <div class="row">
-                            <div class="col-6 col-md-8">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label">Today's Collection</div>
-                                        <div class="stat-value">
-                                            ₹ <span>@(adminDashboard.TodayFeeCollection.ToString("N0", new System.Globalization.CultureInfo("en-IN")) ?? "0")</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="stat-change down"><i class="fas fa-arrow-down"></i> @adminDashboard.CollectionPercentage vs last yesterday</div>
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <div class="svg-pt">
-                                    <svg class="stat-spark" viewBox="0 0 80 40">
-                                        <defs>
-                                            <linearGradient id="collectionAreaShadow" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.35" />
-                                                <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
-                                            </linearGradient>
-                                        </defs>
-
-                                        <polygon fill="url(#collectionAreaShadow)" stroke="none"
-                                                 points="@GetCollectionAreaPoints(adminDashboard.FeeCollecionPoints)" />
-
-                                        <polyline fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                                                  points="@GetCollectionPoints(adminDashboard.FeeCollecionPoints)" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @adminDashboard.StudentPercentage vs last session</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
                     <div class="stat-card">
-                        <div class="row">
-                            <div class="col-6 col-md-8">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon green"><i class="fas fa-user-plus"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label">New Admissions</div>
-                                        <div class="stat-value">@adminDashboard.NewAdmissions</div>
-                                    </div>
-                                </div>
-                                <div class="stat-change"><i class="fas fa-arrow-up"></i> @adminDashboard.AdmissionPercentage vs last month</div>
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <div class="svg-pt">
-                                    <svg class="stat-spark" viewBox="0 0 80 40">
-                                        <defs>
-                                            <linearGradient id="newStudentAreaShadow" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stop-color="#22c55e" stop-opacity="0.35" />
-                                                <stop offset="100%" stop-color="#22c55e" stop-opacity="0" />
-                                            </linearGradient>
-                                        </defs>
-
-                                        <polygon fill="url(#newStudentAreaShadow)" stroke="none" points="@GetNewStudentAreaPoints(adminDashboard.NewStudentPoints)" />
-
-                                        <polyline fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                                                  points="@GetNewStudentPoints(adminDashboard.NewStudentPoints)" />
-                                    </svg>
-                                </div>
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon orange"><i class="fas fa-wallet"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label">Today's Collection</div>
+                                <div class="stat-value">₹ <span>@adminDashboard.TodayFeeCollection.ToString("N0", InCulture)</span></div>
                             </div>
                         </div>
+                        <div class="stat-change down"><i class="fas fa-arrow-down"></i> @adminDashboard.CollectionPercentage vs last yesterday</div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-xl-3">
                     <div class="stat-card">
-                        <div class="row">
-                            <div class="col-6 col-md-8">
-                                <div class="state-icon--bxds">
-                                    <div class="stat-icon red"><i class="fas fa-file-invoice"></i></div>
-                                    <div class="flex-grow-1">
-                                        <div class="stat-label">Outstanding Fees</div>
-                                        <div class="stat-value ">
-                                            ₹ <span>@(adminDashboard.OutstandingFees.ToString("N0", new System.Globalization.CultureInfo("en-IN")) ?? "0")</span>
-                                        </div>
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon green"><i class="fas fa-user-plus"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label">New Admissions</div>
+                                <div class="stat-value">@adminDashboard.NewAdmissions</div>
+                            </div>
+                        </div>
+                        <div class="stat-change"><i class="fas fa-arrow-up"></i> @adminDashboard.AdmissionPercentage vs last month</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="stat-card">
+                        <div class="state-icon--bxds">
+                            <div class="stat-icon red"><i class="fas fa-file-invoice"></i></div>
+                            <div class="flex-grow-1">
+                                <div class="stat-label">Outstanding Fees</div>
+                                <div class="stat-value">₹ <span>@adminDashboard.OutstandingFees.ToString("N0", InCulture)</span></div>
+                            </div>
+                        </div>
+                        <div class="stat-change down"><i class="fas fa-arrow-down"></i> @adminDashboard.OutstandingPercentage vs last month</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends: 3 equal cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-lg-4">
+                    <div class="card-custom h-100">
+                        <div class="card-header-custom">
+                            <div>
+                                <div class="card-title-custom">Fee Collection vs Invoiced</div>
+                                <span class="text-muted small">Month-wise, current session (₹)</span>
+                            </div>
+                        </div>
+                        <div @key="@($"fee|{adminDashboard.FeeCollecionPoints}|{adminDashboard.OutstandingFeePoints}")">
+                            @if (feeTrend.Any())
+                            {
+                                <ApexChart TItem="FeeTrendPoint" XAxisType="XAxisType.Category" Options="feeTrendOptions">
+                                    <ApexPointSeries TItem="FeeTrendPoint" Items="feeTrend" Name="Collected" SeriesType="SeriesType.Bar"
+                                                     XValue="x => x.Month" YValue="x => x.Collected" />
+                                    <ApexPointSeries TItem="FeeTrendPoint" Items="feeTrend" Name="Invoiced" SeriesType="SeriesType.Bar"
+                                                     XValue="x => x.Month" YValue="x => x.Invoiced" />
+                                </ApexChart>
+                            }
+                            else
+                            {
+                                <div class="trend-empty">No fee data for this session yet.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card-custom h-100">
+                        <div class="card-header-custom">
+                            <div>
+                                <div class="card-title-custom">School Overview</div>
+                                <span class="text-muted small">Students, admissions and fees at a glance</span>
+                            </div>
+                        </div>
+                        <div @key="@($"ov|{adminDashboard.TotalStudent}|{adminDashboard.TodayFeeCollection}|{adminDashboard.NewAdmissions}|{adminDashboard.OutstandingFees}")">
+                            @if (overview.Any(x => x.Value > 0))
+                            {
+                                <div class="overview-donut">
+                                    <ApexChart TItem="ChartPoint" Options="overviewOptions">
+                                        <ApexPointSeries TItem="ChartPoint" Items="overview" Name="Overview" SeriesType="SeriesType.Donut"
+                                                         XValue="x => x.Label" YValue="x => x.Value" />
+                                    </ApexChart>
+                                    <div class="overview-center">
+                                        <div class="oc-value">@adminDashboard.TotalStudent.ToString("N0", InCulture)</div>
+                                        <div class="oc-label">Total Students</div>
                                     </div>
                                 </div>
-                                <div class="stat-change down"><i class="fas fa-arrow-down"></i> @adminDashboard.OutstandingPercentage vs last month</div>
-
-                            </div>
-                            <div class="col-6 col-md-4">
-                                <div class="svg-pt">
-                                    <svg class="stat-spark" viewBox="0 0 80 40">
-                                        <defs>
-                                            <linearGradient id="outstandingAreaShadow" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.35" />
-                                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
-                                            </linearGradient>
-                                        </defs>
-
-                                        <polygon fill="url(#outstandingAreaShadow)" stroke="none" points="@GetOutstandingAreaPoints(adminDashboard.OutstandingFeePoints)" />
-
-                                        <polyline fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                                                  points="@GetOutstandingPoints(adminDashboard.OutstandingFeePoints)" />
-                                    </svg>
+                                <div class="fee-status-legend">
+                                    <div class="fs-item">
+                                        <span class="fs-dot" style="background:#4f7cff"></span>
+                                        <div>
+                                            <div class="fs-label">Total Students</div>
+                                            <div class="fs-value">@adminDashboard.TotalStudent.ToString("N0", InCulture)</div>                                        </div>
+                                    </div>
+                                    <div class="fs-item">
+                                        <span class="fs-dot" style="background:#f59e0b"></span>
+                                        <div>
+                                            <div class="fs-label">Today's Collection</div>
+                                            <div class="fs-value">₹ @adminDashboard.TodayFeeCollection.ToString("N0", InCulture)</div>                                        </div>
+                                    </div>
+                                    <div class="fs-item">
+                                        <span class="fs-dot" style="background:#22c55e"></span>
+                                        <div>
+                                            <div class="fs-label">New Admissions</div>
+                                            <div class="fs-value">@adminDashboard.NewAdmissions.ToString("N0", InCulture)</div>                                        </div>
+                                    </div>
+                                    <div class="fs-item">
+                                        <span class="fs-dot" style="background:#ef4444"></span>
+                                        <div>
+                                            <div class="fs-label">Outstanding Fees</div>
+                                            <div class="fs-value">₹ @adminDashboard.OutstandingFees.ToString("N0", InCulture)</div>                                        </div>
+                                    </div>
                                 </div>
+                            }
+                            else
+                            {
+                                <div class="trend-empty">No fee data for this session yet.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card-custom h-100">
+                        <div class="card-header-custom">
+                            <div>
+                                <div class="card-title-custom">Admissions Trend</div>
+                                <span class="text-muted small">New admissions per month</span>
                             </div>
+                        </div>
+                        <div @key="@($"adm|{adminDashboard.NewStudentPoints}")">
+                            @if (newStudentSpark.Any())
+                            {
+                                <ApexChart TItem="ChartPoint" XAxisType="XAxisType.Category" Options="admissionTrendOptions">
+                                    <ApexPointSeries TItem="ChartPoint" Items="newStudentSpark" Name="New Admissions" SeriesType="SeriesType.Area"
+                                                     XValue="x => x.Label" YValue="x => x.Value" />
+                                </ApexChart>
+                            }
+                            else
+                            {
+                                <div class="trend-empty">No admissions in this session yet.</div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -501,108 +588,159 @@
 <CustomAlert @ref="customAlert" Title="Alert" />
 @code {
 
-    private string GetNewStudentPoints(string studentPoints)
+    // ---------------- chart data (ApexCharts) ----------------
+    // one point of a month-wise series coming from USP_AdminDashboard ("Apr,May" + "10,20")
+    private class ChartPoint
     {
-        if (string.IsNullOrWhiteSpace(studentPoints))
-            return "";
+        public string Label { get; set; } = "";
+        public decimal Value { get; set; }
+    }
 
-        var data = studentPoints.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
+    private class FeeTrendPoint
+    {
+        public string Month { get; set; } = "";
+        public decimal Collected { get; set; }
+        public decimal Invoiced { get; set; }
+    }
 
-        if (data.Count == 1)
-            return "40,20";
+    private List<ChartPoint> collectionSpark = new();
+    private List<ChartPoint> newStudentSpark = new();
+    private List<ChartPoint> outstandingSpark = new();
+    private List<FeeTrendPoint> feeTrend = new();
+    private List<ChartPoint> overview = new();
 
-        int width = 80;
-        int height = 40;
-        int max = data.Max();
+    private static readonly System.Globalization.CultureInfo InCulture = new("en-IN");
 
-        return string.Join(" ",
-            data.Select((value, index) =>
+    // JS formatter for rupee values (Indian grouping), used by tooltips and axis
+    private const string RupeeFormatter = "function (v) { return '₹ ' + Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }";
+    private const string CountFormatter = "function (v) { return Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }";
+
+    // pairs the month names with their values; a count mismatch or bad number never breaks the page
+    private static List<ChartPoint> BuildSeries(string? months, string? points)
+    {
+        var values = (points ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var labels = (months ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var list = new List<ChartPoint>();
+        for (int i = 0; i < values.Length; i++)
+        {
+            decimal.TryParse(values[i], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v);
+            list.Add(new ChartPoint { Label = i < labels.Length ? labels[i] : $"#{i + 1}", Value = v });
+        }
+        return list;
+    }
+
+    private void BuildCharts()
+    {
+        collectionSpark = BuildSeries(adminDashboard.FeeMonthName, adminDashboard.FeeCollecionPoints);
+        newStudentSpark = BuildSeries(adminDashboard.NewStudentMonthName, adminDashboard.NewStudentPoints);
+        outstandingSpark = BuildSeries(adminDashboard.OutstandingMonthName, adminDashboard.OutstandingFeePoints);
+
+        // collection and invoice months can differ: merge both on month name, keep calendar order (same as the SP)
+        feeTrend = collectionSpark.Select(x => x.Label)
+            .Union(outstandingSpark.Select(x => x.Label), StringComparer.OrdinalIgnoreCase)
+            .OrderBy(MonthOrder)
+            .Select(m => new FeeTrendPoint
             {
-                double x = index * (width / (double)(data.Count - 1));
-                double y = height - ((value / (double)max) * (height - 4));
-                return $"{Math.Round(x)},{Math.Round(y)}";
+                Month = m,
+                Collected = collectionSpark.Where(x => string.Equals(x.Label, m, StringComparison.OrdinalIgnoreCase)).Sum(x => x.Value),
+                Invoiced = outstandingSpark.Where(x => string.Equals(x.Label, m, StringComparison.OrdinalIgnoreCase)).Sum(x => x.Value)
             })
-        );
-    }
-
-    private string GetTotalStudentPoints(string studentPoints)
-    {
-        if (string.IsNullOrWhiteSpace(studentPoints))
-            return "";
-
-        var data = studentPoints
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => int.Parse(x))
             .ToList();
 
-        if (data.Count == 1)
-            return $"40,20";
-
-        var max = data.Max();
-        int width = 80;
-        int height = 40;
-
-        return string.Join(" ",
-            data.Select((value, i) =>
-            {
-                double px = i * (width / (double)(data.Count - 1));
-                double py = height - ((value / (double)max) * (height - 4));
-
-                return $"{Math.Round(px)},{Math.Round(py)}";
-            }));
+        // same 4 numbers as the stat cards (order = colours in overviewOptions)
+        overview = new List<ChartPoint>
+        {
+            new() { Label = "Total Students", Value = Math.Max(adminDashboard.TotalStudent, 0) },
+            new() { Label = "Today's Collection", Value = Math.Max(adminDashboard.TodayFeeCollection, 0) },
+            new() { Label = "New Admissions", Value = Math.Max(adminDashboard.NewAdmissions, 0) },
+            new() { Label = "Outstanding Fees", Value = Math.Max(adminDashboard.OutstandingFees, 0) }
+        };
     }
-    private string GetCollectionPoints(string collectionPoints)
+
+    private static int MonthOrder(string month) =>
+        DateTime.TryParseExact(month, "MMM", System.Globalization.CultureInfo.InvariantCulture,
+                               System.Globalization.DateTimeStyles.None, out var d) ? d.Month : 13;
+
+    // doughnut with the 4 stat-card values in 4 colours (blue, orange, green, red - same as the card icons);
+    // centre text is plain HTML (Total Students), tooltip shows ₹ for amounts and a plain number for counts
+    private readonly ApexChartOptions<ChartPoint> overviewOptions = new()
     {
-        if (string.IsNullOrWhiteSpace(collectionPoints))
-            return "";
-
-        var data = collectionPoints
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(decimal.Parse)
-            .ToList();
-
-        if (data.Count == 1)
-            return "40,20";
-
-        decimal max = data.Max();
-        int width = 80;
-        int height = 40;
-
-        return string.Join(" ",
-            data.Select((value, index) =>
+        Chart = new Chart { Height = "240", Toolbar = new Toolbar { Show = false }, FontFamily = "inherit" },
+        Colors = new List<string> { "#4f7cff", "#f59e0b", "#22c55e", "#ef4444" },
+        Legend = new Legend { Show = false },
+        DataLabels = new DataLabels { Enabled = false },
+        Stroke = new Stroke { Width = 3, Colors = new List<string> { "#ffffff" } },
+        PlotOptions = new PlotOptions
+        {
+            Pie = new PlotOptionsPie
             {
-                var x = index * (width / (double)(data.Count - 1));
-                var y = height - ((double)(value / max) * (height - 4));
+                ExpandOnClick = false,
+                Donut = new PlotOptionsDonut
+                {
+                    Size = "70%",
+                    Labels = new DonutLabels { Show = false }
+                }
+            }
+        },
+        Tooltip = new Tooltip
+        {
+            Y = new TooltipY
+            {
+                Formatter = "function (v, o) { var n = o.w.globals.labels[o.seriesIndex] || ''; var s = Number(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); return (n.indexOf('Collection') >= 0 || n.indexOf('Outstanding') >= 0) ? '₹ ' + s : s; }"
+            }
+        }
+    };
 
-                return $"{Math.Round(x)},{Math.Round(y)}";
-            }));
-    }
-    private string GetOutstandingPoints(string outstandingPoints)
+    private readonly ApexChartOptions<FeeTrendPoint> feeTrendOptions = new()
     {
-        if (string.IsNullOrWhiteSpace(outstandingPoints))
-            return "";
+        Chart = new Chart { Height = "280", Toolbar = new Toolbar { Show = false }, FontFamily = "inherit" },
+        Colors = new List<string> { "#22c55e", "#4f7cff" },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { ColumnWidth = "45%", BorderRadius = 4 } },
+        DataLabels = new DataLabels { Enabled = false },
+        Stroke = new Stroke { Show = true, Width = 2, Colors = new List<string> { "transparent" } },
+        Legend = new Legend { Position = LegendPosition.Top, HorizontalAlign = ApexCharts.Align.Right },
+        Grid = new Grid { BorderColor = "#eef2f7", StrokeDashArray = 4 },
+        Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Formatter = RupeeFormatter } } },
+        Tooltip = new Tooltip { Shared = true, Intersect = false, Y = new TooltipY { Formatter = RupeeFormatter } }
+    };
 
-        var data = outstandingPoints
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(decimal.Parse)
-            .ToList();
+    private readonly ApexChartOptions<ChartPoint> admissionTrendOptions = new()
+    {
+        Chart = new Chart { Height = "280", Toolbar = new Toolbar { Show = false }, FontFamily = "inherit" },
+        Colors = new List<string> { "#22c55e" },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 3 },
+        Fill = new Fill
+        {
+            Type = new List<FillType> { FillType.Gradient },
+            Gradient = new FillGradient { ShadeIntensity = 1, OpacityFrom = 0.4, OpacityTo = 0.05, Stops = new List<double> { 0, 90, 100 } }
+        },
+        DataLabels = new DataLabels { Enabled = false },
+        Markers = new Markers { Size = 4, StrokeWidth = 2, Hover = new MarkersHover { Size = 6 } },
+        Grid = new Grid { BorderColor = "#eef2f7", StrokeDashArray = 4 },
+        Yaxis = new List<YAxis> { new YAxis { Min = 0, ForceNiceScale = true, Labels = new YAxisLabels { Formatter = CountFormatter } } },
+        Tooltip = new Tooltip { Y = new TooltipY { Formatter = CountFormatter } }
+    };
 
-        if (data.Count == 1)
-            return "40,20";
+    // ---------------- quick actions ----------------
+    // MstModule ids (see NavMenu / ViewStudent): pages shared by modules pick their screen from this
+    private const int AdmissionModuleId = 1;
+    private const int FeeManagementModuleId = 2;
 
-        decimal max = data.Max();
-        int width = 80;
-        int height = 40;
-
-        return string.Join(" ",
-            data.Select((value, index) =>
-            {
-                double x = index * (width / (double)(data.Count - 1));
-                double y = height - ((double)(value / max) * (height - 4));
-
-                return $"{Math.Round(x)},{Math.Round(y)}";
-            }));
+    private async Task OpenFromModule(int moduleId, string url)
+    {
+        MenuState.SetActiveModule(moduleId);
+        await sessionStorage.SetAsync("ActiveModuleId", moduleId);
+        // same as the other dashboards: PageHeading shows "← Dashboard / ..." on the opened page
+        EnquiryState.CameFromDashboard = true;
+        Navigation.NavigateTo(url);
     }
+
+    // Collect Fee -> "Take Student Fee New" screen
+    private Task CollectFee() => OpenFromModule(FeeManagementModuleId, "/feecollectionnew");
+
+    // Search Student -> View Student (Admission screen)
+    private Task SearchStudent() => OpenFromModule(AdmissionModuleId, "/viewstudent");
+
     private CustomAlert customAlert;
     private bool addstudent { get; set; }
     private DateTime fromDate = DateTime.Now;
@@ -670,11 +808,9 @@
         {
             adminDashboard = apiResponse.Data ?? new();
         }
+        BuildCharts();
         await GetAdmissionPipelineConfirmetion();
         await GetCollectionFeehead();
-        // string ApiUri = "BranchClass/GetClassCode";
-        // classlist = await httpService.Get<List<BranchClassModel>>(ApiUri) ?? new();
-
 
         StateHasChanged();
     }
@@ -744,58 +880,5 @@
         };
 
         return colors[index % colors.Length];
-    }
-
-    public string GetTotalStudentAreaPoints(string studentPoint)
-    {
-        string linePoints = GetTotalStudentPoints(studentPoint);
-
-        if (string.IsNullOrEmpty(linePoints))
-            return "";
-        var pointsArr = linePoints.Split(' ');
-        string firstX = pointsArr[0].Split(',')[0];
-        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
-        return $"{linePoints} {lastX},40 {firstX},40";
-    }
-    public string GetOutstandingAreaPoints(string outstandingPoints)
-    {
-        string linePoints = GetOutstandingPoints(outstandingPoints);
-
-        if (string.IsNullOrEmpty(linePoints))
-            return "";
-
-        var pointsArr = linePoints.Split(' ');
-        string firstX = pointsArr[0].Split(',')[0];
-        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
-
-        return $"{linePoints} {lastX},40 {firstX},40";
-    }
-
-    public string GetNewStudentAreaPoints(string newStudentPoints)
-    {
-        string linePoints = GetNewStudentPoints(newStudentPoints);
-
-        if (string.IsNullOrEmpty(linePoints))
-            return "";
-
-        var pointsArr = linePoints.Split(' ');
-        string firstX = pointsArr[0].Split(',')[0];
-        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
-
-        return $"{linePoints} {lastX},40 {firstX},40";
-    }
-
-    public string GetCollectionAreaPoints(string collectionPoints)
-    {
-        string linePoints = GetCollectionPoints(collectionPoints);
-
-        if (string.IsNullOrEmpty(linePoints))
-            return "";
-
-        var pointsArr = linePoints.Split(' ');
-        string firstX = pointsArr[0].Split(',')[0];
-        string lastX = pointsArr[pointsArr.Length - 1].Split(',')[0];
-
-        return $"{linePoints} {lastX},40 {firstX},40";
     }
 }
