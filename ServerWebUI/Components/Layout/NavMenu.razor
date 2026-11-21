@@ -141,7 +141,8 @@
 
                                         @foreach (var activity in leftMenus)
                                         {
-                                            <NavLink href="@SecureUrl.ToSecure(activity.URL)" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                            <NavLink href="@SecureUrl.ToSecure(activity.URL)" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item"
+                                                     @onclick="() => SetActiveModuleAsync(item.ModuleId)">
                                                 <span class="flex-grow-1">@activity.DisplayName</span>
                                                 <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill" : "bi-star")"
                                                    data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
@@ -160,7 +161,8 @@
 
                                             @foreach (var activity in rightMenus)
                                             {
-                                                <NavLink href="@SecureUrl.ToSecure(activity.URL)" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item">
+                                                <NavLink href="@SecureUrl.ToSecure(activity.URL)" Match="NavLinkMatch.All" class="sub-menu d-flex align-items-center bookmark-item"
+                                                         @onclick="() => SetActiveModuleAsync(item.ModuleId)">
                                                     <span class="flex-grow-1">@activity.DisplayName</span>
                                                     <i class="bi @(BookmarkState.IsBookmarked(activity.URL) ? "bi-star-fill bookmark-active" : "bi-star bookmark-default")"
                                                        data-tooltip="@(BookmarkState.IsBookmarked(activity.URL) ? "Remove bookmark" : "Add bookmark")"
@@ -209,6 +211,15 @@
             IsValid = true,
             CreateBy = username
         });
+    }
+
+    // remember which module's menu the page was opened from:
+    // a page shared by modules (e.g. /viewstudent in Admission and Fee Management) uses it to pick its screen
+    private async Task SetActiveModuleAsync(int moduleId)
+    {
+        // in-memory first (set before the new page loads), session storage so a page refresh keeps it
+        MenuState.SetActiveModule(moduleId);
+        await sessionStorage.SetAsync("ActiveModuleId", moduleId);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
