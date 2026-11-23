@@ -7,8 +7,8 @@
 @*
     Fee Collection -> "Adjust advance": full screen list of students who have advance (V3M_Fin_StudentBalance < 0).
     "Adjust" on a row opens the adjustment popup: tick the dues to clear from the student's advance and Apply.
-    Apply saves through the same receipt API as Fee Collection (StudentFee/AdjustStudentFeeCollection) with
-    cash 0, so the advance part of the fee heads is adjusted by the SP from PreviousBalance.
+    Apply -> StudentFee/AdjustAdvanceAmount (ADVANCE / ADJUSTMENT -> SP V3M_FIN_UspAdjustAdvanceAmount) with the
+    ticked DetInvoiceIds; the SP clears them from the student balance (advance) and writes the fee head ledger.
     Must be placed inside <div class="fee-collection-page"> (styles: NewStyle.css -> "Adjust student advance").
 *@
 
@@ -101,14 +101,19 @@
                             <div class="adv-card adv-card-green"><span>Can be adjusted</span><strong>@Money(FilteredStudents.Sum(CanAdjustOf))</strong></div>
                         </div>
 
-                        <section class="module-section mb-0">
-                            <div class="module-section-head">
-                                <h3>Student list - @TypeLabel(SearchedType)</h3>
-                                <div class="adv-quick-filter">
-                                    <i class="bi bi-search"></i>
-                                    <input @bind="QuickFilter" @bind:event="oninput" @bind:after="ResetPage" placeholder="Filter by student no., name, class or father" />
-                                </div>
-                            </div>
+                        <div class="card">
+                            <div class="card-body table-card p-0">
+                                <div class="quick-main">
+                                    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+                                        <div>
+                                            <div class="fee-head-title" style="font-size:15px;">Student list - @TypeLabel(SearchedType)</div>
+                                            <div class="fee-head-sub">Click Adjust to clear a student's dues from the advance.</div>
+                                        </div>
+                                        <div class="adv-quick-filter">
+                                            <i class="bi bi-search"></i>
+                                            <input @bind="QuickFilter" @bind:event="oninput" @bind:after="ResetPage" placeholder="Filter by student no., name, class or father" />
+                                        </div>
+                                    </div>
                             @if (IsSearching)
                             {
                                 <div class="inline-loader"><span>Loading students</span><span class="inline-spinner"></span></div>
@@ -123,10 +128,9 @@
                             }
                             else
                             {
-                                <div class="quick-main p-0 adv-grid-wrap">
-                                    <div class="adv-grid-box">
-                                        <QuickGrid Items="@FilteredStudents.AsQueryable()" Pagination="@pagination" Class="table adv-table" RowClass="@StudentRowClass">
-                                            <TemplateColumn Title="#" Align="Align.Center">
+                                    <div class="grid-box">
+                                        <QuickGrid Items="@FilteredStudents.AsQueryable()" Pagination="@pagination" Class="table" RowClass="@StudentRowClass">
+                                            <TemplateColumn Title="#" Align="Align.Right" Class="text-right">
                                                 <ChildContent>@(FilteredStudents.IndexOf(context) + 1)</ChildContent>
                                             </TemplateColumn>
                                             <TemplateColumn Title="Student no." Align="Align.Left" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.ControlNo))">
@@ -135,15 +139,15 @@
                                             <TemplateColumn Title="Student name" Align="Align.Left" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.StudentName))">
                                                 <ChildContent><strong>@context.StudentName</strong></ChildContent>
                                             </TemplateColumn>
-                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class section" Align="Align.Center" Sortable="true" />
+                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class section" Align="Align.Center" Class="text-center" Sortable="true" />
                                             <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father name" Align="Align.Left" Sortable="true" />
-                                            <TemplateColumn Title="Total dues" Align="Align.Right" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.TotalDues))">
+                                            <TemplateColumn Title="Total dues" Align="Align.Right" Class="text-right" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.TotalDues))">
                                                 <ChildContent><span class="@(DuesOf(context) > 0 ? "text-danger fw-semibold" : "")">@Money(DuesOf(context))</span></ChildContent>
                                             </TemplateColumn>
-                                            <TemplateColumn Title="@BalanceTitle" Align="Align.Right" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.Balance))">
+                                            <TemplateColumn Title="@BalanceTitle" Align="Align.Right" Class="text-right" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.Balance))">
                                                 <ChildContent><span class="text-primary fw-semibold">@Money(BalanceOf(context))</span></ChildContent>
                                             </TemplateColumn>
-                                            <TemplateColumn Title="Adjustment" Align="Align.Center">
+                                            <TemplateColumn Title="Adjustment" Align="Align.Center" Class="text-center">
                                                 <ChildContent>
                                                     <button type="button" class="adv-adjust-btn" disabled="@(CanAdjustOf(context) <= 0 || OpeningStudentId != 0)"
                                                             title="@(BalanceOf(context) >= 0 ? "No advance to adjust" : DuesOf(context) <= 0 ? "No dues to adjust" : "Adjust advance against dues")"
@@ -162,16 +166,17 @@
                                             </TemplateColumn>
                                         </QuickGrid>
                                     </div>
-                                </div>
-                                <div class="footer-pagination px-2 py-1">
-                                    <div class="d-flex align-items-center">
-                                        <div class="welcome-text w-100">
-                                            <Paginator State="@pagination" />
+                                    <div class="footer-pagination mt-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="welcome-text w-100">
+                                                <Paginator State="@pagination" />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
                             }
-                        </section>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer adv-footer">
@@ -216,11 +221,13 @@
                             <div class="adv-card adv-card-green"><span>Advance left after</span><strong>@Money(AsMinus(AdjustAdvance - TotalAdjusting))</strong></div>
                         </div>
 
-                        <section class="module-section mb-2">
-                            <div class="module-section-head">
-                                <h3>Fee dues</h3>
-                                <span>Tick the dues to clear from the advance (oldest month first).</span>
-                            </div>
+                        <div class="card mb-2">
+                            <div class="card-body table-card p-0">
+                                <div class="quick-main">
+                                    <div class="mb-3">
+                                        <div class="fee-head-title" style="font-size:15px;">Fee dues</div>
+                                        <div class="fee-head-sub">Tick the dues to clear from the advance (oldest month first).</div>
+                                    </div>
                             @if (IsLoadingDues)
                             {
                                 <div class="inline-loader"><span>Loading dues</span><span class="inline-spinner"></span></div>
@@ -231,9 +238,8 @@
                             }
                             else
                             {
-                                <div class="quick-main p-0">
-                                    <div class="adv-grid-box adv-dues-wrap">
-                                        <QuickGrid Items="@dueRows.AsQueryable()" Class="table adv-table" RowClass="@DueRowClass">
+                                    <div class="grid-box">
+                                        <QuickGrid Items="@dueRows.AsQueryable()" Class="table" RowClass="@DueRowClass">
                                             <TemplateColumn Title="" Align="Align.Center">
                                                 <HeaderTemplate>
                                                     <div class="d-flex align-items-center justify-content-center">
@@ -246,14 +252,14 @@
                                                     </div>
                                                 </ChildContent>
                                             </TemplateColumn>
-                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MonthDisplay) ? "One-time" : x.MonthDisplay)" Title="Month" Align="Align.Center" />
+                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MonthDisplay) ? "One-time" : x.MonthDisplay)" Title="Month" Align="Align.Center" Class="text-center" />
                                             <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FeeHeadName) ? " " : x.FeeHeadName)" Title="Fee head" Align="Align.Left" />
-                                            <TemplateColumn Title="Amount" Align="Align.Right"><ChildContent>@Money(context.Amount)</ChildContent></TemplateColumn>
-                                            <TemplateColumn Title="Concession" Align="Align.Right"><ChildContent>@Money(context.Concession)</ChildContent></TemplateColumn>
-                                            <TemplateColumn Title="Waive off" Align="Align.Right"><ChildContent>@Money(context.WaiveOff)</ChildContent></TemplateColumn>
-                                            <TemplateColumn Title="Received" Align="Align.Right"><ChildContent>@Money(context.ReceivedAmt)</ChildContent></TemplateColumn>
-                                            <TemplateColumn Title="Balance" Align="Align.Right"><ChildContent><span class="fw-semibold">@Money(context.Payable)</span></ChildContent></TemplateColumn>
-                                            <TemplateColumn Title="Adjusting" Align="Align.Right">
+                                            <TemplateColumn Title="Amount" Align="Align.Right" Class="text-right"><ChildContent>@Money(context.Amount)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Concession" Align="Align.Right" Class="text-right"><ChildContent>@Money(context.Concession)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Waive off" Align="Align.Right" Class="text-right"><ChildContent>@Money(context.WaiveOff)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Received" Align="Align.Right" Class="text-right"><ChildContent>@Money(context.ReceivedAmt)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Balance" Align="Align.Right" Class="text-right"><ChildContent><span class="fw-semibold">@Money(context.Payable)</span></ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Adjusting" Align="Align.Right" Class="text-right">
                                                 <ChildContent>
                                                     @{ var adjusting = AdjustingOf(context); }
                                                     @if (adjusting > 0)
@@ -268,13 +274,9 @@
                                             </TemplateColumn>
                                         </QuickGrid>
                                     </div>
-                                </div>
                             }
-                        </section>
-
-                        <div class="field">
-                            <label>Remark</label>
-                            <input @bind="AdjustRemark" maxlength="250" placeholder="Advance adjusted against dues" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -313,8 +315,6 @@
     [Parameter] public EventCallback<long> OnAdjusted { get; set; }
 
     private const int SessionStartMonth = 4;
-    // receipt of an adjustment is saved like a counter receipt with cash 0
-    private const string AdjustPaymentMode = "Cash";
 
     private static readonly string[] TransactionTypes = { "ADVANCE", "ADJUSTMENT", "WAIVE OFF" };
 
@@ -349,7 +349,6 @@
     private readonly HashSet<FeeCollectionDuesNew> selectedDues = new();
     private bool IsLoadingDues;
     private bool IsSaving;
-    private string AdjustRemark = "";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -582,7 +581,6 @@
         adjustStudent = student;
         dueRows = new();
         selectedDues.Clear();
-        AdjustRemark = "";
         IsLoadingDues = true;
         StateHasChanged();
         try
@@ -682,49 +680,21 @@
             StateHasChanged();
 
             var student = adjustStudent;
-            var advanceLeft = AdjustAdvance - adjusted;
-            var request = new AdjustStudentFeeHeadWiseRequest
+            // StudentFee/AdjustAdvanceAmount: ADVANCE / ADJUSTMENT -> V3M_FIN_UspAdjustAdvanceAmount.
+            // Only the rows the advance reaches are sent, in grid order (oldest month first).
+            var request = new AdjustAdvanceAmountRequest
             {
                 GroupCode = GroupCode ?? "",
                 BranchCode = BranchCode ?? "",
                 SessionId = SearchSessionId,
                 StudentId = student.StudentId,
-                ClassCode = student.ClassCode,
-                SectionId = student.SectionId,
-                // no cash: the fee heads are paid from the advance (PreviousBalance) by the SP
-                PaidAmount = 0,
-                // advance not used stays as negative balance; otherwise the net dues stay as they are
-                Balance = advanceLeft > 0 ? -advanceLeft : Math.Max(0, student.StudentBalance),
-                ReceiptTotalAmount = Math.Max(0, student.StudentBalance),
-                PaymentMode = AdjustPaymentMode,
-                ChequeNo = "",
-                ChequeDate = null,
-                ChequeBank = "",
-                ChequeType = "",
-                LateFee = 0,
-                PreviousBalance = student.PreviousBalance,
-                Remark = string.IsNullOrWhiteSpace(AdjustRemark) ? "Advance adjusted against dues" : AdjustRemark.Trim(),
-                SocietyId = 0,
+                TransType = SearchedType,
                 CreatedBy = UserName ?? "",
-                ReceiptDate = DateTime.Today,
-                BankAccountId = 1,
-                BankBranch = "",
-                FeeHeadDetails = allocation.Select(p => new FeeHeadDetailModel
-                {
-                    FeeHeadId = p.Key.FeeHeadId,
-                    PaidAmount = p.Value,
-                    LumpsumAmount = p.Key.Amount,
-                    MonthNoCsv = p.Key.MonthNo.ToString(),
-                    FeeHeadAmount = p.Key.Amount,
-                    Concession = p.Key.Concession,
-                    Deduction = p.Key.WaiveOff,
-                    StatusFlag = p.Key.Status.ToString(),
-                    DetInvoiceId = p.Key.DetInvoiceId,
-                    AdjustAmount = p.Key.Payable
-                }).ToList()
+                AdvAmount = adjusted,
+                DetInvoiceIds = allocation.Select(p => (long)p.Key.DetInvoiceId).ToList()
             };
 
-            var response = await httpService.Post<ApiResponse<AdjustStudentFeeHeadWiseResponse>>("StudentFee/AdjustStudentFeeCollection", request);
+            var response = await httpService.Post<ApiResponse<AdjustAdvanceAmountResponse>>("StudentFee/AdjustAdvanceAmount", request);
             if (response != null && response.Success && response.Data != null)
             {
                 IsSaving = false;
@@ -732,7 +702,7 @@
                 adjustStudent = null;
                 dueRows = new();
                 selectedDues.Clear();
-                await Alert.ShowSuccess($"Advance adjusted successfully. Receipt No: {response.Data.StudentReceiptNo}");
+                await Alert.ShowSuccess($"{Money(adjusted)} adjusted from advance. Advance left: {Money(AsMinus(response.Data.AdvBalance))}");
                 await OnAdjusted.InvokeAsync(student.StudentId);
                 // advance / dues of the student changed: reload the list
                 await SearchStudents();

@@ -20,6 +20,8 @@ namespace ApplicationInterface.FinanceMNGT.FeeMNGT
         public Task<IEnumerable<StudentChallanResponse>> GetStudentChallanDetails(StudentChallanRequest request);
         public Task<IEnumerable<StudentReceiptsResponse>> GetStudentReceipts(StudentReceiptsRequest request);
         public Task<IEnumerable<StudentListForBalanceAdjustmentResponse>> GetStudentListForBalanceAdjustment(StudentListForBalanceAdjustmentRequest request);
+        public Task<AdjustAdvanceAmountResponse> AdjustAdvanceAmount(AdjustAdvanceAmountRequest request);
+        public Task<AdjustAdvanceAmountResponse> AdjustWaiveOffAmount(AdjustAdvanceAmountRequest request);
 
     }
 }
