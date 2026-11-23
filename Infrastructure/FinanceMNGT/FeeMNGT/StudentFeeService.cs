@@ -241,5 +241,40 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 throw;
             }
         }
+
+        public async Task<IEnumerable<StudentListForBalanceAdjustmentResponse>> GetStudentListForBalanceAdjustment(StudentListForBalanceAdjustmentRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode);
+                param.Add("@BranchCode", request.BranchCode);
+                param.Add("@SessionId", request.SessionId);
+                param.Add("@ClassCode", request.ClassCode);
+                param.Add("@SectionCode", request.SectionCode);
+                param.Add("@Gender", request.Gender);
+                param.Add("@ControlNo", request.ControlNo);
+                param.Add("@FirstName", request.FirstName);
+                param.Add("@TransType", request.TransType);
+                param.Add("@HasAmount", request.HasAmount);
+                return await con.QueryAsync<StudentListForBalanceAdjustmentResponse>(
+                    "V3M_FIN_GetStudentListForBalanceAdjustment",
+                    param,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (SqlException ex) when (ex.Number == 50001)
+            {
+                // SP validation: TransType is not Advance, Adjustment or Waive Off
+                Console.WriteLine($"Exception: {ex.Message}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 }

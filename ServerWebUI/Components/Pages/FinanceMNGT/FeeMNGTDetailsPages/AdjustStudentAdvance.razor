@@ -1,0 +1,777 @@
+@using MyApp.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+
+@*
+    Fee Collection -> "Adjust advance": full screen list of students who have advance (V3M_Fin_StudentBalance < 0).
+    "Adjust" on a row opens the adjustment popup: tick the dues to clear from the student's advance and Apply.
+    Apply saves through the same receipt API as Fee Collection (StudentFee/AdjustStudentFeeCollection) with
+    cash 0, so the advance part of the fee heads is adjusted by the SP from PreviousBalance.
+    Must be placed inside <div class="fee-collection-page"> (styles: NewStyle.css -> "Adjust student advance").
+*@
+
+@if (IsVisible)
+{
+    <div class="custom-modal row m-0 adv-adjust-screen">
+        <div class="col-12 p-0">
+            <div class="modal-content clearfix main-popup adv-full">
+                <div class="head-btn">
+                    <h5 class="modal-title">Student advance / adjustment</h5>
+                    <button data-access="Close" type="button" @onclick="Close" class="close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="fee-module-content">
+
+                        <div class="module-toolbar adv-toolbar">
+                            <div class="field">
+                                <label>Transaction type</label>
+                                <select @bind="TransactionType" @bind:after="OnTransactionTypeChanged">
+                                    @foreach (var type in TransactionTypes)
+                                    {
+                                        <option value="@type">@TypeLabel(type)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Session</label>
+                                <select @bind="SearchSessionId" @bind:after="ClearList">
+                                    @foreach (var s in Sessions.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@s.SessionId">@s.SessionName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Class</label>
+                                <select @bind="SearchClassCode" @bind:after="OnClassChanged">
+                                    <option value="">All</option>
+                                    @foreach (var c in Classes)
+                                    {
+                                        <option value="@c.ClassCode">@c.ClassName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Section</label>
+                                <select @bind="SearchSectionId" disabled="@string.IsNullOrEmpty(SearchClassCode)">
+                                    <option value="">All</option>
+                                    @foreach (var sec in sectionlist)
+                                    {
+                                        <option value="@sec.SectionId">@sec.SectionName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Gender</label>
+                                <select @bind="SearchGender">
+                                    <option value="">All</option>
+                                    @foreach (var g in genderlist.Where(x => x.IsValid == true))
+                                    {
+                                        <option value="@g.GenderName">@g.GenderName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Student no.</label>
+                                <input @bind="SearchStudentNo" @bind:event="oninput" @onkeydown="OnSearchKeyDown" placeholder="e.g. 0225" maxlength="50" />
+                            </div>
+                            <div class="field">
+                                <label>Student name</label>
+                                <input @bind="SearchStudentName" @bind:event="oninput" @onkeydown="OnSearchKeyDown" placeholder="Name" maxlength="100" />
+                            </div>
+                            <button type="button" class="btn-preview adv-search-btn" disabled="@IsSearching" @onclick="SearchStudents">
+                                @if (IsSearching)
+                                {
+                                    <span class="inline-spinner light"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-search"></i>
+                                }
+                                <span>Search</span>
+                            </button>
+                        </div>
+
+                        <div class="module-summary">
+                            <div class="adv-card adv-card-slate"><span>Students</span><strong>@FilteredStudents.Count</strong></div>
+                            <div class="adv-card adv-card-red"><span>Total dues</span><strong>@Money(FilteredStudents.Sum(DuesOf))</strong></div>
+                            <div class="adv-card adv-card-blue"><span>Total @TypeLabel(SearchedType).ToLower()</span><strong>@Money(FilteredStudents.Sum(BalanceOf))</strong></div>
+                            <div class="adv-card adv-card-green"><span>Can be adjusted</span><strong>@Money(FilteredStudents.Sum(CanAdjustOf))</strong></div>
+                        </div>
+
+                        <section class="module-section mb-0">
+                            <div class="module-section-head">
+                                <h3>Student list - @TypeLabel(SearchedType)</h3>
+                                <div class="adv-quick-filter">
+                                    <i class="bi bi-search"></i>
+                                    <input @bind="QuickFilter" @bind:event="oninput" @bind:after="ResetPage" placeholder="Filter by student no., name, class or father" />
+                                </div>
+                            </div>
+                            @if (IsSearching)
+                            {
+                                <div class="inline-loader"><span>Loading students</span><span class="inline-spinner"></span></div>
+                            }
+                            else if (!HasSearched)
+                            {
+                                <div class="adv-empty"><i class="bi bi-search"></i> Click Search to list the students.</div>
+                            }
+                            else if (FilteredStudents.Count == 0)
+                            {
+                                <div class="adv-empty"><i class="bi bi-inbox"></i> No student found.</div>
+                            }
+                            else
+                            {
+                                <div class="quick-main p-0 adv-grid-wrap">
+                                    <div class="adv-grid-box">
+                                        <QuickGrid Items="@FilteredStudents.AsQueryable()" Pagination="@pagination" Class="table adv-table" RowClass="@StudentRowClass">
+                                            <TemplateColumn Title="#" Align="Align.Center">
+                                                <ChildContent>@(FilteredStudents.IndexOf(context) + 1)</ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="Student no." Align="Align.Left" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.ControlNo))">
+                                                <ChildContent><strong>@context.ControlNo</strong></ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="Student name" Align="Align.Left" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.StudentName))">
+                                                <ChildContent><strong>@context.StudentName</strong></ChildContent>
+                                            </TemplateColumn>
+                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class section" Align="Align.Center" Sortable="true" />
+                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father name" Align="Align.Left" Sortable="true" />
+                                            <TemplateColumn Title="Total dues" Align="Align.Right" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.TotalDues))">
+                                                <ChildContent><span class="@(DuesOf(context) > 0 ? "text-danger fw-semibold" : "")">@Money(DuesOf(context))</span></ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="@BalanceTitle" Align="Align.Right" Sortable="true" SortBy="@(GridSort<StudentListForBalanceAdjustmentResponse>.ByAscending(x => x.Balance))">
+                                                <ChildContent><span class="text-primary fw-semibold">@Money(BalanceOf(context))</span></ChildContent>
+                                            </TemplateColumn>
+                                            <TemplateColumn Title="Adjustment" Align="Align.Center">
+                                                <ChildContent>
+                                                    <button type="button" class="adv-adjust-btn" disabled="@(CanAdjustOf(context) <= 0 || OpeningStudentId != 0)"
+                                                            title="@(BalanceOf(context) >= 0 ? "No advance to adjust" : DuesOf(context) <= 0 ? "No dues to adjust" : "Adjust advance against dues")"
+                                                            @onclick="() => OpenAdjustment(context)">
+                                                        @if (OpeningStudentId == context.StudentId)
+                                                        {
+                                                            <span class="inline-spinner"></span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="bi bi-arrow-left-right"></i>
+                                                        }
+                                                        Adjust
+                                                    </button>
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                        </QuickGrid>
+                                    </div>
+                                </div>
+                                <div class="footer-pagination px-2 py-1">
+                                    <div class="d-flex align-items-center">
+                                        <div class="welcome-text w-100">
+                                            <Paginator State="@pagination" />
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </section>
+                    </div>
+                </div>
+                <div class="modal-footer adv-footer">
+                    <div class="adv-footer-info">
+                        <span>Total records : <strong>@FilteredStudents.Count</strong></span>
+                        <span>Total : <strong class="text-primary">@Money(FilteredStudents.Sum(BalanceOf))</strong></span>
+                    </div>
+                    <div class="form-group btn-gr d-flex mb-0">
+                        <SaveUpdateButton ShowSaveButton="false" Text="Close" OnClickCancel="Close" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsVisible && adjustStudent != null)
+{
+    <div class="custom-modal row m-0 adv-adjust-popup">
+        <div class="col-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Student advance amount adjustment</h5>
+                    <button data-access="Close" type="button" @onclick="CloseAdjustment" class="close" disabled="@IsSaving"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div class="fee-module-content">
+
+                        @* student details: read-only, shown as small cards (not inputs) *@
+                        <div class="row g-2 mb-2">
+                            <div class="col-6 col-md-2"><div class="adv-info"><span>Student no.</span><strong>@adjustStudent.ControlNo</strong></div></div>
+                            <div class="col-6 col-md-3"><div class="adv-info"><span>Student name</span><strong title="@adjustStudent.StudentName">@adjustStudent.StudentName</strong></div></div>
+                            <div class="col-6 col-md-2"><div class="adv-info"><span>Class - section</span><strong>@adjustStudent.ClassSection</strong></div></div>
+                            <div class="col-6 col-md-3"><div class="adv-info"><span>Father name</span><strong title="@adjustStudent.FatherName">@adjustStudent.FatherName</strong></div></div>
+                            <div class="col-12 col-md-2"><div class="adv-info"><span>Session</span><strong>@SessionNameOf(SearchSessionId)</strong></div></div>
+                        </div>
+
+                        <div class="module-summary">
+                            <div class="adv-card adv-card-red"><span>Due amount</span><strong>@Money(TotalDue)</strong></div>
+                            <div class="adv-card adv-card-blue"><span>Advance available</span><strong>@Money(AsMinus(AdjustAdvance))</strong></div>
+                            <div class="adv-card adv-card-teal"><span>Selected adjustment</span><strong>@Money(TotalAdjusting)</strong></div>
+                            <div class="adv-card adv-card-green"><span>Advance left after</span><strong>@Money(AsMinus(AdjustAdvance - TotalAdjusting))</strong></div>
+                        </div>
+
+                        <section class="module-section mb-2">
+                            <div class="module-section-head">
+                                <h3>Fee dues</h3>
+                                <span>Tick the dues to clear from the advance (oldest month first).</span>
+                            </div>
+                            @if (IsLoadingDues)
+                            {
+                                <div class="inline-loader"><span>Loading dues</span><span class="inline-spinner"></span></div>
+                            }
+                            else if (dueRows.Count == 0)
+                            {
+                                <div class="adv-empty"><i class="bi bi-inbox"></i> No dues found. Either challan is not generated or the fee is already paid.</div>
+                            }
+                            else
+                            {
+                                <div class="quick-main p-0">
+                                    <div class="adv-grid-box adv-dues-wrap">
+                                        <QuickGrid Items="@dueRows.AsQueryable()" Class="table adv-table" RowClass="@DueRowClass">
+                                            <TemplateColumn Title="" Align="Align.Center">
+                                                <HeaderTemplate>
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <input type="checkbox" class="check-cell" checked="@AllSelected" @onchange="ToggleAll" title="Select all" />
+                                                    </div>
+                                                </HeaderTemplate>
+                                                <ChildContent>
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <input type="checkbox" class="check-cell" checked="@selectedDues.Contains(context)" @onchange="() => ToggleDue(context)" />
+                                                    </div>
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MonthDisplay) ? "One-time" : x.MonthDisplay)" Title="Month" Align="Align.Center" />
+                                            <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FeeHeadName) ? " " : x.FeeHeadName)" Title="Fee head" Align="Align.Left" />
+                                            <TemplateColumn Title="Amount" Align="Align.Right"><ChildContent>@Money(context.Amount)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Concession" Align="Align.Right"><ChildContent>@Money(context.Concession)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Waive off" Align="Align.Right"><ChildContent>@Money(context.WaiveOff)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Received" Align="Align.Right"><ChildContent>@Money(context.ReceivedAmt)</ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Balance" Align="Align.Right"><ChildContent><span class="fw-semibold">@Money(context.Payable)</span></ChildContent></TemplateColumn>
+                                            <TemplateColumn Title="Adjusting" Align="Align.Right">
+                                                <ChildContent>
+                                                    @{ var adjusting = AdjustingOf(context); }
+                                                    @if (adjusting > 0)
+                                                    {
+                                                        <span class="adv-pill @(adjusting < context.Payable ? "part" : "")" title="@(adjusting < context.Payable ? "Partly adjusted, advance is not enough for the full balance" : "")">@Money(adjusting)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </ChildContent>
+                                            </TemplateColumn>
+                                        </QuickGrid>
+                                    </div>
+                                </div>
+                            }
+                        </section>
+
+                        <div class="field">
+                            <label>Remark</label>
+                            <input @bind="AdjustRemark" maxlength="250" placeholder="Advance adjusted against dues" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer adv-footer">
+                    <div class="adv-footer-info">
+                        <span>Total record(s) : <strong>@dueRows.Count</strong></span>
+                        <span>Selected : <strong>@selectedDues.Count</strong></span>
+                    </div>
+                    <div class="form-group btn-gr d-flex mb-0">
+                        <SaveUpdateButton ShowSaveButton="false" Text="Close" OnClickCancel="CloseAdjustment" />
+                        <div class="form-box">
+                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" disabled="@(IsSaving || TotalAdjusting <= 0)" @onclick="ApplyAdjustment">
+                                <div class="visible content justify-content-center">@(IsSaving ? "Applying..." : "Apply")</div>
+                                <div class="hidden content">
+                                    <i class="bi bi-check2-circle"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public long SessionId { get; set; }
+    [Parameter] public List<SessionModel> Sessions { get; set; } = new();
+    [Parameter] public List<BranchClassModel> Classes { get; set; } = new();
+    [Parameter] public string? GroupCode { get; set; }
+    [Parameter] public string? BranchCode { get; set; }
+    [Parameter] public string? UserName { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    // a student's advance was adjusted (Fee Collection reloads it when the same student is open there)
+    [Parameter] public EventCallback<long> OnAdjusted { get; set; }
+
+    private const int SessionStartMonth = 4;
+    // receipt of an adjustment is saved like a counter receipt with cash 0
+    private const string AdjustPaymentMode = "Cash";
+
+    private static readonly string[] TransactionTypes = { "ADVANCE", "ADJUSTMENT", "WAIVE OFF" };
+
+    private bool wasVisible;
+    private string TransactionType = "ADVANCE";
+    // type of the list on screen (the dropdown can be changed before searching again)
+    private string SearchedType = "ADVANCE";
+    private long SearchSessionId;
+    private string SearchClassCode = "";
+    private string SearchSectionId = "";
+    private string SearchGender = "";
+    private string SearchStudentNo = "";
+    private string SearchStudentName = "";
+    private string SearchHasAmount = "";
+    private string QuickFilter = "";
+    private bool IsSearching;
+    private bool HasSearched;
+    private long LastAdjustedStudentId;
+    private long OpeningStudentId;
+    private List<SectionModel> sectionlist = new();
+    private List<GenderModal> genderlist = new();
+    private List<StudentListForBalanceAdjustmentResponse> students = new();
+    private PaginationState pagination = new() { ItemsPerPage = 50 };
+
+    private string BalanceTitle => $"{TypeLabel(SearchedType)} amount";
+    private string? StudentRowClass(StudentListForBalanceAdjustmentResponse row) => row.StudentId == LastAdjustedStudentId ? "adv-row-done" : null;
+    private string? DueRowClass(FeeCollectionDuesNew row) => selectedDues.Contains(row) ? "adv-row-selected" : null;
+
+    // adjustment popup
+    private StudentDetailsForFee? adjustStudent;
+    private List<FeeCollectionDuesNew> dueRows = new();
+    private readonly HashSet<FeeCollectionDuesNew> selectedDues = new();
+    private bool IsLoadingDues;
+    private bool IsSaving;
+    private string AdjustRemark = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // fresh screen every time it is opened: ADVANCE, session of Fee Collection, other filters empty -> list loads
+        var opened = IsVisible && !wasVisible;
+        wasVisible = IsVisible;
+        if (!opened)
+            return;
+
+        TransactionType = SearchedType = "ADVANCE";
+        SearchSessionId = SessionId;
+        SearchClassCode = SearchSectionId = SearchGender = SearchStudentNo = SearchStudentName = QuickFilter = "";
+        sectionlist = new();
+        students = new();
+        HasSearched = false;
+        LastAdjustedStudentId = 0;
+        adjustStudent = null;
+
+        if (genderlist.Count == 0)
+        {
+            try
+            {
+                genderlist = await httpService.Get<List<GenderModal>>("gender/GetGender") ?? new();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading gender: {ex.Message}");
+            }
+        }
+        await SearchStudents();
+    }
+
+    // ---------------- student list ----------------
+
+    private static string TypeLabel(string type) => type switch
+    {
+        "ADJUSTMENT" => "Adjustment",
+        "WAIVE OFF" => "Waive off",
+        _ => "Advance"
+    };
+
+    // API sends Balance / TotalDues as nullable: null = 0
+    private static decimal BalanceOf(StudentListForBalanceAdjustmentResponse s) => s.Balance ?? 0;
+    private static decimal DuesOf(StudentListForBalanceAdjustmentResponse s) => s.TotalDues ?? 0;
+
+    // Balance negative = advance with the school; it can clear dues up to the smaller of the two
+    private static decimal CanAdjustOf(StudentListForBalanceAdjustmentResponse s) =>
+        BalanceOf(s) < 0 && DuesOf(s) > 0 ? Math.Min(DuesOf(s), -BalanceOf(s)) : 0;
+
+    private List<StudentListForBalanceAdjustmentResponse> FilteredStudents
+    {
+        get
+        {
+            var term = QuickFilter?.Trim();
+            if (string.IsNullOrEmpty(term))
+                return students;
+            return students.Where(x =>
+                    Contains(x.ControlNo, term) || Contains(x.StudentName, term) ||
+                    Contains(x.ClassSection, term) || Contains(x.FatherName, term))
+                .ToList();
+        }
+    }
+
+    // new search / filter -> back to the first page of the grid
+    private Task ResetPage() => pagination.SetCurrentPageIndexAsync(0);
+
+    private static bool Contains(string? value, string term) =>
+        !string.IsNullOrEmpty(value) && value.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+    private async Task OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchStudents();
+    }
+
+    // a different type is a different list: load it straight away
+    private async Task OnTransactionTypeChanged() => await SearchStudents();
+
+    private void ClearList()
+    {
+        students = new();
+        HasSearched = false;
+    }
+
+    private async Task OnClassChanged()
+    {
+        SearchSectionId = "";
+        sectionlist = new();
+        if (string.IsNullOrEmpty(SearchClassCode))
+            return;
+        try
+        {
+            var request = new SearchAnyRequestModel { GroupCode = GroupCode, BranchCode = BranchCode, RequestName = SearchClassCode };
+            var response = await httpService.Post<ApiResponse<List<SectionModel>>>("ClassSection/GetClassWithSection", request);
+            if (response?.Success == true)
+                sectionlist = response.Data ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading sections: {ex.Message}");
+        }
+    }
+
+    // StudentFee/GetStudentListForBalanceAdjustmentData: group, branch, session + type; empty filter = all
+    private async Task SearchStudents()
+    {
+        if (SearchSessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select session.");
+            return;
+        }
+        if (IsSearching)
+            return;
+        try
+        {
+            IsSearching = true;
+            StateHasChanged();
+            var request = new StudentListForBalanceAdjustmentRequest
+            {
+                GroupCode = GroupCode ?? "",
+                BranchCode = BranchCode ?? "",
+                SessionId = SearchSessionId,
+                TransType = string.IsNullOrWhiteSpace(TransactionType) ? "ADVANCE" : TransactionType,
+                ClassCode = SearchClassCode ?? "",
+                SectionCode = SearchSectionId ?? "",
+                Gender = SearchGender ?? "",
+                ControlNo = SearchStudentNo?.Trim() ?? "",
+                FirstName = SearchStudentName?.Trim() ?? "",
+                // HasAmount: empty for now (SP filter not used yet); set it here when its values are decided
+                HasAmount = SearchHasAmount
+            };
+            var response = await httpService.Post<ApiResponse<List<StudentListForBalanceAdjustmentResponse>>>("StudentFee/GetStudentListForBalanceAdjustmentData", request);
+            students = response?.Success == true && response.Data != null ? response.Data : new();
+            SearchedType = request.TransType;
+            HasSearched = true;
+            await ResetPage();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching balance adjustment students: {ex.Message}");
+            students = new();
+            HasSearched = true;
+            await Alert.ShowError("Unable to load students. Please try again.");
+        }
+        finally
+        {
+            IsSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Close()
+    {
+        adjustStudent = null;
+        await OnClose.InvokeAsync();
+    }
+
+    // ---------------- adjustment popup ----------------
+
+    // advance = negative student balance (PreviousBalance of the fresh student details)
+    private decimal AdjustAdvance => adjustStudent == null ? 0 : Math.Max(0, -adjustStudent.PreviousBalance);
+    private decimal TotalDue => dueRows.Sum(x => x.Payable);
+    private bool AllSelected => dueRows.Count > 0 && selectedDues.Count == dueRows.Count;
+
+    // advance is used on the selected rows in grid order (oldest month first)
+    private Dictionary<FeeCollectionDuesNew, decimal> Allocation
+    {
+        get
+        {
+            var result = new Dictionary<FeeCollectionDuesNew, decimal>();
+            var remaining = AdjustAdvance;
+            foreach (var row in dueRows.Where(selectedDues.Contains))
+            {
+                var amount = Math.Max(0, Math.Min(row.Payable, remaining));
+                result[row] = amount;
+                remaining -= amount;
+            }
+            return result;
+        }
+    }
+
+    private decimal AdjustingOf(FeeCollectionDuesNew row) => Allocation.TryGetValue(row, out var v) ? v : 0;
+    private decimal TotalAdjusting => Allocation.Values.Sum();
+
+    // the list row has no class code / section id / current balance, which the save needs:
+    // read the student's fee details (same as Fee Collection) by student no. first
+    private async Task OpenAdjustment(StudentListForBalanceAdjustmentResponse row)
+    {
+        if (OpeningStudentId != 0)
+            return;
+        StudentDetailsForFee? student = null;
+        try
+        {
+            OpeningStudentId = row.StudentId;
+            StateHasChanged();
+            var detailsRequest = new StudentDetailsForFeeRequest
+            {
+                GroupCode = GroupCode ?? "",
+                BranchCode = BranchCode ?? "",
+                SessionId = SearchSessionId,
+                ControlNo = row.ControlNo?.Trim() ?? "",
+                StudentName = "",
+                ReceiptDate = DateTime.Today
+            };
+            var details = await httpService.Post<ApiResponse<List<StudentDetailsForFee>>>("StudentFee/GetStudentDetailsForFee", detailsRequest);
+            student = details?.Data?.FirstOrDefault(x => x.StudentId == row.StudentId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading student for adjustment: {ex.Message}");
+        }
+        finally
+        {
+            OpeningStudentId = 0;
+            StateHasChanged();
+        }
+
+        if (student == null)
+        {
+            await Alert.ShowWarning("Student details not found. Please search again.");
+            return;
+        }
+        if (student.PreviousBalance >= 0)
+        {
+            await Alert.ShowWarning("This student has no advance to adjust.");
+            await SearchStudents();
+            return;
+        }
+
+        adjustStudent = student;
+        dueRows = new();
+        selectedDues.Clear();
+        AdjustRemark = "";
+        IsLoadingDues = true;
+        StateHasChanged();
+        try
+        {
+            var request = new GetStudentFeeHeadDuesForAdjustmentRequest
+            {
+                GroupCode = GroupCode ?? "",
+                BranchCode = BranchCode ?? "",
+                SessionId = SearchSessionId,
+                StudentId = student.StudentId,
+                BankAccountId = "0",
+                TillDate = ""
+            };
+            var response = await httpService.Post<ApiResponse<List<FeeCollectionDuesNew>>>("StudentFee/GetStudentFeeCollectionDues", request);
+            dueRows = (response?.Success == true && response.Data != null ? response.Data : new())
+                .Where(x => x.Payable > 0)
+                .Select((row, i) => (row, i))
+                .OrderBy(x => MonthOrder(x.row.MonthNo))
+                .ThenBy(x => x.i)
+                .Select(x => x.row)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dues for adjustment: {ex.Message}");
+            await Alert.ShowError("Unable to load the student's dues. Please try again.");
+        }
+        finally
+        {
+            IsLoadingDues = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseAdjustment()
+    {
+        if (IsSaving)
+            return;
+        adjustStudent = null;
+        dueRows = new();
+        selectedDues.Clear();
+    }
+
+    private async Task ToggleDue(FeeCollectionDuesNew row)
+    {
+        if (selectedDues.Remove(row))
+            return;
+        // all the advance is already used by the rows ticked before
+        if (TotalAdjusting >= AdjustAdvance)
+        {
+            await Alert.ShowWarning($"Advance {Money(AdjustAdvance)} is already fully used by the selected dues.");
+            return;
+        }
+        selectedDues.Add(row);
+    }
+
+    // select all = tick rows from the oldest month while advance is left
+    private void ToggleAll()
+    {
+        if (AllSelected || selectedDues.Count > 0)
+        {
+            selectedDues.Clear();
+            return;
+        }
+        var remaining = AdjustAdvance;
+        foreach (var row in dueRows)
+        {
+            if (remaining <= 0)
+                break;
+            selectedDues.Add(row);
+            remaining -= row.Payable;
+        }
+    }
+
+    private async Task ApplyAdjustment()
+    {
+        if (adjustStudent == null || IsSaving)
+            return;
+        var allocation = Allocation.Where(x => x.Value > 0).ToList();
+        var adjusted = allocation.Sum(x => x.Value);
+        if (allocation.Count == 0 || adjusted <= 0)
+        {
+            await Alert.ShowWarning("Please select the dues to adjust.");
+            return;
+        }
+        if (adjusted > AdjustAdvance)
+        {
+            await Alert.ShowWarning("Adjustment cannot be more than the advance.");
+            return;
+        }
+        if (!await Alert.ShowConfirm($"{Money(adjusted)} of the advance will be adjusted against the selected dues of {adjustStudent.StudentName}. Continue?"))
+            return;
+
+        try
+        {
+            IsSaving = true;
+            StateHasChanged();
+
+            var student = adjustStudent;
+            var advanceLeft = AdjustAdvance - adjusted;
+            var request = new AdjustStudentFeeHeadWiseRequest
+            {
+                GroupCode = GroupCode ?? "",
+                BranchCode = BranchCode ?? "",
+                SessionId = SearchSessionId,
+                StudentId = student.StudentId,
+                ClassCode = student.ClassCode,
+                SectionId = student.SectionId,
+                // no cash: the fee heads are paid from the advance (PreviousBalance) by the SP
+                PaidAmount = 0,
+                // advance not used stays as negative balance; otherwise the net dues stay as they are
+                Balance = advanceLeft > 0 ? -advanceLeft : Math.Max(0, student.StudentBalance),
+                ReceiptTotalAmount = Math.Max(0, student.StudentBalance),
+                PaymentMode = AdjustPaymentMode,
+                ChequeNo = "",
+                ChequeDate = null,
+                ChequeBank = "",
+                ChequeType = "",
+                LateFee = 0,
+                PreviousBalance = student.PreviousBalance,
+                Remark = string.IsNullOrWhiteSpace(AdjustRemark) ? "Advance adjusted against dues" : AdjustRemark.Trim(),
+                SocietyId = 0,
+                CreatedBy = UserName ?? "",
+                ReceiptDate = DateTime.Today,
+                BankAccountId = 1,
+                BankBranch = "",
+                FeeHeadDetails = allocation.Select(p => new FeeHeadDetailModel
+                {
+                    FeeHeadId = p.Key.FeeHeadId,
+                    PaidAmount = p.Value,
+                    LumpsumAmount = p.Key.Amount,
+                    MonthNoCsv = p.Key.MonthNo.ToString(),
+                    FeeHeadAmount = p.Key.Amount,
+                    Concession = p.Key.Concession,
+                    Deduction = p.Key.WaiveOff,
+                    StatusFlag = p.Key.Status.ToString(),
+                    DetInvoiceId = p.Key.DetInvoiceId,
+                    AdjustAmount = p.Key.Payable
+                }).ToList()
+            };
+
+            var response = await httpService.Post<ApiResponse<AdjustStudentFeeHeadWiseResponse>>("StudentFee/AdjustStudentFeeCollection", request);
+            if (response != null && response.Success && response.Data != null)
+            {
+                IsSaving = false;
+                LastAdjustedStudentId = student.StudentId;
+                adjustStudent = null;
+                dueRows = new();
+                selectedDues.Clear();
+                await Alert.ShowSuccess($"Advance adjusted successfully. Receipt No: {response.Data.StudentReceiptNo}");
+                await OnAdjusted.InvokeAsync(student.StudentId);
+                // advance / dues of the student changed: reload the list
+                await SearchStudents();
+            }
+            else
+            {
+                await Alert.ShowWarning(!string.IsNullOrWhiteSpace(response?.Message) && response?.Success == false
+                    ? response.Message
+                    : "Advance could not be adjusted. Please try again.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adjusting advance: {ex.Message}");
+            await Alert.ShowError("Unable to adjust the advance. Please try again.");
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // ---------------- helpers ----------------
+
+    private static int MonthOrder(int monthNo) => monthNo == 0 ? -1 : (monthNo - SessionStartMonth + 12) % 12;
+
+    private string SessionNameOf(long id) => Sessions.FirstOrDefault(x => x.SessionId == id)?.SessionName ?? "";
+
+    private static decimal AsMinus(decimal amount) => amount > 0 ? -amount : 0m;
+
+    private static readonly System.Globalization.NumberFormatInfo RupeeFormat = new()
+    {
+        NumberGroupSizes = new[] { 3, 2 },
+        NumberGroupSeparator = ",",
+        NumberDecimalSeparator = ".",
+        NumberDecimalDigits = 2
+    };
+
+    private static string Money(decimal value) =>
+        (value < 0 ? "-₹" : "₹") + Math.Abs(value).ToString("N2", RupeeFormat);
+}

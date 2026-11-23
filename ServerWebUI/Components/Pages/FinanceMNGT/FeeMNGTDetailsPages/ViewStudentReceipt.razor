@@ -17,12 +17,11 @@
     }
         .quickgrid thead th:nth-last-child(2) {
     min-width: 75px;
-}
-.quickgrid thead th:last-child {
-    min-width: 75px;
-}
-    /* receipt popups / cancel styles: StudentReceiptActions.razor */
-    /* long Period / Remarks in the grid: short text, full text on hover + click */
+    }
+    .quickgrid thead th:last-child {
+        min-width: 75px;
+    }
+ 
     .vsr-more {
         cursor: pointer;
         color: #0d6efd;
@@ -47,7 +46,6 @@
             <PageHeading Tittle="View Student Receipt">
                 <LeadingContent><BackToFeeAccount /></LeadingContent>
                 <ChildContent>
-                @* Status: All = -1, Active = 1, Cancelled = 0 *@
                 <div class="form-box">
                     <div class="border-box d-flex justify-content-center align-items-center gap-3">
                         <InputRadioGroup @bind-Value="request.Status">
@@ -138,8 +136,17 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ConcessionName) ? " " : x.ConcessionName)" Title="Concession Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => Money(x.Balance))" Title="Balance" Class="text-right" Align="Align.Right" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.PaymentMode) ? " " : x.PaymentMode)" Title="Mode" Class="text-center" Align="Align.Center" />
-                                @* long period / remark: short text + "...", full text on hover (tooltip) and on click (popup) *@
-                                <TemplateColumn Title="Period" Align="Align.Left">
+                               
+                                <TemplateColumn Title="Period" Sortable="true" Align="Align.Left">
+                                    <span class="custom-tooltip" data-tooltip="@context.PeriodName">
+                                        @(string.IsNullOrWhiteSpace(context.PeriodName)
+                                            ? ""
+                                            : (context.PeriodName.Length > 30
+                                                ? context.PeriodName.Substring(0, 30) + "..."
+                                                : context.PeriodName))
+                                    </span>
+                                </TemplateColumn>
+                                @* <TemplateColumn Title="Period" Align="Align.Left">
                                     @if (IsLongPeriod(context.PeriodName))
                                     {
                                         <span class="vsr-more" title="@context.PeriodName" @onclick='() => OpenFullText(context, context.PeriodName!, "Period")' @onclick:stopPropagation="true">@ShortPeriod(context.PeriodName!)</span>
@@ -148,8 +155,8 @@
                                     {
                                         @(string.IsNullOrWhiteSpace(context.PeriodName) ? " " : context.PeriodName)
                                     }
-                                </TemplateColumn>
-                                <TemplateColumn Title="Remarks" Align="Align.Left">
+                                </TemplateColumn> *@
+                                @* <TemplateColumn Title="Remarks" Align="Align.Left">
                                     @if (IsLongRemark(context.Remark))
                                     {
                                         <span class="vsr-more" title="@context.Remark" @onclick='() => OpenFullText(context, context.Remark!, "Remarks")' @onclick:stopPropagation="true">@ShortRemark(context.Remark!)</span>
@@ -158,28 +165,31 @@
                                     {
                                         @(string.IsNullOrWhiteSpace(context.Remark) ? " " : context.Remark)
                                     }
+                                </TemplateColumn> *@
+                                <TemplateColumn Title="Remarks" Sortable="true" Align="Align.Left">
+                                    <span class="custom-tooltip" data-tooltip="@context.Remark">
+                                        @(string.IsNullOrWhiteSpace(context.Remark)
+                                            ? ""
+                                            : (context.Remark.Length > 30
+                                                ? context.Remark.Substring(0, 30) + "..."
+                                                : context.Remark))
+                                    </span>
                                 </TemplateColumn>
                                 <PropertyColumn Property="@(x => x.ReceiptDate.HasValue ? x.ReceiptDate.Value.ToString("dd/MM/yyyy") : " ")" Title="Date" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Status" Class="text-center" Align="Align.Center">
-                                    @* active receipt -> Done (green), cancelled -> Not Done (red) *@
                                     @if (context.Valid == true)
                                     {
                                         <span class="badge rounded-pill bg-success">  <i class="bi bi-check-circle-fill"></i> Done</span>
-                                        @* <span class="d-inline-flex align-items-center justify-content-center gap-1 text-success fw-semibold text-nowrap">
-                                           
-                                        </span> *@
+                                       
                                     }
                                     else
                                     {
                                          <span class="badge rounded-pill bg-danger"> <i class="bi bi-x-circle-fill"></i> Not Done</span>
-                                        @* <span class="d-inline-flex align-items-center justify-content-center gap-1 text-danger fw-semibold text-nowrap">
-                                           
-                                        </span> *@
+                                       
                                     }
                                 </TemplateColumn>
                             </QuickGrid>
                         </div>
-                        @* totals of the whole searched list, shown inside the grid above the pager *@
                         
                         <div class="footer-pagination">
                             <div class="d-flex align-items-center">

@@ -3244,9 +3244,36 @@ namespace DomainModel.FinanceMNGT
     }
     public class StudentReceiptHeadWiseResponse
     {
-        public Dictionary<string, object?> Values { get; set; }
-            = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, object?> Values { get; set; }= new(StringComparer.OrdinalIgnoreCase);
     }
+    #region-----------------------Student Advance  Balance Adjesment----------------
+    public class StudentListForBalanceAdjustmentRequest
+    {
+        public string? GroupCode { get; set; }
+        public string? BranchCode { get; set; }
+        public long SessionId { get; set; }
+        public string ClassCode { get; set; } = "";
+        public string SectionCode { get; set; } = "";
+        public string Gender { get; set; } = "";
+        public string ControlNo { get; set; } = "";
+        public string FirstName { get; set; } = "";
+        public string? TransType { get; set; }
+        public string HasAmount { get; set; } = "";
+    }
+
+    public class StudentListForBalanceAdjustmentResponse
+    {
+        public long BalanceId { get; set; }
+        public long StudentId { get; set; }
+        public decimal? Balance { get; set; }
+        public string? RollNo { get; set; }
+        public string? ControlNo { get; set; }
+        public string? StudentName { get; set; }
+        public string? FatherName { get; set; }
+        public string? ClassSection { get; set; }
+        public decimal? TotalDues { get; set; }
+    }
+    #endregion
 }
 
 

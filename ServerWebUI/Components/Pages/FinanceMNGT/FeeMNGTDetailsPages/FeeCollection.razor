@@ -955,7 +955,12 @@
                             <div class="field"><label>Admission no.</label><input value="0174" /></div>
                             <div class="field"><label>Student name</label><input value="Mahesh Kumar" /></div>
                             <div class="field"><label>Class-section</label><input value="I-A" /></div>
-                            <button type="button" class="btn-preview">Search</button>
+                                <button class="ui fade op-1 animated button form-btn" tabindex="0" >
+                                    <div class="visible content justify-content-center">Search</div>
+                                    <div class="hidden content">
+                                        <i class="bi bi-search"></i>
+                                    </div>
+                                </button>
                         </div>
 
                         <div class="module-grid">
@@ -1149,84 +1154,10 @@
     </div>
 }
 
-@if (ShowAdjustPopup)
-{
-    <div class="custom-modal row m-0">
-        <div class="col-12 col-xl-11">
-            <div class="modal-content clearfix main-popup">
-                <div class="head-btn">
-                    <h5 class="modal-title">Adjust student advance</h5>
-                    <button data-access="Close" type="button" @onclick="CloseAdjustPopup" class="close"><span aria-hidden="true">&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <div class="fee-module-content">
-                        <p class="fee-head-sub mb-3">Search a student and allocate available advance against dues.</p>
-
-                        <div class="module-toolbar">
-                            <div class="field">
-                                <label>Transaction type</label>
-                                <select>
-                                    <option>Advance</option>
-                                    <option>Waive off</option>
-                                    <option>Adjustment</option>
-                                </select>
-                            </div>
-                            <div class="field"><label>Session</label><select><option>2026-27</option></select></div>
-                            <div class="field"><label>Admission no.</label><input value="0174" /></div>
-                            <div class="field"><label>Student name</label><input value="Mahesh Kumar" /></div>
-                            <button type="button" class="btn-preview">Search</button>
-                        </div>
-
-                        <div class="module-summary">
-                            <div class="summary-tile"><span>Total dues</span><strong>@Money(70820)</strong></div>
-                            <div class="summary-tile"><span>Advance available</span><strong>@Money(0)</strong></div>
-                            <div class="summary-tile"><span>Adjusting now</span><strong>@Money(0)</strong></div>
-                            <div class="summary-tile featured"><span>Balance after adjustment</span><strong>@Money(70820)</strong></div>
-                        </div>
-
-                        <section class="module-section">
-                            <div class="module-section-head"><h3>Student advance and dues</h3><span>1 student found</span></div>
-                            <div class="module-table-wrap">
-                                <table class="module-table">
-                                    <thead><tr><th>Admission no.</th><th>Student</th><th>Class</th><th>Father</th><th class="num">Total dues</th><th class="num">Advance</th><th class="num">Adjustment</th></tr></thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>0174</td>
-                                            <td><strong>Mahesh Kumar</strong></td>
-                                            <td>I-A</td>
-                                            <td>Ram Kumar</td>
-                                            <td class="num">@Money(70820)</td>
-                                            <td class="num">@Money(0)</td>
-                                            <td><input class="module-input num" type="number" value="0" min="0" /></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="form-group btn-gr d-flex">
-                        <SaveUpdateButton ShowSaveButton="false" Text="Close" OnClickCancel="CloseAdjustPopup" />
-                        <div class="form-box">
-
-                            <button class="ui fade op-1 animated button form-btn w-100" tabindex="0" @onclick="CloseAdjustPopup">
-                                <div class="visible content justify-content-center">Apply adjustment</div>
-                                <div class="hidden content">
-                                    <i class="bi bi-arrow-repeat"></i>
-                                </div>
-                            </button>
-                        </div>
-
-
-                    </div>
-
-
-                </div>
-            </div>
-        </div>
-    </div>
-}
+@* Adjust advance: full screen list of students with advance + adjustment popup *@
+<AdjustStudentAdvance IsVisible="@ShowAdjustPopup" SessionId="@CurrentSession" Sessions="@sessionlist" Classes="@classlist"
+                      GroupCode="@groupcode" BranchCode="@branchcode" UserName="@UserName"
+                      OnClose="@CloseAdjustPopup" OnAdjusted="@OnAdvanceAdjusted" />
 
 
 @* concession just mapped -> approve / reject it from here (same APIs as the Student Concession page) *@
@@ -2138,6 +2069,15 @@ else
 
     private void OpenAdjustPopup() { ShowAdjustPopup = true; StateHasChanged(); }
     private void CloseAdjustPopup() { ShowAdjustPopup = false; StateHasChanged(); }
+
+    // advance of the student open on this page was adjusted from the Adjust advance screen: reload its balance and dues
+    private async Task OnAdvanceAdjusted(long studentId)
+    {
+        if (!IsStudentSelected || selectedStudent.StudentId != studentId)
+            return;
+        await RefreshSelectedStudentBalance();
+        await GetStudentFeeDetails(resetWhenEmpty: false);
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
