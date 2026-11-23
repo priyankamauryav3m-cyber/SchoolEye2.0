@@ -4522,6 +4522,286 @@ body:has(.fee-collection-page) .swal2-container {
     z-index: 1000000000 !important;
 }
 
+/* ---------- Adjust student advance (AdjustStudentAdvance.razor): full screen list + adjustment popup ---------- */
+.fee-collection-page .adv-adjust-screen {
+    padding: 12px !important;
+}
+
+    .fee-collection-page .adv-adjust-screen .main-popup.adv-full {
+        height: calc(100vh - 24px);
+        max-height: calc(100vh - 24px);
+        display: flex;
+        flex-direction: column;
+    }
+
+        .fee-collection-page .adv-adjust-screen .main-popup.adv-full .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .fee-collection-page .adv-adjust-screen .main-popup.adv-full .modal-body > .fee-module-content {
+                flex: 1 1 auto;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+    .fee-collection-page .adv-adjust-screen .module-section {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fee-collection-page .adv-adjust-screen .adv-grid-wrap {
+        flex: 1 1 auto;
+        min-height: 160px;
+    }
+
+/* the adjustment popup opens over the full screen list */
+.fee-collection-page .adv-adjust-popup {
+    z-index: 1000000000 !important;
+    justify-content: center;
+}
+
+.fee-collection-page .fee-module-content .module-toolbar.adv-toolbar {
+    grid-template-columns: 130px 140px minmax(120px, 1fr) 110px 110px minmax(110px, 1fr) minmax(140px, 1.3fr) auto;
+}
+
+.fee-collection-page .adv-search-btn {
+    height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 9px;
+    color: #fff;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1769aa, #0b2948);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+    .fee-collection-page .adv-search-btn:disabled {
+        opacity: .7;
+    }
+
+/* read-only amounts as small coloured cards */
+.fee-collection-page .adv-card {
+    border-radius: 11px;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-left-width: 4px;
+}
+
+    .fee-collection-page .adv-card span {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: 750;
+        letter-spacing: .35px;
+        opacity: .85;
+    }
+
+    .fee-collection-page .adv-card strong {
+        display: block;
+        text-align: right;
+        font-size: 18px;
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+    }
+
+.fee-collection-page .adv-card-slate { background: #f3f6fa; border-color: #dbe4ee; border-left-color: #64748b; color: #334155; }
+.fee-collection-page .adv-card-red { background: #fef2f2; border-color: #fbd5d5; border-left-color: #dc2626; color: #991b1b; }
+.fee-collection-page .adv-card-blue { background: #eff6ff; border-color: #cfe0fb; border-left-color: #1d4ed8; color: #1e3a8a; }
+.fee-collection-page .adv-card-green { background: #ecfdf5; border-color: #c6eedb; border-left-color: #15835b; color: #14532d; }
+.fee-collection-page .adv-card-teal {
+    color: #fff;
+    background: linear-gradient(135deg, #0b2948, #14577d);
+    border-left-color: #2dd4bf;
+}
+
+/* student details in the adjustment popup (read-only, small cards in bootstrap cols) */
+.fee-collection-page .adv-info {
+    background: #f5f8fb;
+    border: 1px solid #dbe4ee;
+    border-radius: 10px;
+    padding: 8px 12px;
+    min-width: 0;
+}
+
+    .fee-collection-page .adv-info span {
+        display: block;
+        color: #68778a;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+
+    .fee-collection-page .adv-info strong {
+        display: block;
+        color: #0b2948;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+.fee-collection-page .adv-quick-filter {
+    position: relative;
+    width: min(340px, 100%);
+}
+
+    .fee-collection-page .adv-quick-filter i {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #8a99ab;
+        font-size: 13px;
+    }
+
+    .fee-collection-page .adv-quick-filter input {
+        width: 100%;
+        height: 34px;
+        border: 1px solid #cbd8e5;
+        border-radius: 8px;
+        padding: 0 10px 0 30px;
+        outline: none;
+        font: inherit;
+        font-size: 13px;
+    }
+
+/* grid header stays on top while the rows scroll */
+.fee-collection-page .adv-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.fee-collection-page .adv-table tbody tr:hover td {
+    background: #f7fafd;
+}
+
+.fee-collection-page .adv-table .adv-row-selected td {
+    background: #e8f6f6 !important;
+}
+
+.fee-collection-page .adv-table .adv-row-done td {
+    background: #ecfdf5;
+}
+
+.fee-collection-page .adv-empty {
+    text-align: center;
+    color: #68778a;
+    padding: 28px 12px !important;
+}
+
+/* QuickGrid boxes: rows scroll inside, header stays */
+.fee-collection-page .adv-grid-box {
+    overflow: auto;
+    height: 100%;
+}
+
+    .fee-collection-page .adv-grid-box .table {
+        margin-bottom: 0;
+    }
+
+.fee-collection-page .adv-adjust-screen .adv-grid-wrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+    .fee-collection-page .adv-adjust-screen .adv-grid-wrap .adv-grid-box {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+.fee-collection-page .adv-dues-wrap {
+    height: auto;
+    max-height: calc(100vh - 430px);
+    min-height: 140px;
+}
+
+.fee-collection-page .adv-adjust-btn {
+    border: 1px solid #1769aa;
+    background: #fff;
+    color: #1769aa;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+    .fee-collection-page .adv-adjust-btn:hover:not(:disabled) {
+        background: #1769aa;
+        color: #fff;
+    }
+
+    .fee-collection-page .adv-adjust-btn:disabled {
+        border-color: #cbd5e1;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+
+.fee-collection-page .adv-pill {
+    display: inline-block;
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 2px 10px;
+}
+
+    .fee-collection-page .adv-pill.part {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+.fee-collection-page .adv-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.fee-collection-page .adv-footer-info {
+    display: flex;
+    gap: 22px;
+    color: #5a6b7d;
+    font-size: 13px;
+}
+
+html.dark-mode .fee-collection-page .adv-info,
+html.dark-mode .fee-collection-page .adv-card-slate {
+    background: rgba(255,255,255,.05);
+}
+
+@media (max-width: 1200px) {
+    .fee-collection-page .fee-module-content .module-toolbar.adv-toolbar {
+        grid-template-columns: repeat(4, minmax(130px, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .fee-collection-page .fee-module-content .module-toolbar.adv-toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .fee-collection-page .adv-adjust-screen .main-popup.adv-full .modal-body {
+        overflow: auto;
+    }
+}
+
 /* ---------- "Loading" text with a small spinning circle after it ---------- */
 .fee-collection-page .inline-loader {
     display: flex;

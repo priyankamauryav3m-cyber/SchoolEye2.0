@@ -339,5 +339,62 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
+        [HttpPost("GetStudentListForBalanceAdjustmentData")]
+        public async Task<IActionResult> GetStudentListForBalanceAdjustment([FromBody] StudentListForBalanceAdjustmentRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Data not found.",
+                    Code = 0
+                });
+            }
+
+            try
+            {
+                var data = await _studentFeeRepository.GetStudentListForBalanceAdjustment(request);
+
+                if (data == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid TransType. Use Advance, Adjustment or Waive Off.",
+                        Code = 0
+                    });
+                }
+
+                if (!data.Any())
+                {
+                    return Ok(new ApiResponse<IEnumerable<StudentListForBalanceAdjustmentResponse>>
+                    {
+                        Success = true,
+                        Message = "No records found.",
+                        Code = 0,
+                        Data = Enumerable.Empty<StudentListForBalanceAdjustmentResponse>()
+                    });
+                }
+
+                return Ok(new ApiResponse<IEnumerable<StudentListForBalanceAdjustmentResponse>>
+                {
+                    Success = true,
+                    Message = "Student list retrieved successfully.",
+                    Code = 1,
+                    Data = data
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while fetching the student list.",
+                    Code = -1
+                });
+            }
+        }
     }
 }

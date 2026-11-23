@@ -49,11 +49,8 @@
                                                 Align="Align.Left" /> *@
                                 <TemplateColumn Title="Remarks" Sortable="true" Align="Align.Left">
                                     <span class="custom-tooltip" data-tooltip="@context.Remarks">
-                                        @(string.IsNullOrWhiteSpace(context.Remarks)
-                                            ? ""
-                                            : (context.Remarks.Length > 30
-                                                ? context.Remarks.Substring(0, 30) + "..."
-                                                : context.Remarks))
+                                        @(string.IsNullOrWhiteSpace(context.Remarks)  ? "" : (context.Remarks.Length > 30
+                                                ? context.Remarks.Substring(0, 30) + "...": context.Remarks))
                                     </span>
                                 </TemplateColumn>
                                 <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" Class="text-center" Sortable="true" Align="Align.Center">
