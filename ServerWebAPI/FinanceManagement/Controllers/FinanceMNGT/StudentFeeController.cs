@@ -396,5 +396,66 @@ namespace ServerWebAPI.FinanceManagement.Controllers.FinanceMNGT
                 });
             }
         }
+
+        // Adjust advance -> Apply. TransType ADVANCE / ADJUSTMENT: advance is adjusted against the selected
+        // dues by V3M_FIN_UspAdjustAdvanceAmount; WAIVE OFF: the waive off amount by V3M_FIN_UspAdjustWaiveOffAmount.
+        [HttpPost("AdjustAdvanceAmount")]
+        public async Task<IActionResult> AdjustAdvanceAmount([FromBody] AdjustAdvanceAmountRequest request)
+        {
+            if (request == null)
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Invalid request.", Code = 0 });
+
+            if (string.IsNullOrWhiteSpace(request.GroupCode) || string.IsNullOrWhiteSpace(request.BranchCode) ||
+                request.SessionId <= 0 || request.StudentId <= 0)
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Student details are missing.", Code = 0 });
+
+            var detInvoiceIds = (request.DetInvoiceIds ?? new()).Where(x => x > 0).Distinct().ToList();
+            if (detInvoiceIds.Count == 0)
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Please select the dues to adjust.", Code = 0 });
+
+            if (request.AdvAmount <= 0)
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Adjustment amount must be more than zero.", Code = 0 });
+
+            var transType = (request.TransType ?? string.Empty).Trim().ToUpperInvariant();
+            var isAdvance = transType == "ADVANCE" || transType == "ADJUSTMENT";
+            var isWaiveOff = transType == "WAIVE OFF" || transType == "WAIVEOFF";
+            if (!isAdvance && !isWaiveOff)
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Invalid TransType. Use Advance, Adjustment or Waive Off.", Code = 0 });
+
+            var label = isAdvance ? "advance" : "waive off";
+            try
+            {
+                request.DetInvoiceIds = detInvoiceIds;
+                AdjustAdvanceAmountResponse result;
+                if (isAdvance)
+                {
+                    // ADVANCE / ADJUSTMENT -> V3M_FIN_UspAdjustAdvanceAmount
+                    result = await _studentFeeRepository.AdjustAdvanceAmount(request);
+                }
+                else
+                {
+                    // WAIVE OFF -> V3M_FIN_UspAdjustWaiveOffAmount
+                    result = await _studentFeeRepository.AdjustWaiveOffAmount(request);
+                }
+
+                return Ok(new ApiResponse<AdjustAdvanceAmountResponse>
+                {
+                    Success = true,
+                    Message = isAdvance ? "Advance adjusted successfully." : "Waive off adjusted successfully.",
+                    Code = 1,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = $"An error occurred while adjusting the {label}.",
+                    Code = -1
+                });
+            }
+        }
     }
 }

@@ -3273,6 +3273,28 @@ namespace DomainModel.FinanceMNGT
         public string? ClassSection { get; set; }
         public decimal? TotalDues { get; set; }
     }
+
+    // Adjust advance -> Apply: clears the selected dues (DetInvoiceId) from the student's advance
+    // TransType ADVANCE / ADJUSTMENT -> V3M_FIN_UspAdjustAdvanceAmount; other types use a separate API
+    public class AdjustAdvanceAmountRequest
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string BranchCode { get; set; } = string.Empty;
+        public long SessionId { get; set; }
+        public long StudentId { get; set; }
+        public string TransType { get; set; } = "ADVANCE";
+        public string CreatedBy { get; set; } = string.Empty;
+        // total being adjusted now (shown on screen); the SP itself uses the student's whole advance
+        public decimal AdvAmount { get; set; }
+        // fee head rows to clear, in the order the advance is used
+        public List<long> DetInvoiceIds { get; set; } = new();
+    }
+
+    public class AdjustAdvanceAmountResponse
+    {
+        // advance left with the student after the adjustment
+        public decimal AdvBalance { get; set; }
+    }
     #endregion
 }
 

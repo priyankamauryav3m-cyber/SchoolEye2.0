@@ -276,5 +276,41 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
             }
         }
 
+        public Task<AdjustAdvanceAmountResponse> AdjustAdvanceAmount(AdjustAdvanceAmountRequest request) =>
+            ExecuteAdjustBalanceSp("V3M_FIN_UspAdjustAdvanceAmount", request);
+
+        public Task<AdjustAdvanceAmountResponse> AdjustWaiveOffAmount(AdjustAdvanceAmountRequest request) =>
+            ExecuteAdjustBalanceSp("V3M_FIN_UspAdjustWaiveOffAmount", request);
+
+
+        private async Task<AdjustAdvanceAmountResponse> ExecuteAdjustBalanceSp(string procedureName, AdjustAdvanceAmountRequest request)
+        {
+            try
+            {
+                using var con = new SqlConnection(_connectionString);
+                var param = new DynamicParameters();
+                param.Add("@GroupCode", request.GroupCode, DbType.String, size: 10);
+                param.Add("@BranchCode", request.BranchCode, DbType.String, size: 10);
+                param.Add("@SessionId", request.SessionId, DbType.Int64);
+                param.Add("@StudentId", request.StudentId, DbType.Int64);
+                param.Add("@CreatedBy", request.CreatedBy, DbType.String, size: 50);
+                param.Add("@AdvAmount", request.AdvAmount, DbType.Decimal, precision: 18, scale: 2);
+                param.Add("@en_DetInvoiceId", string.Join(",", request.DetInvoiceIds), DbType.String);
+                param.Add("@AdvBalance", dbType: DbType.Decimal, precision: 18, scale: 2, direction: ParameterDirection.Output);
+
+                await con.ExecuteAsync(procedureName, param, commandType: CommandType.StoredProcedure);
+
+                return new AdjustAdvanceAmountResponse
+                {
+                    AdvBalance = param.Get<decimal?>("@AdvBalance") ?? 0
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+                throw;
+            }
+        }
+
     }
 }

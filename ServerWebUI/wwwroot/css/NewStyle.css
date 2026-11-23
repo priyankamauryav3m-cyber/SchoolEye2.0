@@ -4527,38 +4527,10 @@ body:has(.fee-collection-page) .swal2-container {
     padding: 12px !important;
 }
 
+    /* full screen: popup fills the screen, body scrolls if needed */
     .fee-collection-page .adv-adjust-screen .main-popup.adv-full {
         height: calc(100vh - 24px);
         max-height: calc(100vh - 24px);
-        display: flex;
-        flex-direction: column;
-    }
-
-        .fee-collection-page .adv-adjust-screen .main-popup.adv-full .modal-body {
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-            .fee-collection-page .adv-adjust-screen .main-popup.adv-full .modal-body > .fee-module-content {
-                flex: 1 1 auto;
-                min-height: 0;
-                display: flex;
-                flex-direction: column;
-            }
-
-    .fee-collection-page .adv-adjust-screen .module-section {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .fee-collection-page .adv-adjust-screen .adv-grid-wrap {
-        flex: 1 1 auto;
-        min-height: 160px;
     }
 
 /* the adjustment popup opens over the full screen list */
@@ -4676,22 +4648,12 @@ body:has(.fee-collection-page) .swal2-container {
         font-size: 13px;
     }
 
-/* grid header stays on top while the rows scroll */
-.fee-collection-page .adv-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.fee-collection-page .adv-table tbody tr:hover td {
-    background: #f7fafd;
-}
-
-.fee-collection-page .adv-table .adv-row-selected td {
+/* QuickGrid rows: ticked due / just adjusted student */
+.fee-collection-page .adv-row-selected td {
     background: #e8f6f6 !important;
 }
 
-.fee-collection-page .adv-table .adv-row-done td {
+.fee-collection-page .adv-row-done td {
     background: #ecfdf5;
 }
 
@@ -4699,33 +4661,6 @@ body:has(.fee-collection-page) .swal2-container {
     text-align: center;
     color: #68778a;
     padding: 28px 12px !important;
-}
-
-/* QuickGrid boxes: rows scroll inside, header stays */
-.fee-collection-page .adv-grid-box {
-    overflow: auto;
-    height: 100%;
-}
-
-    .fee-collection-page .adv-grid-box .table {
-        margin-bottom: 0;
-    }
-
-.fee-collection-page .adv-adjust-screen .adv-grid-wrap {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-    .fee-collection-page .adv-adjust-screen .adv-grid-wrap .adv-grid-box {
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-
-.fee-collection-page .adv-dues-wrap {
-    height: auto;
-    max-height: calc(100vh - 430px);
-    min-height: 140px;
 }
 
 .fee-collection-page .adv-adjust-btn {
@@ -4795,10 +4730,6 @@ html.dark-mode .fee-collection-page .adv-card-slate {
 @media (max-width: 700px) {
     .fee-collection-page .fee-module-content .module-toolbar.adv-toolbar {
         grid-template-columns: 1fr 1fr;
-    }
-
-    .fee-collection-page .adv-adjust-screen .main-popup.adv-full .modal-body {
-        overflow: auto;
     }
 }
 
