@@ -396,3 +396,11 @@ window.initCalendar = () => {
         hideFloating();
     }, true);
 })();
+
+// Close a Bootstrap dropdown from Blazor (e.g. X button in the header notification bell)
+window.closeDropdown = (toggleId) => {
+    const toggle = document.getElementById(toggleId);
+    if (toggle && window.bootstrap) {
+        bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+    }
+};

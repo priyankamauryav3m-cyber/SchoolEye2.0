@@ -12,6 +12,8 @@ namespace ApplicationInterface.User
         Task<bool> IsUserInRoleAsync(string userSid, string roleName);
         // the logged-in user's own profile (safe fields only)
         Task<MyProfileResponse?> GetMyProfileAsync(int userSid);
+        // the logged-in student's own dashboard profile (student found from the user, never from the client)
+        Task<StudentDashboardProfile?> GetStudentDashboardProfileAsync(int userSid);
         public List<UserDetails> GetUserDetails(string UserTypeId, int HospitalId, int VCID, int IsActive, string LoginName, string GroupCode);
         public Task<int> GenerateAndSendOtpAsync(int userId, string mobileNo);   
         Task<int> VerifyOtpAsync(int userId, string otpCode); 

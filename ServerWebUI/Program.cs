@@ -209,6 +209,7 @@ try
     builder.Services.AddScoped<CommonMethod>();
     builder.Services.AddScoped<MenuState>();
     builder.Services.AddScoped<PageLoadingState>();
+    builder.Services.AddScoped<NotificationState>();
     builder.Services.AddSingleton<SecureUrlService>();
     builder.Services.AddSingleton<IUILogService, UILogService>();
     builder.Services.AddScoped(sp =>

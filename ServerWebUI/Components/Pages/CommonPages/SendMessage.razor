@@ -10,6 +10,7 @@
 @rendermode InteractiveServer
 @using ServerWebUI.Components.Pages.CommonPages
 @inject IJSRuntime JS
+@inject NotificationState Notifications
 @using System.Linq;
 
 @using static ServerWebUI.Components.Pages.CommonPages.MessageForSelector
@@ -169,6 +170,15 @@
             var apiResponse = await httpService.Post<ApiResponse<object>>("SendSMS/send-sms-log", sentModel);
             if (apiResponse.Success)
             {
+                // same message shows at once in the header bell (blinks until opened)
+                var channel = MessageBodys switch
+                {
+                    MessageType.WhatsApp => ("WhatsApp", "bi-whatsapp"),
+                    MessageType.Email => ("Email", "bi-envelope"),
+                    _ => ("SMS", "bi-chat-dots")
+                };
+                Notifications.Add($"{channel.Item1} message sent", sentModel.MessageText, channel.Item2);
+
                 await Alert.ShowSuccess("SMS"+Localizer["Already"]);
                 StateHasChanged();
             }
@@ -185,6 +195,9 @@
         finally
         {
             sentModel = new SMSSentModel();
+            // tell the parent page too (it resets its showSMS), otherwise the next
+            // "Send Message" click sets the same value again and the popup never reopens
+            await ClosePopup();
             StateHasChanged();
         }
     

@@ -428,6 +428,15 @@ namespace Infrastructure.User
             return await con.ExecuteScalarAsync<int>(sql, new { UserSid = sid, RoleName = roleName }) > 0;
         }
 
+        public async Task<StudentDashboardProfile?> GetStudentDashboardProfileAsync(int userSid)
+        {
+            using var con = new SqlConnection(_connectionString);
+            return await con.QueryFirstOrDefaultAsync<StudentDashboardProfile>(
+                "SP_GetStudentDashboardProfile",
+                new { UserSid = userSid },
+                commandType: CommandType.StoredProcedure);
+        }
+
         public async Task<MyProfileResponse?> GetMyProfileAsync(int userSid)
         {
             using var con = new SqlConnection(_connectionString);
@@ -438,8 +447,25 @@ namespace Infrastructure.User
                                         ISNULL(u.IsValid, 0) AS IsValid, u.ValidFrom, u.ValidTo, u.CreatedDate,
                                         ISNULL(u.RequiresTwoFactor, 0) AS RequiresTwoFactor,
                                         u.OtpVerifiedDateUtc AS LastVerifiedDateUtc,
-                                        CAST(CASE WHEN u.LockoutEnd IS NOT NULL AND u.LockoutEnd > GETDATE() THEN 1 ELSE 0 END AS BIT) AS IsLockedOut
+                                        CAST(CASE WHEN u.LockoutEnd IS NOT NULL AND u.LockoutEnd > GETDATE() THEN 1 ELSE 0 END AS BIT) AS IsLockedOut,
+                                        COALESCE(NULLIF(LTRIM(RTRIM(st.StudentName)), ''), NULLIF(LTRIM(RTRIM(emp.EmpName)), '')) AS FullName,
+                                        COALESCE(NULLIF(LTRIM(RTRIM(st.ImagePath)), ''),
+                                                 CASE WHEN emp.ImagePath LIKE '/%' OR emp.ImagePath LIKE 'http%' THEN emp.ImagePath END) AS ImagePath
                                  FROM MstUsers u WITH (NOLOCK)
+                                 -- student linked to this login (same rule as SP_GetStudentDashboardProfile)
+                                 OUTER APPLY (SELECT TOP 1 dbo.Fn_GetStudentName(sm.GroupCode, sm.BranchCode, sm.StudentId) AS StudentName, sm.ImagePath
+                                              FROM StudentMaster sm WITH (NOLOCK)
+                                              WHERE sm.LoginName COLLATE DATABASE_DEFAULT = u.UserName COLLATE DATABASE_DEFAULT
+                                                AND sm.GroupCode = u.GroupCode AND sm.BranchCode = u.BranchCode
+                                              ORDER BY CASE WHEN ABS(DATEDIFF(SECOND, sm.CreatedDate, u.CreatedDate)) <= 5 THEN 0 ELSE 1 END,
+                                                       ISNULL(sm.IsValid, 0) DESC, sm.StudentId DESC) st
+                                 -- employee linked to this login
+                                 OUTER APPLY (SELECT TOP 1 LTRIM(RTRIM(ISNULL(e.FirstName, '') + ' ' + ISNULL(e.LastName, ''))) AS EmpName, e.ImagePath
+                                              FROM MstEmployee e WITH (NOLOCK)
+                                              WHERE e.LoginName COLLATE DATABASE_DEFAULT = u.UserName COLLATE DATABASE_DEFAULT
+                                                AND e.GroupCode COLLATE DATABASE_DEFAULT = u.GroupCode COLLATE DATABASE_DEFAULT
+                                                AND e.BranchCode COLLATE DATABASE_DEFAULT = u.BranchCode COLLATE DATABASE_DEFAULT
+                                              ORDER BY ISNULL(e.IsValid, 0) DESC, e.EmployeeId DESC) emp
                                  LEFT JOIN MstRoles r WITH (NOLOCK) ON r.RoleId = u.RoleId
                                  LEFT JOIN MstDashboard d WITH (NOLOCK) ON d.DashBoardId = r.DashBoardId
                                  OUTER APPLY (SELECT TOP 1 GroupName FROM MstGroupMaster WITH (NOLOCK) WHERE GroupCode = u.GroupCode) g
