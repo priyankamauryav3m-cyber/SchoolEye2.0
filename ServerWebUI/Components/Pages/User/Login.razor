@@ -22,6 +22,7 @@
 @using System.Timers;
 @inject IStringLocalizer<Resource> Localizer
 @inject PermissionState PermissionState
+@inject ServerWebUI.Components.CommonClass.IUILogService UILog
 
 <section class="login-section">
     <div class="login-card-container">
@@ -598,6 +599,7 @@
     private bool ShowPassword = false;
     private const string IncorrectLoginMessage = "Incorrect username or password.";
     private string? LoginError;
+    private const string LogFile = "Login";
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "name")]
@@ -647,6 +649,20 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        try
+        {
+            await LoginPageAfterRenderAsync(firstRender);
+        }
+        catch (Exception ex)
+        {
+            // write the page-load error to the log, then keep the old behaviour (error is not swallowed)
+            await UILog.LogErrorAsync(LogFile, "Login page load error", ex);
+            throw;
+        }
+    }
+
+    private async Task LoginPageAfterRenderAsync(bool firstRender)
+    {
         if (_isFirstRender)
         {
             await JS.InvokeVoidAsync("initCarousel");
@@ -692,6 +708,7 @@
             }
             if (int.TryParse(loginModel.CapchaCode, out int userInput) && userInput == correctResult)
             {
+                await UILog.LogInfoAsync(LogFile, $"Login attempt. User: {loginModel.Username}, API: {httpClient.BaseAddress}users/UserloginData");
                 var deviceToken = await JS.InvokeAsync<string>("localStorage.getItem", "DeviceToken");
                 if (string.IsNullOrWhiteSpace(deviceToken))
                 {
@@ -714,9 +731,11 @@
                             case "-2":
                             case "-3":
                                 LoginError = IncorrectLoginMessage;
+                                await UILog.LogWarningAsync(LogFile, $"Login failed (wrong username/password). User: {loginModel.Username}, Result: {user.Result}");
                                 return;
 
                             default:
+                                await UILog.LogInfoAsync(LogFile, $"Login success. User: {loginModel.Username}, UserId: {user.UserId}, RoleId: {user.RoleId}, Result: {user.Result}, TwoFactor: {user.RequiresTwoFactor}");
                                 await sessionStorage.SetAsync("userId", user.UserId);
                                 await sessionStorage.SetAsync("GroupCode", user.GroupCode);
                                 await sessionStorage.SetAsync("BranchCode", user.BranchCode);
@@ -752,21 +771,27 @@
                     }
                     else
                     {
+                        await UILog.LogWarningAsync(LogFile, $"Login API returned empty user. User: {loginModel.Username}");
                         await customAlert.ShowCustomAlert(@Localizer["Admin"], false);
                     }
                 }
                 else
                 {
+                    var body = await response.Content.ReadAsStringAsync();
+                    if (body.Length > 2000) body = body.Substring(0, 2000);
+                    await UILog.LogErrorAsync(LogFile, $"Login API failed. User: {loginModel.Username}, StatusCode: {(int)response.StatusCode} {response.StatusCode}, Response: {body}");
                     await customAlert.ShowCustomAlert(@Localizer["Admin"], false);
                 }
             }
             else
             {
+                await UILog.LogWarningAsync(LogFile, $"Captcha wrong. User: {loginModel.Username}");
                 await customAlert.ShowCustomAlert("Captcha code not solved correctly!", false);
             }
         }
         catch (Exception err)
         {
+            await UILog.LogErrorAsync(LogFile, $"Login exception. User: {loginModel.Username}, API: {httpClient.BaseAddress}", err);
             await customAlert.ShowCustomAlert(@Localizer["Admin"], false);
         }
         finally

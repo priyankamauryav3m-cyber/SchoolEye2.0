@@ -254,7 +254,7 @@
                                                 </div>
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                                    <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
+                                                    <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
                                                         <InputDate class="floating-input" placeholder=" " @bind-Value="childDetails.DateOfBirth" autocomplete="off" min="@MinDate" max="@Today" @bind-Value:after="OnDOBChanged" />
                                                         <label class="floating-label">Date of Birth  <span class="required">*</span></label>
                                                         <ValidationMessage For="@(() => childDetails.DateOfBirth)" />
@@ -678,7 +678,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                                    <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                    <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
                                                         <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherDOB" autocomplete="off" min="@MinDate" max="@Today" />
                                                         <label class="floating-label">DOB</label>
                                                         <ValidationMessage For="@(() => parentsDetails.FatherDOB)" />
@@ -886,7 +886,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1">
-                                                    <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
+                                                    <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
                                                         <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherDOB" autocomplete="off" min="@MinDate" max="@Today" />
                                                         <label class="floating-label">DOB</label>
                                                         <ValidationMessage For="@(() => parentsDetails.MotherDOB)" />
@@ -2317,10 +2317,8 @@
                     await LoadEmergencyContactAsync();
                     addressPermanent.AddressType = addressPermanent != null ? "C" : null;
                     IsSameAsCurrent = CreateSnapshot(addressDetails) == CreateSnapshot(addressPermanent) ? true : false;
-                    if (IsSameAsCurrent)
-                    {
-                        addressDetails.PermanentLine1 = addressPermanent.Line1;
-                    }
+                    // show saved permanent Line-1 in its textbox (also when it is different from current)
+                    addressDetails.PermanentLine1 = addressPermanent.Line1;
                     addressPermanent.AddressType = addressPermanent != null ? "P" : null;
                     break;
                 case "family-details":
@@ -2563,7 +2561,7 @@
                 await customAlert.ShowCustomAlert("Permanent address: Enter valid 6 digit pincode", false);
                 return;
             }
-            if ((IsEdited(addressDetails, _originaladdress)) || (IsEdited(addressPermanent, _originaladdress)))
+            if ((IsEdited(addressDetails, _originaladdress)) || (IsEdited(addressPermanent, _originaladdressp)))
             {
                 addressDetails.RegistrationId = RegId;
                 addressDetails.CreatedBy = username;
@@ -2604,7 +2602,15 @@
                     {
                         if (addressPermanent != null)
                         {
+                            // permanent Line-1 textbox is bound to addressDetails.PermanentLine1 -> copy it to the permanent record
                             addressPermanent.AddressType = "P";
+                            addressPermanent.Line1 = addressDetails.PermanentLine1;
+                            addressPermanent.PermanentLine1 = addressDetails.PermanentLine1;
+                            addressPermanent.RegistrationId = RegId;
+                            addressPermanent.CreatedBy = username;
+                            addressPermanent.GroupCode = groupcode;
+                            addressPermanent.BranchCode = branchcode;
+                            addressPermanent.SessionId = SessionId;
                             list.Add(addressPermanent);
                         }
 

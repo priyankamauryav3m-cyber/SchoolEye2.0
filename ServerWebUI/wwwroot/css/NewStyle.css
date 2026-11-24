@@ -4962,3 +4962,140 @@ main.main:has(.grid-loader-overlay) ~ .page-open-loader {
     display: none;
 }
 /* ===================== End: Page-open loader ===================== */
+
+/* ===================== Start: Coloured dashboard cards (Admin + Admission dashboards) =====================
+   Row wrappers: .dash-tint-qa (quick-action .qa-btn), .dash-tint-stats (.stat-card), .dash-tint-mini (.mini-stat-card)
+   Colour per card: tint-blue / tint-green / tint-purple / tint-orange / tint-red */
+.dash-tint-qa .qa-btn,
+.dash-tint-stats .stat-card,
+.dash-tint-mini .mini-stat-card {
+    --c1: #2563eb;
+    --c2: #60a5fa;
+    --tint: #eff6ff;
+    --ring: #dbeafe;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, var(--tint) 100%) !important;
+    border: 1px solid var(--ring) !important;
+    border-left: 4px solid var(--c1) !important;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+    /* soft colour circle in the corner */
+    .dash-tint-qa .qa-btn::after,
+    .dash-tint-stats .stat-card::after,
+    .dash-tint-mini .mini-stat-card::after {
+        content: "";
+        position: absolute;
+        right: -28px;
+        top: -28px;
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        background: var(--c2);
+        opacity: .14;
+        pointer-events: none;
+    }
+
+    .dash-tint-qa .qa-btn:hover,
+    .dash-tint-stats .stat-card:hover,
+    .dash-tint-mini .mini-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 24px -10px var(--c1) !important;
+        border-color: var(--c2) !important;
+        border-left-color: var(--c1) !important;
+    }
+
+:is(.dash-tint-qa, .dash-tint-stats, .dash-tint-mini) .tint-blue { --c1: #2563eb; --c2: #60a5fa; --tint: #eff6ff; --ring: #dbeafe; }
+:is(.dash-tint-qa, .dash-tint-stats, .dash-tint-mini) .tint-green { --c1: #059669; --c2: #34d399; --tint: #ecfdf5; --ring: #d1fae5; }
+:is(.dash-tint-qa, .dash-tint-stats, .dash-tint-mini) .tint-purple { --c1: #7c3aed; --c2: #a78bfa; --tint: #f5f3ff; --ring: #ede9fe; }
+:is(.dash-tint-qa, .dash-tint-stats, .dash-tint-mini) .tint-orange { --c1: #ea580c; --c2: #fb923c; --tint: #fff7ed; --ring: #ffedd5; }
+:is(.dash-tint-qa, .dash-tint-stats, .dash-tint-mini) .tint-red { --c1: #e11d48; --c2: #fb7185; --tint: #fff1f2; --ring: #ffe4e6; }
+:is(.dash-tint-qa, .dash-tint-stats, .dash-tint-mini) .tint-teal { --c1: #0d9488; --c2: #2dd4bf; --tint: #f0fdfa; --ring: #ccfbf1; }
+
+/* icons: solid gradient tile with white icon (wins over page colours like .stat-icon.blue) */
+.dash-tint-qa .qa-btn .qa-icon,
+.dash-tint-stats .stat-card .stat-icon,
+.dash-tint-mini .mini-stat-card .stat-icon {
+    background: linear-gradient(135deg, var(--c1), var(--c2)) !important;
+    color: #fff !important;
+    box-shadow: 0 6px 14px -6px var(--c1);
+    position: relative;
+    z-index: 1;
+}
+
+.dash-tint-qa .qa-btn .qa-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+}
+
+    .dash-tint-qa .qa-btn .qa-icon i {
+        font-size: 18px;
+    }
+
+.dash-tint-stats .stat-card .stat-icon i {
+    font-size: 20px;
+}
+
+.dash-tint-mini .mini-stat-card .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.dash-tint-qa .qa-title {
+    color: #1e293b;
+}
+
+.dash-tint-stats .stat-card .stat-label {
+    color: var(--c1) !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-size: 12px !important;
+}
+
+.dash-tint-stats .stat-card .stat-value {
+    color: #0f172a;
+}
+
+/* change line as a small pill */
+.dash-tint-stats .stat-card .stat-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+    margin-left: 62px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+    .dash-tint-stats .stat-card .stat-change.down {
+        background: #ffe4e6;
+        color: #be123c;
+    }
+
+.dash-tint-mini .mini-stat-card h5 {
+    color: var(--c1);
+    position: relative;
+    z-index: 1;
+}
+
+html.dark-mode .dash-tint-qa .qa-btn,
+html.dark-mode .dash-tint-stats .stat-card,
+html.dark-mode .dash-tint-mini .mini-stat-card {
+    background: linear-gradient(135deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.07) 100%) !important;
+    border-color: rgba(255,255,255,.08) !important;
+    border-left-color: var(--c1) !important;
+}
+
+html.dark-mode .dash-tint-qa .qa-title,
+html.dark-mode .dash-tint-stats .stat-card .stat-value {
+    color: #f1f5f9;
+}
+/* ===================== End: Coloured dashboard cards ===================== */
