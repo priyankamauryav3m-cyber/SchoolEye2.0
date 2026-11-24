@@ -12,6 +12,10 @@ namespace DomainModel.User
         public bool EmailConfirmed { get; set; }
         public string? MobileNo { get; set; }
 
+        // display name + photo of the person behind the login (student or employee), when linked
+        public string? FullName { get; set; }
+        public string? ImagePath { get; set; }
+
         public string? RoleName { get; set; }
         public string? DashboardName { get; set; }
 

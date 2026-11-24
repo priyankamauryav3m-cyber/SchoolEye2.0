@@ -13,6 +13,9 @@
 @rendermode InteractiveServer
 @inject IJSRuntime JS
 @inject BookmarkState BookmarkState
+@inject NotificationState Notifications
+@inject Shared.IHttpService httpService
+@implements IDisposable
 @inject SweetAlertService Alert
 <style>
     .bookmark-grid-scroll {
@@ -262,91 +265,53 @@
                 </div>
 
                 <div class="notification dropdown overlay-open custom-tooltip custom-tooltip " data-tooltip="Notification">
-                    <div class="nav-link line-height-normal" data-bs-toggle="dropdown">
-                        <i class="bi bi-bell line-height-normal text-blue"></i>
-                        <div class="live-now"></div>
+                    @* class of this toggle must stay fixed: Bootstrap adds "show" to it, and a Blazor
+                       re-render of a changing class would remove it (then outside click never closes) *@
+                    <div id="notifToggle" class="nav-link line-height-normal position-relative" data-bs-toggle="dropdown" data-bs-auto-close="outside" @onclick="OnBellClick">
+                        <i class="bi bi-bell line-height-normal text-blue @(Notifications.UnreadCount > 0 ? "bell-ring-icon" : "")"></i>
+                        @if (Notifications.UnreadCount > 0)
+                        {
+                            <div class="live-now"></div>
+                            <span class="notif-count">@(Notifications.UnreadCount > 9 ? "9+" : Notifications.UnreadCount.ToString())</span>
+                        }
                     </div>
                     <ul class="dropdown-menu">
                         <li class="dropdown-header">
                             <p>Notification</p>
-                            <button class="small-btn">View All</button>
+                            <div class="d-flex align-items-center gap-1">
+                                @if (Notifications.Items.Count > 0)
+                                {
+                                    <button type="button" class="small-btn" @onclick="Notifications.Clear">Clear All</button>
+                                }
+                                <button type="button" class="notif-close" title="Close" aria-label="Close" @onclick="CloseNotifications">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
                         </li>
                         <li class="notification-body dropdown-body">
-                            <div class="notification-item p-1 d-flex align-items-center gap-2">
-                                <div class="notifaction-sab bookmark-nav-link-1">
-                                    <i class="bi bi-bell"></i>
-                                </div>
-                                <div>
-                                    <p class="m-0 fts-12 ftw-500">Lorem Ipsum</p>
-                                    <p class="m-0 fts-12">Quae dolorem earum veritatis odits...</p>
-                                </div>
-                            </div>
-
-                            <hr class="dropdown-divider m-0">
-
-                            <div class="notification-item p-1 d-flex align-items-center gap-2">
-                                <div class="notifaction-sab bookmark-nav-link-2">
-                                    <i class="bi bi-bell"></i>
-                                </div>
-                                <div>
-                                    <p class="m-0 fts-12 ftw-500">Lorem Ipsum</p>
-                                    <p class="m-0 fts-12">Quae dolorem earum veritatis odits...</p>
-                                </div>
-                            </div>
-
-
-                            <hr class="dropdown-divider m-0">
-
-                            <div class="notification-item p-1 d-flex align-items-center gap-2">
-                                <div class="notifaction-sab bookmark-nav-link-3">
-                                    <i class="bi bi-bell"></i>
-                                </div>
-                                <div>
-                                    <p class="m-0 fts-12 ftw-500">Lorem Ipsum</p>
-                                    <p class="m-0 fts-12">Quae dolorem earum veritatis odits...</p>
-                                </div>
-                            </div>
-
-
-                            <hr class="dropdown-divider m-0">
-
-                            <div class="notification-item p-1 d-flex align-items-center gap-2">
-                                <div class="notifaction-sab bookmark-nav-link-4">
-                                    <i class="bi bi-bell"></i>
-                                </div>
-                                <div>
-                                    <p class="m-0 fts-12 ftw-500">Lorem Ipsum</p>
-                                    <p class="m-0 fts-12">Quae dolorem earum veritatis odits...</p>
-                                </div>
-                            </div>
-
-
-                            <hr class="dropdown-divider m-0">
-
-                            <div class="notification-item p-1 d-flex align-items-center gap-2">
-                                <div class="notifaction-sab bookmark-nav-link-5">
-                                    <i class="bi bi-bell"></i>
-                                </div>
-                                <div>
-                                    <p class="m-0 fts-12 ftw-500">Lorem Ipsum</p>
-                                    <p class="m-0 fts-12">Quae dolorem earum veritatis odits...</p>
-                                </div>
-                            </div>
-
-
-                            <hr class="dropdown-divider m-0">
-
-                            <div class="notification-item p-1 d-flex align-items-center gap-2">
-                                <div class="notifaction-sab bookmark-nav-link-6">
-                                    <i class="bi bi-bell"></i>
-                                </div>
-                                <div>
-                                    <p class="m-0 fts-12 ftw-500">Lorem Ipsum</p>
-                                    <p class="m-0 fts-12">Quae dolorem earum veritatis odits...</p>
-                                </div>
-                            </div>
-
-                            <hr class="dropdown-divider m-0">
+                            @if (Notifications.Items.Count == 0)
+                            {
+                                <p class="m-0 p-2 fts-12 text-muted text-center">No new notifications</p>
+                            }
+                            else
+                            {
+                                var n = 0;
+                                foreach (var item in Notifications.Items)
+                                {
+                                    n++;
+                                    <div class="notification-item p-1 d-flex align-items-center gap-2 @(item.IsRead ? "" : "notif-unread")">
+                                        <div class="notifaction-sab bookmark-nav-link-@(((n - 1) % 6) + 1)">
+                                            <i class="bi @item.Icon"></i>
+                                        </div>
+                                        <div style="min-width:0">
+                                            <p class="m-0 fts-12 ftw-500">@item.Title</p>
+                                            <p class="m-0 fts-12 notif-text" title="@item.Message">@item.Message</p>
+                                            <p class="m-0 notif-time">@item.CreatedAt.ToString("dd-MMM-yyyy hh:mm tt")</p>
+                                        </div>
+                                    </div>
+                                    <hr class="dropdown-divider m-0">
+                                }
+                            }
                         </li>
 
                     </ul>
@@ -460,7 +425,14 @@
                 <div class="profile dropdown overlay-open custom-tooltip " data-tooltip="Profile">
                     <div class="user-menu d-flex gap-1 align-items-center h-100 nav-link" data-bs-toggle="dropdown">
                         <div class="profile-section">
-                            <img src="images/profile.png" alt="Profile">
+                            @if (!string.IsNullOrWhiteSpace(ProfileImage) && !profilePhotoFailed)
+                            {
+                                <img src="@ProfileImage" alt="Profile" class="hdr-avatar-img" @onerror="() => profilePhotoFailed = true">
+                            }
+                            else
+                            {
+                                <span class="hdr-avatar">@ProfileInitials</span>
+                            }
                         </div>
 
                     </div>
@@ -468,11 +440,18 @@
                         <li class="profile-body">
                             <div class="d-flex align-items-center gap-2 p-1">
                                 <div class="profile-box-img">
-                                    <img src="images/profile.png" alt="Profile">
+                                    @if (!string.IsNullOrWhiteSpace(ProfileImage) && !profilePhotoFailed)
+                                    {
+                                        <img src="@ProfileImage" alt="Profile" class="hdr-avatar-img">
+                                    }
+                                    else
+                                    {
+                                        <span class="hdr-avatar hdr-avatar-lg">@ProfileInitials</span>
+                                    }
                                 </div>
                                 <div class="d-flex justify-content-between w-webkit">
                                     <div class="user-info">
-                                        <p class="cl-name">@Username</p>
+                                        <p class="cl-name">@(string.IsNullOrWhiteSpace(ProfileName) ? Username : ProfileName)</p>
                                         <p class="cl-post">@RoleName</p>
 
                                     </div>
@@ -620,6 +599,34 @@
         );
 
         StateHasChanged();
+
+        if (!string.IsNullOrWhiteSpace(Username))
+            await LoadProfilePhoto();
+    }
+
+    // logged-in user's photo + name for the header (api/MyProfile reads the user from the token)
+    private string? ProfileImage;
+    private string? ProfileName;
+    private bool profilePhotoFailed;
+    private string ProfileInitials => UserAvatar.GetInitials(ProfileName, Username);
+
+    private async Task LoadProfilePhoto()
+    {
+        try
+        {
+            var response = await httpService.Get<MyApp.Common.ApiResponse<DomainModel.User.MyProfileResponse>>("MyProfile");
+            if (response != null && response.Success && response.Data != null)
+            {
+                ProfileImage = response.Data.ImagePath;
+                ProfileName = response.Data.FullName;
+                profilePhotoFailed = false;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // header keeps the initials; never break the layout because of the photo
+        }
     }
 
     private async Task ToggleTheme()
@@ -698,7 +705,22 @@
     public void Dispose()
     {
         BookmarkState.OnChange -= StateHasChanged;
+        Notifications.OnChange -= OnNotificationsChanged;
     }
+
+    // header bell: re-render as soon as a page adds a notification (e.g. Send Message)
+    protected override void OnInitialized()
+    {
+        Notifications.OnChange += OnNotificationsChanged;
+    }
+
+    private void OnNotificationsChanged() => _ = InvokeAsync(StateHasChanged);
+
+    // opening the bell marks everything read, so the blink stops
+    private void OnBellClick() => Notifications.MarkAllRead();
+
+    // close (X) button in the bell dropdown
+    private async Task CloseNotifications() => await JS.InvokeVoidAsync("closeDropdown", "notifToggle");
 
     private async Task Logout()
     {
