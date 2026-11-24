@@ -78,9 +78,9 @@
             @if (dashAnimator.IsVisible)
             {
                 <div class="dash-animated">
-                    <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-3 dash-tint-stats">
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.05s">
-                            <div class="stat-card p-3 bg-white h-100 d-flex flex-column justify-content-center" style="cursor:pointer;" @onclick="AdmitStudentDirect">
+                            <div class="stat-card tint-blue p-3 bg-white h-100 d-flex flex-column justify-content-center" style="cursor:pointer;" @onclick="AdmitStudentDirect">
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="state-icon--bxds">
@@ -99,7 +99,7 @@
                         </div>
 
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.13s">
-                            <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
+                            <div class="stat-card tint-purple p-3 bg-white h-100" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalEnquiry")'>
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="state-icon--bxds">
@@ -116,7 +116,7 @@
                         </div>
 
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.21s">
-                            <div class="stat-card p-3 bg-white">
+                            <div class="stat-card tint-orange p-3 bg-white h-100">
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="state-icon--bxds" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalRegistration")'>
@@ -133,7 +133,7 @@
                         </div>
 
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:0.29s">
-                            <div class="stat-card p-3 bg-white" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
+                            <div class="stat-card tint-green p-3 bg-white h-100" style="cursor:pointer;" @onclick='() => GoToEnquiry("TotalAdmission")'>
                                 <div class="row">
                                     <div class="col-12">
                                         <div class="state-icon--bxds">
@@ -209,44 +209,44 @@
                         <div class="col-12 col-lg-6 dash-animate" style="--d:0.45s">
                             <div class="dashboard-card h-100">
                                 <h6 class="card-title-custom mb-3">Attendance & Movement</h6>
-                                <div class="row g-3">
+                                <div class="row g-3 dash-tint-mini">
                                     <div class="col-6">
-                                        <div class="mini-stat-card mini-stat-blue d-flex align-items-center">
+                                        <div class="mini-stat-card mini-stat-blue tint-blue d-flex align-items-center">
                                             <div class="stat-icon blue me-2"><i class="fas fa-clipboard-user"></i></div>
                                             <span class="text-muted small d-block">Total Attendance</span>
                                             <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(1724)</h5>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="mini-stat-card mini-stat-green d-flex align-items-center">
+                                        <div class="mini-stat-card mini-stat-green tint-green d-flex align-items-center">
                                             <div class="stat-icon green me-2"><i class="fas fa-handshake"></i></div>
                                             <span class="text-muted small d-block">Interactions Done</span>
                                             <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(admissionDashboardpipeline.InteractionsDone)</h5>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
+                                        <div class="mini-stat-card mini-stat-yellow tint-orange d-flex align-items-center">
                                             <div class="stat-icon orange me-2"><i class="fas fa-arrow-down"></i></div>
                                             <span class="text-muted small">Withdrawals</span>
                                             <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(2)</h5>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
+                                        <div class="mini-stat-card mini-stat-purple tint-purple d-flex align-items-center">
                                             <div class="stat-icon purple me-2"><i class="fas fa-file-export"></i></div>
                                             <span class="text-muted small">Transfer Certificates</span>
                                             <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(3)</h5>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="mini-stat-card mini-stat-yellow d-flex align-items-center">
+                                        <div class="mini-stat-card mini-stat-yellow tint-red d-flex align-items-center">
                                             <div class="stat-icon orange me-2"><i class="fas fa-arrow-down"></i></div>
                                             <span class="text-muted small">Withdrawals</span>
                                             <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(2)</h5>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="mini-stat-card mini-stat-purple d-flex align-items-center">
+                                        <div class="mini-stat-card mini-stat-purple tint-teal d-flex align-items-center">
                                             <div class="stat-icon purple me-2"><i class="fas fa-file-export"></i></div>
                                             <span class="text-muted small">Transfer Certificates</span>
                                             <h5 class="fw-bold fs-4 mb-0 ms-auto">@dashAnimator.Count(3)</h5>

@@ -210,6 +210,7 @@ try
     builder.Services.AddScoped<MenuState>();
     builder.Services.AddScoped<PageLoadingState>();
     builder.Services.AddSingleton<SecureUrlService>();
+    builder.Services.AddSingleton<IUILogService, UILogService>();
     builder.Services.AddScoped(sp =>
     {
         var settings = sp.GetRequiredService<IOptions<ApplicationConfiguration>>().Value;
@@ -270,6 +271,7 @@ try
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                await context.HttpContext.RequestServices.GetRequiredService<IUILogService>().LogErrorAsync("Login", "Google login error", ex);
             }
         };
     })
@@ -298,6 +300,7 @@ try
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                await context.HttpContext.RequestServices.GetRequiredService<IUILogService>().LogErrorAsync("Login", "Facebook login error", ex);
             }
         };
     });
@@ -336,6 +339,7 @@ try
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+            await http.RequestServices.GetRequiredService<IUILogService>().LogErrorAsync("Login", "Social login challenge error. Provider: " + http.Request.Query["provider"], ex);
         }
     });
     app.MapGet("/logout", async (HttpContext context) =>
