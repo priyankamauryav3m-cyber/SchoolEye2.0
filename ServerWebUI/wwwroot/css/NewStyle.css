@@ -5099,3 +5099,119 @@ html.dark-mode .dash-tint-stats .stat-card .stat-value {
     color: #f1f5f9;
 }
 /* ===================== End: Coloured dashboard cards ===================== */
+
+/* ===================== Start: Coloured metric boxes (Fee Management dashboard) =====================
+   Row wrapper .dash-tint-metric -> its .metric-box get the same look as .dash-tint-stats cards.
+   Colour comes from the existing metric-* class (metric-blue, metric-green ...).
+   .dash-tint-total -> "Total collected" box with the same left accent. */
+.dash-tint-metric .metric-box {
+    --c1: #2563eb;
+    --c2: #60a5fa;
+    --tint: #eff6ff;
+    --ring: #dbeafe;
+    position: relative;
+    overflow: hidden;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--tint) 100%) !important;
+    border: 1px solid var(--ring) !important;
+    border-left: 4px solid var(--c1) !important;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+    .dash-tint-metric .metric-box::after {
+        content: "";
+        position: absolute;
+        right: -22px;
+        top: -22px;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: var(--c2);
+        opacity: .14;
+        pointer-events: none;
+    }
+
+    .dash-tint-metric .metric-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 24px -10px var(--c1) !important;
+        border-color: var(--c2) !important;
+        border-left-color: var(--c1) !important;
+    }
+
+    /* ₹ sign as a small gradient badge, amount in the card colour */
+    .dash-tint-metric .metric-box span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        font-size: 15px;
+        background: linear-gradient(135deg, var(--c1), var(--c2));
+        color: #fff !important;
+        box-shadow: 0 6px 14px -6px var(--c1);
+        position: relative;
+        z-index: 1;
+    }
+
+    .dash-tint-metric .metric-box strong {
+        color: var(--c1) !important;
+        font-size: 1.15rem;
+        position: relative;
+        z-index: 1;
+    }
+
+.dash-tint-metric .text-muted.small {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-size: 11.5px !important;
+}
+
+.dash-tint-metric .metric-blue { --c1: #2563eb; --c2: #60a5fa; --tint: #eff6ff; --ring: #dbeafe; }
+.dash-tint-metric .metric-green { --c1: #059669; --c2: #34d399; --tint: #ecfdf5; --ring: #d1fae5; }
+.dash-tint-metric .metric-purple { --c1: #7c3aed; --c2: #a78bfa; --tint: #f5f3ff; --ring: #ede9fe; }
+.dash-tint-metric .metric-orange { --c1: #ea580c; --c2: #fb923c; --tint: #fff7ed; --ring: #ffedd5; }
+.dash-tint-metric .metric-red { --c1: #e11d48; --c2: #fb7185; --tint: #fff1f2; --ring: #ffe4e6; }
+.dash-tint-metric .metric-teal { --c1: #0d9488; --c2: #2dd4bf; --tint: #f0fdfa; --ring: #ccfbf1; }
+.dash-tint-metric .metric-amber { --c1: #d97706; --c2: #fbbf24; --tint: #fffbeb; --ring: #fef3c7; }
+.dash-tint-metric .metric-pink { --c1: #db2777; --c2: #f472b6; --tint: #fdf2f8; --ring: #fce7f3; }
+.dash-tint-metric .metric-indigo { --c1: #4f46e5; --c2: #818cf8; --tint: #eef2ff; --ring: #e0e7ff; }
+.dash-tint-metric .metric-cyan { --c1: #0891b2; --c2: #22d3ee; --tint: #ecfeff; --ring: #cffafe; }
+
+/* "Total collected" highlight box */
+.dash-tint-total {
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid #059669 !important;
+}
+
+    .dash-tint-total::after {
+        content: "";
+        position: absolute;
+        right: -30px;
+        top: -30px;
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        background: #34d399;
+        opacity: .14;
+        pointer-events: none;
+    }
+
+html.dark-mode .dash-tint-metric .metric-box {
+    background: linear-gradient(135deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.07) 100%) !important;
+    border-color: rgba(255,255,255,.08) !important;
+    border-left-color: var(--c1) !important;
+}
+
+html.dark-mode .dash-tint-metric .metric-box strong {
+    color: var(--c2) !important;
+}
+
+html.dark-mode .dash-tint-total {
+    background: linear-gradient(135deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.07) 100%);
+    border-color: rgba(255,255,255,.08);
+}
+/* ===================== End: Coloured metric boxes ===================== */

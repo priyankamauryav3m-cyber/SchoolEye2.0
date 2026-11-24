@@ -117,10 +117,10 @@
             @if (dashAnimator.IsVisible)
             {
                 <div class="dash-animated">
-                    <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-3 dash-tint-stats">
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.05s">
                             @* follows the Today / This Week / This Month / This Year filter; click -> View Student searched on the same admission dates *@
-                            <div class="stat-card p-3 bg-white" style="cursor:pointer" role="button" title="View students admitted @PeriodText" @onclick="GoToViewStudent">
+                            <div class="stat-card tint-blue p-3 bg-white h-100" style="cursor:pointer" role="button" title="View students admitted @PeriodText" @onclick="GoToViewStudent">
                                 <div class="state-icon--bxds">
                                     <div class="stat-icon blue"><i class="fas fa-user-graduate"></i></div>
                                     <div class="flex-grow-1">
@@ -132,7 +132,7 @@
                         </div>
 
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.12s">
-                            <div class="stat-card p-3 bg-white">
+                            <div class="stat-card tint-green p-3 bg-white h-100">
                                 <div class="state-icon--bxds">
                                     <div class="stat-icon green"><i class="fas fa-bus"></i></div>
                                     <div class="flex-grow-1">
@@ -144,9 +144,9 @@
                         </div>
 
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.19s">
-                            <div class="stat-card p-3 bg-white">
+                            <div class="stat-card tint-purple p-3 bg-white h-100">
                                 <div class="state-icon--bxds">
-                                    <div class="stat-icon blue"><i class="fas fa-briefcase"></i></div>
+                                    <div class="stat-icon purple"><i class="fas fa-briefcase"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="stat-label text-nowrap text-muted small">Total staff</div>
                                         <div class="stat-value fw-bold fs-4">@dashAnimator.Count(TotalStaff)</div>
@@ -156,9 +156,9 @@
                         </div>
 
                         <div class="col-12 col-md-6 col-xl-3 dash-animate" style="--d:.26s">
-                            <div class="stat-card p-3 bg-white">
+                            <div class="stat-card tint-orange p-3 bg-white h-100">
                                 <div class="state-icon--bxds">
-                                    <div class="stat-icon blue"><i class="fas fa-shield-alt"></i></div>
+                                    <div class="stat-icon orange"><i class="fas fa-shield-alt"></i></div>
                                     <div class="flex-grow-1">
                                         <div class="stat-label text-nowrap text-muted small">EWS students</div>
                                         <div class="stat-value fw-bold fs-4">@dashAnimator.Count(EwsStudents)</div>
@@ -176,7 +176,7 @@
                                     </h5>
                                     <span class="text-muted small">Session total · All amounts in INR</span>
                                 </div>
-                                <div class="row g-3">
+                                <div class="row g-3 dash-tint-metric">
                                     <div class="col-6 col-md-3">
                                         <div class="text-muted small mb-1">Total fee due</div>
                                         <div class="metric-box metric-blue"><span>₹</span><strong>@dashAnimator.Amount(TotalFeeDue)</strong></div>
@@ -224,14 +224,14 @@
                                     <span class="text-muted small">By payment mode</span>
                                 </div>
 
-                                <div class="collection-total-box">
+                                <div class="collection-total-box dash-tint-total">
                                     <div class="collection-total-label">
                                         Total collected
                                         <small>@PeriodText · @dashAnimator.Count(feeDashboard.PeriodReceiptCount) receipt(s)</small>
                                     </div>
                                     <div class="collection-total-amount"><span class="rupee">₹</span>@dashAnimator.Amount(TodayTotalCollected)</div>
                                 </div>
-                                <div class="row g-3">
+                                <div class="row g-3 dash-tint-metric">
                                     <div class="col-6">
                                         <div class="text-muted small mb-1">Cash</div>
                                         <div class="metric-box metric-blue"><span>₹</span><strong>@dashAnimator.Amount(TodayCash)</strong></div>
@@ -261,7 +261,7 @@
                                     <span class="text-muted small">INR</span>
                                 </div>
 
-                                <div class="row g-3">
+                                <div class="row g-3 dash-tint-metric">
                                     <div class="col-12">
                                         <div class="text-muted small mb-1">Total expenses</div>
                                         <div class="metric-box metric-red"><span>₹</span><strong>@dashAnimator.Amount(TotalExpenses)</strong></div>
