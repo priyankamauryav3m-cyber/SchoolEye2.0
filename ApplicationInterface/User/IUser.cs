@@ -28,5 +28,9 @@ namespace ApplicationInterface.User
         Task SendPasswordResetLinkAsync(string usernameOrEmail);
         Task<int> ValidatePasswordResetTokenAsync(string token);
         Task<int> ResetPasswordWithTokenAsync(string token, string newPassword);
+
+        // same encryption as the old UserDAL.EncryptPassword (tokens read by the old pages)
+        string EncryptPassword(string toEncryptPassword, bool useHashing);
+        string DecryptPassword(string cipherString, bool useHashing);
     }
 }

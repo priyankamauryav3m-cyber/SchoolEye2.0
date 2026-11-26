@@ -242,7 +242,9 @@ namespace DomainModel.SchoolMaster
         InvalidCredentials,
         Timeout,
         ProviderRejected,
-        ProviderUnreachable
+        ProviderUnreachable,
+        // SMS text does not match a registered (DLT) SMS template: not sent
+        TemplateMismatch
     }
 
     #endregion

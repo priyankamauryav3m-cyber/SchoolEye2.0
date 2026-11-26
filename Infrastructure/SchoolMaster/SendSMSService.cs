@@ -367,6 +367,12 @@ namespace Infrastructure.SchoolMaster
             if (string.IsNullOrWhiteSpace(text))
                 return Fail(result, WhatsAppFailure.ProviderRejected, "SMS text is empty.");
 
+            // DLT: the provider accepts any text, but the operator does not deliver a text that is not a
+            // registered template. Only the {#var#} parts may change -> otherwise fail here, nothing is sent.
+            if (!await MatchesSmsTemplateAsync(text, groupCode, branchCode))
+                return Fail(result, WhatsAppFailure.TemplateMismatch,
+                    "Message does not match the SMS template. Only the {#var#} parts can be changed.");
+
             // 3. credentials: the branch's DefaultSettings when complete there, otherwise appsettings SmsSettings
             var branch = await GetSmsSettingsAsync(groupCode, branchCode);
             var useBranch = !string.IsNullOrWhiteSpace(branch.UserName) && !string.IsNullOrWhiteSpace(branch.Password) && !string.IsNullOrWhiteSpace(branch.SenderId);
@@ -434,6 +440,40 @@ namespace Infrastructure.SchoolMaster
                     string.IsNullOrWhiteSpace(error) ? "SMS provider did not accept the message." : $"SMS provider did not accept the message: {error}");
             }
         }
+
+        // true when the text matches one SMS template of the branch (DetSMSEmailText, valid, no WhatsApp template):
+        // the fixed text must be the same (spaces / line breaks ignored), each {#var#} can be any value
+        private async Task<bool> MatchesSmsTemplateAsync(string text, string groupCode, string branchCode)
+        {
+            using var db = new SqlConnection(_connectionString);
+            const string sql = @"SELECT SMSEmailText
+                                 FROM DetSMSEmailText WITH (NOLOCK)
+                                 WHERE GroupCode = @GroupCode
+                                   AND BranchCode = @BranchCode
+                                   AND IsValid = 1
+                                   AND ISNULL(LTRIM(RTRIM(WhatsAppTemplateName)), '') = ''
+                                   AND ISNULL(LTRIM(RTRIM(SMSEmailText)), '') <> ''";
+            var templates = await db.QueryAsync<string>(sql, new { GroupCode = groupCode, BranchCode = branchCode });
+
+            var message = NormalizeSpaces(text);
+            foreach (var template in templates)
+            {
+                var parts = Regex.Split(NormalizeSpaces(template), @"\{#var#\}", RegexOptions.IgnoreCase);
+                var pattern = "^" + string.Join(@"[\s\S]*?", parts.Select(Regex.Escape)) + "$";
+                try
+                {
+                    if (Regex.IsMatch(message, pattern, RegexOptions.None, TimeSpan.FromSeconds(1)))
+                        return true;
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    // treat as no match for this template
+                }
+            }
+            return false;
+        }
+
+        private static string NormalizeSpaces(string value) => Regex.Replace(value.Trim(), @"\s+", " ");
 
         // JSON { "status":"success", "data":[{"uniqueid":"..."}] } / { "code":"EC1xxx", "msg":"..." }
         // or plain text (message id on success, an error text otherwise)
@@ -511,7 +551,6 @@ namespace Infrastructure.SchoolMaster
                 if (!response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(body))
                     return new SmsBalanceResult { Success = false, Message = "SMS provider did not return the balance." };
 
-                // plain text like "1520" / "Balance : 1520", or an error text
                 var number = Regex.Match(body, @"-?\d+(\.\d+)?");
                 var failed = (_sms.FailureKeywords ?? new List<string>())
                     .Any(k => !string.IsNullOrWhiteSpace(k) && body.Contains(k, StringComparison.OrdinalIgnoreCase));

@@ -1,0 +1,442 @@
+@page "/SummerActivitySlot"
+@using DomainModel.Admin
+@using DomainModel.SchoolAdmin
+@using ServerWebUI.Components.Pages.CommonPages
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@implements IDisposable
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <PageHeading Tittle="Summer Activity Slot">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.SessionId" @bind-Value:after="OnSessionChanged" class="form-input" title="Session">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.ActivityId" class="form-input" title="Activity Name">
+                        <option value="0">-- All Activities --</option>
+                        @foreach (var data in activitylist)
+                        {
+                            <option value="@data.SAId">@data.ActivityName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <input type="text" class="form-input" placeholder="Slot Name" maxlength="50" title="Slot Name"
+                           @bind="search.SlotName" @onkeyup="OnSlotNameKeyUp" />
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.Valid" class="form-input" title="Status">
+                        <option value="1">Active</option>
+                        <option value="0">Deactive</option>
+                        <option value="-1">All</option>
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchSlots" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddSlot" />
+            </PageHeading>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@slotlist.AsQueryable()" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.ActivityName)" Title="Activity Name" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.SlotName)" Title="Slot Name" Sortable="true" Align="Align.Left" />
+                                <TemplateColumn Title="Fee Amount" Sortable="true" Align="Align.Right" SortBy="GridSort<SummerActivitySlotModel>.ByAscending(x => x.FeeAmount)">
+                                    @(context.FeeAmount?.ToString("N2") ?? "0.00")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <span class="@(context.IsValid ? "activeClr" : "inactiveClr")">
+                                        @(context.IsValid ? "Active" : "Deactive")
+                                    </span>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditSlot(context)" OnStatusClick="() => ChangeStatus(context)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@(slot.SASId == 0 ? "Add New Summer Activity Slot" : "Edit Summer Activity Slot")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@slot" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row gap-10-0">
+                            <div class="col-12 px-2">
+                                <div class="form-box-group static-label">
+                                    <InputSelect class="floating-input" placeholder=" " @bind-Value="slot.SAId">
+                                        <option value="0" hidden=""></option>
+                                        @foreach (var data in PopupActivities)
+                                        {
+                                            <option value="@data.SAId">@data.ActivityName</option>
+                                        }
+                                    </InputSelect>
+                                    <label class="floating-label">Activity Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => slot.SAId)" />
+                                </div>
+                            </div>
+                            <div class="col-12 px-2 mt-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " maxlength="50" @bind-Value="slot.SlotName" autocomplete="off" />
+                                    <label class="floating-label">Slot Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => slot.SlotName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 px-2 mt-2">
+                                <div class="form-box-group">
+                                    <InputNumber TValue="decimal?" class="floating-input" placeholder=" " step="0.01" min="0" @bind-Value="slot.FeeAmount" />
+                                    <label class="floating-label">Fee Amount <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => slot.FeeAmount)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="slot.SASId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    private SummerActivitySlotModel slot = new();
+    private string oldSlot = "";
+    private List<SummerActivitySlotModel> slotlist = new();
+    // every activity of the selected session (filter + popup)
+    private List<SummerActivityModel> activitylist = new();
+    private List<SessionModel> sessionlist = new();
+    private SummerActivitySlotSearchModel search = new();
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool IsLoading;
+    private bool ShowPopup;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+    private string? currentUrl;
+
+    // popup: only active activities (+ the slot's own activity when editing)
+    private IEnumerable<SummerActivityModel> PopupActivities =>
+        activitylist.Where(x => x.IsValid || x.SAId == slot.SAId);
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    public void Dispose() => PermissionState.OnChange -= StateHasChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            search.SessionId = await CommonMethod.SetCurrentSessionData();
+            await LoadActivities();
+            await SearchSlots();
+        }
+    }
+
+    private async Task OnSessionChanged()
+    {
+        search.ActivityId = 0;
+        await LoadActivities();
+    }
+
+    private async Task OnSlotNameKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchSlots();
+    }
+
+    // activities of the session (Summer Activity master)
+    private async Task LoadActivities()
+    {
+        activitylist = new();
+        if (search.SessionId <= 0) return;
+        try
+        {
+            var request = new SummerActivitySearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = search.SessionId,
+                ActivityId = 0,
+                Valid = -1
+            };
+            var response = await httpService.Post<ApiResponse<List<SummerActivityModel>>>("SummerActivity/GetSummerActivities", request);
+            activitylist = response != null && response.Success ? response.Data ?? new() : new();
+        }
+        catch
+        {
+            activitylist = new();
+        }
+    }
+
+    private async Task<List<SummerActivitySlotModel>> GetSlots(SummerActivitySlotSearchModel request)
+    {
+        request.GroupCode = groupcode;
+        request.BranchCode = branchcode;
+        var response = await httpService.Post<ApiResponse<List<SummerActivitySlotModel>>>("SummerActivitySlot/GetSlots", request);
+        if (response == null || !response.Success)
+            throw new InvalidOperationException(response?.Message ?? "Unable to load the slots.");
+        return response.Data ?? new();
+    }
+
+    private async Task SearchSlots()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            slotlist = await GetSlots(new SummerActivitySlotSearchModel
+            {
+                SessionId = search.SessionId,
+                ActivityId = search.ActivityId,
+                SlotName = search.SlotName?.Trim(),
+                Valid = search.Valid
+            });
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception ex)
+        {
+            slotlist = new();
+            await Alert.ShowError(ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddSlot()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        if (!activitylist.Any(x => x.IsValid))
+        {
+            await Alert.ShowWarning("No active summer activity in this session. Add the activity first.");
+            return;
+        }
+        slot = new SummerActivitySlotModel { SAId = search.ActivityId };
+        if (!PopupActivities.Any(x => x.SAId == slot.SAId))
+            slot.SAId = 0;
+        ShowPopup = true;
+    }
+
+    private void EditSlot(SummerActivitySlotModel item)
+    {
+        slot = new SummerActivitySlotModel
+        {
+            SASId = item.SASId,
+            SAId = item.SAId,
+            SlotName = item.SlotName,
+            FeeAmount = item.FeeAmount
+        };
+        oldSlot = CommonMethod.CreateSnapshot(slot);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        slot = new();
+        ShowPopup = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSave()
+    {
+        try
+        {
+            var name = slot.SlotName?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                await Alert.ShowWarning("Slot name is required.");
+                return;
+            }
+
+            // same slot name in the same activity is not allowed
+            var existing = await GetSlots(new SummerActivitySlotSearchModel
+            {
+                SessionId = search.SessionId,
+                ActivityId = slot.SAId,
+                SlotName = name,
+                Valid = -1
+            });
+            if (existing.Any(x => x.SASId != slot.SASId && string.Equals(x.SlotName?.Trim(), name, StringComparison.OrdinalIgnoreCase)))
+            {
+                await Alert.ShowWarning("Slot " + Localizer["Already"]);
+                return;
+            }
+
+            if (slot.SASId > 0)
+            {
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                if (!CommonMethod.IsEdited(slot, oldSlot))
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+
+            slot.SlotName = name;
+            slot.GroupCode = groupcode;
+            slot.BranchCode = branchcode;
+            slot.SessionId = search.SessionId;
+            slot.CreatedBy = UserName;
+
+            ShowPopup = false;
+            var response = await httpService.Post<ApiResponse<object>>("SummerActivitySlot/AddUpdateSlot", slot);
+            if (response == null)
+            {
+                await Alert.ShowCustomAlert(Localizer["Admin"]);
+                ShowPopup = true;
+                return;
+            }
+
+            switch (response.Code)
+            {
+                case 1:
+                    await Alert.ShowSuccess(response.Message);
+                    break;
+                case 2:
+                    await Alert.ShowUpdate(response.Message ?? "Slot updated successfully.");
+                    break;
+                default:
+                    await Alert.ShowCustomAlert(response.Message ?? Localizer["Admin"]);
+                    ShowPopup = true;
+                    return;
+            }
+
+            slot = new();
+            await SearchSlots();
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to save the slot right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangeStatus(SummerActivitySlotModel item)
+    {
+        try
+        {
+            bool isActivate = !item.IsValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            var request = new SummerActivitySlotStatusModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SASId = item.SASId,
+                IsValid = isActivate
+            };
+            var response = await httpService.Post<ApiResponse<object>>("SummerActivitySlot/ActiveDeactiveSlot", request);
+            if (response != null && response.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(response.Message ?? Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(response.Message ?? Localizer["Deleted"]);
+                await SearchSlots();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to change the status right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}

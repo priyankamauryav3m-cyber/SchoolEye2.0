@@ -18,296 +18,394 @@
 {
     <div class="custom-modal row m-0 align-items-center">
         <div class="col-12">
-            <div class="modal-content clearfix main-popup ">
+            <div class="modal-content clearfix main-popup sm-popup">
                 <div class="head-btn">
-                    <h5 class="modal-title" id="exampleModalLabel">New message</h5>
-                    <button data-access="Close" @onclick="ClosePopup" type="button" class="close"><span aria-hidden="true">×</span></button>
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="exampleModalLabel">
+                        <i class="bi bi-chat-square-text-fill"></i> New Message
+                    </h5>
+                    <button data-access="Close" @onclick="ClosePopup" type="button" class="close sm-close" title="Close" disabled="@IsSending">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
+                    <div class="row g-3">
 
-                        @* ---------------- left (5): message ---------------- *@
+                        @* ---------------- left (5): compose ---------------- *@
                         <div class="col-12 col-lg-5">
-                          <div class="card h-100">
-                            <div class="card-body">
-                            <div class="row">
-                                <div class="col-12">
-                                    <MessageForSelector @bind-Value="MessageBodys" @bind-Value:after="OnChannelChanged" />
-                                </div>
-                            </div>
-                            <div class="row gap-10-0 mt-4">
-                                <div class="col-12 col-md-6">
-                                    <div class="form-box">
-                                        <label for="distance" class="form-label">Message Type</label>
-                                        <InputSelect class="form-input" @bind-Value="sentModel.MessageType" @bind-Value:after="OnMessageTypeChanged">
-                                            <option value="0">Select Message Type</option>
-                                            @foreach (var msg in messagetypelist.Where(x => x.IsValid == true))
+                            <div class="card sm-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                        <h6 class="sm-card-title mb-0"><i class="bi bi-pencil-square"></i> Compose Message</h6>
+                                        <div class="sm-balance" title="@BalanceMessage">
+                                            <i class="bi bi-wallet2"></i>
+                                            <span>Available Balance (SMS):</span>
+                                            @if (IsLoadingBalance)
                                             {
-                                                <option value="@msg.MessageTypeId">@msg.MessageType</option>
+                                                <span class="sm-spinner"></span>
                                             }
-                                        </InputSelect>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <div class="form-box">
-                                        <label class="form-label">Select Text</label>
-                                        @* the selected text gives the Message and (WhatsApp) its template name *@
-                                        <InputSelect @bind-Value="SelectedTextId" @bind-Value:after="OnTextSelected" class="form-input">
-                                            <option value="0" selected>Select Message</option>
-                                            @foreach (var msg in smsEmailTextlist.Where(x => x.IsValid == true))
+                                            else
                                             {
-                                                @* only the shown text is cut at 50; the full text goes to Message *@
-                                                <option value="@msg.SmsEmailTextId" title="@msg.SMSEmailText">@ShortText(msg.SMSEmailText, 50)</option>
+                                                <span class="sm-balance-val">@(string.IsNullOrWhiteSpace(SmsBalance) ? "-" : SmsBalance)</span>
                                             }
-                                        </InputSelect>
-                                        @if (MessageBodys == MessageType.WhatsApp && SelectedTextId > 0)
-                                        {
-                                            <small class="@(string.IsNullOrWhiteSpace(TemplateName) ? "text-danger" : "text-muted")">
-                                                Template: @(string.IsNullOrWhiteSpace(TemplateName) ? "not set: this is an SMS text" : TemplateName)
-                                            </small>
-                                        }
-                                        else if (MessageBodys == MessageType.SMS && !string.IsNullOrWhiteSpace(SelectedText?.WhatsAppTemplateName))
-                                        {
-                                            <small class="text-danger">This text is a WhatsApp template (@SelectedText.WhatsAppTemplateName): select an SMS text.</small>
-                                        }
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-box">
-                                        <label for="message-text" class="form-label">Message:</label>
-                                        <InputTextArea class="sms-aria form-input" rows="5" @bind-value="sentModel.MessageText"></InputTextArea>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="mt-3">
-                                <strong>
-                                    <span>
-                                        %SN% : Student Name, %FN% : Father Name, %MN% : Mother Name,  %CS% : Class-Section Name ,  %ADMNO% : Student No,  %Fee% : Balance Amt,  %PN% : Period Name,  %DT% : Current Date
-                                    </span>
-                                </strong>
+                                    <MessageForSelector @bind-Value="MessageBodys" @bind-Value:after="OnChannelChanged" />
+
+                                    <div class="row gap-10-0 mt-3">
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-box">
+                                                <label class="form-label sm-label"><i class="bi bi-list-ul"></i> Message Type</label>
+                                                <InputSelect class="form-input" @bind-Value="sentModel.MessageType" @bind-Value:after="OnMessageTypeChanged">
+                                                    <option value="0">Select Message Type</option>
+                                                    @foreach (var msg in messagetypelist.Where(x => x.IsValid == true))
+                                                    {
+                                                        <option value="@msg.MessageTypeId">@msg.MessageType</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="form-box">
+                                                <label class="form-label sm-label"><i class="bi bi-file-earmark-text"></i> Select Text</label>
+                                                @* the selected text gives the Message and (WhatsApp) its template name *@
+                                                <InputSelect @bind-Value="SelectedTextId" @bind-Value:after="OnTextSelected" class="form-input">
+                                                    <option value="0" selected>Select Message</option>
+                                                    @foreach (var msg in smsEmailTextlist.Where(x => x.IsValid == true))
+                                                    {
+                                                        @* only the shown text is cut at 50; the full text goes to Message *@
+                                                        <option value="@msg.SmsEmailTextId" title="@msg.SMSEmailText">@ShortText(msg.SMSEmailText, 50)</option>
+                                                    }
+                                                </InputSelect>
+                                                @if (MessageBodys == MessageType.WhatsApp && SelectedTextId > 0)
+                                                {
+                                                    <small class="@(string.IsNullOrWhiteSpace(TemplateName) ? "text-danger" : "text-muted")">
+                                                        Template: @(string.IsNullOrWhiteSpace(TemplateName) ? "not set: this is an SMS text" : TemplateName)
+                                                    </small>
+                                                }
+                                                else if (MessageBodys == MessageType.SMS && !string.IsNullOrWhiteSpace(SelectedText?.WhatsAppTemplateName))
+                                                {
+                                                    <small class="text-danger">This text is a WhatsApp template (@SelectedText.WhatsAppTemplateName): select an SMS text.</small>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-box">
+                                                <label for="sm-message-text" class="form-label sm-label sm-label-blue"><i class="bi bi-chat-left-text"></i> Message:</label>
+                                                <textarea id="sm-message-text" class="sms-aria form-input" rows="4" @bind="sentModel.MessageText" @bind:event="oninput"></textarea>
+                                                <div class="sm-msg-hint">
+                                                    <span><i class="bi bi-info-circle"></i> Customize your message using variables.</span>
+                                                    <span>@(sentModel.MessageText?.Length ?? 0) Characters</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="sm-vars">
+                                        <div class="sm-vars-title"><i class="bi bi-braces"></i> Available Message Variables</div>
+                                        <div class="sm-vars-list">
+                                            @for (var i = 0; i < MessageVariables.Length; i++)
+                                            {
+                                                var v = MessageVariables[i];
+                                                <span><b>@v.Code</b> : @v.Name@(i < MessageVariables.Length - 1 ? ", " : "")</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            </div>
-                          </div>
                         </div>
 
                         @* ---------------- right (7): every attempt of the selected students ---------------- *@
-                        <div class="col-12 col-lg-7 mt-3 mt-lg-0">
-                          <div class="card h-100">
-                            <div class="sm-status-head">
-                                <strong>
-                                    Selected Students: @(Students?.Count ?? 0)
-                                    @if (resultRows.Count > 0)
-                                    {
-                                        <span class="ms-2 text-success"><i class="bi bi-check-circle-fill"></i> @SentCount</span>
-                                        <span class="ms-2 text-danger"><i class="bi bi-x-circle-fill"></i> @FailedCount</span>
-                                    }
-                                </strong>
-                                <button type="button" class="icon-btn" title="Refresh grid (reload history)" disabled="@(IsSending || IsLoadingHistory)" @onclick="RefreshGrid">
-                                    @if (IsLoadingHistory)
-                                    {
-                                        <span class="sm-spinner"></span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-arrow-clockwise"></i>
-                                    }
-                                </button>
-                            </div>
-
-                            @if (resultRows.Count == 0)
-                            {
-                                <div class="card-body">
-                                    <div class="sm-status-empty">
-                                        <i class="bi bi-send"></i>
-                                        <span>No message sent to the selected student(s) yet. Click "Send Message": every attempt (sent / failed) will show here.</span>
+                        <div class="col-12 col-lg-7">
+                            <div class="card sm-card h-100">
+                                <div class="sm-status-head">
+                                    <div class="sm-status-title">
+                                        <i class="bi bi-people-fill sm-ico-blue"></i>
+                                        <span>Selected Students:</span>
+                                        <span class="sm-count">@(Students?.Count ?? 0)</span>
+                                        @if (resultRows.Count > 0)
+                                        {
+                                            <span class="sm-count text-success" title="Sent"><i class="bi bi-check-circle-fill"></i> @SentCount</span>
+                                            <span class="sm-count text-danger" title="Failed"><i class="bi bi-x-circle-fill"></i> @FailedCount</span>
+                                        }
                                     </div>
+                                    <button type="button" class="sm-refresh" title="Refresh grid (reload history)" disabled="@(IsSending || IsLoadingHistory)" @onclick="RefreshGrid">
+                                        @if (IsLoadingHistory)
+                                        {
+                                            <span class="sm-spinner light"></span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        }
+                                    </button>
                                 </div>
-                            }
-                            else
-                            {
-                                <div>
-                                    <div class="card-body table-card p-0">
-                                        <div class="quick-main">
-                                            <div class="grid-box-with-btn">
-                                                <QuickGrid Items="@resultQuery" Pagination="@pagination" Class="table">
-                                                    <TemplateColumn Title="" Align="Align.Center">
-                                                        <HeaderTemplate>
-                                                            <div class="d-flex align-items-center justify-content-center">
-                                                                <input type="checkbox" title="Select all failed" disabled="@(IsSending || ResendableCount == 0)"
-                                                                       @bind="IsAllFailedSelected" @bind:after="ToggleAllFailed" @onclick:stopPropagation="true" />
-                                                            </div>
-                                                        </HeaderTemplate>
-                                                        <ChildContent>
-                                                            <div class="d-flex align-items-center justify-content-center">
-                                                                @* only the last failed attempt of a message can be resent; sent rows and older attempts are history *@
-                                                                <input type="checkbox" disabled="@(IsSending || !IsResendable(context))"
-                                                                       @bind="context.IsSelected" @onclick:stopPropagation="true" />
-                                                            </div>
-                                                        </ChildContent>
-                                                    </TemplateColumn>
-                                                    <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Name" />
-                                                    <PropertyColumn Sortable="true" Property="@(x => x.Type)" Title="Type" />
-                                                    <TemplateColumn Title="Sent On" Sortable="true" SortBy="GridSort<SendResultRow>.ByDescending(x => x.SentDate)">
-                                                        @(context.SentDate?.ToString("dd-MM-yyyy hh:mm tt") ?? "-")
-                                                    </TemplateColumn>
-                                                    @* <TemplateColumn Title="Template">
-                                                        @(string.IsNullOrWhiteSpace(context.TemplateName) ? "-" : context.TemplateName)
-                                                    </TemplateColumn> *@
-                                                    <TemplateColumn Title="Message">
-                                                        @* same hover tooltip as the Period column of View Student Receipt *@
-                                                        <span class="custom-tooltip" data-tooltip="@context.Message">
-                                                            @(string.IsNullOrWhiteSpace(context.Message)
-                                                                ? ""
-                                                                : (context.Message.Length > 30
-                                                                    ? context.Message.Substring(0, 30) + "..."
-                                                                    : context.Message))
-                                                        </span>
-                                                    </TemplateColumn>
-                                                    <TemplateColumn Class="status-con" Title="Status" Align="Align.Center">
-                                                        @if (context.Status == SendStatus.Sending)
-                                                        {
-                                                            <span class="sm-spinner" title="Sending..."></span>
-                                                        }
-                                                        else if (context.Status == SendStatus.Sent)
-                                                        {
-                                                            <span class="activeClr" title="@(context.FailCount > 0 ? $"Sent after {context.FailCount} failed attempt(s). {context.Remark}" : context.Remark)"><i class="bi bi-check-circle-fill"></i> Sent</span>
-                                                        }
-                                                        else if (context.Status == SendStatus.Failed)
-                                                        {
-                                                            <span class="inactiveClr" title="@($"Failed {Math.Max(context.FailCount, 1)} time(s). {context.Remark}")"><i class="bi bi-x-circle-fill"></i> Failed (@Math.Max(context.FailCount, 1))</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted" title="@context.Remark">Pending</span>
-                                                        }
-                                                    </TemplateColumn>
-                                                </QuickGrid>
-                                            </div>
-                                            <div class="footer-pagination">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="welcome-text w-100">
-                                                        <Paginator State="@pagination" />
+
+                                @if (resultRows.Count == 0)
+                                {
+                                    <div class="card-body">
+                                        <div class="sm-status-empty">
+                                            <i class="bi bi-send"></i>
+                                            <span>No message sent to the selected student(s) yet. Click "Send Message": every attempt (sent / failed) will show here.</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div>
+                                        <div class="card-body table-card p-0">
+                                            <div class="quick-main">
+                                                <div class="grid-box-with-btn sm-grid">
+                                                    <QuickGrid Items="@resultQuery" Pagination="@pagination" Class="table">
+                                                        <TemplateColumn Title="" Align="Align.Center">
+                                                            <HeaderTemplate>
+                                                                <div class="d-flex align-items-center justify-content-center">
+                                                                    <input type="checkbox" title="Select all failed" disabled="@(IsSending || ResendableCount == 0)"
+                                                                           @bind="IsAllFailedSelected" @bind:after="ToggleAllFailed" @onclick:stopPropagation="true" />
+                                                                </div>
+                                                            </HeaderTemplate>
+                                                            <ChildContent>
+                                                                <div class="d-flex align-items-center justify-content-center">
+                                                                    @* only the last failed attempt of a message can be resent; sent rows and older attempts are history *@
+                                                                    <input type="checkbox" disabled="@(IsSending || !IsResendable(context))"
+                                                                           @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                                </div>
+                                                            </ChildContent>
+                                                        </TemplateColumn>
+                                                        <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Name" Class="sm-name" />
+                                                        <TemplateColumn Title="Type" Sortable="true" SortBy="GridSort<SendResultRow>.ByAscending(x => x.Type)">
+                                                            <span class="sm-type @(context.Type == "WhatsApp" ? "wa" : context.Type == "Email" ? "mail" : "sms")">@context.Type</span>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Sent On" Sortable="true" SortBy="GridSort<SendResultRow>.ByDescending(x => x.SentDate)">
+                                                            @(context.SentDate?.ToString("dd-MM-yyyy hh:mm tt") ?? "-")
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Title="Message">
+                                                            @* same hover tooltip as the Period column of View Student Receipt *@
+                                                            <span class="custom-tooltip" data-tooltip="@context.Message">
+                                                                @(string.IsNullOrWhiteSpace(context.Message)
+                                                                    ? ""
+                                                                    : (context.Message.Length > 30
+                                                                        ? context.Message.Substring(0, 30) + "..."
+                                                                        : context.Message))
+                                                            </span>
+                                                        </TemplateColumn>
+                                                        <TemplateColumn Class="status-con" Title="Status" Align="Align.Center">
+                                                            @if (context.Status == SendStatus.Sending)
+                                                            {
+                                                                <span class="sm-spinner" title="Sending..."></span>
+                                                            }
+                                                            else if (context.Status == SendStatus.Sent)
+                                                            {
+                                                                <span class="sm-pill sent" title="@(context.FailCount > 0 ? $"Sent after {context.FailCount} failed attempt(s). {context.Remark}" : context.Remark)"><i class="bi bi-check-circle-fill"></i> Sent</span>
+                                                            }
+                                                            else if (context.Status == SendStatus.Failed)
+                                                            {
+                                                                <span class="sm-pill failed" title="@($"Failed {Math.Max(context.FailCount, 1)} time(s). {context.Remark}")"><i class="bi bi-x-circle-fill"></i> Failed (@Math.Max(context.FailCount, 1))</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="sm-pill pending" title="@context.Remark"><i class="bi bi-clock"></i> Pending</span>
+                                                            }
+                                                        </TemplateColumn>
+                                                    </QuickGrid>
+                                                </div>
+                                                <div class="footer-pagination">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="welcome-text w-100">
+                                                            <Paginator State="@pagination" />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            }
-                          </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <div class="form-group btn-gr d-flex align-items-center justify-content-between w-100">
-                        <div class="sms-balance">
-                            <strong title="@BalanceMessage">
-                                Available Balance (SMS):
-                                @if (IsLoadingBalance)
+                    <div class="d-flex align-items-center justify-content-end w-100 flex-wrap gap-2">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="sm-btn primary" disabled="@IsSending" @onclick="SendSms">
+                                @if (IsSending && !IsResending)
                                 {
-                                    <span class="sm-spinner"></span>
+                                    <span class="sm-spinner light"></span>
                                 }
                                 else
                                 {
-                                    @(string.IsNullOrWhiteSpace(SmsBalance) ? "-" : SmsBalance)
+                                    <i class="bi bi-send-fill"></i>
                                 }
-                            </strong>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <div class="form-box">
-                                <button class="table-btn" disabled="@IsSending" @onclick="SendSms">
-                                    @if (IsSending && !IsResending)
-                                    {
-                                        <span class="inline-spinner light"></span>
-                                    }
-                                    Send Message
-                                </button>
-                            </div>
+                                Send Message
+                            </button>
                             @* only when some students failed: tick them in the grid and resend *@
                             @if (ResendableCount > 0 || IsResending)
                             {
-                                <div class="form-box">
-                                    <button class="table-btn" title="Resend to the ticked failed students" disabled="@IsSending" @onclick="Resend">
-                                        @if (IsResending)
-                                        {
-                                            <span class="inline-spinner light"></span>
-                                        }
-                                        Resend (@ResendableCount)
-                                    </button>
-                                </div>
-                            }
-                            <div class="form-box">
-                                <button class="table-btn" disabled="@IsSending" @onclick="ClosePopup">
-                                    Close
+                                <button type="button" class="sm-btn warn" title="Resend to the ticked failed students" disabled="@IsSending" @onclick="Resend">
+                                    @if (IsResending)
+                                    {
+                                        <span class="sm-spinner light"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    }
+                                    Resend (@ResendableCount)
                                 </button>
-                            </div>
+                            }
+                            <button type="button" class="sm-btn outline" disabled="@IsSending" @onclick="ClosePopup">
+                                <i class="bi bi-x-circle"></i> Close
+                            </button>
                         </div>
-
                     </div>
                 </div>
-
 
             </div>
         </div>
     </div>
-
-
 }
 <style>
-    .sms-aria {
-        height: 200px;
+    .sm-popup .modal-body { padding: 16px; }
+
+    .sm-popup .head-btn h5 { font-size: 18px; font-weight: 700; }
+        .sm-popup .head-btn h5 .bi { font-size: 20px; }
+
+    .sm-popup .sm-close {
+        background: rgba(255,255,255,.18) !important;
+        border: 1px solid rgba(255,255,255,.45) !important;
+        width: 34px; height: 34px; font-size: 14px;
+    }
+        .sm-popup .sm-close:hover { background: rgba(255,255,255,.3) !important; }
+
+    .sm-popup .sm-card {
+        border: 1px solid #e3e9f1;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(15, 50, 90, .06);
+        overflow: hidden;
+    }
+        .sm-popup .sm-card > .card-body { padding: 18px; }
+
+    .sm-popup .sm-card-title {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 16px; font-weight: 700; color: #1d3550;
+        margin-bottom: 16px;
+    }
+        .sm-popup .sm-card-title .bi { color: #1b6fa8; font-size: 18px; }
+
+    .sm-popup .sm-label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+        .sm-popup .sm-label .bi { color: #4c6a87; }
+    .sm-popup .sm-label-blue, .sm-popup .sm-label-blue .bi { color: #1b6fa8; }
+
+    .sm-popup .sms-aria { height: 72px; resize: vertical; }
+
+    .sm-popup .sm-msg-hint {
+        display: flex; justify-content: space-between; gap: 8px;
+        margin-top: 6px; font-size: 13px; color: #6c7a89;
     }
 
-    .sm-status-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 14px;
-        border-bottom: 1px solid #e5eaf0;
+    .sm-popup .sm-vars {
+        margin-top: 16px; padding: 12px 14px;
+        background: #eef5fd; border: 1px solid #d6e6f7; border-radius: 10px;
     }
-
-    .sm-status-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 260px;
-        border: 1px dashed #cbd8e5;
-        border-radius: 8px;
-        color: #6c7a89;
-        text-align: center;
-        padding: 16px;
+    .sm-popup .sm-vars-title {
+        display: flex; align-items: center; gap: 6px;
+        font-weight: 700; font-size: 13.5px; color: #1d3550; margin-bottom: 6px;
     }
+    .sm-popup .sm-vars-list { font-size: 12.5px; line-height: 1.9; color: #4c5966; }
+        .sm-popup .sm-vars-list b { color: #1b6fa8; }
 
-        .sm-status-empty .bi {
-            font-size: 28px;
-        }
+    .sm-popup .sm-status-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px; border-bottom: 1px solid #e5eaf0;
+    }
+    .sm-popup .sm-status-title {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 15.5px; font-weight: 700; color: #1d3550;
+    }
+    .sm-popup .sm-ico-blue { color: #1b6fa8; }
+    .sm-popup .sm-count { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; }
 
-    .sm-spinner, .main-popup .inline-spinner {
-        width: 14px;
-        height: 14px;
-        border: 2px solid #cbd8e5;
-        border-top-color: #118c91;
-        border-radius: 50%;
-        display: inline-block;
-        vertical-align: middle;
+    .sm-popup .sm-refresh {
+        width: 38px; height: 38px; border: none; border-radius: 8px;
+        background: #1677b3; color: #fff; font-size: 17px;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: background .15s ease;
+    }
+        .sm-popup .sm-refresh:hover:not(:disabled) { background: #0f5f91; }
+        .sm-popup .sm-refresh:disabled { opacity: .6; }
+
+    .sm-popup .sm-grid .table th { background: #f2f5f9; font-weight: 600; color: #1d3550; }
+    .sm-popup .sm-grid .table td { vertical-align: middle; }
+    .sm-popup .sm-grid .sm-name { font-weight: 600; color: #1d3550; }
+
+    .sm-popup .sm-type {
+        display: inline-block; padding: 3px 10px; border-radius: 20px;
+        font-size: 12px; font-weight: 600; background: #e3f0fb; color: #1d4f7a;
+    }
+        .sm-popup .sm-type.wa { background: #e2f6ea; color: #17784a; }
+        .sm-popup .sm-type.mail { background: #fdecef; color: #b3263e; }
+
+    .sm-popup .sm-pill {
+        display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+        padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+        .sm-popup .sm-pill.sent { background: #e2f6ea; color: #17784a; }
+        .sm-popup .sm-pill.failed { background: #fdecec; color: #c62828; }
+        .sm-popup .sm-pill.pending { background: #eef1f5; color: #6c7a89; }
+
+    .sm-popup .sm-status-empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 8px; min-height: 260px; border: 1px dashed #cbd8e5; border-radius: 8px;
+        color: #6c7a89; text-align: center; padding: 16px;
+    }
+        .sm-popup .sm-status-empty .bi { font-size: 28px; }
+
+    .sm-popup .modal-footer { padding: 12px 18px; }
+    .sm-popup .sm-balance {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 12px; border-radius: 20px;
+        background: #eef5fd; border: 1px solid #d6e6f7;
+        font-weight: 600; color: #1d3550; font-size: 13px;
+    }
+        .sm-popup .sm-balance .bi { color: #1b6fa8; font-size: 15px; }
+        .sm-popup .sm-balance .sm-balance-val { font-weight: 700; color: #1b6fa8; }
+
+    .sm-popup .sm-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 9px 22px; border-radius: 24px; font-weight: 600; font-size: 14px;
+        border: 1px solid transparent; transition: all .15s ease;
+    }
+        .sm-popup .sm-btn.primary { background: #135f8f; color: #fff; }
+            .sm-popup .sm-btn.primary:hover:not(:disabled) { background: #0e4c73; }
+        .sm-popup .sm-btn.warn { background: #d9822b; color: #fff; }
+            .sm-popup .sm-btn.warn:hover:not(:disabled) { background: #b96b1f; }
+        .sm-popup .sm-btn.outline { background: #fff; color: #1d3550; border-color: #cfd8e3; }
+            .sm-popup .sm-btn.outline:hover:not(:disabled) { background: #f2f5f9; }
+        .sm-popup .sm-btn:disabled { opacity: .65; cursor: not-allowed; }
+
+    .sm-spinner {
+        width: 14px; height: 14px;
+        border: 2px solid #cbd8e5; border-top-color: #118c91; border-radius: 50%;
+        display: inline-block; vertical-align: middle;
         animation: sm-spin .7s linear infinite;
     }
-
-        .main-popup .inline-spinner.light {
-            border-color: rgba(255,255,255,.45);
-            border-top-color: #fff;
-            margin-right: 4px;
-        }
+        .sm-spinner.light { border-color: rgba(255,255,255,.45); border-top-color: #fff; }
 
     @@keyframes sm-spin {
-        to {
-            transform: rotate(360deg);
-        }
+        to { transform: rotate(360deg); }
     }
+
+    html.dark-mode .sm-popup .sm-card-title,
+    html.dark-mode .sm-popup .sm-status-title,
+    html.dark-mode .sm-popup .sm-vars-title,
+    html.dark-mode .sm-popup .sm-balance,
+    html.dark-mode .sm-popup .sm-grid .sm-name { color: #e6eef7; }
+    html.dark-mode .sm-popup .sm-balance { background: rgba(27,111,168,.12); border-color: rgba(27,111,168,.35); }
+    html.dark-mode .sm-popup .sm-vars { background: rgba(27,111,168,.12); border-color: rgba(27,111,168,.35); }
+    html.dark-mode .sm-popup .sm-vars-list { color: #c3cfdc; }
+    html.dark-mode .sm-popup .sm-grid .table th { background: rgba(255,255,255,.05); color: #e6eef7; }
+    html.dark-mode .sm-popup .sm-btn.outline { background: transparent; color: #e6eef7; }
 </style>
 <script>
     function openSms(mobile, message) {
@@ -358,6 +456,13 @@
             _ => "SMS"
         };
     private List<MessageTypeModal> messagetypelist = new();
+    // variables shown under the message (replaced by the API before sending)
+    private static readonly (string Code, string Name)[] MessageVariables =
+    {
+        ("%SN%", "Student Name"), ("%FN%", "Father Name"), ("%MN%", "Mother Name"),
+        ("%CS%", "Class-Section Name"), ("%ADMNO%", "Student No"), ("%Fee%", "Balance Amount"),
+        ("%PN%", "Period Name"), ("%DT%", "Current Date")
+    };
     private List<SmsEmailTextModel> smsEmailTextlist = new();
 
     // ---------------- status grid: every attempt (history from the DB + this session) ----------------

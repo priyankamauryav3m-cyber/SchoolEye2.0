@@ -10,7 +10,7 @@ using MyApp.Common;
 namespace ServerWebAPI.Addmission.Controllers.Admin
 {
     [ApiExplorerSettings(GroupName = "Admission")]
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class SendSMSController : ControllerBase
@@ -138,6 +138,7 @@ namespace ServerWebAPI.Addmission.Controllers.Admin
                         WhatsAppFailure.MobileNotAvailable or WhatsAppFailure.InvalidMobile => StatusCodes.Status422UnprocessableEntity,
                         WhatsAppFailure.SettingsMissing or WhatsAppFailure.InvalidCredentials => StatusCodes.Status503ServiceUnavailable,
                         WhatsAppFailure.Timeout => StatusCodes.Status504GatewayTimeout,
+                        WhatsAppFailure.TemplateMismatch => StatusCodes.Status422UnprocessableEntity,
                         _ => StatusCodes.Status502BadGateway
                     }
                 });
