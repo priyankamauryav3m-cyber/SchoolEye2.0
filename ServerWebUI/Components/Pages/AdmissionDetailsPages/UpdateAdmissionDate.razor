@@ -1,4 +1,5 @@
 @page "/UpdateAdmissionDate"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -92,7 +93,7 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father" Sortable="true" Align="Align.Left" />
                                 <TemplateColumn Title="Adm. Date" Class="text-center" Align="Align.Center">
                                     <ChildContent>

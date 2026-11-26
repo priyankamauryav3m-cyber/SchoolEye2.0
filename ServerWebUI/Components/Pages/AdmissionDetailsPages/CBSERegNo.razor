@@ -1,4 +1,5 @@
 ﻿@page "/CBSERegNo"
+@using DomainModel.Common
 @using System.Text.Json
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
@@ -84,7 +85,7 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Board Roll No." Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         <input class="form-input text-center" style="width:130px;"

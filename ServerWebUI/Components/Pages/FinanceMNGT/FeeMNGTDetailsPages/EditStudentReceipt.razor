@@ -1,3 +1,4 @@
+@using DomainModel.Common
 @using MyApp.Common
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
@@ -130,7 +131,7 @@
                                 }
                                 @if (!string.IsNullOrWhiteSpace(header.NextToKinContactNo))
                                 {
-                                    <span class="er-chip"><i class="bi bi-telephone"></i> @header.NextToKinContactNo</span>
+                                    <span class="er-chip"><i class="bi bi-telephone"></i> @PiiMask.Mobile(header.NextToKinContactNo)</span>
                                 }
                                 <span class="er-chip"><i class="bi bi-calendar3"></i> @SessionName</span>
                                 @if ((header.CurrentAdvance ?? 0) < 0)

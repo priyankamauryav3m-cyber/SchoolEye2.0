@@ -1,4 +1,5 @@
 @page "/ViewStudentsSibling"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -82,7 +83,7 @@
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father Name" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MotherName) ? " " : x.MotherName)" Title="Mother Name" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="Mobile No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Mobile(x.SMSMobileNo))" Title="Mobile No" Class="text-center" Align="Align.Center" />
                             </QuickGrid>
                         </div>
                         <div class="footer-pagination">

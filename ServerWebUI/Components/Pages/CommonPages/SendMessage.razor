@@ -17,7 +17,7 @@
 @if (ShowPopup)
 {
     <div class="custom-modal row m-0 align-items-center">
-        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-8">
+        <div class="col-12">
             <div class="modal-content clearfix main-popup ">
                 <div class="head-btn">
                     <h5 class="modal-title" id="exampleModalLabel">New message</h5>
@@ -25,67 +25,221 @@
                 </div>
                 <div class="modal-body">
                     <div class="row">
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-12">
-                            <MessageForSelector @bind-Value="MessageBodys" />
-                        </div>
-                    </div>
-                    <div class="row gap-10-0 mt-4">
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-6">
-                            <div class="form-box">
-                                <label for="distance" class="form-label">Message Type</label>
-                                <InputSelect class="form-input" @bind-Value="sentModel.MessageType"  @bind-Value:after="OnMessageTypeChanged">
-                                    
-                                    <option value="0">Select Message Type</option>
-                                    @foreach (var msg in messagetypelist.Where(x => x.IsValid == true))
-                                    {
-                                        <option value="@msg.MessageTypeId">@msg.MessageType</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <div class="form-box">
-                                <label class="form-label">Select Text</label>
-                                <InputSelect  @bind-Value="sentModel.MessageText"  class="form-input">
-                                    <option value="" selected>Select Message</option>
-                                    @foreach (var msg in smsEmailTextlist.Where(x => x.IsValid == true))
-                                        {
-                                        <option value="@msg.SMSEmailText">@msg.SMSEmailText</option>
-                                        }
-                                    
-                                </InputSelect>
-                            </div>
-                        </div>
-                        <div class="col-12 col-sm-6 col-md-4 col-lg-12">
-                            <div class="form-box">
-                                <label for="message-text" class="form-label">Message:</label>
-                                <InputTextArea class="sms-aria form-input" rows="5" @bind-value="sentModel.MessageText"></InputTextArea>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="mt-3">
-                        <strong>
-                            <span>
-                                %SN% : Student Name, %FN% : Father Name, %MN% : Mother Name,  %CS% : Class-Section Name ,  %ADMNO% : Student No,  %Fee% : Balance Amt,  %PN% : Period Name,  %DT% : Current Date
-                            </span>
-                        </strong>
+                        @* ---------------- left (5): message ---------------- *@
+                        <div class="col-12 col-lg-5">
+                          <div class="card h-100">
+                            <div class="card-body">
+                            <div class="row">
+                                <div class="col-12">
+                                    <MessageForSelector @bind-Value="MessageBodys" @bind-Value:after="OnChannelChanged" />
+                                </div>
+                            </div>
+                            <div class="row gap-10-0 mt-4">
+                                <div class="col-12 col-md-6">
+                                    <div class="form-box">
+                                        <label for="distance" class="form-label">Message Type</label>
+                                        <InputSelect class="form-input" @bind-Value="sentModel.MessageType" @bind-Value:after="OnMessageTypeChanged">
+                                            <option value="0">Select Message Type</option>
+                                            @foreach (var msg in messagetypelist.Where(x => x.IsValid == true))
+                                            {
+                                                <option value="@msg.MessageTypeId">@msg.MessageType</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-box">
+                                        <label class="form-label">Select Text</label>
+                                        @* the selected text gives the Message and (WhatsApp) its template name *@
+                                        <InputSelect @bind-Value="SelectedTextId" @bind-Value:after="OnTextSelected" class="form-input">
+                                            <option value="0" selected>Select Message</option>
+                                            @foreach (var msg in smsEmailTextlist.Where(x => x.IsValid == true))
+                                            {
+                                                @* only the shown text is cut at 50; the full text goes to Message *@
+                                                <option value="@msg.SmsEmailTextId" title="@msg.SMSEmailText">@ShortText(msg.SMSEmailText, 50)</option>
+                                            }
+                                        </InputSelect>
+                                        @if (MessageBodys == MessageType.WhatsApp && SelectedTextId > 0)
+                                        {
+                                            <small class="@(string.IsNullOrWhiteSpace(TemplateName) ? "text-danger" : "text-muted")">
+                                                Template: @(string.IsNullOrWhiteSpace(TemplateName) ? "not set: this is an SMS text" : TemplateName)
+                                            </small>
+                                        }
+                                        else if (MessageBodys == MessageType.SMS && !string.IsNullOrWhiteSpace(SelectedText?.WhatsAppTemplateName))
+                                        {
+                                            <small class="text-danger">This text is a WhatsApp template (@SelectedText.WhatsAppTemplateName): select an SMS text.</small>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-box">
+                                        <label for="message-text" class="form-label">Message:</label>
+                                        <InputTextArea class="sms-aria form-input" rows="5" @bind-value="sentModel.MessageText"></InputTextArea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <strong>
+                                    <span>
+                                        %SN% : Student Name, %FN% : Father Name, %MN% : Mother Name,  %CS% : Class-Section Name ,  %ADMNO% : Student No,  %Fee% : Balance Amt,  %PN% : Period Name,  %DT% : Current Date
+                                    </span>
+                                </strong>
+                            </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        @* ---------------- right (7): every attempt of the selected students ---------------- *@
+                        <div class="col-12 col-lg-7 mt-3 mt-lg-0">
+                          <div class="card h-100">
+                            <div class="sm-status-head">
+                                <strong>
+                                    Selected Students: @(Students?.Count ?? 0)
+                                    @if (resultRows.Count > 0)
+                                    {
+                                        <span class="ms-2 text-success"><i class="bi bi-check-circle-fill"></i> @SentCount</span>
+                                        <span class="ms-2 text-danger"><i class="bi bi-x-circle-fill"></i> @FailedCount</span>
+                                    }
+                                </strong>
+                                <button type="button" class="icon-btn" title="Refresh grid (reload history)" disabled="@(IsSending || IsLoadingHistory)" @onclick="RefreshGrid">
+                                    @if (IsLoadingHistory)
+                                    {
+                                        <span class="sm-spinner"></span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    }
+                                </button>
+                            </div>
+
+                            @if (resultRows.Count == 0)
+                            {
+                                <div class="card-body">
+                                    <div class="sm-status-empty">
+                                        <i class="bi bi-send"></i>
+                                        <span>No message sent to the selected student(s) yet. Click "Send Message": every attempt (sent / failed) will show here.</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <div class="card-body table-card p-0">
+                                        <div class="quick-main">
+                                            <div class="grid-box-with-btn">
+                                                <QuickGrid Items="@resultQuery" Pagination="@pagination" Class="table">
+                                                    <TemplateColumn Title="" Align="Align.Center">
+                                                        <HeaderTemplate>
+                                                            <div class="d-flex align-items-center justify-content-center">
+                                                                <input type="checkbox" title="Select all failed" disabled="@(IsSending || ResendableCount == 0)"
+                                                                       @bind="IsAllFailedSelected" @bind:after="ToggleAllFailed" @onclick:stopPropagation="true" />
+                                                            </div>
+                                                        </HeaderTemplate>
+                                                        <ChildContent>
+                                                            <div class="d-flex align-items-center justify-content-center">
+                                                                @* only the last failed attempt of a message can be resent; sent rows and older attempts are history *@
+                                                                <input type="checkbox" disabled="@(IsSending || !IsResendable(context))"
+                                                                       @bind="context.IsSelected" @onclick:stopPropagation="true" />
+                                                            </div>
+                                                        </ChildContent>
+                                                    </TemplateColumn>
+                                                    <PropertyColumn Sortable="true" Property="@(x => x.StudentName)" Title="Name" />
+                                                    <PropertyColumn Sortable="true" Property="@(x => x.Type)" Title="Type" />
+                                                    <TemplateColumn Title="Sent On" Sortable="true" SortBy="GridSort<SendResultRow>.ByDescending(x => x.SentDate)">
+                                                        @(context.SentDate?.ToString("dd-MM-yyyy hh:mm tt") ?? "-")
+                                                    </TemplateColumn>
+                                                    @* <TemplateColumn Title="Template">
+                                                        @(string.IsNullOrWhiteSpace(context.TemplateName) ? "-" : context.TemplateName)
+                                                    </TemplateColumn> *@
+                                                    <TemplateColumn Title="Message">
+                                                        @* same hover tooltip as the Period column of View Student Receipt *@
+                                                        <span class="custom-tooltip" data-tooltip="@context.Message">
+                                                            @(string.IsNullOrWhiteSpace(context.Message)
+                                                                ? ""
+                                                                : (context.Message.Length > 30
+                                                                    ? context.Message.Substring(0, 30) + "..."
+                                                                    : context.Message))
+                                                        </span>
+                                                    </TemplateColumn>
+                                                    <TemplateColumn Class="status-con" Title="Status" Align="Align.Center">
+                                                        @if (context.Status == SendStatus.Sending)
+                                                        {
+                                                            <span class="sm-spinner" title="Sending..."></span>
+                                                        }
+                                                        else if (context.Status == SendStatus.Sent)
+                                                        {
+                                                            <span class="activeClr" title="@(context.FailCount > 0 ? $"Sent after {context.FailCount} failed attempt(s). {context.Remark}" : context.Remark)"><i class="bi bi-check-circle-fill"></i> Sent</span>
+                                                        }
+                                                        else if (context.Status == SendStatus.Failed)
+                                                        {
+                                                            <span class="inactiveClr" title="@($"Failed {Math.Max(context.FailCount, 1)} time(s). {context.Remark}")"><i class="bi bi-x-circle-fill"></i> Failed (@Math.Max(context.FailCount, 1))</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted" title="@context.Remark">Pending</span>
+                                                        }
+                                                    </TemplateColumn>
+                                                </QuickGrid>
+                                            </div>
+                                            <div class="footer-pagination">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="welcome-text w-100">
+                                                        <Paginator State="@pagination" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                          </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <div class="form-group btn-gr d-flex align-items-center justify-content-between w-100">
                         <div class="sms-balance">
-                            <strong>Available Balance (SMS): 44</strong>
+                            <strong title="@BalanceMessage">
+                                Available Balance (SMS):
+                                @if (IsLoadingBalance)
+                                {
+                                    <span class="sm-spinner"></span>
+                                }
+                                else
+                                {
+                                    @(string.IsNullOrWhiteSpace(SmsBalance) ? "-" : SmsBalance)
+                                }
+                            </strong>
                         </div>
                         <div class="d-flex gap-2">
                             <div class="form-box">
-                                <button class="table-btn" @onclick="SendSms">
+                                <button class="table-btn" disabled="@IsSending" @onclick="SendSms">
+                                    @if (IsSending && !IsResending)
+                                    {
+                                        <span class="inline-spinner light"></span>
+                                    }
                                     Send Message
                                 </button>
                             </div>
-                            <div class="form-box" @onclick="ClosePopup">
-                                <button class="table-btn">
+                            @* only when some students failed: tick them in the grid and resend *@
+                            @if (ResendableCount > 0 || IsResending)
+                            {
+                                <div class="form-box">
+                                    <button class="table-btn" title="Resend to the ticked failed students" disabled="@IsSending" @onclick="Resend">
+                                        @if (IsResending)
+                                        {
+                                            <span class="inline-spinner light"></span>
+                                        }
+                                        Resend (@ResendableCount)
+                                    </button>
+                                </div>
+                            }
+                            <div class="form-box">
+                                <button class="table-btn" disabled="@IsSending" @onclick="ClosePopup">
                                     Close
                                 </button>
                             </div>
@@ -105,6 +259,55 @@
     .sms-aria {
         height: 200px;
     }
+
+    .sm-status-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-bottom: 1px solid #e5eaf0;
+    }
+
+    .sm-status-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 260px;
+        border: 1px dashed #cbd8e5;
+        border-radius: 8px;
+        color: #6c7a89;
+        text-align: center;
+        padding: 16px;
+    }
+
+        .sm-status-empty .bi {
+            font-size: 28px;
+        }
+
+    .sm-spinner, .main-popup .inline-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #cbd8e5;
+        border-top-color: #118c91;
+        border-radius: 50%;
+        display: inline-block;
+        vertical-align: middle;
+        animation: sm-spin .7s linear infinite;
+    }
+
+        .main-popup .inline-spinner.light {
+            border-color: rgba(255,255,255,.45);
+            border-top-color: #fff;
+            margin-right: 4px;
+        }
+
+    @@keyframes sm-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 <script>
     function openSms(mobile, message) {
@@ -115,11 +318,30 @@
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public bool ShowPopup { get; set; }
-    private  string? SelectedMessageType;
-    private string? SelectedMessageTemplate;
-    private string? MessageBody;
-    private  SMSSentModel sentModel=new();
+    // students selected on the calling page (View Registration / View Publish List)
+    [Parameter] public List<MessageRecipient> Students { get; set; } = new();
+
+    private SMSSentModel sentModel = new();
     private MessageType MessageBodys = MessageType.SMS;
+    // WhatsApp template name of the selected text (not typed, not saved in SMSSentMaster)
+    private string? TemplateName;
+    private int SelectedTextId;
+    private SmsEmailTextModel? SelectedText => smsEmailTextlist.FirstOrDefault(x => x.SmsEmailTextId == SelectedTextId);
+    private string? groupCode;
+    private string? branchCode;
+    private string? userName;
+    // current session: used when the calling page gives no SessionId for a student
+    private long currentSessionId;
+    private bool IsSending;
+    private bool IsResending;
+    private bool IsLoadingHistory;
+    // SMS balance of the Pinnacle account (footer)
+    private string? SmsBalance;
+    private string? BalanceMessage;
+    private bool IsLoadingBalance;
+    private bool wasOpen;
+    private bool IsAllFailedSelected;
+    // SMS_Or_Mail of SMSSentMaster: SMS = S, WhatsApp = W, Email = E
     private string SMSOrMailCode =>
         MessageBodys switch
         {
@@ -128,86 +350,457 @@
             MessageType.Email => "E",
             _ => ""
         };
+    private string ChannelName =>
+        MessageBodys switch
+        {
+            MessageType.WhatsApp => "WhatsApp",
+            MessageType.Email => "Email",
+            _ => "SMS"
+        };
     private List<MessageTypeModal> messagetypelist = new();
     private List<SmsEmailTextModel> smsEmailTextlist = new();
-    [Parameter] public List<RegistrationDto> SelectedStudents { get; set; } = new();
+
+    // ---------------- status grid: every attempt (history from the DB + this session) ----------------
+    private enum SendStatus { Pending, Sending, Sent, Failed }
+
+    private class SendResultRow
+    {
+        public long RegistrationId { get; set; }
+        // Student / Employee: saved as RecipientType with RegistrationId as RecipientId
+        public string RecipientType { get; set; } = WhatsAppRecipientType.Student;
+        public string? StudentName { get; set; }
+        public string? Type { get; set; }
+        public string? TemplateName { get; set; }
+        public string? Message { get; set; }
+        public int MessageTypeId { get; set; }
+        // SMSSentMaster id of the message: a resend is a new attempt of the same id
+        public int? SmsEmailSentId { get; set; }
+        public DateTime? SentDate { get; set; }
+        // saved as SessionId of the attempt
+        public long? SessionId { get; set; }
+        // Alert_SmsEmailToBeSend row: a resend updates this row
+        public int? SmsEmailId { get; set; }
+        // how many times this message to this student failed
+        public int FailCount { get; set; }
+        public SendStatus Status { get; set; } = SendStatus.Pending;
+        // last attempt of this message to this student and it failed
+        public bool CanResend { get; set; }
+        // reason of failure / masked mobile no. (tooltip)
+        public string? Remark { get; set; }
+        public bool IsSelected { get; set; }
+    }
+
+    private List<SendResultRow> resultRows = new();
+    private IQueryable<SendResultRow> resultQuery => resultRows.AsQueryable();
+    PaginationState pagination = new() { ItemsPerPage = 10 };
+    private int SentCount => resultRows.Count(x => x.Status == SendStatus.Sent);
+    private int FailedCount => resultRows.Count(x => x.Status == SendStatus.Failed);
+    private int ResendableCount => resultRows.Count(IsResendable);
+    private static bool IsResendable(SendResultRow row) =>
+        row.Status == SendStatus.Failed && row.CanResend && row.SmsEmailSentId > 0
+        && (row.Type == "SMS" || (row.Type == "WhatsApp" && !string.IsNullOrWhiteSpace(row.TemplateName)));
+
     private async Task LoadData()
     {
         string ApiUri = "MessageType/GetMessageType";
-        messagetypelist = await httpService.Get<List<MessageTypeModal>>(ApiUri);
+        messagetypelist = await httpService.Get<List<MessageTypeModal>>(ApiUri) ?? new();
+    }
+    private async Task LoadSession()
+    {
+        groupCode ??= (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+        branchCode ??= (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+        userName ??= (await sessionStorage.GetAsync<string>("UserName")).Value;
+        if (currentSessionId <= 0)
+            currentSessionId = await CommonMethod.SetCurrentSessionData();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await LoadData();
+            await LoadSession();
             StateHasChanged();
         }
     }
-    private void OnTemplateSelected()
+    protected override async Task OnParametersSetAsync()
     {
-        var selected = smsEmailTextlist.FirstOrDefault(x => x.SmsEmailTextId == sentModel.MessageType);
-
-        sentModel.MessageText = selected?.SMSEmailText ?? "";
+        // popup opened: every earlier attempt (sent / failed) of the selected students
+        var opened = ShowPopup && !wasOpen;
+        wasOpen = ShowPopup;
+        if (opened)
+        {
+            resultRows = new();
+            IsAllFailedSelected = false;
+            await LoadHistory();
+            await LoadBalance();
+        }
+    }
+    private void OnChannelChanged()
+    {
+        // template name comes from the selected text (WhatsApp only)
+        TemplateName = MessageBodys == MessageType.WhatsApp ? SelectedText?.WhatsAppTemplateName?.Trim() : null;
+    }
+    // Select Text: full text into Message, its WhatsApp template name (DetSMSEmailText.WhatsAppTemplateName) for WhatsApp
+    private void OnTextSelected()
+    {
+        var text = SelectedText;
+        sentModel.MessageText = text?.SMSEmailText ?? "";
+        TemplateName = MessageBodys == MessageType.WhatsApp && !string.IsNullOrWhiteSpace(text?.WhatsAppTemplateName)
+            ? text.WhatsAppTemplateName.Trim() : null;
     }
     private async Task OnMessageTypeChanged()
     {
-        sentModel.MessageText = ""; 
+        sentModel.MessageText = "";
+        SelectedTextId = 0;
+        TemplateName = null;
         string api = $"MessageType/GetSMSEmailText?messageTypeId={sentModel.MessageType}";
         smsEmailTextlist = await httpService.Get<List<SmsEmailTextModel>>(api) ?? new();
     }
 
-    private async Task SendSms()
+    // ---------------- SMS balance ----------------
+    private async Task LoadBalance()
     {
+        IsLoadingBalance = true;
+        StateHasChanged();
         try
         {
-            ShowPopup = false;
-            sentModel.GroupCode = "01";
-            sentModel.BranchCode = "01";
-            sentModel.SentBy = "V3M";
-            sentModel.IsValid = false;
-            sentModel.SMS_Or_Mail = SMSOrMailCode;
-            var apiResponse = await httpService.Post<ApiResponse<object>>("SendSMS/send-sms-log", sentModel);
-            if (apiResponse.Success)
-            {
-                // same message shows at once in the header bell (blinks until opened)
-                var channel = MessageBodys switch
-                {
-                    MessageType.WhatsApp => ("WhatsApp", "bi-whatsapp"),
-                    MessageType.Email => ("Email", "bi-envelope"),
-                    _ => ("SMS", "bi-chat-dots")
-                };
-                Notifications.Add($"{channel.Item1} message sent", sentModel.MessageText, channel.Item2);
-
-                await Alert.ShowSuccess("SMS"+Localizer["Already"]);
-                StateHasChanged();
-            }
-            else
-            {
-                await Alert.ShowCustomAlert(@Localizer["Admin"]);
-
-            }
+            var response = await httpService.Get<ApiResponse<SmsBalanceResult>>("SendSMS/GetSmsBalance");
+            SmsBalance = response != null && response.Success ? response.Data?.Balance : null;
+            BalanceMessage = response?.Message ?? "Unable to load the SMS balance.";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            await Alert.ShowError($"{@Localizer["Error"]}: {ex.Message}");
+            SmsBalance = null;
+            BalanceMessage = "Unable to load the SMS balance.";
         }
         finally
         {
-            sentModel = new SMSSentModel();
-            // tell the parent page too (it resets its showSMS), otherwise the next
-            // "Send Message" click sets the same value again and the popup never reopens
-            await ClosePopup();
+            IsLoadingBalance = false;
             StateHasChanged();
         }
-    
     }
 
+    // ---------------- history ----------------
+    private async Task LoadHistory()
+    {
+        if (Students == null || Students.Count == 0)
+        {
+            resultRows = new();
+            return;
+        }
+
+        IsLoadingHistory = true;
+        StateHasChanged();
+        try
+        {
+            await LoadSession();
+            var request = new MessageHistoryRequest
+            {
+                GroupCode = groupCode ?? "",
+                BranchCode = branchCode ?? "",
+                RecipientType = WhatsAppRecipientType.Student,
+                RecipientIds = Students.Select(s => s.RegistrationId).Where(id => id > 0).Distinct().ToList()
+            };
+            var response = await httpService.Post<ApiResponse<List<MessageHistoryRow>>>("SendSMS/GetMessageHistory", request);
+            if (response == null || !response.Success)
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? "Unable to load the message history.");
+                return;
+            }
+
+            var names = Students.GroupBy(s => s.RegistrationId)
+                .ToDictionary(g => g.Key, g => g.First());
+            resultRows = (response.Data ?? new()).Select(h =>
+            {
+                long.TryParse(h.RecipientId, out var id);
+                names.TryGetValue(id, out var student);
+                int.TryParse(h.SMS_EmailSentId, out var sentId);
+                return new SendResultRow
+                {
+                    RegistrationId = id,
+                    RecipientType = h.RecipientType ?? WhatsAppRecipientType.Student,
+                    StudentName = student == null ? h.RecipientId
+                        : (string.IsNullOrWhiteSpace(student.StudentName) ? student.RegistrationNo : student.StudentName),
+                    Type = h.MessageTextType switch { "W" => "WhatsApp", "S" => "SMS", "E" => "Email", _ => h.MessageTextType },
+                    TemplateName = h.TemplateName,
+                    Message = h.MessageText,
+                    MessageTypeId = h.MessageTypeId ?? 0,
+                    SmsEmailSentId = sentId > 0 ? sentId : null,
+                    SentDate = h.SentDate,
+                    SessionId = h.SessionId,
+                    SmsEmailId = h.SmsEmailId > 0 ? h.SmsEmailId : null,
+                    FailCount = h.FailCount,
+                    // 1 = sent; 0 = not sent / failed (99 = failed, older rows)
+                    Status = h.Status == 1 ? SendStatus.Sent : SendStatus.Failed,
+                    CanResend = h.CanResend,
+                    Remark = string.IsNullOrWhiteSpace(h.MobileNo) ? null : $"Mobile: {h.MobileNo}"
+                };
+            }).ToList();
+            IsAllFailedSelected = false;
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to load the message history right now. Please try again.");
+        }
+        finally
+        {
+            IsLoadingHistory = false;
+            StateHasChanged();
+        }
+    }
+
+    // ---------------- send ----------------
+    private async Task SendSms()
+    {
+        if (Students == null || Students.Count == 0)
+        {
+            await JS.InvokeVoidAsync("showSelectRecordAlert");
+            return;
+        }
+        // WhatsApp: the template name of the selected text is required (SMS / Email have no template)
+        if (MessageBodys == MessageType.WhatsApp && SelectedTextId <= 0)
+        {
+            await Alert.ShowCustomAlert("Select the text to send on WhatsApp.");
+            return;
+        }
+        if (MessageBodys == MessageType.WhatsApp && string.IsNullOrWhiteSpace(TemplateName))
+        {
+            await Alert.ShowCustomAlert("The selected text is an SMS text (no WhatsApp template). Select a WhatsApp text.");
+            return;
+        }
+        // SMS: a text with a WhatsApp template is for WhatsApp only
+        if (MessageBodys == MessageType.SMS && !string.IsNullOrWhiteSpace(SelectedText?.WhatsAppTemplateName))
+        {
+            await Alert.ShowCustomAlert("The selected text is a WhatsApp template. Select an SMS text.");
+            return;
+        }
+        if (MessageBodys != MessageType.WhatsApp && string.IsNullOrWhiteSpace(sentModel.MessageText))
+        {
+            await Alert.ShowCustomAlert("Enter the message.");
+            return;
+        }
+
+        IsSending = true;
+        try
+        {
+            await LoadSession();
+            var message = sentModel.MessageText?.Trim();
+            // only WhatsApp has a template; SMS / Email send the message text
+            var template = MessageBodys == MessageType.WhatsApp && !string.IsNullOrWhiteSpace(TemplateName) ? TemplateName.Trim() : null;
+
+            // 1. the message is saved once in SMSSentMaster (S / W / E; template name is not saved) -> SMS_EmailSentId
+            var model = new SMSSentModel
+            {
+                GroupCode = groupCode,
+                BranchCode = branchCode,
+                SentBy = string.IsNullOrWhiteSpace(userName) ? "V3M" : userName,
+                IsValid = false,
+                SMS_Or_Mail = SMSOrMailCode,
+                MessageType = sentModel.MessageType,
+                MessageText = message,
+                TotalMsg = Students.Count.ToString(),
+                TotalDelivered = "0",
+                SMSVendor = MessageBodys == MessageType.Email ? null : "Pinnacle"
+            };
+            var log = await httpService.Post<ApiResponse<string>>("SendSMS/send-sms-log", model);
+            if (log == null || !log.Success || !int.TryParse(log.Data, out var smsEmailSentId))
+            {
+                await Alert.ShowCustomAlert(log?.Message ?? "Message could not be saved. Please try again.");
+                return;
+            }
+
+            // 2. a new row per selected student, on top of the history
+            var newRows = Students.Select(s => new SendResultRow
+            {
+                RegistrationId = s.RegistrationId,
+                RecipientType = string.IsNullOrWhiteSpace(s.RecipientType) ? WhatsAppRecipientType.Student : s.RecipientType,
+                StudentName = string.IsNullOrWhiteSpace(s.StudentName) ? s.RegistrationNo : s.StudentName,
+                Type = ChannelName,
+                TemplateName = template,
+                Message = message,
+                MessageTypeId = sentModel.MessageType,
+                SmsEmailSentId = smsEmailSentId,
+                SessionId = s.SessionId > 0 ? s.SessionId : (currentSessionId > 0 ? currentSessionId : null),
+                SentDate = DateTime.Now
+            }).ToList();
+            resultRows = newRows.Concat(resultRows).ToList();
+            IsAllFailedSelected = false;
+            await pagination.SetCurrentPageIndexAsync(0);
+
+            // 3. send
+            if (MessageBodys == MessageType.Email)
+            {
+                // Email gateway is not connected yet: message saved, students stay Pending
+                foreach (var row in newRows)
+                    row.Remark = $"{ChannelName} API is not connected yet. Message saved (Id {smsEmailSentId}).";
+            }
+            else
+            {
+                await SendToStudents(newRows);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to send the message right now. Please try again.");
+        }
+        finally
+        {
+            IsSending = false;
+            StateHasChanged();
+        }
+    }
+
+    // ticked failed rows are sent again and the SAME row is updated (no new entry):
+    // failed again -> "Failed (n)" with the fail count, sent -> Sent
+    private async Task Resend()
+    {
+        var failed = resultRows.Where(x => IsResendable(x) && x.IsSelected).ToList();
+        if (failed.Count == 0)
+        {
+            await Alert.ShowCustomAlert("Tick the failed student(s) to resend.");
+            return;
+        }
+
+        IsSending = true;
+        IsResending = true;
+        try
+        {
+            await LoadSession();
+            foreach (var row in failed)
+            {
+                if (!(row.SessionId > 0) && currentSessionId > 0)
+                    row.SessionId = currentSessionId;
+            }
+
+            // WhatsApp and SMS rows go to their own API
+            foreach (var group in failed.GroupBy(x => x.Type))
+                await SendToStudents(group.ToList(), resend: true);
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to send the message right now. Please try again.");
+        }
+        finally
+        {
+            IsAllFailedSelected = false;
+            IsSending = false;
+            IsResending = false;
+            StateHasChanged();
+        }
+    }
+
+    // WhatsApp / SMS API for each student (by the row's Type): the API sends it and saves the attempt
+    // (1 sent / 99 failed) in Alert_SmsEmailToBeSend; the row shows the tick as soon as it is known
+    private async Task SendToStudents(List<SendResultRow> rows, bool resend = false)
+    {
+        if (rows.Count == 0) return;
+        var isSms = rows[0].Type == "SMS";
+        var api = isSms ? "SMS/SendRegistrationMessage" : "WhatsApp/SendRegistrationMessage";
+
+        foreach (var row in rows)
+        {
+            row.Status = SendStatus.Sending;
+            row.Remark = null;
+            row.IsSelected = false;
+            row.CanResend = false;
+        }
+        StateHasChanged();
+
+        foreach (var row in rows)
+        {
+            var request = new WhatsAppRegistrationMessageRequest
+            {
+                RegistrationId = row.RegistrationId,
+                GroupCode = groupCode ?? "",
+                BranchCode = branchCode ?? "",
+                TemplateName = row.TemplateName,
+                Message = row.Message,
+                MessageTypeId = row.MessageTypeId,
+                SmsEmailSentId = row.SmsEmailSentId,
+                SessionId = row.SessionId,
+                RecipientType = row.RecipientType,
+                // resend: the row of the first send is updated
+                ResendSmsEmailId = resend ? row.SmsEmailId : null
+            };
+            var response = await httpService.Post<ApiResponse<WhatsAppSendResult>>(api, request);
+            if (resend)
+                row.SentDate = DateTime.Now;
+
+            if (response == null)
+            {
+                row.Status = SendStatus.Failed;
+                row.Remark = "Unable to reach the server.";
+            }
+            else if (response.Success)
+            {
+                row.Status = SendStatus.Sent;
+                row.Remark = string.IsNullOrWhiteSpace(response.Data?.MobileNo) ? response.Message : $"{response.Message} ({response.Data.MobileNo})";
+            }
+            else
+            {
+                row.Status = SendStatus.Failed;
+                row.Remark = response.Message ?? "Message was not sent.";
+            }
+            // the DB row of this message and how many times it failed
+            if (response?.Data?.SmsEmailId > 0)
+                row.SmsEmailId = response.Data.SmsEmailId;
+            if (response?.Data != null && response.Data.StatusSaved)
+                row.FailCount = response.Data.FailCount;
+            else if (row.Status == SendStatus.Failed)
+                row.FailCount++;
+            // a failed row can be resent again
+            row.CanResend = row.Status == SendStatus.Failed;
+            StateHasChanged();
+        }
+
+        var sent = rows.Count(x => x.Status == SendStatus.Sent);
+        // SMS balance goes down after a send
+        if (isSms && sent > 0)
+            await LoadBalance();
+        if (sent > 0)
+        {
+            Notifications.Add(isSms ? "SMS sent" : "WhatsApp message sent",
+                $"{sent} of {rows.Count} student(s): {(isSms ? rows[0].Message : rows[0].TemplateName)}",
+                isSms ? "bi-chat-dots" : "bi-whatsapp");
+
+            // top-end success toast (SweetAlert)
+            await Alert.ShowSuccess(sent == rows.Count
+                ? "Message sent successfully."
+                : $"Message sent successfully to {sent} of {rows.Count} student(s).");
+        }
+    }
+
+    // dropdown text: first 50 characters + "..."
+    private static string ShortText(string? text, int length)
+    {
+        var value = text?.Trim() ?? "";
+        return value.Length > length ? value[..length].TrimEnd() + "..." : value;
+    }
+
+    private void ToggleAllFailed()
+    {
+        foreach (var row in resultRows.Where(IsResendable))
+            row.IsSelected = IsAllFailedSelected;
+    }
+
+    // refresh: only the grid, reloaded from the DB (form stays as it is)
+    private async Task RefreshGrid()
+    {
+        if (IsSending || IsLoadingHistory) return;
+        await LoadHistory();
+    }
 
     private async Task ClosePopup()
     {
+        if (IsSending) return;
+        resultRows = new();
+        sentModel = new SMSSentModel();
+        TemplateName = null;
+        SelectedTextId = 0;
+        smsEmailTextlist = new();
         if (OnClose.HasDelegate)
             await OnClose.InvokeAsync();
-            StateHasChanged();
+        StateHasChanged();
     }
 }

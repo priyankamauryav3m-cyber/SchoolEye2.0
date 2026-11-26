@@ -1,4 +1,5 @@
 @page "/StudentFeeAccount"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.FinanceMNGT
 @using DomainModel.SchoolMaster
@@ -288,7 +289,7 @@
                             }
                             @if (!string.IsNullOrWhiteSpace(selectedStudent.FatherContactNo))
                             {
-                                <span> &middot; @selectedStudent.FatherContactNo</span>
+                                <span> &middot; @PiiMask.Mobile(selectedStudent.FatherContactNo)</span>
                             }
                         </div>
                     </div>

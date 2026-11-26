@@ -5355,3 +5355,46 @@ html.dark-mode .notification-item.notif-unread {
 .profile-box-img .hdr-avatar-lg {
     font-size: 15px;
 }
+
+
+/* ===================== DPDP: masked sensitive data (PiiLockedInput / .pii-mask) ===================== */
+.floating-input.pii-locked,
+.form-input.pii-locked {
+    background-color: #f6f8fb !important;
+    color: #475569 !important;
+    letter-spacing: .4px;
+    cursor: not-allowed;
+    padding-right: 30px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    user-select: none;
+}
+
+.floating-input.pii-locked:focus,
+.form-input.pii-locked:focus {
+    box-shadow: none !important;
+}
+
+html.dark-mode .floating-input.pii-locked,
+html.dark-mode .form-input.pii-locked {
+    background-color: rgba(148, 163, 184, .08) !important;
+    color: #cbd5e1 !important;
+}
+
+.pii-mask {
+    letter-spacing: .4px;
+    white-space: nowrap;
+}
+
+/* ===================== Student Details popup: spinner in the tab while its data loads ===================== */
+.wizard-step .inline-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #cbd8e5;
+    border-top-color: #118c91;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    animation: fc-inline-spin .7s linear infinite;
+}

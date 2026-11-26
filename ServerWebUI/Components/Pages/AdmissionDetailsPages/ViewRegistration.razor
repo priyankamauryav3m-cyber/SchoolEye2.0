@@ -1,4 +1,5 @@
 ﻿@page "/ViewRegistration"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using System.Net
@@ -128,12 +129,12 @@
                                 </TemplateColumn>
                                 <TemplateColumn Title="Contact No."  Align="Align.Center">
                                     <ChildContent>
-                                        @(string.IsNullOrWhiteSpace(context.FatherContactNo) ? " " : context.FatherContactNo)
+                                        @PiiMask.Mobile(context.FatherContactNo)
                                     </ChildContent>
 
                                 </TemplateColumn>
                                 <PropertyColumn Property="@(x => x.Gender)" Sortable="true" Title="Gender" />
-                                <PropertyColumn Align="Align.Center" Property="@(x => x.DateOfBirth)" Sortable="true" Title="DOB" />
+                                <PropertyColumn Align="Align.Center" Property="@(x => PiiMask.Dob(x.DateOfBirth))" Sortable="true" Title="DOB" />
                                 <PropertyColumn Property="@(x => x.AppliedDate)" Sortable="true" Title="Applied Date" />
                                 <PropertyColumn Property="@(x => x.ClassName)" Sortable="true" Title="Applied Class" />
                               <PropertyColumn Class=" text-right" Property="@(x => x.RegistrationFee)" Title="Fee" />
@@ -209,7 +210,7 @@
     </div>
 </div>
 
-<SendMessage ShowPopup="@showSMS" OnClose="@CloseModal" />
+<SendMessage ShowPopup="@showSMS" Students="@smsStudents" OnClose="@CloseModal" />
 <StudentDetails IsVisible="@showModal" OnSearch="SearchByRegistration" RegId="@regId" SessionId="@session" CurrectUrl="@currentUrl" OnClose="@CloseModal" />
 <AdmitChild IsVisible="@showstudent" OnSearch="SearchByRegistration" SessionId="@session" RegId="@regId" OnClose="@CloseModal" />
 @if (ShowPopup)
@@ -390,6 +391,8 @@ else
     private bool showModal { get; set; }
     private bool showstudent { get; set; }
     private bool showSMS = false;
+    // students ticked in the grid, passed to the Send Message popup
+    private List<MessageRecipient> smsStudents = new();
     private string? currentUrl;
     private string RegMode ="0,1,2";
     private string active ="0,1,2";
@@ -425,6 +428,15 @@ else
             JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
+        smsStudents = data.Select(x => new MessageRecipient
+        {
+            RegistrationId = x.RegistrationId,
+            RegistrationNo = x.RegistrationNo,
+            StudentName = x.StudentName,
+            FatherName = x.FatherName,
+            RecipientType = WhatsAppRecipientType.Student,
+            SessionId = x.SessionId
+        }).ToList();
         showSMS = true;
         StateHasChanged();
     }

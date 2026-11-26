@@ -347,6 +347,16 @@ builder.Services.RegisterServices();
 builder.Services.AddSingleton<SessionManager>();
 builder.Services.AddScoped<ServerWebAPI.Authorization.IJwtUtils, JwtUtils>();
 builder.Services.AddHttpClient();
+// WhatsApp (Pinnacle): per-request timeout comes from WhatsAppSettings:TimeoutSeconds (SendSMSService)
+builder.Services.AddHttpClient(DomainModel.SchoolMaster.WhatsAppSettings.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(120);
+});
+// SMS (Pinnacle): per-request timeout comes from SmsSettings:TimeoutSeconds (SendSMSService)
+builder.Services.AddHttpClient(DomainModel.SchoolMaster.SmsSettings.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(120);
+});
 builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 builder.Services.Configure<Infrastructure.User.SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 #endregion

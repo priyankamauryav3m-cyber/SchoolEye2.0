@@ -1,4 +1,5 @@
 ﻿@page "/StudentDashboard"
+@using DomainModel.Common
 @using DomainModel.User
 @using MyApp.Common
 @inject Shared.IHttpService httpService
@@ -495,14 +496,14 @@
                             <div class="sd-list">
                                 <div class="sd-item"><div class="k">Full name</div><div class="v">@Show(student.StudentName)</div></div>
                                 <div class="sd-item"><div class="k">Gender</div><div class="v">@Show(student.Gender)</div></div>
-                                <div class="sd-item"><div class="k">Date of birth</div><div class="v">@ShowDate(student.DateOfBirth)</div></div>
-                                <div class="sd-item"><div class="k">Blood group</div><div class="v">@Show(student.BloodGroup)</div></div>
+                                <div class="sd-item"><div class="k">Date of birth</div><div class="v">@Show(PiiMask.Dob(student.DateOfBirth))</div></div>
+                                <div class="sd-item"><div class="k">Blood group</div><div class="v">@Show(PiiMask.Hidden(student.BloodGroup))</div></div>
                                 <div class="sd-item"><div class="k">Category</div><div class="v">@Show(student.CategoryName)</div></div>
                                 <div class="sd-item"><div class="k">Religion</div><div class="v">@Show(student.ReligionName)</div></div>
                                 <div class="sd-item"><div class="k">APAAR ID</div><div class="v">@Show(student.ApaarId)</div></div>
                                 <div class="sd-item"><div class="k">PEN No</div><div class="v">@Show(student.PenNo)</div></div>
-                                <div class="sd-item"><div class="k">Mobile</div><div class="v">@Show(student.StudentMobile)</div></div>
-                                <div class="sd-item"><div class="k">Email</div><div class="v">@Show(student.StudentEmail)</div></div>
+                                <div class="sd-item"><div class="k">Mobile</div><div class="v">@Show(PiiMask.Mobile(student.StudentMobile))</div></div>
+                                <div class="sd-item"><div class="k">Email</div><div class="v">@Show(PiiMask.Email(student.StudentEmail))</div></div>
                             </div>
                         </div>
                     </div>
@@ -536,10 +537,10 @@
                                 <div style="min-width:0">
                                     <div class="role">Father</div>
                                     <div class="nm">@Show(student.FatherName)</div>
-                                    <div class="ct"><i class="fas fa-phone"></i> @Show(student.FatherContactNo)</div>
+                                    <div class="ct"><i class="fas fa-phone"></i> @Show(PiiMask.Mobile(student.FatherContactNo))</div>
                                     @if (!string.IsNullOrWhiteSpace(student.FatherEmail))
                                     {
-                                        <div class="ct"><i class="fas fa-envelope"></i> @student.FatherEmail</div>
+                                        <div class="ct"><i class="fas fa-envelope"></i> @PiiMask.Email(student.FatherEmail)</div>
                                     }
                                 </div>
                             </div>
@@ -549,10 +550,10 @@
                                 <div style="min-width:0">
                                     <div class="role">Mother</div>
                                     <div class="nm">@Show(student.MotherName)</div>
-                                    <div class="ct"><i class="fas fa-phone"></i> @Show(student.MotherContactNo)</div>
+                                    <div class="ct"><i class="fas fa-phone"></i> @Show(PiiMask.Mobile(student.MotherContactNo))</div>
                                     @if (!string.IsNullOrWhiteSpace(student.MotherEmail))
                                     {
-                                        <div class="ct"><i class="fas fa-envelope"></i> @student.MotherEmail</div>
+                                        <div class="ct"><i class="fas fa-envelope"></i> @PiiMask.Email(student.MotherEmail)</div>
                                     }
                                 </div>
                             </div>
@@ -566,7 +567,7 @@
                             <div class="sd-list">
                                 <div class="sd-item full"><div class="k">Address</div><div class="v">@AddressText</div></div>
                                 <div class="sd-item"><div class="k">Emergency contact</div><div class="v">@EmergencyText</div></div>
-                                <div class="sd-item"><div class="k">Emergency phone</div><div class="v">@Show(student.EmergencyPersonContactNo)</div></div>
+                                <div class="sd-item"><div class="k">Emergency phone</div><div class="v">@Show(PiiMask.Mobile(student.EmergencyPersonContactNo))</div></div>
                                 <div class="sd-item full"><div class="k">Transport route</div><div class="v">@(HasRoute ? student.RouteName : "Not availing transport")</div></div>
                             </div>
                         </div>
@@ -666,13 +667,14 @@
         get
         {
             if (student == null) return "—";
-            var parts = new[] { student.AddressLine1, student.AddressLine2, student.DistrictName, student.StateName }
+            // DPDP: house / street lines and pin code are masked; district and state stay readable
+            var parts = new[] { string.IsNullOrWhiteSpace(student.AddressLine1) ? null : "****", string.IsNullOrWhiteSpace(student.AddressLine2) ? null : "****", student.DistrictName, student.StateName }
                 .Where(p => !string.IsNullOrWhiteSpace(p))
                 .Select(p => p!.Trim())
                 .ToList();
             var text = string.Join(", ", parts);
             if (!string.IsNullOrWhiteSpace(student.PinCode))
-                text = string.IsNullOrEmpty(text) ? student.PinCode! : $"{text} - {student.PinCode}";
+                text = string.IsNullOrEmpty(text) ? PiiMask.PinCode(student.PinCode) : $"{text} - {PiiMask.PinCode(student.PinCode)}";
             return string.IsNullOrWhiteSpace(text) ? "—" : text;
         }
     }

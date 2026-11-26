@@ -1,4 +1,5 @@
 ﻿@page "/studentconcession"
+@using DomainModel.Common
 @using DomainModel.Admin
 @inject IJSRuntime jsRuntime
 @rendermode InteractiveServer
@@ -558,7 +559,7 @@
                                                                 <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father Name" Align="Align.Left" Sortable="true">
 
                                                                 </PropertyColumn>
-                                                                <PropertyColumn property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mobile No" class="text-center" Align="Align.Center" Sortable="true">
+                                                                <PropertyColumn property="@(x => PiiMask.Mobile(x.SMSMobileNo))" Title="SMS Mobile No" class="text-center" Align="Align.Center" Sortable="true">
 
                                                                 </PropertyColumn>
                                                                 <TemplateColumn Align="Align.Center" Title="Action">

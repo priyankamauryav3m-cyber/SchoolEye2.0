@@ -1,4 +1,5 @@
 @page "/miscellaneousfeecollection"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -98,7 +99,7 @@
                                 <div class="student-sub">
                                     @if (IsStudentSelected)
                                     {
-                                        @:Admission no. @selectedStudent.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @selectedStudent.FatherContactNo
+                                        @:Admission no. @selectedStudent.ControlNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassSection &nbsp;&middot;&nbsp; Father: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile: @PiiMask.Mobile(selectedStudent.FatherContactNo)
                                     }
                                     else
                                     {

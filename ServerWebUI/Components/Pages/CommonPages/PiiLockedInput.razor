@@ -1,0 +1,15 @@
+@*
+    DPDP: a sensitive field shown masked and read-only inside an existing form
+    (floating-label forms: put it where the InputText was, keep the <label> after it).
+    The real value stays in the form model on the server, so saving the form keeps it unchanged.
+    The value can be changed only on the Student Sensitive Details page.
+*@
+<input class="floating-input pii-locked @Class" placeholder=" " value="@Value" readonly tabindex="-1" autocomplete="off"
+       title="@Title" aria-readonly="true" />
+
+@code {
+    // already masked text (DomainModel.Common.PiiMask)
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string Title { get; set; } = "Sensitive data (DPDP) - masked. Update it from Student Sensitive Details.";
+}
