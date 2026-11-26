@@ -1,0 +1,830 @@
+@page "/DynamicForm"
+@using DomainModel.Admin
+@using DomainModel.SchoolAdmin
+@using ServerWebUI.Components.Pages.CommonPages
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@implements IDisposable
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <PageHeading Tittle="Dynamic Form Controller">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.SessionId" @bind-Value:after="OnSessionChanged" class="form-input" title="Session">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.ActivityId" class="form-input" title="Activity Name">
+                        <option value="0">-- All Activities --</option>
+                        @foreach (var data in activitylist)
+                        {
+                            <option value="@data.SAId">@data.ActivityName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <input type="text" class="form-input" placeholder="Field Name" maxlength="100" title="Field Name"
+                           @bind="search.FieldName" @onkeyup="OnFieldNameKeyUp" />
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.Valid" class="form-input" title="Status">
+                        <option value="1">Active</option>
+                        <option value="0">Deactive</option>
+                        <option value="-1">All</option>
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchFields" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddField" />
+            </PageHeading>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@fieldlist.AsQueryable()" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.FieldName)" Title="Field Name" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.DisplayName)" Title="Display Name" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.DisplayOrder)" Title="Display Order" Sortable="true" Align="Align.Center" />
+                                <TemplateColumn Title="Max Length" Align="Align.Center" Sortable="true" SortBy="GridSort<DynamicFormControllerModel>.ByAscending(x => x.MaxLength)">
+                                    @(context.MaxLength?.ToString() ?? "-")
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(x => x.FieldType)" Title="Field Type" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.DataType)" Title="Data Type" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.ActivityName)" Title="Activity Name" Sortable="true" Align="Align.Left" />
+                                <TemplateColumn Title="Option Values">
+                                    @if (string.IsNullOrWhiteSpace(context.OptionValues))
+                                    {
+                                        <span>-</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="custom-tooltip" data-tooltip="@context.OptionValues">
+                                            @(context.OptionValues.Length > 30 ? context.OptionValues.Substring(0, 30) + "..." : context.OptionValues)
+                                        </span>
+                                    }
+                                </TemplateColumn>
+                                <TemplateColumn Title="Is Mandatory" Align="Align.Center">
+                                    @(context.IsMandatory ? "Yes" : "No")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <span class="@(context.IsValid ? "activeClr" : "inactiveClr")">
+                                        @(context.IsValid ? "Active" : "Deactive")
+                                    </span>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditField(context)" OnStatusClick="() => ChangeStatus(context)" />
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 dfc-modal-col">
+            <div class="modal-content clearfix main-popup dfc-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <i class="bi bi-ui-checks-grid"></i>
+                        @(IsEditMode ? "Edit Form Controller" : "Add New Form Controller")
+                        @if (!IsEditMode)
+                        {
+                            <span class="dfc-count">@rows.Count @(rows.Count == 1 ? "field" : "fields")</span>
+                        }
+                    </h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close" disabled="@IsSaving"><span aria-hidden="true">×</span></button>
+                </div>
+
+                @* ---------- common: activity + add row ---------- *@
+                <div class="dfc-toolbar">
+                    <div class="dfc-activity">
+                        <label>Activity Name <span class="required">*</span></label>
+                        <select class="form-input" value="@popupSAId" @onchange="OnPopupActivityChanged" disabled="@IsSaving">
+                            <option value="0">Select Activity</option>
+                            @foreach (var data in PopupActivities)
+                            {
+                                <option value="@data.SAId">@data.ActivityName</option>
+                            }
+                        </select>
+                        @if (activityError)
+                        {
+                            <small class="dfc-err">Please select an activity.</small>
+                        }
+                    </div>
+                    <div class="dfc-hint">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Field Name becomes a column: letters, digits and _ only (no spaces). Options are comma separated, e.g. <b>Male,Female,Other</b>.</span>
+                    </div>
+                    @if (!IsEditMode)
+                    {
+                        <button type="button" class="dfc-add-btn" @onclick="AddRow" disabled="@(IsSaving || rows.Count >= MaxRows)">
+                            <i class="bi bi-plus-lg"></i> Add Field
+                        </button>
+                    }
+                </div>
+
+                @* ---------- rows: one field per row, the body scrolls when there are many ---------- *@
+                <div class="modal-body dfc-body">
+                    <table class="dfc-table">
+                        <thead>
+                            <tr>
+                                <th class="c-no">#</th>
+                                <th class="c-name">Field Name <span class="required">*</span></th>
+                                <th class="c-name">Display Name <span class="required">*</span></th>
+                                <th class="c-num">Order <span class="required">*</span></th>
+                                <th class="c-sel">Field Type <span class="required">*</span></th>
+                                <th class="c-sel">Data Type <span class="required">*</span></th>
+                                <th class="c-num">Max Length</th>
+                                <th class="c-opt">Option Values</th>
+                                <th class="c-chk">Mandatory</th>
+                                <th class="c-act"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < rows.Count; i++)
+                            {
+                                var row = rows[i];
+                                var m = row.Model;
+                                var n = i + 1;
+                                <tr class="@(row.Saved ? "saved" : row.Errors.Count > 0 || row.Message != null ? "has-err" : "")" @key="row.Key">
+                                    <td class="c-no"><span class="dfc-no">@n</span></td>
+                                    <td>
+                                        <input class="form-input" maxlength="100" placeholder="e.g. StudentName" value="@m.FieldName"
+                                               readonly="@(IsEditMode || row.Saved)" disabled="@IsSaving"
+                                               title="@(IsEditMode ? "Field name cannot be changed" : "Letters, digits and _ only")"
+                                               @onchange="e => SetText(row, nameof(m.FieldName), e.Value?.ToString())" />
+                                        @Err(row, nameof(m.FieldName))
+                                    </td>
+                                    <td>
+                                        <input class="form-input" maxlength="100" placeholder="e.g. Student Name" value="@m.DisplayName"
+                                               readonly="@row.Saved" disabled="@IsSaving"
+                                               @onchange="e => SetText(row, nameof(m.DisplayName), e.Value?.ToString())" />
+                                        @Err(row, nameof(m.DisplayName))
+                                    </td>
+                                    <td>
+                                        <input class="form-input" type="number" min="1" max="9999" value="@m.DisplayOrder"
+                                               readonly="@row.Saved" disabled="@IsSaving"
+                                               @onchange="e => SetNumber(row, nameof(m.DisplayOrder), e.Value?.ToString())" />
+                                        @Err(row, nameof(m.DisplayOrder))
+                                    </td>
+                                    <td>
+                                        <select class="form-input" value="@m.FieldType" disabled="@(IsSaving || row.Saved)"
+                                                @onchange="e => SetFieldType(row, e.Value?.ToString())">
+                                            <option value="">Select</option>
+                                            @foreach (var type in DynamicFormControllerModel.FieldTypes)
+                                            {
+                                                <option value="@type">@type</option>
+                                            }
+                                        </select>
+                                        @Err(row, nameof(m.FieldType))
+                                    </td>
+                                    <td>
+                                        <select class="form-input" value="@m.DataType" disabled="@(IsSaving || row.Saved)"
+                                                @onchange="e => SetText(row, nameof(m.DataType), e.Value?.ToString())">
+                                            <option value="">Select</option>
+                                            @foreach (var type in DynamicFormControllerModel.DataTypes)
+                                            {
+                                                <option value="@type">@type</option>
+                                            }
+                                        </select>
+                                        @Err(row, nameof(m.DataType))
+                                    </td>
+                                    <td>
+                                        <input class="form-input" type="number" min="1" max="4000" value="@m.MaxLength"
+                                               placeholder="@(string.Equals(m.DataType, "string", StringComparison.OrdinalIgnoreCase) ? "Required" : "-")"
+                                               readonly="@row.Saved" disabled="@IsSaving"
+                                               @onchange="e => SetNumber(row, nameof(m.MaxLength), e.Value?.ToString())" />
+                                        @Err(row, nameof(m.MaxLength))
+                                    </td>
+                                    <td>
+                                        <input class="form-input" maxlength="4000" value="@m.OptionValues"
+                                               placeholder="@(m.NeedsOptions ? "Required: A,B,C" : m.AllowsOptions ? "Optional: A,B,C" : "Not needed")"
+                                               title="@m.OptionValues"
+                                               disabled="@(IsSaving || !m.AllowsOptions)" readonly="@row.Saved"
+                                               @onchange="e => SetText(row, nameof(m.OptionValues), e.Value?.ToString())" />
+                                        @Err(row, nameof(m.OptionValues))
+                                    </td>
+                                    <td class="c-chk">
+                                        <label class="dfc-switch" title="Is Mandatory">
+                                            <input type="checkbox" checked="@m.IsMandatory" disabled="@(IsSaving || row.Saved)"
+                                                   @onchange="e => SetMandatory(row, e)" />
+                                            <span></span>
+                                        </label>
+                                    </td>
+                                    <td class="c-act">
+                                        @if (row.Saving)
+                                        {
+                                            <span class="dfc-spin" title="Saving..."></span>
+                                        }
+                                        else if (row.Saved)
+                                        {
+                                            <i class="bi bi-check-circle-fill dfc-ok" title="Saved"></i>
+                                        }
+                                        else if (!IsEditMode)
+                                        {
+                                            <button type="button" class="dfc-del custom-tooltip" data-tooltip="Remove" disabled="@(IsSaving || rows.Count == 1)" @onclick="() => RemoveRow(row)">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                                @if (row.Message != null)
+                                {
+                                    <tr class="dfc-msg-row" @key="row.MsgKey">
+                                        <td></td>
+                                        <td colspan="9"><i class="bi bi-exclamation-triangle-fill"></i> @row.Message</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="d-flex align-items-center justify-content-between w-100 flex-wrap gap-2">
+                        <div class="dfc-summary">
+                            @if (!IsEditMode)
+                            {
+                                <span><b>@rows.Count(x => !x.Saved)</b> to save</span>
+                                @if (rows.Any(x => x.Saved))
+                                {
+                                    <span class="text-success"><i class="bi bi-check-circle-fill"></i> @rows.Count(x => x.Saved) saved</span>
+                                }
+                                @if (rows.Any(x => x.Errors.Count > 0 || x.Message != null))
+                                {
+                                    <span class="text-danger"><i class="bi bi-x-circle-fill"></i> @rows.Count(x => x.Errors.Count > 0 || x.Message != null) need correction</span>
+                                }
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="dfc-btn outline" @onclick="ClosePopup" disabled="@IsSaving">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </button>
+                            <button type="button" class="dfc-btn primary" @onclick="SaveAll" disabled="@(IsSaving || !rows.Any(x => !x.Saved))">
+                                @if (IsSaving)
+                                {
+                                    <span class="dfc-spin light"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi @(IsEditMode ? "bi-cloud-check" : "bi-save")"></i>
+                                }
+                                @(IsEditMode ? "Update" : rows.Count(x => !x.Saved) > 1 ? $"Save All ({rows.Count(x => !x.Saved)})" : "Save")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+<style>
+    /* popup grows with the rows; past the screen height only the rows scroll */
+    .custom-modal .dfc-modal-col { max-width: 1480px; margin: 0 auto; }
+    /* full screen height: header, activity bar and footer stay, only the rows scroll */
+    .custom-modal .dfc-popup { width: 100%; height: calc(100vh - 40px); max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
+    .dfc-popup .dfc-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .dfc-popup .form-input { border-radius: 12px !important; border: 1px solid #d3dde8; background: #fbfcfe; padding: 0 12px; transition: border-color .15s, box-shadow .15s; }
+    .dfc-popup .form-input:focus { outline: none; border-color: #2a7fc0; background: #fff; box-shadow: 0 0 0 3px rgba(42,127,192,.15); }
+    .dfc-popup .form-input[readonly] { background: #eef2f6; color: #5b6b7c; }
+    .dfc-activity .form-input { height: 42px; min-width: 260px; }
+    .dfc-popup .head-btn h5 .bi { font-size: 18px; }
+    .dfc-count {
+        margin-left: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+        background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4);
+    }
+    .dfc-toolbar {
+        flex-shrink: 0; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+        padding: 14px 18px; background: #f5f8fc; border-bottom: 1px solid #e3eaf2;
+    }
+    .dfc-activity { min-width: 260px; }
+        .dfc-activity label { display: block; font-size: 13px; font-weight: 600; color: #1d3550; margin-bottom: 4px; }
+    .dfc-hint { flex: 1; min-width: 260px; display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: #5b6b7c; padding-bottom: 6px; }
+        .dfc-hint .bi { color: #1b6fa8; margin-top: 1px; }
+    .dfc-add-btn {
+        display: inline-flex; align-items: center; gap: 6px; border: 1px dashed #1b6fa8; color: #1b6fa8; background: #fff;
+        padding: 9px 18px; border-radius: 12px; font-weight: 600; transition: all .15s;
+    }
+        .dfc-add-btn:hover:not(:disabled) { background: #1b6fa8; color: #fff; border-style: solid; }
+        .dfc-add-btn:disabled { opacity: .55; }
+
+    .dfc-body { padding: 0 !important; }
+    .dfc-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1180px; }
+        .dfc-table thead th {
+            position: sticky; top: 0; z-index: 2; background: #eaf1f8; color: #1d3550;
+            font-size: 12.5px; font-weight: 700; padding: 10px 8px; border-bottom: 1px solid #d6e1ec; white-space: nowrap;
+        }
+        .dfc-table tbody td { padding: 8px; vertical-align: top; border-bottom: 1px solid #eef2f7; background: #fff; }
+        .dfc-table tbody tr:hover td { background: #fafcff; }
+        .dfc-table .form-input { width: 100%; height: 38px; font-size: 13.5px; }
+        .dfc-table .c-no { width: 44px; text-align: center; }
+        .dfc-table .c-num { width: 96px; }
+        .dfc-table .c-sel { width: 140px; }
+        .dfc-table .c-chk { width: 92px; text-align: center; }
+        .dfc-table .c-act { width: 56px; text-align: center; }
+        .dfc-table .c-opt { min-width: 200px; }
+        .dfc-table tr.saved td { background: #f1faf4 !important; }
+        .dfc-table tr.has-err td { background: #fff8f8; }
+    .dfc-no {
+        display: inline-flex; width: 26px; height: 26px; border-radius: 50%; align-items: center; justify-content: center;
+        background: #e3eef9; color: #0e4073; font-size: 12px; font-weight: 700; margin-top: 6px;
+    }
+    .dfc-err { display: block; color: #c62828; font-size: 11.5px; margin-top: 3px; line-height: 1.25; }
+    .dfc-msg-row td { background: #fdecec !important; color: #b71c1c; font-size: 12.5px; padding: 6px 8px !important; }
+
+    .dfc-switch { position: relative; display: inline-block; width: 40px; height: 22px; margin-top: 8px; cursor: pointer; }
+        .dfc-switch input { opacity: 0; width: 0; height: 0; }
+        .dfc-switch span { position: absolute; inset: 0; background: #cfd8e3; border-radius: 22px; transition: .2s; }
+            .dfc-switch span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+        .dfc-switch input:checked + span { background: #22786c; }
+            .dfc-switch input:checked + span::before { transform: translateX(18px); }
+        .dfc-switch input:disabled + span { opacity: .6; }
+
+    .dfc-del { border: none; background: #fdecec; color: #c62828; width: 34px; height: 34px; border-radius: 8px; margin: 2px auto 0; padding: 0; display: inline-flex !important; align-items: center; justify-content: center; line-height: 1; }
+        .dfc-del .bi { font-size: 15px; line-height: 1; display: block; margin: 0; }
+    .dfc-table td.c-act { vertical-align: top; text-align: center; }
+        .dfc-del:hover:not(:disabled) { background: #c62828; color: #fff; }
+        .dfc-del:disabled { opacity: .4; }
+    .dfc-ok { color: #17784a; font-size: 20px; display: inline-block; margin-top: 7px; }
+
+    .dfc-summary { display: flex; gap: 14px; font-size: 13.5px; color: #1d3550; }
+    .dfc-btn {
+        display: inline-flex; align-items: center; gap: 8px; padding: 9px 22px; border-radius: 24px;
+        font-weight: 600; font-size: 14px; border: 1px solid transparent;
+    }
+        .dfc-btn.primary { background: linear-gradient(115deg, #0e4073, #22786c); color: #fff; }
+        .dfc-btn.outline { background: #fff; color: #1d3550; border-color: #cfd8e3; }
+        .dfc-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .dfc-spin { display: inline-block; width: 18px; height: 18px; margin-top: 8px; border: 2px solid #cbd8e5; border-top-color: #0e4073; border-radius: 50%; animation: dfc-spin .7s linear infinite; }
+        .dfc-spin.light { width: 14px; height: 14px; margin-top: 0; border-color: rgba(255,255,255,.45); border-top-color: #fff; }
+    @@keyframes dfc-spin { to { transform: rotate(360deg); } }
+
+    html.dark-mode .dfc-toolbar { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); }
+    html.dark-mode .dfc-table thead th { background: #1c2a3a; color: #e6eef7; }
+    html.dark-mode .dfc-table tbody td { background: transparent; }
+</style>
+
+@code {
+    private const int MaxRows = 50;
+
+    // one row of the popup = one field
+    private sealed class FieldRow
+    {
+        public string Key { get; } = Guid.NewGuid().ToString("N");
+        public string MsgKey => Key + "_m";
+        public DynamicFormControllerModel Model { get; set; } = new();
+        public Dictionary<string, string> Errors { get; } = new();
+        // error of the API for this row (e.g. field already exists)
+        public string? Message { get; set; }
+        public bool Saving { get; set; }
+        public bool Saved { get; set; }
+    }
+
+    private List<FieldRow> rows = new();
+    private int popupSAId;
+    private bool activityError;
+    private bool IsSaving;
+    private string oldField = "";
+    private bool IsEditMode => rows.Count == 1 && rows[0].Model.DFCId > 0;
+
+    private List<DynamicFormControllerModel> fieldlist = new();
+    // every activity of the selected session (filter + popup)
+    private List<SummerActivityModel> activitylist = new();
+    private List<SessionModel> sessionlist = new();
+    private DynamicFormControllerSearchModel search = new();
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool IsLoading;
+    private bool ShowPopup;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+    private string? currentUrl;
+
+    // popup: only active activities (+ the field's own activity when editing)
+    private IEnumerable<SummerActivityModel> PopupActivities =>
+        activitylist.Where(x => x.IsValid || x.SAId == popupSAId);
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    public void Dispose() => PermissionState.OnChange -= StateHasChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            search.SessionId = await CommonMethod.SetCurrentSessionData();
+            await LoadActivities();
+            await SearchFields();
+        }
+    }
+
+    private async Task OnSessionChanged()
+    {
+        search.ActivityId = 0;
+        await LoadActivities();
+    }
+
+    private async Task OnFieldNameKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchFields();
+    }
+
+    // activities of the session (Summer Activity master)
+    private async Task LoadActivities()
+    {
+        activitylist = new();
+        if (search.SessionId <= 0) return;
+        try
+        {
+            var request = new SummerActivitySearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = search.SessionId,
+                ActivityId = 0,
+                Valid = -1
+            };
+            var response = await httpService.Post<ApiResponse<List<SummerActivityModel>>>("SummerActivity/GetSummerActivities", request);
+            activitylist = response != null && response.Success ? response.Data ?? new() : new();
+        }
+        catch
+        {
+            activitylist = new();
+        }
+    }
+
+    private async Task SearchFields()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            var request = new DynamicFormControllerSearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = search.SessionId,
+                ActivityId = search.ActivityId,
+                FieldName = search.FieldName?.Trim(),
+                Valid = search.Valid
+            };
+            var response = await httpService.Post<ApiResponse<List<DynamicFormControllerModel>>>("DynamicFormController/GetFields", request);
+            if (response == null || !response.Success)
+            {
+                fieldlist = new();
+                await Alert.ShowError(response?.Message ?? "Unable to load the fields.");
+                return;
+            }
+            fieldlist = response.Data ?? new();
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception)
+        {
+            fieldlist = new();
+            await Alert.ShowError("Unable to load the fields right now. Please try again.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ---------------- popup rows ----------------
+
+    private RenderFragment? Err(FieldRow row, string name) =>
+        row.Errors.TryGetValue(name, out var message) ? @<small class="dfc-err">@message</small> : null;
+
+    // next display order: after the saved fields and the rows already in the popup
+    private int NextOrder() =>
+        Math.Max(fieldlist.Where(x => x.SAId == popupSAId || popupSAId == 0).Select(x => x.DisplayOrder ?? 0).DefaultIfEmpty(0).Max(),
+                 rows.Select(x => x.Model.DisplayOrder ?? 0).DefaultIfEmpty(0).Max()) + 1;
+
+    private async Task AddField()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        if (!activitylist.Any(x => x.IsValid))
+        {
+            await Alert.ShowWarning("No active summer activity in this session. Add the activity first.");
+            return;
+        }
+        rows = new();
+        activityError = false;
+        popupSAId = activitylist.Any(x => x.IsValid && x.SAId == search.ActivityId) ? search.ActivityId : 0;
+        AddRow();
+        ShowPopup = true;
+    }
+
+    private void AddRow()
+    {
+        if (rows.Count >= MaxRows) return;
+        rows.Add(new FieldRow { Model = new DynamicFormControllerModel { DisplayOrder = NextOrder(), DataType = "string" } });
+    }
+
+    private void RemoveRow(FieldRow row)
+    {
+        if (rows.Count > 1)
+            rows.Remove(row);
+    }
+
+    private void OnPopupActivityChanged(ChangeEventArgs e)
+    {
+        popupSAId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        activityError = false;
+    }
+
+    private void Touch(FieldRow row, string name)
+    {
+        row.Errors.Remove(name);
+        row.Message = null;
+    }
+
+    private void SetText(FieldRow row, string name, string? value)
+    {
+        var m = row.Model;
+        switch (name)
+        {
+            case nameof(m.FieldName): m.FieldName = value?.Trim(); break;
+            case nameof(m.DisplayName): m.DisplayName = value; break;
+            case nameof(m.DataType): m.DataType = value; row.Errors.Remove(nameof(m.MaxLength)); break;
+            case nameof(m.OptionValues): m.OptionValues = value; break;
+        }
+        // display name from the field name when it is still empty (StudentName -> Student Name)
+        if (name == nameof(m.FieldName) && string.IsNullOrWhiteSpace(m.DisplayName) && !string.IsNullOrWhiteSpace(m.FieldName))
+            m.DisplayName = System.Text.RegularExpressions.Regex.Replace(m.FieldName.Replace('_', ' '), "(?<=[a-z0-9])(?=[A-Z])", " ").Trim();
+        Touch(row, name);
+    }
+
+    private void SetNumber(FieldRow row, string name, string? value)
+    {
+        int? number = int.TryParse(value, out var v) ? v : null;
+        if (name == nameof(row.Model.DisplayOrder)) row.Model.DisplayOrder = number;
+        else row.Model.MaxLength = number;
+        Touch(row, name);
+    }
+
+    private void SetFieldType(FieldRow row, string? value)
+    {
+        var m = row.Model;
+        m.FieldType = value;
+        if (!m.AllowsOptions)
+            m.OptionValues = null;
+        if (string.Equals(value, "DateTime", StringComparison.OrdinalIgnoreCase))
+            m.DataType = "datetime";
+        Touch(row, nameof(m.FieldType));
+        row.Errors.Remove(nameof(m.OptionValues));
+    }
+
+    private void SetMandatory(FieldRow row, ChangeEventArgs e) => row.Model.IsMandatory = e.Value is true;
+
+    private void EditField(DynamicFormControllerModel item)
+    {
+        var model = new DynamicFormControllerModel
+        {
+            DFCId = item.DFCId,
+            FieldName = item.FieldName,
+            DisplayName = item.DisplayName,
+            DisplayOrder = item.DisplayOrder,
+            MaxLength = item.MaxLength,
+            FieldType = DynamicFormControllerModel.FieldTypes.FirstOrDefault(x => string.Equals(x, item.FieldType, StringComparison.OrdinalIgnoreCase)) ?? "",
+            // older rows may have a data type the SP does not know (e.g. bool): pick it again
+            DataType = DynamicFormControllerModel.DataTypes.FirstOrDefault(x => string.Equals(x, item.DataType, StringComparison.OrdinalIgnoreCase)) ?? "",
+            OptionValues = item.OptionValues,
+            IsMandatory = item.IsMandatory,
+            SAId = item.SAId
+        };
+        popupSAId = item.SAId;
+        activityError = false;
+        rows = new() { new FieldRow { Model = model } };
+        oldField = CommonMethod.CreateSnapshot(model);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        if (IsSaving) return;
+        rows = new();
+        popupSAId = 0;
+        ShowPopup = false;
+        StateHasChanged();
+    }
+
+    // same rules as the API (DataAnnotations + IValidatableObject of the model) + no repeated name in the popup
+    private bool ValidateRows(List<FieldRow> pending)
+    {
+        activityError = popupSAId <= 0;
+        foreach (var row in pending)
+        {
+            row.Errors.Clear();
+            row.Message = null;
+            row.Model.SAId = popupSAId;
+            var results = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+            System.ComponentModel.DataAnnotations.Validator.TryValidateObject(row.Model,
+                new System.ComponentModel.DataAnnotations.ValidationContext(row.Model), results, true);
+            foreach (var r in results)
+                foreach (var member in r.MemberNames.DefaultIfEmpty(""))
+                    if (member != nameof(row.Model.SAId) && !row.Errors.ContainsKey(member))
+                        row.Errors[member] = r.ErrorMessage ?? "Invalid value.";
+        }
+
+        if (!IsEditMode)
+        {
+            foreach (var group in rows.Where(r => !string.IsNullOrWhiteSpace(r.Model.FieldName))
+                         .GroupBy(r => r.Model.FieldName!.Trim(), StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+                foreach (var row in group.Where(r => !r.Saved))
+                    row.Errors.TryAdd(nameof(row.Model.FieldName), "Field name is repeated in the list.");
+        }
+        return !activityError && pending.All(r => r.Errors.Count == 0);
+    }
+
+    private async Task SaveAll()
+    {
+        var pending = rows.Where(r => !r.Saved).ToList();
+        if (pending.Count == 0 || IsSaving) return;
+
+        if (!ValidateRows(pending))
+        {
+            await Alert.ShowWarning(activityError ? "Please select an activity." : "Please correct the highlighted fields.");
+            return;
+        }
+
+        if (IsEditMode)
+        {
+            var model = pending[0].Model;
+            if (!CommonMethod.IsEdited(model, oldField))
+            {
+                await Alert.ShowWarning("No changes detected.");
+                return;
+            }
+            ShowPopup = false;
+            var confirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+            ShowPopup = true;
+            if (!confirmed) return;
+        }
+
+        IsSaving = true;
+        StateHasChanged();
+        try
+        {
+            // one call per field (each field adds / alters its own column)
+            foreach (var row in pending)
+            {
+                var m = row.Model;
+                m.FieldName = m.FieldName?.Trim();
+                m.DisplayName = m.DisplayName?.Trim();
+                if (!m.AllowsOptions) m.OptionValues = null;
+                m.SAId = popupSAId;
+                m.GroupCode = groupcode;
+                m.BranchCode = branchcode;
+                m.SessionId = search.SessionId;
+                m.CreatedBy = UserName;
+
+                row.Saving = true;
+                StateHasChanged();
+                var response = await httpService.Post<ApiResponse<object>>("DynamicFormController/AddUpdateField", m);
+                row.Saving = false;
+                if (response != null && response.Code is 1 or 2)
+                    row.Saved = true;
+                else
+                    row.Message = response?.Message ?? "Field could not be saved. Please try again.";
+                StateHasChanged();
+            }
+
+            var saved = pending.Count(r => r.Saved);
+            if (saved > 0)
+                await SearchFields();
+
+            if (saved == pending.Count)
+            {
+                if (IsEditMode)
+                    await Alert.ShowUpdate("Field updated successfully.");
+                else
+                    await Alert.ShowSuccess(saved == 1 ? "Field added successfully." : $"{saved} fields added successfully.");
+                IsSaving = false;
+                ClosePopup();
+                return;
+            }
+
+            // some failed: they stay in the popup with the reason, the saved ones are ticked
+            await Alert.ShowWarning(saved > 0
+                ? $"{saved} of {pending.Count} fields saved. Please check the rows marked in red."
+                : "Fields could not be saved. Please check the rows marked in red.");
+        }
+        catch (Exception)
+        {
+            foreach (var row in pending) row.Saving = false;
+            await Alert.ShowError("Unable to save the fields right now. Please try again.");
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangeStatus(DynamicFormControllerModel item)
+    {
+        try
+        {
+            bool isActivate = !item.IsValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            var request = new DynamicFormControllerStatusModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                DFCId = item.DFCId,
+                IsValid = isActivate
+            };
+            var response = await httpService.Post<ApiResponse<object>>("DynamicFormController/ActiveDeactiveField", request);
+            if (response != null && response.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(response.Message ?? Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(response.Message ?? Localizer["Deleted"]);
+                await SearchFields();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to change the status right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}

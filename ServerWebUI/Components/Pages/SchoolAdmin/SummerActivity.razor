@@ -1,0 +1,581 @@
+@page "/SummerActivity"
+@using DomainModel.Admin
+@using DomainModel.SchoolAdmin
+@using ServerWebUI.Components.Pages.CommonPages
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@rendermode InteractiveServer
+@implements IDisposable
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <PageHeading Tittle="Summer Activity">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.SessionId" @bind-Value:after="OnSessionChanged" class="form-input" title="Session">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.ActivityId" class="form-input" title="Activity Name">
+                        <option value="0">-- All Activities --</option>
+                        @foreach (var data in activityOptions)
+                        {
+                            <option value="@data.SAId">@data.ActivityName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.Valid" class="form-input" title="Status">
+                        <option value="1">Active</option>
+                        <option value="0">Deactive</option>
+                        <option value="-1">Both</option>
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchActivities" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+                @if (CanExport)
+                {
+                    <div class="form-box">
+                        <button class="ui fade op-1 animated button form-btn" @onclick="ExportExcel" disabled="@IsExporting" title="Export to Excel">
+                            <div class="visible content">
+                                @if (IsExporting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Export
+                            </div>
+                            <div class="hidden content">
+                                <i class="bi bi-file-earmark-excel"></i>
+                            </div>
+                        </button>
+                    </div>
+                }
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddActivity" />
+            </PageHeading>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@FilteredItems" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.ActivityName)" Title="Activity Name" Sortable="true" Align="Align.Left">
+                                    <ColumnOptions>
+                                        <div class="search-box">
+                                            <input type="search" autofocus @bind="nameFilter" @bind:event="oninput" placeholder="Activity Name..." />
+                                        </div>
+                                    </ColumnOptions>
+                                </PropertyColumn>
+                                <TemplateColumn Title="Start Date" Sortable="true" SortBy="GridSort<SummerActivityModel>.ByAscending(x => x.StartDate)">
+                                    @(context.StartDate?.ToString("dd-MM-yyyy") ?? "-")
+                                </TemplateColumn>
+                                <TemplateColumn Title="End Date" Sortable="true" SortBy="GridSort<SummerActivityModel>.ByAscending(x => x.EndDate)">
+                                    @(context.EndDate?.ToString("dd-MM-yyyy") ?? "-")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Link">
+                                    @if (string.IsNullOrWhiteSpace(context.Link))
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="sa-link">
+                                            <a href="@context.Link" target="_blank" rel="noopener noreferrer" title="Open link">@context.Link</a>
+                                            <button type="button" class="sa-link-btn custom-tooltip" data-tooltip="Copy link" @onclick="() => CopyLink(context.Link)">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <span class="@(context.IsValid ? "activeClr" : "inactiveClr")">
+                                        @(context.IsValid ? "Active" : "Deactive")
+                                    </span>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        @* generate link: only an active activity *@
+                                        @if (context.IsValid && CanGenerateLink)
+                                        {
+                                            <button type="button" class="btn-icon-data sa-gen-btn custom-tooltip"
+                                                    data-tooltip="@(string.IsNullOrWhiteSpace(context.Link) ? "Generate Link" : "Generate New Link")"
+                                                    disabled="@(generatingId == context.SAId)" @onclick="() => GenerateLink(context)">
+                                                @if (generatingId == context.SAId)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm"></span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-link-45deg"></i>
+                                                }
+                                            </button>
+                                        }
+                                        <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditActivity(context)" OnStatusClick="() => ChangeStatus(context)" />
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@(activity.SAId == 0 ? "Add New Summer Activity" : "Edit Summer Activity")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@activity" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row gap-10-0">
+                            <div class="col-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " maxlength="50" @bind-Value="activity.ActivityName" autocomplete="off" />
+                                    <label class="floating-label">Activity Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => activity.ActivityName)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 px-2 mt-2">
+                                <div class="form-box-group">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="activity.StartDate" />
+                                    <label class="floating-label">Start Date <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => activity.StartDate)" />
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 px-2 mt-2">
+                                <div class="form-box-group">
+                                    <InputDate class="floating-input" placeholder=" " @bind-Value="activity.EndDate"
+                                               min="@(activity.StartDate?.ToString("yyyy-MM-dd"))" />
+                                    <label class="floating-label">End Date <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => activity.EndDate)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="activity.SAId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+<style>
+    .sa-link { display: inline-flex; align-items: center; gap: 6px; max-width: 280px; }
+        .sa-link a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1b6fa8; }
+    .sa-link-btn { border: none; background: transparent; color: #4c6a87; padding: 0 2px; }
+        .sa-link-btn:hover { color: #1b6fa8; }
+    /* generate link: its own colour so it is not taken for Edit */
+    .sa-gen-btn { background: #e7f6f3 !important; color: #22786c !important; border: 1px solid #bfe5dd !important; }
+        .sa-gen-btn:hover:not(:disabled) { background: #22786c !important; color: #fff !important; }
+</style>
+
+@code {
+    private SummerActivityModel activity = new();
+    private string oldActivity = "";
+    private List<SummerActivityModel> activitylist = new();
+    // every activity of the selected session (Activity Name filter)
+    private List<SummerActivityModel> activityOptions = new();
+    private List<SessionModel> sessionlist = new();
+    private SummerActivitySearchModel search = new();
+    private string nameFilter = string.Empty;
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool IsLoading;
+    private bool ShowPopup;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+    private string? currentUrl;
+    private bool IsExporting;
+    // activity whose link is being generated (spinner on its button)
+    private int generatingId;
+    // export: Export to Excel permission; generate link: Edit permission (it changes the activity's link)
+    private bool CanExport => PermissionState.HasPermission(currentUrl, x => x.IsExportToExcel);
+    private bool CanGenerateLink => PermissionState.HasPermission(currentUrl, x => x.Action2);
+
+    private async Task GenerateLink(SummerActivityModel item)
+    {
+        if (generatingId > 0) return;
+        if (!string.IsNullOrWhiteSpace(item.Link))
+        {
+            // a new link replaces the old one in the grid (the old tiny link stays in V3MTokenLink)
+            var confirm = await Alert.ShowConfirm("A link already exists for this activity. Generate a new link?");
+            if (!confirm) return;
+        }
+
+        generatingId = item.SAId;
+        StateHasChanged();
+        try
+        {
+            var request = new SummerActivityLinkRequest
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = item.SessionId > 0 ? item.SessionId : search.SessionId,
+                SAId = item.SAId
+            };
+            var response = await httpService.Post<ApiResponse<SummerActivityLinkResult>>("SummerActivity/GenerateLink", request);
+            if (response != null && response.Success && !string.IsNullOrWhiteSpace(response.Data?.Link))
+            {
+                item.Link = response.Data.Link;
+                await Alert.ShowSuccess(response.Message ?? "Url has been generated successfully.");
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? "Link could not be generated. Please try again.");
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to generate the link right now. Please try again.");
+        }
+        finally
+        {
+            generatingId = 0;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyLink(string? link)
+    {
+        if (string.IsNullOrWhiteSpace(link)) return;
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", link);
+            await Alert.ShowSuccess("Link copied.");
+        }
+        catch (Exception)
+        {
+            await Alert.ShowWarning("Unable to copy the link. Please copy it manually.");
+        }
+    }
+
+    // Excel of the searched list (same session / activity / status filters, from the DB)
+    private async Task ExportExcel()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        IsExporting = true;
+        StateHasChanged();
+        try
+        {
+            var request = new SummerActivitySearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = search.SessionId,
+                ActivityId = search.ActivityId,
+                Valid = search.Valid
+            };
+            var response = await httpService.Post<ApiResponse<string>>("SummerActivity/ExportSummerActivities", request);
+            if (response != null && response.Success && !string.IsNullOrWhiteSpace(response.Data))
+                await JS.InvokeVoidAsync("downloadExcel", response.Data, "SummerActivity.xlsx");
+            else
+                await Alert.ShowCustomAlert(response?.Message ?? "Unable to export right now.");
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to export right now. Please try again.");
+        }
+        finally
+        {
+            IsExporting = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    public void Dispose() => PermissionState.OnChange -= StateHasChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            search.SessionId = await CommonMethod.SetCurrentSessionData();
+            await LoadActivityOptions();
+            await SearchActivities();
+        }
+    }
+
+    // session changed: activity filter lists only that session's activities
+    private async Task OnSessionChanged()
+    {
+        search.ActivityId = 0;
+        await LoadActivityOptions();
+    }
+
+    private async Task<List<SummerActivityModel>> GetActivities(int activityId, int valid)
+    {
+        var request = new SummerActivitySearchModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = search.SessionId,
+            ActivityId = activityId,
+            Valid = valid
+        };
+        var response = await httpService.Post<ApiResponse<List<SummerActivityModel>>>("SummerActivity/GetSummerActivities", request);
+        if (response == null || !response.Success)
+            throw new InvalidOperationException(response?.Message ?? "Unable to load the summer activities.");
+        return response.Data ?? new();
+    }
+
+    private async Task LoadActivityOptions()
+    {
+        if (search.SessionId <= 0)
+        {
+            activityOptions = new();
+            return;
+        }
+        try
+        {
+            activityOptions = await GetActivities(0, -1);
+        }
+        catch
+        {
+            activityOptions = new();
+        }
+    }
+
+    private async Task SearchActivities()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            activitylist = await GetActivities(search.ActivityId, search.Valid);
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception ex)
+        {
+            activitylist = new();
+            await Alert.ShowError(ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    protected IQueryable<SummerActivityModel> FilteredItems
+    {
+        get
+        {
+            var result = activitylist.AsQueryable();
+            if (!string.IsNullOrEmpty(nameFilter))
+                result = result.Where(x => x.ActivityName != null && x.ActivityName.Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase));
+            return result;
+        }
+    }
+
+    private void AddActivity()
+    {
+        if (search.SessionId <= 0)
+        {
+            _ = Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        activity = new SummerActivityModel { SessionId = search.SessionId };
+        ShowPopup = true;
+    }
+
+    private void EditActivity(SummerActivityModel item)
+    {
+        activity = new SummerActivityModel
+        {
+            SAId = item.SAId,
+            SessionId = item.SessionId,
+            ActivityName = item.ActivityName,
+            StartDate = item.StartDate,
+            EndDate = item.EndDate
+        };
+        oldActivity = CommonMethod.CreateSnapshot(activity);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        activity = new();
+        ShowPopup = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSave()
+    {
+        try
+        {
+            // same name in the same session is not allowed
+            var name = activity.ActivityName?.Trim();
+            if (activityOptions.Any(x => x.SAId != activity.SAId && string.Equals(x.ActivityName?.Trim(), name, StringComparison.OrdinalIgnoreCase)))
+            {
+                await Alert.ShowWarning("Activity " + Localizer["Already"]);
+                return;
+            }
+
+            if (activity.SAId > 0)
+            {
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                if (!CommonMethod.IsEdited(activity, oldActivity))
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+
+            activity.ActivityName = name;
+            activity.GroupCode = groupcode;
+            activity.BranchCode = branchcode;
+            activity.CreatedBy = UserName;
+            if (activity.SessionId <= 0)
+                activity.SessionId = search.SessionId;
+
+            ShowPopup = false;
+            var response = await httpService.Post<ApiResponse<object>>("SummerActivity/AddUpdateSummerActivity", activity);
+            if (response == null)
+            {
+                await Alert.ShowCustomAlert(Localizer["Admin"]);
+                ShowPopup = true;
+                return;
+            }
+
+            switch (response.Code)
+            {
+                case 1:
+                    await Alert.ShowSuccess(response.Message);
+                    break;
+                case 2:
+                    await Alert.ShowUpdate(response.Message ?? "Summer activity updated successfully.");
+                    break;
+                default:
+                    await Alert.ShowCustomAlert(response.Message ?? Localizer["Admin"]);
+                    ShowPopup = true;
+                    return;
+            }
+
+            activity = new();
+            await LoadActivityOptions();
+            await SearchActivities();
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to save the summer activity right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangeStatus(SummerActivityModel item)
+    {
+        try
+        {
+            bool isActivate = !item.IsValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            var request = new SummerActivityStatusModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SAId = item.SAId,
+                IsValid = isActivate
+            };
+            var response = await httpService.Post<ApiResponse<object>>("SummerActivity/ActiveDeactiveSummerActivity", request);
+            if (response != null && response.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(response.Message ?? Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(response.Message ?? Localizer["Deleted"]);
+                await LoadActivityOptions();
+                await SearchActivities();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to change the status right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}
