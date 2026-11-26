@@ -1,4 +1,5 @@
 @page "/admissionfeecollection"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -171,7 +172,7 @@
                             <div class="student-sub">
                                 @if (IsStudentSelected)
                                 {
-                                    @:Registration no. @selectedStudent.RegistrationNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassName &nbsp;&middot;&nbsp; Father Name: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile No: @selectedStudent.FatherContactNo
+                                    @:Registration no. @selectedStudent.RegistrationNo &nbsp;&middot;&nbsp; Class @selectedStudent.ClassName &nbsp;&middot;&nbsp; Father Name: @selectedStudent.FatherName &nbsp;&middot;&nbsp; Mobile No: @PiiMask.Mobile(selectedStudent.FatherContactNo)
                                 }
                                 else
                                 {
@@ -220,7 +221,7 @@
                     <div class="student-sub">
                         @if (IsStudentSelected)
                         {
-                            @:Registration no. @selectedStudent.RegistrationNo &nbsp;·&nbsp; Class @selectedStudent.ClassName &nbsp;·&nbsp; Father Name: @selectedStudent.FatherName &nbsp;·&nbsp; Mobile No: @selectedStudent.FatherContactNo
+                            @:Registration no. @selectedStudent.RegistrationNo &nbsp;·&nbsp; Class @selectedStudent.ClassName &nbsp;·&nbsp; Father Name: @selectedStudent.FatherName &nbsp;·&nbsp; Mobile No: @PiiMask.Mobile(selectedStudent.FatherContactNo)
                         }
                         else
                         {

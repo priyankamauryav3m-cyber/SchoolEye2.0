@@ -1,4 +1,5 @@
 ﻿@page "/ViewStudentInvoiceDues"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using DomainModel.FinanceMNGT
@@ -185,13 +186,13 @@
                                 </TemplateColumn>
                                 <TemplateColumn Title="Mobile No." Class="text-center" Align="Align.Center">
                                     <ChildContent>
-                                        @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
+                                        @PiiMask.Mobile(context.SMSMobileNo)
                                     </ChildContent>
 
                                 </TemplateColumn>
                                 <TemplateColumn Title="Email" Class="text-center" Sortable="true" SortBy="GridSort<StudentDuesModel>.ByAscending(x => x.FatherEMail)" Align="Align.Center">
                                     <ChildContent>
-                                        @(string.IsNullOrWhiteSpace(context.FatherEMail) ? " " : context.FatherEMail)
+                                        @PiiMask.Email(context.FatherEMail)
                                     </ChildContent>
 
                                 </TemplateColumn>

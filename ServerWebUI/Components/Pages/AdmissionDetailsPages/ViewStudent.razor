@@ -1,4 +1,5 @@
 ﻿@page "/viewstudent"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using System.Net
@@ -187,7 +188,7 @@
                                     <TemplateColumn Title="Class">
                                         @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
                                     </TemplateColumn>
-                                    <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.DateOfBirth)" Title=" DOB" Class="text-center" Align="Align.Center" />
+                                    <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title=" DOB" Class="text-center" Align="Align.Center" />
                                     <TemplateColumn Title="Father">
                                         @(string.IsNullOrWhiteSpace(context.FatherName) ? " " : context.FatherName)
                                     </TemplateColumn>
@@ -195,11 +196,11 @@
                                         @(string.IsNullOrWhiteSpace(context.MotherName) ? " " : context.MotherName)
                                     </TemplateColumn>
                                     <TemplateColumn Title="SMS Mob.No" Class="text-center" Align="Align.Center">
-                                        @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
+                                        @PiiMask.Mobile(context.SMSMobileNo)
                                     </TemplateColumn>
                                     <PropertyColumn Format="dd/MM/yyyy" Property="@(x => x.AdmissionDate)" Title="Adm.Date" Class="text-center" Align="Align.Center" />
                                     <TemplateColumn Title="Aadhaar No">
-                                        @(string.IsNullOrWhiteSpace(context.AadhaarNo) ? " " : context.AadhaarNo)
+                                       @(string.IsNullOrWhiteSpace(context.AadhaarNo) ? " " : PiiMask.Aadhaar(context.AadhaarNo))
                                     </TemplateColumn>
                                     <TemplateColumn Title="Category" Class="text-center" Align="Align.Center">
                                         @(string.IsNullOrWhiteSpace(context.StudentCategoryName) ? " " : context.StudentCategoryName)
@@ -501,7 +502,7 @@
                                     <TemplateColumn Title="Class">
                                         @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
                                     </TemplateColumn>
-                                    <PropertyColumn Format="dd/MM/yyyy" Class="text-center" Property="@(x => x.DateOfBirth)" Title=" DOB" Align="Align.Center" />
+                                    <PropertyColumn Class="text-center" Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title=" DOB" Align="Align.Center" />
                                     <TemplateColumn Title="Father Name">
                                         @(string.IsNullOrWhiteSpace(context.FatherName) ? " " : context.FatherName)
                                     </TemplateColumn>
@@ -509,7 +510,7 @@
                                         @(string.IsNullOrWhiteSpace(context.MotherName) ? " " : context.MotherName)
                                     </TemplateColumn>
                                     <TemplateColumn Title="SMS No." Align="Align.Center">
-                                        @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
+                                        @PiiMask.Mobile(context.SMSMobileNo)
                                     </TemplateColumn>
                                     <TemplateColumn Title="Distance" Align="Align.Left">
                                         @(string.IsNullOrWhiteSpace(context.DistanceName) ? " " : context.DistanceName)

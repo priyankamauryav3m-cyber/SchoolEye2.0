@@ -1,4 +1,5 @@
 ﻿@page "/enquiry"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.FinanceMNGT
 @using Microsoft.AspNetCore.Authorization
@@ -242,7 +243,7 @@
                                 </TemplateColumn>
                                 <TemplateColumn Title="Contact No." Sortable="true" class="text-center" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.MobileNo)" Align="Align.Center">
                                     <ChildContent>
-                                        @(string.IsNullOrWhiteSpace(context.MobileNo) ? " " : context.MobileNo)
+                                        @PiiMask.Mobile(context.MobileNo)
                                     </ChildContent>
                                     <ColumnOptions>
                                         <div class="search-box">
@@ -256,7 +257,7 @@
                                         @(string.IsNullOrWhiteSpace(context.ClassName) ? " " : context.ClassName)
                                     </ChildContent>
                                 </TemplateColumn>
-                                <PropertyColumn Format="dd-MM-yyyy" Property="@(x => x.DateOfBirth)" Class="text-center" Align="Align.Center" Title="Date Of Birth" />
+                                <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Class="text-center" Align="Align.Center" Title="Date Of Birth" />
                                 <PropertyColumn Format="dd-MM-yyyy" Align="Align.Center" Class="text-center" Property="@(x => x.EnquiryDate)" Title="Enquiry Date" />
                                 <TemplateColumn Title="Followup Date" Sortable="true" SortBy="GridSort<EnquiryListResponse>.ByAscending(x => x.NextFollowupDate)" Class="text-center" Align="Align.Center">
                                     <ChildContent>

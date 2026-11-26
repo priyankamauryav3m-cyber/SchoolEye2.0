@@ -1,4 +1,5 @@
 @page "/ViewStudentBirthday"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -73,9 +74,9 @@
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="FatherName" Sortable="true" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="Mobile No" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherEMail) ? " " : x.FatherEMail)" Title="Email Id" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => PiiMask.BirthdayOnly(x.DateOfBirth))" Title="DOB" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Mobile(x.SMSMobileNo))" Title="Mobile No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Email(x.FatherEMail))" Title="Email Id" Align="Align.Left" />
                                 <TemplateColumn Title="Image" Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         <img src="@GetImageUrl(context.ImagePath)" class="grid-thumb-img" @onclick="() => ViewImage(context.ImagePath)" alt="Student" />

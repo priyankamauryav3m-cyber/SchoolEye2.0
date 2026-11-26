@@ -1,4 +1,5 @@
 @page "/miscellaneousinvoicewithtemplate"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -99,8 +100,8 @@
                                 <PropertyColumn Property="@(x => GetSectionName(x.SectionId))" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => x.RollNo.HasValue ? x.RollNo.Value.ToString() : " ")" Title="Roll No." Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MobileNo) ? " " : x.MobileNo)" Title="Mobile No." Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Mobile(x.MobileNo))" Title="Mobile No." Class="text-center" Align="Align.Center" />
                             </QuickGrid>
                         </div>
                         <div class="footer-pagination">

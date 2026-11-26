@@ -1,0 +1,2375 @@
+﻿@page "/StudentSensitiveDetails"
+@using DomainModel.Admin
+@using DomainModel.Common
+@using DomainModel.FinanceMNGT
+@using DomainModel.SchoolMaster
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using ServerWebUI.Components.Common
+@using ServerWebUI.Components.Pages.CommonPages
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@inject ICommonMethod _commonmethod
+@inject NavigationManager Nav
+@implements IDisposable
+@rendermode InteractiveServer
+
+@*
+    DPDP - Student Sensitive Details
+    The only screen that shows a student's / parent's sensitive data WITHOUT masking and the only
+    screen where it can be changed. Every other screen shows it masked and read-only (DomainModel.Common.PiiMask).
+
+    APIs:
+      StudentSensitiveDetails/CheckAccess   role has PII tick on this page (checked in the DB by the API)
+      StudentFee/GetStudentLedgerChallanMiniDetails   student search (same as Student Fee Account)
+      StudentSensitiveDetails/GetDetails    unmasked values + how many times each field was changed
+      StudentSensitiveDetails/Update        only the changed fields + reason -> USP_DPDP_UpdateStudentSensitiveDetails
+                                            (old + new value saved through Usp_SaveTransactionLog)
+      StudentSensitiveDetails/GetHistory    change history (Det_TransactionLog)
+    No print, no export.
+*@
+
+<style>
+    .ssd { --ssd-ink: #172033; --ssd-muted: #64748b; --ssd-line: #e6eaf0; --ssd-navy: #1f3a5f; --ssd-amber: #b7791f; --ssd-amber-soft: #fff7e8; --ssd-red: #c0392b; --ssd-red-soft: #fdecea; --ssd-green: #2f7d57; --ssd-green-soft: #e6f3ec; --ssd-teal: #0f766e; }
+    .ssd .ssd-card { background: var(--card-bg, #fff); border: 1px solid var(--border-color, var(--ssd-line)); border-radius: var(--se-radius, 12px); box-shadow: var(--se-shadow, none); }
+    .ssd .ssd-search-card { overflow: visible !important; position: relative; z-index: 5; }
+    .ssd .ssd-searchbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 12px 16px; }
+    .ssd .ssd-searchbar-title { display: flex; align-items: center; gap: 10px; }
+    .ssd .ssd-searchbar-title > i { font-size: 20px; color: #fff; background: linear-gradient(135deg, #1f3a5f, #0f766e); width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
+    .ssd .ssd-searchbar-head { font-weight: 700; color: var(--ssd-ink); font-size: 15px; }
+    .ssd .ssd-searchbar-hint { color: var(--ssd-muted); font-size: 12px; }
+    .ssd kbd { background: #f1f4f8; color: #334155; border: 1px solid #d8dee7; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 11px; font-family: inherit; }
+    .ssd .ssd-searchbar-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ssd .ssd-search-box { position: relative; width: 360px; }
+    .ssd .ssd-search-input { padding-left: 34px !important; padding-right: 32px !important; }
+    .ssd .ssd-search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #64748b; cursor: pointer; z-index: 2; }
+    .ssd .ssd-search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; color: #94a3b8; padding: 2px 6px; z-index: 2; }
+    .ssd .ssd-suggest { position: absolute; top: 100%; right: -70px; width: 550px; max-width: 92vw; margin-top: 2px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; max-height: 400px; overflow-y: auto; box-shadow: 0 8px 20px rgba(0,0,0,.15); z-index: 2000; }
+    .ssd .ssd-suggest-item { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1.6fr; gap: 16px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f3f5; }
+    .ssd .ssd-suggest-item:hover, .ssd .ssd-suggest-item.active { background: #f7f9fc; }
+    .ssd .ssd-suggest-col { display: flex; flex-direction: column; min-width: 0; }
+    .ssd .ssd-suggest-label { font-size: 12px; font-weight: 500; color: #263238; }
+    .ssd .ssd-suggest-value { font-size: 11px; font-weight: 600; color: #8a94a6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ssd .ssd-suggest-empty { padding: 14px; color: #6c757d; font-size: 13px; }
+    .ssd .ssd-suggest-foot { padding: 7px 14px; font-size: 11.5px; color: var(--ssd-muted); background: #fafbfc; border-top: 1px solid #f1f3f5; position: sticky; bottom: 0; }
+    .ssd .ssd-loader { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 28px 13px; color: #68778a; font-weight: 600; }
+    .ssd .ssd-spinner { width: 16px; height: 16px; border: 2px solid #cbd8e5; border-top-color: #118c91; border-radius: 50%; display: inline-block; animation: ssd-spin .7s linear infinite; }
+    @@keyframes ssd-spin { to { transform: rotate(360deg); } }
+
+    .ssd .ssd-btn { border: 1px solid #cdd5df; background: #fff; color: #1e293b; border-radius: 6px; padding: 7px 13px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: background .15s, border-color .15s, color .15s; }
+    .ssd .ssd-btn:hover:not(:disabled) { background: var(--ssd-navy); color: #fff; }
+    .ssd .ssd-btn.primary { background: var(--ssd-navy); border-color: var(--ssd-navy); color: #fff; font-weight: 600; }
+    .ssd .ssd-btn.primary:hover:not(:disabled) { background: #17304f; }
+    .ssd .ssd-btn.danger { color: var(--ssd-red); border-color: #f1c7c2; }
+    .ssd .ssd-btn.danger:hover:not(:disabled) { background: var(--ssd-red); color: #fff; }
+    .ssd .ssd-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* ---------- header ---------- */
+    .ssd .ssd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding: 18px 20px; position: relative; overflow: hidden; }
+    .ssd .ssd-head::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(180deg, #1f3a5f, #0f766e); }
+    .ssd .ssd-name { font-size: 24px; font-weight: 800; color: var(--ssd-ink); text-transform: uppercase; margin: 0; line-height: 1.15; }
+    .ssd .ssd-sub { color: var(--ssd-muted); font-size: 14px; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    .ssd .ssd-sub b { color: var(--ssd-ink); font-weight: 600; }
+    .ssd .ssd-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .ssd .ssd-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 14px; font-size: 12px; font-weight: 600; }
+    .ssd .ssd-badge.shield { background: #e7f5f3; color: var(--ssd-teal); }
+    .ssd .ssd-badge.log { background: #eef2ff; color: #3730a3; }
+    .ssd .ssd-badge.noprint { background: var(--ssd-red-soft); color: var(--ssd-red); }
+    .ssd .ssd-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .ssd .ssd-viewer { font-size: 11.5px; color: var(--ssd-muted); text-align: right; width: 100%; }
+
+    /* ---------- tabs ---------- */
+    .ssd .ssd-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--ssd-line); overflow-x: auto; scrollbar-width: thin; }
+    .ssd .ssd-tab { background: none; border: none; padding: 11px 14px; color: #4b5565; font-size: 15px; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px; }
+    .ssd .ssd-tab:hover { color: var(--ssd-ink); }
+    .ssd .ssd-tab.active { color: var(--ssd-ink); font-weight: 600; border-bottom-color: var(--ssd-navy); }
+    .ssd .ssd-tab .ssd-dot { min-width: 18px; padding: 0 6px; border-radius: 10px; background: var(--ssd-amber); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+
+    /* ---------- sections + fields ---------- */
+    .ssd .ssd-body { padding-top: 14px; padding-bottom: 90px; position: relative; }
+    .ssd .ssd-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; }
+    .ssd .ssd-section { padding: 0; overflow: hidden; }
+    .ssd .ssd-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--ssd-line); background: linear-gradient(90deg, #f8fafc, var(--card-bg, #fff)); }
+    .ssd .ssd-section-title { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ssd-ink); font-size: 15px; }
+    .ssd .ssd-section-title i { width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: #eaf0f7; color: var(--ssd-navy); font-size: 16px; }
+    .ssd .ssd-section-title small { display: block; font-weight: 500; color: var(--ssd-muted); font-size: 12px; }
+    .ssd .ssd-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; padding: 14px 16px 16px; }
+    .ssd .ssd-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .ssd .ssd-field.wide { grid-column: 1 / -1; }
+    .ssd .ssd-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12.5px; font-weight: 600; color: #475569; }
+    .ssd .ssd-input { width: 100%; border: 1px solid #d3dae4; border-radius: 7px; padding: 8px 11px; font-size: 14px; color: var(--ssd-ink); background: #fff; transition: border-color .15s, box-shadow .15s; user-select: text; }
+    .ssd .ssd-input:focus { outline: none; border-color: #1f6fb2; box-shadow: 0 0 0 3px rgba(31,111,178,.12); }
+    .ssd textarea.ssd-input { min-height: 64px; resize: vertical; }
+    .ssd .ssd-field.changed .ssd-input { border-color: var(--ssd-amber); background: var(--ssd-amber-soft); }
+    .ssd .ssd-field.invalid .ssd-input { border-color: var(--ssd-red); background: var(--ssd-red-soft); }
+    .ssd .ssd-input.masked { letter-spacing: .5px; color: #475569; background: #f8fafc; }
+    .ssd .ssd-meta { display: flex; align-items: center; gap: 8px; min-height: 18px; font-size: 11.5px; color: var(--ssd-muted); }
+    .ssd .ssd-err { color: var(--ssd-red); font-size: 12px; }
+    .ssd .ssd-count { border: none; background: #eef2ff; color: #3730a3; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .ssd .ssd-count:hover { background: #3730a3; color: #fff; }
+    .ssd .ssd-count.zero { background: #f1f5f9; color: #94a3b8; cursor: default; }
+    .ssd .ssd-undo { border: none; background: none; color: var(--ssd-amber); font-size: 11.5px; font-weight: 600; padding: 0; cursor: pointer; }
+    .ssd .ssd-undo:hover { text-decoration: underline; }
+    .ssd .ssd-edited { color: var(--ssd-amber); font-weight: 700; font-size: 11px; }
+
+    /* ---------- pending changes bar ---------- */
+    .ssd .ssd-savebar { position: sticky; bottom: 10px; z-index: 20; margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px; background: #1f3a5f; color: #fff; box-shadow: 0 10px 30px rgba(15,23,42,.25); }
+    .ssd .ssd-savebar .txt { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+    .ssd .ssd-savebar .txt small { display: block; font-weight: 400; color: #cbd5e1; }
+    .ssd .ssd-savebar .ssd-btn { border-color: rgba(255,255,255,.35); background: transparent; color: #fff; }
+    .ssd .ssd-savebar .ssd-btn.primary { background: #fff; color: #1f3a5f; border-color: #fff; }
+    .ssd .ssd-savebar .ssd-btn:hover:not(:disabled) { background: rgba(255,255,255,.15); color: #fff; }
+    .ssd .ssd-savebar .ssd-btn.primary:hover:not(:disabled) { background: #e2e8f0; color: #1f3a5f; }
+
+    /* ---------- empty / denied ---------- */
+    .ssd .ssd-empty { min-height: 320px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+    .ssd .ssd-empty i { font-size: 24px; width: 52px; height: 52px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; background: #eaf3fb; color: #177a9b; }
+    .ssd .ssd-empty.denied i { background: var(--ssd-red-soft); color: var(--ssd-red); }
+    .ssd .ssd-empty strong { display: block; color: var(--ssd-ink); font-size: 16px; }
+    .ssd .ssd-empty div div { color: #94a3b8; font-size: 13px; max-width: 520px; margin: 4px auto 0; }
+
+    /* ---------- change history grid (project QuickGrid) ---------- */
+    .ssd .ssd-grid { border-top: 1px solid var(--ssd-line); }
+    .ssd .ssd-grid .quickgrid { margin-bottom: 0; }
+    .ssd .ssd-grid .grid-box { height: auto; min-height: 0; max-height: calc(100vh - 360px); overflow: auto; border: none; border-radius: 0; margin-bottom: 0; scrollbar-width: thin; }
+    .ssd .ssd-grid .grid-box .quickgrid { min-width: 900px; }
+    .ssd .ssd-grid .quickgrid thead th { position: sticky; top: 0; z-index: 2; white-space: nowrap; background: #f8fafc; font-size: 12.5px; }
+    .ssd .ssd-grid .quickgrid th, .ssd .ssd-grid .quickgrid td { text-align: left; vertical-align: top; }
+    .ssd .ssd-grid .quickgrid th .col-header-content { justify-content: flex-start; }
+    .ssd .ssd-grid .footer-pagination { padding: 6px 12px; border-top: 1px solid var(--ssd-line); }
+    .ssd .ssd-section-head .ssd-filter { margin: 0; }
+
+    /* ---------- review popup (project custom-modal) ---------- */
+    .ssd-review-table { max-height: 40vh; overflow: auto; border: 1px solid #e6eaf0; border-radius: 8px; }
+    .ssd-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .ssd-table th { text-align: left; font-size: 12px; font-weight: 600; color: #475569; background: #f8fafc; padding: 8px 10px; border-bottom: 1px solid #e6eaf0; position: sticky; top: 0; }
+    .ssd-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2f6; vertical-align: top; color: #172033; word-break: break-word; }
+    .ssd-old { color: #b42318; text-decoration: line-through; text-decoration-color: rgba(180,35,24,.5); }
+    .ssd-new { color: #2f7d57; font-weight: 600; }
+    .ssd-empty-val { color: #94a3b8; font-style: italic; }
+    .ssd-reason-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .ssd-chip { border: 1px solid #cdd5df; background: #fff; color: #1d3b63; border-radius: 16px; padding: 3px 11px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .ssd-chip:hover { background: #1f3a5f; border-color: #1f3a5f; color: #fff; }
+    .ssd-note { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: #475569; background: #f8fafc; border: 1px dashed #d3dae4; border-radius: 8px; padding: 8px 10px; margin-top: 10px; }
+    .ssd-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+
+    @@media (max-width: 991px) { .ssd .ssd-sections { grid-template-columns: 1fr; } }
+    @@media (max-width: 767px) {
+        .ssd .ssd-search-box { width: 100%; }
+        .ssd .ssd-searchbar-tools { width: 100%; }
+        .ssd .ssd-suggest { left: 0; right: auto; width: 100%; }
+        .ssd .ssd-fields { grid-template-columns: 1fr; }
+        .ssd .ssd-name { font-size: 20px; }
+    }
+    /* sensitive data must never be printed from this page */
+    @@media print { .ssd, .ssd-noprint { display: none !important; } }
+</style>
+
+<section class="main-container ssd">
+    <div class="row gap-10-0 m-0 main-row">
+
+        @if (!AccessChecked)
+        {
+            <div class="col-12 p-1">
+                <div class="ssd-card ssd-loader"><span>Checking access</span><span class="ssd-spinner" role="status" aria-hidden="true"></span></div>
+            </div>
+        }
+        else if (!HasAccess)
+        {
+            <div class="col-12 p-1">
+                <div class="ssd-card ssd-empty denied">
+                    <div>
+                        <i class="bi bi-shield-lock"></i>
+                        <strong>Access denied</strong>
+                        <div>Student sensitive details can be viewed and changed only by roles that have the <b>PII</b> permission on this page (Role Master). Please contact the school administrator.</div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            @* ---------- search ---------- *@
+            <div class="col-12 p-1">
+                <div class="ssd-card ssd-search-card">
+                    <div class="ssd-searchbar">
+                        <div class="ssd-searchbar-title">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <div>
+                                <div class="ssd-searchbar-head">@(Details == null ? "Student Sensitive Details" : "Change student")</div>
+                                <div class="ssd-searchbar-hint">Type control no. or student name, then press <kbd>Enter</kbd></div>
+                            </div>
+                        </div>
+                        <div class="ssd-searchbar-tools">
+                            <div class="form-box">
+                                <select class="form-input" value="@CurrentSession" @onchange="OnSessionChanged" title="Session">
+                                    <option value="0">-- Select Session --</option>
+                                    @foreach (var s in sessionlist.Where(x => x.IsValid))
+                                    {
+                                        <option value="@s.SessionId">@s.SessionName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="ssd-search-box">
+                                <i class="bi bi-search ssd-search-icon" @onclick="SearchStudent" title="Search"></i>
+                                <input @key="searchInputKey" class="form-input w-100 ssd-search-input" placeholder="Control no. or student name" maxlength="200" autocomplete="off"
+                                       @bind-Value="searchText" @bind-Value:event="oninput" @bind-Value:after="OnSearchTextChanged" @onkeydown="HandleSearchKeyDown" />
+                                @if (!string.IsNullOrEmpty(searchText))
+                                {
+                                    <button type="button" class="ssd-search-clear" title="Clear" @onclick="ClearSearch"><i class="bi bi-x-lg"></i></button>
+                                }
+                                @if (ShowSuggestions)
+                                {
+                                    <div class="ssd-suggest">
+                                        @if (IsSearchingStudents)
+                                        {
+                                            <div class="ssd-loader"><span>Loading students</span><span class="ssd-spinner" role="status" aria-hidden="true"></span></div>
+                                        }
+                                        else if (suggestions.Count == 0)
+                                        {
+                                            <div class="ssd-suggest-empty">No matching student found.</div>
+                                        }
+                                        else
+                                        {
+                                            @for (int i = 0; i < suggestions.Count; i++)
+                                            {
+                                                var item = suggestions[i];
+                                                var index = i;
+                                                <div class="ssd-suggest-item @(index == activeSuggestion ? "active" : "")" @onclick="() => SelectStudent(item)" @onmouseover="() => activeSuggestion = index">
+                                                    <div class="ssd-suggest-col"><span class="ssd-suggest-label">Student Name</span><span class="ssd-suggest-value">@Show(item.StudentName)</span></div>
+                                                    <div class="ssd-suggest-col"><span class="ssd-suggest-label">Control No.</span><span class="ssd-suggest-value">@Show(item.ControlNo)</span></div>
+                                                    <div class="ssd-suggest-col"><span class="ssd-suggest-label">Class</span><span class="ssd-suggest-value">@Show(item.ClassSection)</span></div>
+                                                    <div class="ssd-suggest-col"><span class="ssd-suggest-label">Father</span><span class="ssd-suggest-value">@Show(item.FatherName)</span></div>
+                                                </div>
+                                            }
+                                            <div class="ssd-suggest-foot">@suggestions.Count found &middot; <kbd>↑</kbd><kbd>↓</kbd> choose &middot; <kbd>Enter</kbd> open &middot; <kbd>Esc</kbd> close</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <button type="button" class="ssd-btn primary" @onclick="SearchStudent"><i class="bi bi-search"></i>Search</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Details == null)
+            {
+                <div class="col-12 p-1">
+                    <div class="ssd-card ssd-empty">
+                        <div>
+                            <i class="bi bi-person-lock"></i>
+                            <strong>No student selected</strong>
+                            <div>Search a student to see and update the full (unmasked) sensitive details of the student and the parents. Everywhere else in SchoolEye these details are masked and read-only.</div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                var h = Details.Header;
+                <div class="col-12 p-1">
+                    @* ---------- header ---------- *@
+                    <div class="ssd-card ssd-head">
+                        <div>
+                            <h2 class="ssd-name">@Show(h.StudentName)</h2>
+                            <div class="ssd-sub">
+                                <span>Control No. <b>@Show(h.ControlNo)</b></span>
+                                <span>Class <b>@Show(h.ClassSection)</b></span>
+                                @if (!string.IsNullOrWhiteSpace(h.FatherName)) { <span>Father <b>@h.FatherName</b></span> }
+                                @if (!string.IsNullOrWhiteSpace(h.MotherName)) { <span>Mother <b>@h.MotherName</b></span> }
+                            </div>
+                            <div class="ssd-badges">
+                                <span class="ssd-badge shield"><i class="bi bi-shield-check"></i>DPDP protected – unmasked view</span>
+                                <span class="ssd-badge log"><i class="bi bi-journal-text"></i>Every change is logged with old value</span>
+                                <span class="ssd-badge noprint"><i class="bi bi-printer"></i>No print / export</span>
+                            </div>
+                        </div>
+                        <div class="ssd-actions">
+                            @if (OpenedFromLink)
+                            {
+                                <button type="button" class="ssd-btn" @onclick="GoBack" title="Back"><i class="bi bi-arrow-left"></i>Back</button>
+                            }
+                            <button type="button" class="ssd-btn" @onclick="() => ToggleMask()" title="@(MaskValues ? "Show the real values" : "Hide the values (e.g. while screen sharing)")">
+                                <i class="bi @(MaskValues ? "bi-eye" : "bi-eye-slash")"></i>@(MaskValues ? "Show values" : "Hide values")
+                            </button>
+                            <button type="button" class="ssd-btn" @onclick="() => OpenHistory(null)"><i class="bi bi-clock-history"></i>Change History <span class="ssd-count @(TotalChanges == 0 ? "zero" : "")">@TotalChanges</span></button>
+                            <button type="button" class="ssd-btn" @onclick="ReloadDetails" title="Reload"><i class="bi bi-arrow-clockwise"></i></button>
+                            <div class="ssd-viewer"><i class="bi bi-person-badge"></i> Viewed by @UserName · @ViewedAt.ToString("dd MMM yyyy, HH:mm")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 p-1">
+                    @* ---------- tabs (Change History is the last tab, after Bank) ---------- *@
+                    <div class="ssd-tabs" role="tablist">
+                        <button type="button" role="tab" class="ssd-tab @(ActiveTab == TabStudent ? "active" : "")" @onclick="() => OnTabClick(TabStudent)">
+                            <i class="bi bi-person"></i>Student
+                            @if (PendingCount(TabStudent) > 0) { <span class="ssd-dot" title="Changed, not saved">@PendingCount(TabStudent)</span> }
+                        </button>
+                        <button type="button" role="tab" class="ssd-tab @(ActiveTab == TabParents ? "active" : "")" @onclick="() => OnTabClick(TabParents)">
+                            <i class="bi bi-people"></i>Parents
+                            @if (PendingCount(TabParents) > 0) { <span class="ssd-dot" title="Changed, not saved">@PendingCount(TabParents)</span> }
+                        </button>
+                        <button type="button" role="tab" class="ssd-tab @(ActiveTab == TabGuardian ? "active" : "")" @onclick="() => OnTabClick(TabGuardian)">
+                            <i class="bi bi-telephone-forward"></i>Guardian &amp; Emergency
+                            @if (PendingCount(TabGuardian) > 0) { <span class="ssd-dot" title="Changed, not saved">@PendingCount(TabGuardian)</span> }
+                        </button>
+                        <button type="button" role="tab" class="ssd-tab @(ActiveTab == TabAddress ? "active" : "")" @onclick="() => OnTabClick(TabAddress)">
+                            <i class="bi bi-house"></i>Address
+                            @if (PendingCount(TabAddress) > 0) { <span class="ssd-dot" title="Changed, not saved">@PendingCount(TabAddress)</span> }
+                        </button>
+                        <button type="button" role="tab" class="ssd-tab @(ActiveTab == TabBank ? "active" : "")" @onclick="() => OnTabClick(TabBank)">
+                            <i class="bi bi-bank"></i>Bank
+                            @if (PendingCount(TabBank) > 0) { <span class="ssd-dot" title="Changed, not saved">@PendingCount(TabBank)</span> }
+                        </button>
+                        <button type="button" role="tab" class="ssd-tab @(ActiveTab == TabHistory ? "active" : "")" @onclick="() => OnTabClick(TabHistory)">
+                            <i class="bi bi-clock-history"></i>Change History
+                            @if (TotalChanges > 0) { <span class="ssd-count">@TotalChanges</span> }
+                        </button>
+                    </div>
+
+                    <div class="ssd-body">
+                        @if (ActiveTab == TabHistory)
+                        {
+                            @* ---------- change history grid ---------- *@
+                            <div class="ssd-card ssd-section">
+                                <div class="ssd-section-head">
+                                    <div class="ssd-section-title">
+                                        <i class="bi bi-clock-history"></i>
+                                        <div>Change History<small>Old value, new value, who changed it and why (transaction log)</small></div>
+                                    </div>
+                                    <div class="ssd-filter mb-0">
+                                        <div class="form-box">
+                                            <select class="form-input" style="min-width:280px" value="@HistoryField" @onchange="OnHistoryFieldChanged" title="Field">
+                                                <option value="">All fields (@TotalChanges)</option>
+                                                @foreach (var f in SensitiveFieldCatalog.Fields)
+                                                {
+                                                    <option value="@f.Key">@f.Group – @f.Label (@FieldState(f.Key).ChangeCount)</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <button type="button" class="ssd-btn" @onclick="LoadHistory" title="Reload"><i class="bi bi-arrow-clockwise"></i></button>
+                                    </div>
+                                </div>
+                                @if (IsHistoryLoading)
+                                {
+                                    <div class="ssd-loader"><span>Loading</span><span class="ssd-spinner"></span></div>
+                                }
+                                else if (historyRows.Count == 0)
+                                {
+                                    <div class="ssd-empty" style="min-height:200px">
+                                        <div>
+                                            <i class="bi bi-journal-check"></i>
+                                            <strong>No change yet</strong>
+                                            <div>Changes saved from this page will appear here with the old and new value.</div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="ssd-grid quick-main">
+                                        <div class="grid-box">
+                                            <QuickGrid Items="@historyRows.AsQueryable()" Pagination="@historyPagination" Class="table">
+                                                <TemplateColumn Title="Changed On" Sortable="true" SortBy="@(GridSort<StudentSensitiveHistoryRow>.ByDescending(x => x.LogId))">
+                                                    <span class="text-nowrap">@(context.ChangedOn?.ToString("dd MMM yyyy, HH:mm") ?? "-")</span>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Section" Sortable="true" SortBy="@(GridSort<StudentSensitiveHistoryRow>.ByAscending(x => x.FieldKey))">
+                                                    @(SensitiveFieldCatalog.Find(context.FieldKey)?.Group ?? "-")
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Field">
+                                                    @(SensitiveFieldCatalog.Find(context.FieldKey)?.Label ?? context.FieldKey)
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Old Value">
+                                                    <span class="ssd-old">@ShowValue(MaskValues ? SensitiveFieldCatalog.Mask(context.FieldKey ?? "", context.OldValue) : context.OldValue)</span>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="New Value">
+                                                    <span class="ssd-new">@ShowValue(MaskValues ? SensitiveFieldCatalog.Mask(context.FieldKey ?? "", context.NewValue) : context.NewValue)</span>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Changed By" Sortable="true" SortBy="@(GridSort<StudentSensitiveHistoryRow>.ByAscending(x => x.ChangedBy))">
+                                                    @Show(context.ChangedBy)
+                                                    @if (!string.IsNullOrWhiteSpace(context.IP)) { <small class="d-block text-muted">@context.IP</small> }
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Reason">@Show(context.Reason)</TemplateColumn>
+                                            </QuickGrid>
+                                        </div>
+                                        <div class="footer-pagination"><div class="welcome-text w-100"><Paginator State="@historyPagination" /></div></div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (ActiveTab == TabStudent)
+                        {
+                            @* ---------- Student tab ---------- *@
+                            <div class="ssd-sections">
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-person-vcard"></i>
+                                            <div>Student<small>Identity and contact</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field @FieldCss("DateOfBirth")">
+                                            <label class="ssd-label" for="ssd-DateOfBirth">
+                                                <span>Date of Birth @if (IsChanged("DateOfBirth")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("DateOfBirth")" title="@CountTitle("DateOfBirth")" disabled="@(ChangeCount("DateOfBirth") == 0)" @onclick='() => OpenHistory("DateOfBirth")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("DateOfBirth")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-DateOfBirth" class="ssd-input masked" value="@Masked("DateOfBirth", form.Get("DateOfBirth"))" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-DateOfBirth" type="date" class="ssd-input" max="@Today" @bind="form.DateOfBirth" @bind:after='() => OnFieldChanged("DateOfBirth")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("DateOfBirth"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["DateOfBirth"]</span>
+                                                }
+                                                else if (IsChanged("DateOfBirth"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.Get("DateOfBirth"))</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("DateOfBirth")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("DateOfBirth")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("AadhaarNo")">
+                                            <label class="ssd-label" for="ssd-AadhaarNo">
+                                                <span>Aadhaar No. @if (IsChanged("AadhaarNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("AadhaarNo")" title="@CountTitle("AadhaarNo")" disabled="@(ChangeCount("AadhaarNo") == 0)" @onclick='() => OpenHistory("AadhaarNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("AadhaarNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-AadhaarNo" class="ssd-input masked" value="@Masked("AadhaarNo", form.AadhaarNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-AadhaarNo" class="ssd-input" inputmode="numeric" maxlength="12" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.AadhaarNo" @bind:after='() => OnFieldChanged("AadhaarNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("AadhaarNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["AadhaarNo"]</span>
+                                                }
+                                                else if (IsChanged("AadhaarNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.AadhaarNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("AadhaarNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("AadhaarNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("MobileNo")">
+                                            <label class="ssd-label" for="ssd-MobileNo">
+                                                <span>Mobile No. @if (IsChanged("MobileNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MobileNo")" title="@CountTitle("MobileNo")" disabled="@(ChangeCount("MobileNo") == 0)" @onclick='() => OpenHistory("MobileNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MobileNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MobileNo" class="ssd-input masked" value="@Masked("MobileNo", form.MobileNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MobileNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.MobileNo" @bind:after='() => OnFieldChanged("MobileNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MobileNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MobileNo"]</span>
+                                                }
+                                                else if (IsChanged("MobileNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MobileNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MobileNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MobileNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("EmailId")">
+                                            <label class="ssd-label" for="ssd-EmailId">
+                                                <span>Email @if (IsChanged("EmailId")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("EmailId")" title="@CountTitle("EmailId")" disabled="@(ChangeCount("EmailId") == 0)" @onclick='() => OpenHistory("EmailId")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("EmailId")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-EmailId" class="ssd-input masked" value="@Masked("EmailId", form.EmailId)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-EmailId" type="email" class="ssd-input" maxlength="100" autocomplete="off" oninput="this.value=this.value.replace(/\s/g,'')" @bind="form.EmailId" @bind:after='() => OnFieldChanged("EmailId")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("EmailId"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["EmailId"]</span>
+                                                }
+                                                else if (IsChanged("EmailId"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.EmailId)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("EmailId")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("EmailId")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-heart-pulse"></i>
+                                            <div>Health<small>Medical and disability details</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field @FieldCss("BloodGroup")">
+                                            <label class="ssd-label" for="ssd-BloodGroup">
+                                                <span>Blood Group @if (IsChanged("BloodGroup")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("BloodGroup")" title="@CountTitle("BloodGroup")" disabled="@(ChangeCount("BloodGroup") == 0)" @onclick='() => OpenHistory("BloodGroup")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("BloodGroup")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-BloodGroup" class="ssd-input masked" value="@Masked("BloodGroup", form.BloodGroup)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <select id="ssd-BloodGroup" class="ssd-input" @bind="form.BloodGroup" @bind:after='() => OnFieldChanged("BloodGroup")'>
+                                                    <option value="">-- Not set --</option>
+                                                    @if (IsOldBloodGroup(original.BloodGroup))
+                                                    {
+                                                        <option value="@original.BloodGroup">@original.BloodGroup (old entry)</option>
+                                                    }
+                                                    <option value="A+">A+</option>
+                                                    <option value="A-">A-</option>
+                                                    <option value="B+">B+</option>
+                                                    <option value="B-">B-</option>
+                                                    <option value="AB+">AB+</option>
+                                                    <option value="AB-">AB-</option>
+                                                    <option value="O+">O+</option>
+                                                    <option value="O-">O-</option>
+                                                </select>
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("BloodGroup"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["BloodGroup"]</span>
+                                                }
+                                                else if (IsChanged("BloodGroup"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.BloodGroup)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("BloodGroup")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("BloodGroup")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("MedicalInformation")">
+                                            <label class="ssd-label" for="ssd-MedicalInformation">
+                                                <span>Medical Information @if (IsChanged("MedicalInformation")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MedicalInformation")" title="@CountTitle("MedicalInformation")" disabled="@(ChangeCount("MedicalInformation") == 0)" @onclick='() => OpenHistory("MedicalInformation")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MedicalInformation")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MedicalInformation" class="ssd-input masked" value="@Masked("MedicalInformation", form.MedicalInformation)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <textarea id="ssd-MedicalInformation" class="ssd-input" maxlength="150" @bind="form.MedicalInformation" @bind:after='() => OnFieldChanged("MedicalInformation")'></textarea>
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MedicalInformation"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MedicalInformation"]</span>
+                                                }
+                                                else if (IsChanged("MedicalInformation"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MedicalInformation)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MedicalInformation")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MedicalInformation")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("NatureOfDisability")">
+                                            <label class="ssd-label" for="ssd-NatureOfDisability">
+                                                <span>Nature of Disability @if (IsChanged("NatureOfDisability")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("NatureOfDisability")" title="@CountTitle("NatureOfDisability")" disabled="@(ChangeCount("NatureOfDisability") == 0)" @onclick='() => OpenHistory("NatureOfDisability")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("NatureOfDisability")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-NatureOfDisability" class="ssd-input masked" value="@Masked("NatureOfDisability", form.NatureOfDisability)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <textarea id="ssd-NatureOfDisability" class="ssd-input" maxlength="200" @bind="form.NatureOfDisability" @bind:after='() => OnFieldChanged("NatureOfDisability")'></textarea>
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("NatureOfDisability"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["NatureOfDisability"]</span>
+                                                }
+                                                else if (IsChanged("NatureOfDisability"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.NatureOfDisability)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("NatureOfDisability")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("NatureOfDisability")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (ActiveTab == TabParents)
+                        {
+                            @* ---------- Parents tab ---------- *@
+                            <div class="ssd-sections">
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-person"></i>
+                                            <div>Father<small>@(string.IsNullOrWhiteSpace(Details.Header.FatherName) ? "Father" : Details.Header.FatherName)</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field @FieldCss("FatherContactNo")">
+                                            <label class="ssd-label" for="ssd-FatherContactNo">
+                                                <span>Mobile No. @if (IsChanged("FatherContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherContactNo")" title="@CountTitle("FatherContactNo")" disabled="@(ChangeCount("FatherContactNo") == 0)" @onclick='() => OpenHistory("FatherContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherContactNo" class="ssd-input masked" value="@Masked("FatherContactNo", form.FatherContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherContactNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.FatherContactNo" @bind:after='() => OnFieldChanged("FatherContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherContactNo"]</span>
+                                                }
+                                                else if (IsChanged("FatherContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.FatherContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("FatherEMail")">
+                                            <label class="ssd-label" for="ssd-FatherEMail">
+                                                <span>Email @if (IsChanged("FatherEMail")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherEMail")" title="@CountTitle("FatherEMail")" disabled="@(ChangeCount("FatherEMail") == 0)" @onclick='() => OpenHistory("FatherEMail")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherEMail")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherEMail" class="ssd-input masked" value="@Masked("FatherEMail", form.FatherEMail)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherEMail" type="email" class="ssd-input" maxlength="100" autocomplete="off" oninput="this.value=this.value.replace(/\s/g,'')" @bind="form.FatherEMail" @bind:after='() => OnFieldChanged("FatherEMail")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherEMail"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherEMail"]</span>
+                                                }
+                                                else if (IsChanged("FatherEMail"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.FatherEMail)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherEMail")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherEMail")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("FatherAadhaarNo")">
+                                            <label class="ssd-label" for="ssd-FatherAadhaarNo">
+                                                <span>Aadhaar No. @if (IsChanged("FatherAadhaarNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherAadhaarNo")" title="@CountTitle("FatherAadhaarNo")" disabled="@(ChangeCount("FatherAadhaarNo") == 0)" @onclick='() => OpenHistory("FatherAadhaarNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherAadhaarNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherAadhaarNo" class="ssd-input masked" value="@Masked("FatherAadhaarNo", form.FatherAadhaarNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherAadhaarNo" class="ssd-input" inputmode="numeric" maxlength="12" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.FatherAadhaarNo" @bind:after='() => OnFieldChanged("FatherAadhaarNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherAadhaarNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherAadhaarNo"]</span>
+                                                }
+                                                else if (IsChanged("FatherAadhaarNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.FatherAadhaarNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherAadhaarNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherAadhaarNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("FatherDOB")">
+                                            <label class="ssd-label" for="ssd-FatherDOB">
+                                                <span>Date of Birth @if (IsChanged("FatherDOB")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherDOB")" title="@CountTitle("FatherDOB")" disabled="@(ChangeCount("FatherDOB") == 0)" @onclick='() => OpenHistory("FatherDOB")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherDOB")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherDOB" class="ssd-input masked" value="@Masked("FatherDOB", form.Get("FatherDOB"))" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherDOB" type="date" class="ssd-input" max="@Today" @bind="form.FatherDOB" @bind:after='() => OnFieldChanged("FatherDOB")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherDOB"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherDOB"]</span>
+                                                }
+                                                else if (IsChanged("FatherDOB"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.Get("FatherDOB"))</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherDOB")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherDOB")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("FatherAnnualIncome")">
+                                            <label class="ssd-label" for="ssd-FatherAnnualIncome">
+                                                <span>Annual Income (&#8377;) @if (IsChanged("FatherAnnualIncome")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherAnnualIncome")" title="@CountTitle("FatherAnnualIncome")" disabled="@(ChangeCount("FatherAnnualIncome") == 0)" @onclick='() => OpenHistory("FatherAnnualIncome")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherAnnualIncome")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherAnnualIncome" class="ssd-input masked" value="@Masked("FatherAnnualIncome", form.FatherAnnualIncome)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherAnnualIncome" class="ssd-input" inputmode="numeric" maxlength="12" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.FatherAnnualIncome" @bind:after='() => OnFieldChanged("FatherAnnualIncome")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherAnnualIncome"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherAnnualIncome"]</span>
+                                                }
+                                                else if (IsChanged("FatherAnnualIncome"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.FatherAnnualIncome)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherAnnualIncome")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherAnnualIncome")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("FatherOfficeContactNo")">
+                                            <label class="ssd-label" for="ssd-FatherOfficeContactNo">
+                                                <span>Office Contact No. @if (IsChanged("FatherOfficeContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherOfficeContactNo")" title="@CountTitle("FatherOfficeContactNo")" disabled="@(ChangeCount("FatherOfficeContactNo") == 0)" @onclick='() => OpenHistory("FatherOfficeContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherOfficeContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherOfficeContactNo" class="ssd-input masked" value="@Masked("FatherOfficeContactNo", form.FatherOfficeContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherOfficeContactNo" class="ssd-input" maxlength="15" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9+\-\s]/g,'')" @bind="form.FatherOfficeContactNo" @bind:after='() => OnFieldChanged("FatherOfficeContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherOfficeContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherOfficeContactNo"]</span>
+                                                }
+                                                else if (IsChanged("FatherOfficeContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.FatherOfficeContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherOfficeContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherOfficeContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("FatherOfficeAddress")">
+                                            <label class="ssd-label" for="ssd-FatherOfficeAddress">
+                                                <span>Office Address @if (IsChanged("FatherOfficeAddress")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("FatherOfficeAddress")" title="@CountTitle("FatherOfficeAddress")" disabled="@(ChangeCount("FatherOfficeAddress") == 0)" @onclick='() => OpenHistory("FatherOfficeAddress")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("FatherOfficeAddress")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-FatherOfficeAddress" class="ssd-input masked" value="@Masked("FatherOfficeAddress", form.FatherOfficeAddress)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-FatherOfficeAddress" class="ssd-input" maxlength="200" autocomplete="off" @bind="form.FatherOfficeAddress" @bind:after='() => OnFieldChanged("FatherOfficeAddress")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("FatherOfficeAddress"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["FatherOfficeAddress"]</span>
+                                                }
+                                                else if (IsChanged("FatherOfficeAddress"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.FatherOfficeAddress)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("FatherOfficeAddress")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("FatherOfficeAddress")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-person-heart"></i>
+                                            <div>Mother<small>@(string.IsNullOrWhiteSpace(Details.Header.MotherName) ? "Mother" : Details.Header.MotherName)</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field @FieldCss("MotherContactNo")">
+                                            <label class="ssd-label" for="ssd-MotherContactNo">
+                                                <span>Mobile No. @if (IsChanged("MotherContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherContactNo")" title="@CountTitle("MotherContactNo")" disabled="@(ChangeCount("MotherContactNo") == 0)" @onclick='() => OpenHistory("MotherContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherContactNo" class="ssd-input masked" value="@Masked("MotherContactNo", form.MotherContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherContactNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.MotherContactNo" @bind:after='() => OnFieldChanged("MotherContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherContactNo"]</span>
+                                                }
+                                                else if (IsChanged("MotherContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MotherContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("MotherEMail")">
+                                            <label class="ssd-label" for="ssd-MotherEMail">
+                                                <span>Email @if (IsChanged("MotherEMail")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherEMail")" title="@CountTitle("MotherEMail")" disabled="@(ChangeCount("MotherEMail") == 0)" @onclick='() => OpenHistory("MotherEMail")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherEMail")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherEMail" class="ssd-input masked" value="@Masked("MotherEMail", form.MotherEMail)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherEMail" type="email" class="ssd-input" maxlength="100" autocomplete="off" oninput="this.value=this.value.replace(/\s/g,'')" @bind="form.MotherEMail" @bind:after='() => OnFieldChanged("MotherEMail")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherEMail"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherEMail"]</span>
+                                                }
+                                                else if (IsChanged("MotherEMail"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MotherEMail)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherEMail")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherEMail")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("MotherAadhaarNo")">
+                                            <label class="ssd-label" for="ssd-MotherAadhaarNo">
+                                                <span>Aadhaar No. @if (IsChanged("MotherAadhaarNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherAadhaarNo")" title="@CountTitle("MotherAadhaarNo")" disabled="@(ChangeCount("MotherAadhaarNo") == 0)" @onclick='() => OpenHistory("MotherAadhaarNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherAadhaarNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherAadhaarNo" class="ssd-input masked" value="@Masked("MotherAadhaarNo", form.MotherAadhaarNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherAadhaarNo" class="ssd-input" inputmode="numeric" maxlength="12" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.MotherAadhaarNo" @bind:after='() => OnFieldChanged("MotherAadhaarNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherAadhaarNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherAadhaarNo"]</span>
+                                                }
+                                                else if (IsChanged("MotherAadhaarNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MotherAadhaarNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherAadhaarNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherAadhaarNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("MotherDOB")">
+                                            <label class="ssd-label" for="ssd-MotherDOB">
+                                                <span>Date of Birth @if (IsChanged("MotherDOB")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherDOB")" title="@CountTitle("MotherDOB")" disabled="@(ChangeCount("MotherDOB") == 0)" @onclick='() => OpenHistory("MotherDOB")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherDOB")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherDOB" class="ssd-input masked" value="@Masked("MotherDOB", form.Get("MotherDOB"))" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherDOB" type="date" class="ssd-input" max="@Today" @bind="form.MotherDOB" @bind:after='() => OnFieldChanged("MotherDOB")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherDOB"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherDOB"]</span>
+                                                }
+                                                else if (IsChanged("MotherDOB"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.Get("MotherDOB"))</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherDOB")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherDOB")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("MotherAnnualIncome")">
+                                            <label class="ssd-label" for="ssd-MotherAnnualIncome">
+                                                <span>Annual Income (&#8377;) @if (IsChanged("MotherAnnualIncome")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherAnnualIncome")" title="@CountTitle("MotherAnnualIncome")" disabled="@(ChangeCount("MotherAnnualIncome") == 0)" @onclick='() => OpenHistory("MotherAnnualIncome")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherAnnualIncome")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherAnnualIncome" class="ssd-input masked" value="@Masked("MotherAnnualIncome", form.MotherAnnualIncome)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherAnnualIncome" class="ssd-input" inputmode="numeric" maxlength="12" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.MotherAnnualIncome" @bind:after='() => OnFieldChanged("MotherAnnualIncome")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherAnnualIncome"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherAnnualIncome"]</span>
+                                                }
+                                                else if (IsChanged("MotherAnnualIncome"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MotherAnnualIncome)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherAnnualIncome")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherAnnualIncome")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("MotherOfficeContactNo")">
+                                            <label class="ssd-label" for="ssd-MotherOfficeContactNo">
+                                                <span>Office Contact No. @if (IsChanged("MotherOfficeContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherOfficeContactNo")" title="@CountTitle("MotherOfficeContactNo")" disabled="@(ChangeCount("MotherOfficeContactNo") == 0)" @onclick='() => OpenHistory("MotherOfficeContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherOfficeContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherOfficeContactNo" class="ssd-input masked" value="@Masked("MotherOfficeContactNo", form.MotherOfficeContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherOfficeContactNo" class="ssd-input" maxlength="15" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9+\-\s]/g,'')" @bind="form.MotherOfficeContactNo" @bind:after='() => OnFieldChanged("MotherOfficeContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherOfficeContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherOfficeContactNo"]</span>
+                                                }
+                                                else if (IsChanged("MotherOfficeContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MotherOfficeContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherOfficeContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherOfficeContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("MotherOfficeAddress")">
+                                            <label class="ssd-label" for="ssd-MotherOfficeAddress">
+                                                <span>Office Address @if (IsChanged("MotherOfficeAddress")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("MotherOfficeAddress")" title="@CountTitle("MotherOfficeAddress")" disabled="@(ChangeCount("MotherOfficeAddress") == 0)" @onclick='() => OpenHistory("MotherOfficeAddress")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("MotherOfficeAddress")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-MotherOfficeAddress" class="ssd-input masked" value="@Masked("MotherOfficeAddress", form.MotherOfficeAddress)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-MotherOfficeAddress" class="ssd-input" maxlength="200" autocomplete="off" @bind="form.MotherOfficeAddress" @bind:after='() => OnFieldChanged("MotherOfficeAddress")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("MotherOfficeAddress"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["MotherOfficeAddress"]</span>
+                                                }
+                                                else if (IsChanged("MotherOfficeAddress"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.MotherOfficeAddress)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("MotherOfficeAddress")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("MotherOfficeAddress")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (ActiveTab == TabGuardian)
+                        {
+                            @* ---------- Guardian and Emergency tab ---------- *@
+                            <div class="ssd-sections">
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-telephone-forward"></i>
+                                            <div>Guardian &amp; Emergency<small>@GuardianSubTitle</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field @FieldCss("SMSMobileNo")">
+                                            <label class="ssd-label" for="ssd-SMSMobileNo">
+                                                <span>SMS Mobile No. @if (IsChanged("SMSMobileNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("SMSMobileNo")" title="@CountTitle("SMSMobileNo")" disabled="@(ChangeCount("SMSMobileNo") == 0)" @onclick='() => OpenHistory("SMSMobileNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("SMSMobileNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-SMSMobileNo" class="ssd-input masked" value="@Masked("SMSMobileNo", form.SMSMobileNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-SMSMobileNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.SMSMobileNo" @bind:after='() => OnFieldChanged("SMSMobileNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("SMSMobileNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["SMSMobileNo"]</span>
+                                                }
+                                                else if (IsChanged("SMSMobileNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.SMSMobileNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("SMSMobileNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("SMSMobileNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("GuardianContactNo")">
+                                            <label class="ssd-label" for="ssd-GuardianContactNo">
+                                                <span>Guardian Mobile No. @if (IsChanged("GuardianContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("GuardianContactNo")" title="@CountTitle("GuardianContactNo")" disabled="@(ChangeCount("GuardianContactNo") == 0)" @onclick='() => OpenHistory("GuardianContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("GuardianContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-GuardianContactNo" class="ssd-input masked" value="@Masked("GuardianContactNo", form.GuardianContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-GuardianContactNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.GuardianContactNo" @bind:after='() => OnFieldChanged("GuardianContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("GuardianContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["GuardianContactNo"]</span>
+                                                }
+                                                else if (IsChanged("GuardianContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.GuardianContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("GuardianContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("GuardianContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("GuardianEmail")">
+                                            <label class="ssd-label" for="ssd-GuardianEmail">
+                                                <span>Guardian Email @if (IsChanged("GuardianEmail")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("GuardianEmail")" title="@CountTitle("GuardianEmail")" disabled="@(ChangeCount("GuardianEmail") == 0)" @onclick='() => OpenHistory("GuardianEmail")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("GuardianEmail")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-GuardianEmail" class="ssd-input masked" value="@Masked("GuardianEmail", form.GuardianEmail)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-GuardianEmail" type="email" class="ssd-input" maxlength="50" autocomplete="off" oninput="this.value=this.value.replace(/\s/g,'')" @bind="form.GuardianEmail" @bind:after='() => OnFieldChanged("GuardianEmail")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("GuardianEmail"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["GuardianEmail"]</span>
+                                                }
+                                                else if (IsChanged("GuardianEmail"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.GuardianEmail)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("GuardianEmail")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("GuardianEmail")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("EmergencyPersonContactNo")">
+                                            <label class="ssd-label" for="ssd-EmergencyPersonContactNo">
+                                                <span>Emergency Contact No. @if (IsChanged("EmergencyPersonContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("EmergencyPersonContactNo")" title="@CountTitle("EmergencyPersonContactNo")" disabled="@(ChangeCount("EmergencyPersonContactNo") == 0)" @onclick='() => OpenHistory("EmergencyPersonContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("EmergencyPersonContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-EmergencyPersonContactNo" class="ssd-input masked" value="@Masked("EmergencyPersonContactNo", form.EmergencyPersonContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-EmergencyPersonContactNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.EmergencyPersonContactNo" @bind:after='() => OnFieldChanged("EmergencyPersonContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("EmergencyPersonContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["EmergencyPersonContactNo"]</span>
+                                                }
+                                                else if (IsChanged("EmergencyPersonContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.EmergencyPersonContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("EmergencyPersonContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("EmergencyPersonContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("GuardianAddress")">
+                                            <label class="ssd-label" for="ssd-GuardianAddress">
+                                                <span>Guardian Address @if (IsChanged("GuardianAddress")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("GuardianAddress")" title="@CountTitle("GuardianAddress")" disabled="@(ChangeCount("GuardianAddress") == 0)" @onclick='() => OpenHistory("GuardianAddress")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("GuardianAddress")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-GuardianAddress" class="ssd-input masked" value="@Masked("GuardianAddress", form.GuardianAddress)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-GuardianAddress" class="ssd-input" maxlength="150" autocomplete="off" @bind="form.GuardianAddress" @bind:after='() => OnFieldChanged("GuardianAddress")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("GuardianAddress"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["GuardianAddress"]</span>
+                                                }
+                                                else if (IsChanged("GuardianAddress"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.GuardianAddress)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("GuardianAddress")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("GuardianAddress")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("EmergencyPersonAddress")">
+                                            <label class="ssd-label" for="ssd-EmergencyPersonAddress">
+                                                <span>Emergency Contact Address @if (IsChanged("EmergencyPersonAddress")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("EmergencyPersonAddress")" title="@CountTitle("EmergencyPersonAddress")" disabled="@(ChangeCount("EmergencyPersonAddress") == 0)" @onclick='() => OpenHistory("EmergencyPersonAddress")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("EmergencyPersonAddress")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-EmergencyPersonAddress" class="ssd-input masked" value="@Masked("EmergencyPersonAddress", form.EmergencyPersonAddress)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-EmergencyPersonAddress" class="ssd-input" maxlength="100" autocomplete="off" @bind="form.EmergencyPersonAddress" @bind:after='() => OnFieldChanged("EmergencyPersonAddress")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("EmergencyPersonAddress"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["EmergencyPersonAddress"]</span>
+                                                }
+                                                else if (IsChanged("EmergencyPersonAddress"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.EmergencyPersonAddress)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("EmergencyPersonAddress")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("EmergencyPersonAddress")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (ActiveTab == TabAddress)
+                        {
+                            @* ---------- Address tab ---------- *@
+                            <div class="ssd-sections">
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-house-door"></i>
+                                            <div>Current Address<small>Where the student lives now</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field wide @FieldCss("CurrentLine1")">
+                                            <label class="ssd-label" for="ssd-CurrentLine1">
+                                                <span>Address Line 1 @if (IsChanged("CurrentLine1")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("CurrentLine1")" title="@CountTitle("CurrentLine1")" disabled="@(ChangeCount("CurrentLine1") == 0)" @onclick='() => OpenHistory("CurrentLine1")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("CurrentLine1")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-CurrentLine1" class="ssd-input masked" value="@Masked("CurrentLine1", form.CurrentLine1)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-CurrentLine1" class="ssd-input" maxlength="150" autocomplete="off" @bind="form.CurrentLine1" @bind:after='() => OnFieldChanged("CurrentLine1")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("CurrentLine1"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["CurrentLine1"]</span>
+                                                }
+                                                else if (IsChanged("CurrentLine1"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.CurrentLine1)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("CurrentLine1")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("CurrentLine1")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("CurrentLine2")">
+                                            <label class="ssd-label" for="ssd-CurrentLine2">
+                                                <span>Address Line 2 @if (IsChanged("CurrentLine2")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("CurrentLine2")" title="@CountTitle("CurrentLine2")" disabled="@(ChangeCount("CurrentLine2") == 0)" @onclick='() => OpenHistory("CurrentLine2")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("CurrentLine2")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-CurrentLine2" class="ssd-input masked" value="@Masked("CurrentLine2", form.CurrentLine2)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-CurrentLine2" class="ssd-input" maxlength="150" autocomplete="off" @bind="form.CurrentLine2" @bind:after='() => OnFieldChanged("CurrentLine2")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("CurrentLine2"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["CurrentLine2"]</span>
+                                                }
+                                                else if (IsChanged("CurrentLine2"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.CurrentLine2)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("CurrentLine2")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("CurrentLine2")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("CurrentPinCode")">
+                                            <label class="ssd-label" for="ssd-CurrentPinCode">
+                                                <span>Pin Code @if (IsChanged("CurrentPinCode")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("CurrentPinCode")" title="@CountTitle("CurrentPinCode")" disabled="@(ChangeCount("CurrentPinCode") == 0)" @onclick='() => OpenHistory("CurrentPinCode")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("CurrentPinCode")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-CurrentPinCode" class="ssd-input masked" value="@Masked("CurrentPinCode", form.CurrentPinCode)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-CurrentPinCode" class="ssd-input" inputmode="numeric" maxlength="6" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.CurrentPinCode" @bind:after='() => OnFieldChanged("CurrentPinCode")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("CurrentPinCode"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["CurrentPinCode"]</span>
+                                                }
+                                                else if (IsChanged("CurrentPinCode"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.CurrentPinCode)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("CurrentPinCode")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("CurrentPinCode")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("CurrentContactNo")">
+                                            <label class="ssd-label" for="ssd-CurrentContactNo">
+                                                <span>Contact No. @if (IsChanged("CurrentContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("CurrentContactNo")" title="@CountTitle("CurrentContactNo")" disabled="@(ChangeCount("CurrentContactNo") == 0)" @onclick='() => OpenHistory("CurrentContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("CurrentContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-CurrentContactNo" class="ssd-input masked" value="@Masked("CurrentContactNo", form.CurrentContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-CurrentContactNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.CurrentContactNo" @bind:after='() => OnFieldChanged("CurrentContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("CurrentContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["CurrentContactNo"]</span>
+                                                }
+                                                else if (IsChanged("CurrentContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.CurrentContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("CurrentContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("CurrentContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-house-check"></i>
+                                            <div>Permanent Address<small>Permanent home address</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field wide @FieldCss("PermanentLine1")">
+                                            <label class="ssd-label" for="ssd-PermanentLine1">
+                                                <span>Address Line 1 @if (IsChanged("PermanentLine1")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("PermanentLine1")" title="@CountTitle("PermanentLine1")" disabled="@(ChangeCount("PermanentLine1") == 0)" @onclick='() => OpenHistory("PermanentLine1")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("PermanentLine1")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-PermanentLine1" class="ssd-input masked" value="@Masked("PermanentLine1", form.PermanentLine1)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-PermanentLine1" class="ssd-input" maxlength="150" autocomplete="off" @bind="form.PermanentLine1" @bind:after='() => OnFieldChanged("PermanentLine1")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("PermanentLine1"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["PermanentLine1"]</span>
+                                                }
+                                                else if (IsChanged("PermanentLine1"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.PermanentLine1)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("PermanentLine1")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("PermanentLine1")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field wide @FieldCss("PermanentLine2")">
+                                            <label class="ssd-label" for="ssd-PermanentLine2">
+                                                <span>Address Line 2 @if (IsChanged("PermanentLine2")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("PermanentLine2")" title="@CountTitle("PermanentLine2")" disabled="@(ChangeCount("PermanentLine2") == 0)" @onclick='() => OpenHistory("PermanentLine2")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("PermanentLine2")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-PermanentLine2" class="ssd-input masked" value="@Masked("PermanentLine2", form.PermanentLine2)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-PermanentLine2" class="ssd-input" maxlength="150" autocomplete="off" @bind="form.PermanentLine2" @bind:after='() => OnFieldChanged("PermanentLine2")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("PermanentLine2"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["PermanentLine2"]</span>
+                                                }
+                                                else if (IsChanged("PermanentLine2"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.PermanentLine2)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("PermanentLine2")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("PermanentLine2")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("PermanentPinCode")">
+                                            <label class="ssd-label" for="ssd-PermanentPinCode">
+                                                <span>Pin Code @if (IsChanged("PermanentPinCode")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("PermanentPinCode")" title="@CountTitle("PermanentPinCode")" disabled="@(ChangeCount("PermanentPinCode") == 0)" @onclick='() => OpenHistory("PermanentPinCode")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("PermanentPinCode")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-PermanentPinCode" class="ssd-input masked" value="@Masked("PermanentPinCode", form.PermanentPinCode)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-PermanentPinCode" class="ssd-input" inputmode="numeric" maxlength="6" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.PermanentPinCode" @bind:after='() => OnFieldChanged("PermanentPinCode")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("PermanentPinCode"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["PermanentPinCode"]</span>
+                                                }
+                                                else if (IsChanged("PermanentPinCode"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.PermanentPinCode)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("PermanentPinCode")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("PermanentPinCode")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("PermanentContactNo")">
+                                            <label class="ssd-label" for="ssd-PermanentContactNo">
+                                                <span>Contact No. @if (IsChanged("PermanentContactNo")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("PermanentContactNo")" title="@CountTitle("PermanentContactNo")" disabled="@(ChangeCount("PermanentContactNo") == 0)" @onclick='() => OpenHistory("PermanentContactNo")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("PermanentContactNo")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-PermanentContactNo" class="ssd-input masked" value="@Masked("PermanentContactNo", form.PermanentContactNo)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-PermanentContactNo" class="ssd-input" inputmode="numeric" maxlength="10" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.PermanentContactNo" @bind:after='() => OnFieldChanged("PermanentContactNo")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("PermanentContactNo"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["PermanentContactNo"]</span>
+                                                }
+                                                else if (IsChanged("PermanentContactNo"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.PermanentContactNo)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("PermanentContactNo")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("PermanentContactNo")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (ActiveTab == TabBank)
+                        {
+                            @* ---------- Bank tab ---------- *@
+                            <div class="ssd-sections">
+                                <div class="ssd-card ssd-section">
+                                    <div class="ssd-section-head">
+                                        <div class="ssd-section-title">
+                                            <i class="bi bi-bank"></i>
+                                            <div>Bank<small>Student bank account (scholarship / DBT)</small></div>
+                                        </div>
+                                    </div>
+                                    <div class="ssd-fields">
+                                        <div class="ssd-field @FieldCss("StudentBankAccount")">
+                                            <label class="ssd-label" for="ssd-StudentBankAccount">
+                                                <span>Bank Account No. @if (IsChanged("StudentBankAccount")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("StudentBankAccount")" title="@CountTitle("StudentBankAccount")" disabled="@(ChangeCount("StudentBankAccount") == 0)" @onclick='() => OpenHistory("StudentBankAccount")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("StudentBankAccount")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-StudentBankAccount" class="ssd-input masked" value="@Masked("StudentBankAccount", form.StudentBankAccount)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-StudentBankAccount" class="ssd-input" inputmode="numeric" maxlength="18" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'')" @bind="form.StudentBankAccount" @bind:after='() => OnFieldChanged("StudentBankAccount")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("StudentBankAccount"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["StudentBankAccount"]</span>
+                                                }
+                                                else if (IsChanged("StudentBankAccount"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.StudentBankAccount)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("StudentBankAccount")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("StudentBankAccount")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ssd-field @FieldCss("IFSC")">
+                                            <label class="ssd-label" for="ssd-IFSC">
+                                                <span>IFSC Code @if (IsChanged("IFSC")) { <span class="ssd-edited">&middot; edited</span> }</span>
+                                                <button type="button" class="ssd-count @CountCss("IFSC")" title="@CountTitle("IFSC")" disabled="@(ChangeCount("IFSC") == 0)" @onclick='() => OpenHistory("IFSC")'><i class="bi bi-arrow-repeat"></i> @ChangeCount("IFSC")&times;</button>
+                                            </label>
+                                            @if (MaskValues)
+                                            {
+                                                <input id="ssd-IFSC" class="ssd-input masked" value="@Masked("IFSC", form.IFSC)" readonly title="Values are hidden. Click 'Show values' to edit." />
+                                            }
+                                            else
+                                            {
+                                                <input id="ssd-IFSC" class="ssd-input" maxlength="11" autocomplete="off" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')" @bind="form.IFSC" @bind:after='() => OnFieldChanged("IFSC")' />
+                                            }
+                                            <div class="ssd-meta">
+                                                @if (Errors.ContainsKey("IFSC"))
+                                                {
+                                                    <span class="ssd-err"><i class="bi bi-exclamation-circle"></i> @Errors["IFSC"]</span>
+                                                }
+                                                else if (IsChanged("IFSC"))
+                                                {
+                                                    <span>Saved: <b>@ShowValue(original.IFSC)</b></span>
+                                                    <button type="button" class="ssd-undo" @onclick='() => UndoField("IFSC")'><i class="bi bi-arrow-counterclockwise"></i> Undo</button>
+                                                }
+                                                else
+                                                {
+                                                    <span>@LastChangedText("IFSC")</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (Edits.Count > 0)
+                        {
+                            <div class="ssd-savebar">
+                                <div class="txt">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                    <div>
+                                        @Edits.Count change(s) not saved
+                                        <small>@(Errors.Count > 0 ? $"{Errors.Count} field(s) need correction" : "Review the changes, give a reason and save")</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="ssd-btn" @onclick="DiscardAll"><i class="bi bi-x-circle"></i>Discard</button>
+                                    <button type="button" class="ssd-btn primary" @onclick="OpenReview" disabled="@(Errors.Count > 0)"><i class="bi bi-check2-circle"></i>Review &amp; Save</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</section>
+
+@* ---------- review + reason (project custom modal + SaveUpdateButton) ---------- *@
+@if (ShowReview && Details != null)
+{
+    <div class="custom-modal row m-0 align-items-center ssd-noprint">
+        <div class="col-12 col-sm-11 col-md-10 col-lg-8 col-xl-6">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Review Changes · @Details.Header.StudentName</h5>
+                    <button data-access="Close" type="button" @onclick="CloseReview" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <form @onsubmit="SaveChanges">
+                    <div class="modal-body">
+                        <div class="ssd-review-table">
+                            <table class="ssd-table">
+                                <thead><tr><th>Section</th><th>Field</th><th>Saved value</th><th>New value</th></tr></thead>
+                                <tbody>
+                                    @foreach (var key in Edits.Keys)
+                                    {
+                                        var f = SensitiveFieldCatalog.Find(key)!;
+                                        <tr>
+                                            <td>@f.Group</td>
+                                            <td>@f.Label</td>
+                                            <td><span class="ssd-old">@ShowValue(FieldState(key).FieldValue)</span></td>
+                                            <td><span class="ssd-new">@ShowValue(Edits[key])</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="ssd-reason-chips mt-3">
+                            @foreach (var r in ReasonChips)
+                            {
+                                var reason = r;
+                                <button type="button" class="ssd-chip" @onclick="() => SaveReason = reason">@reason</button>
+                            }
+                        </div>
+                        <div class="form-box-group static-label mt-2">
+                            <textarea id="ssd-reason" class="floating-input" placeholder=" " rows="2" maxlength="300" style="min-height:70px"
+                                      @bind="SaveReason" @bind:event="oninput"></textarea>
+                            <label class="floating-label" for="ssd-reason">Reason for the change <span class="required">*</span></label>
+                            @if (!string.IsNullOrEmpty(ReasonError))
+                            {
+                                <div class="validation-message">@ReasonError</div>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-end"><small class="text-muted">@((SaveReason ?? "").Length)/300</small></div>
+                        <div class="ssd-note">
+                            <i class="bi bi-info-circle"></i>
+                            <span>The old value, the new value, your user name, IP and this reason are saved in the transaction log. All other screens will keep showing these details masked.</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton TextSave="@(IsSaving ? "Saving..." : "Save")" Text="Close" OnClickCancel="CloseReview" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    // /StudentSensitiveDetails?StudentNo=...&SessionId=... opens the student straight away
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "StudentNo")]
+    public string? QueryStudentNo { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "SessionId")]
+    public long QuerySessionId { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    public string? QueryReturnUrl { get; set; }
+
+    // tabs (Change History is the last tab, after Bank)
+    private const string TabStudent = "student";
+    private const string TabParents = "parents";
+    private const string TabGuardian = "guardian";
+    private const string TabAddress = "address";
+    private const string TabBank = "bank";
+    private const string TabHistory = "history";
+
+    // fields of each tab (for the "changed, not saved" count on the tab)
+    private static readonly Dictionary<string, string[]> TabFields = new()
+    {
+        [TabStudent] = new[] { "DateOfBirth", "AadhaarNo", "MobileNo", "EmailId", "BloodGroup", "MedicalInformation", "NatureOfDisability" },
+        [TabParents] = new[] { "FatherContactNo", "FatherEMail", "FatherAadhaarNo", "FatherDOB", "FatherAnnualIncome", "FatherOfficeContactNo", "FatherOfficeAddress",
+                               "MotherContactNo", "MotherEMail", "MotherAadhaarNo", "MotherDOB", "MotherAnnualIncome", "MotherOfficeContactNo", "MotherOfficeAddress" },
+        [TabGuardian] = new[] { "SMSMobileNo", "GuardianContactNo", "GuardianEmail", "GuardianAddress", "EmergencyPersonContactNo", "EmergencyPersonAddress" },
+        [TabAddress] = new[] { "CurrentLine1", "CurrentLine2", "CurrentPinCode", "CurrentContactNo", "PermanentLine1", "PermanentLine2", "PermanentPinCode", "PermanentContactNo" },
+        [TabBank] = new[] { "StudentBankAccount", "IFSC" }
+    };
+
+    // one property per sensitive field (property name = field key of the API / SP); bound straight to the inputs
+    private class StudentSensitiveForm
+    {
+        public DateTime? DateOfBirth { get; set; }
+        public string? AadhaarNo { get; set; }
+        public string? MobileNo { get; set; }
+        public string? EmailId { get; set; }
+        public string? BloodGroup { get; set; }
+        public string? MedicalInformation { get; set; }
+        public string? NatureOfDisability { get; set; }
+
+        public string? FatherContactNo { get; set; }
+        public string? FatherEMail { get; set; }
+        public string? FatherAadhaarNo { get; set; }
+        public DateTime? FatherDOB { get; set; }
+        public string? FatherAnnualIncome { get; set; }
+        public string? FatherOfficeContactNo { get; set; }
+        public string? FatherOfficeAddress { get; set; }
+
+        public string? MotherContactNo { get; set; }
+        public string? MotherEMail { get; set; }
+        public string? MotherAadhaarNo { get; set; }
+        public DateTime? MotherDOB { get; set; }
+        public string? MotherAnnualIncome { get; set; }
+        public string? MotherOfficeContactNo { get; set; }
+        public string? MotherOfficeAddress { get; set; }
+
+        public string? SMSMobileNo { get; set; }
+        public string? GuardianContactNo { get; set; }
+        public string? GuardianEmail { get; set; }
+        public string? GuardianAddress { get; set; }
+        public string? EmergencyPersonContactNo { get; set; }
+        public string? EmergencyPersonAddress { get; set; }
+
+        public string? CurrentLine1 { get; set; }
+        public string? CurrentLine2 { get; set; }
+        public string? CurrentPinCode { get; set; }
+        public string? CurrentContactNo { get; set; }
+        public string? PermanentLine1 { get; set; }
+        public string? PermanentLine2 { get; set; }
+        public string? PermanentPinCode { get; set; }
+        public string? PermanentContactNo { get; set; }
+
+        public string? StudentBankAccount { get; set; }
+        public string? IFSC { get; set; }
+
+        private static readonly string[] DateFormats = { "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy", "yyyy-MM-ddTHH:mm:ss" };
+
+        public StudentSensitiveForm Copy() => (StudentSensitiveForm)MemberwiseClone();
+
+        // field value as text (dates yyyy-MM-dd, same as the API)
+        public string? Get(string key) => typeof(StudentSensitiveForm).GetProperty(key)?.GetValue(this) switch
+        {
+            DateTime d => d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            string s => s,
+            _ => null
+        };
+
+        public void Set(string key, string? value)
+        {
+            var prop = typeof(StudentSensitiveForm).GetProperty(key);
+            if (prop == null) return;
+            // HttpService (DateStringConverter) turns the API's yyyy-MM-dd into the app format dd-MM-yyyy, so read both
+            if (prop.PropertyType == typeof(DateTime?))
+                prop.SetValue(this, DateTime.TryParseExact(value?.Trim(), DateFormats, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var d) ? d : null);
+            else
+                prop.SetValue(this, value);
+        }
+    }
+
+    private static readonly string[] ReasonChips =
+    {
+        "Parent request (written)", "Correction of wrong entry", "Document verification", "UDISE / Board submission", "TC / Certificate"
+    };
+
+    private bool AccessChecked;
+    private bool HasAccess;
+    private bool OpenedFromLink;
+    private bool IsLoading;
+    private bool MaskValues;
+    private string ActiveTab = TabStudent;
+    private string Today => DateTime.Today.ToString("yyyy-MM-dd");
+
+    private string? groupcode;
+    private string? branchcode;
+    private string? UserName;
+    private long CurrentSession;
+    private List<SessionModel> sessionlist = new();
+    private DateTime ViewedAt = DateTime.Now;
+
+    // search
+    private string? searchText;
+    private string searchInputKey = Guid.NewGuid().ToString();
+    private bool ShowSuggestions;
+    private bool IsSearchingStudents;
+    private int activeSuggestion = -1;
+    private List<StudentLedgerChallanMiniDetailsResponse> suggestions = new();
+    private CancellationTokenSource? typingCts;
+
+    // data (raw values live only in this server-side component; cleared on Dispose)
+    private StudentSensitiveDetailsResponse? Details;
+    private Dictionary<string, StudentSensitiveField> FieldMap = new();
+    private StudentSensitiveForm original = new();   // values as saved
+    private StudentSensitiveForm form = new();       // values on screen (bound)
+    private Dictionary<string, string?> Edits = new();
+    private Dictionary<string, string> Errors = new();
+
+    // review / save
+    private bool ShowReview;
+    private bool IsSaving;
+    private string? SaveReason;
+    private string? ReasonError;
+
+    // history
+    private PaginationState historyPagination = new() { ItemsPerPage = 15 };
+    private bool IsHistoryLoading;
+    private string HistoryField = "";
+    private List<StudentSensitiveHistoryRow> historyRows = new();
+
+    private int TotalChanges => FieldMap.Values.Sum(x => x.ChangeCount);
+
+    // ======================= lifecycle =======================
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) 
+        return;
+        OpenedFromLink = !string.IsNullOrWhiteSpace(QueryStudentNo);
+
+        groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+        branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+        UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+
+        // the API decides (role PII tick checked in the database); null = denied / failed
+        var access = await httpService.Post<ApiResponse<bool>>("StudentSensitiveDetails/CheckAccess",
+            new StudentSensitiveAccessRequest { GroupCode = groupcode ?? "", BranchCode = branchcode ?? "" });
+        HasAccess = access?.Success == true && access.Data;
+        AccessChecked = true;
+        StateHasChanged();
+        if (!HasAccess) return;
+
+        sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+        CurrentSession = QuerySessionId > 0 ? QuerySessionId : await _commonmethod.SetCurrentSessionData();
+
+        if (!string.IsNullOrWhiteSpace(QueryStudentNo))
+        {
+            searchText = QueryStudentNo.Trim();
+            searchInputKey = Guid.NewGuid().ToString();
+            IsLoading = true;
+            StateHasChanged();
+            var results = await FetchStudents(searchText);
+            IsLoading = false;
+            var match = results.FirstOrDefault(x => string.Equals(x.ControlNo, searchText, StringComparison.OrdinalIgnoreCase))
+                        ?? (results.Count == 1 ? results[0] : null);
+            if (match != null)
+                await SelectStudent(match);
+        }
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        typingCts?.Cancel();
+        typingCts?.Dispose();
+        ClearStudentData();
+    }
+
+    private void ClearStudentData()
+    {
+        Details = null;
+        FieldMap = new();
+        original = new();
+        form = new();
+        Edits = new();
+        Errors = new();
+        historyRows = new();
+        HistoryField = "";
+        SaveReason = null;
+    }
+
+    private void GoBack()
+    {
+        var target = !string.IsNullOrWhiteSpace(QueryReturnUrl) && QueryReturnUrl.StartsWith("/") && !QueryReturnUrl.StartsWith("//")
+            ? QueryReturnUrl : "/viewstudent";
+        Nav.NavigateTo(target);
+    }
+
+    // ======================= search (same as Student Fee Account) =======================
+
+    private async Task<List<StudentLedgerChallanMiniDetailsResponse>> FetchStudents(string term)
+    {
+        var request = new StudentLedgerChallanMiniDetailsRequest
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            SessionId = CurrentSession,
+            ControlNo = string.Empty,
+            StudentName = string.Empty
+        };
+        if (term.Any(char.IsDigit))
+            request.ControlNo = term;
+        else
+            request.StudentName = term;
+
+        var response = await httpService.Post<ApiResponse<List<StudentLedgerChallanMiniDetailsResponse>>>("StudentFee/GetStudentLedgerChallanMiniDetails", request);
+        return (response != null && response.Success && response.Data != null) ? response.Data : new();
+    }
+
+    private async Task OnSearchTextChanged()
+    {
+        typingCts?.Cancel();
+        var term = searchText?.Trim() ?? "";
+        if (term.Length < 3 || CurrentSession <= 0)
+        {
+            ShowSuggestions = false;
+            suggestions = new();
+            return;
+        }
+
+        var cts = typingCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(400, cts.Token);
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+            var results = await FetchStudents(term);
+            if (cts.IsCancellationRequested) return;
+            suggestions = results;
+            activeSuggestion = results.Count > 0 ? 0 : -1;
+        }
+        catch (TaskCanceledException) { }
+        catch (Exception)
+        {
+            ShowSuggestions = false;
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                IsSearchingStudents = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task SearchStudent()
+    {
+        typingCts?.Cancel();
+        var term = searchText?.Trim();
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            await Alert.ShowWarning("Please enter student name or control no to search.");
+            return;
+        }
+        if (CurrentSession <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+
+        try
+        {
+            suggestions = new();
+            activeSuggestion = -1;
+            IsSearchingStudents = true;
+            ShowSuggestions = true;
+            StateHasChanged();
+
+            var results = await FetchStudents(term);
+            IsSearchingStudents = false;
+            if (results.Count == 1)
+            {
+                ShowSuggestions = false;
+                await SelectStudent(results[0]);
+                return;
+            }
+            suggestions = results;
+            activeSuggestion = results.Count > 0 ? 0 : -1;
+            ShowSuggestions = true;
+            if (results.Count == 0)
+                await Alert.ShowWarning("No student found.");
+        }
+        catch (Exception)
+        {
+            ShowSuggestions = false;
+        }
+        finally
+        {
+            IsSearchingStudents = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSearchKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown" when ShowSuggestions && suggestions.Count > 0:
+                activeSuggestion = (activeSuggestion + 1) % suggestions.Count;
+                break;
+            case "ArrowUp" when ShowSuggestions && suggestions.Count > 0:
+                activeSuggestion = activeSuggestion <= 0 ? suggestions.Count - 1 : activeSuggestion - 1;
+                break;
+            case "Escape":
+                ShowSuggestions = false;
+                break;
+            case "Enter":
+                if (ShowSuggestions && activeSuggestion >= 0 && activeSuggestion < suggestions.Count)
+                    await SelectStudent(suggestions[activeSuggestion]);
+                else
+                    await SearchStudent();
+                break;
+        }
+    }
+
+    private void ClearSearch()
+    {
+        typingCts?.Cancel();
+        searchText = string.Empty;
+        searchInputKey = Guid.NewGuid().ToString();
+        ShowSuggestions = false;
+        suggestions = new();
+        activeSuggestion = -1;
+    }
+
+    private void OnSessionChanged(ChangeEventArgs e)
+    {
+        long.TryParse(e.Value?.ToString(), out var sessionId);
+        CurrentSession = sessionId;
+        ShowSuggestions = false;
+    }
+
+    private async Task SelectStudent(StudentLedgerChallanMiniDetailsResponse item)
+    {
+        typingCts?.Cancel();
+        ShowSuggestions = false;
+        suggestions = new();
+
+        if (Edits.Count > 0 && Details != null && Details.Header.StudentId != item.StudentId
+            && !await Alert.ShowConfirm($"You have {Edits.Count} unsaved change(s) for {Details.Header.StudentName}. Discard them and open another student?"))
+            return;
+
+        searchText = string.Empty;
+        searchInputKey = Guid.NewGuid().ToString();
+        Nav.NavigateTo($"/StudentSensitiveDetails?StudentNo={Uri.EscapeDataString(item.ControlNo ?? "")}&SessionId={CurrentSession}"
+                       + (string.IsNullOrWhiteSpace(QueryReturnUrl) ? "" : $"&ReturnUrl={Uri.EscapeDataString(QueryReturnUrl)}"), replace: true);
+        await LoadDetails(item.StudentId);
+    }
+
+    // ======================= data =======================
+
+    private async Task ReloadDetails()
+    {
+        if (Details == null) return;
+        if (Edits.Count > 0 && !await Alert.ShowConfirm($"Reload will discard {Edits.Count} unsaved change(s). Continue?"))
+            return;
+        await LoadDetails(Details.Header.StudentId);
+    }
+
+    private async Task LoadDetails(long studentId)
+    {
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var request = new StudentSensitiveDetailsRequest
+            {
+                GroupCode = groupcode ?? "",
+                BranchCode = branchcode ?? "",
+                SessionId = CurrentSession,
+                StudentId = studentId
+            };
+            var response = await httpService.Post<ApiResponse<StudentSensitiveDetailsResponse>>("StudentSensitiveDetails/GetDetails", request);
+            ClearStudentData();
+            if (response?.Success == true && response.Data != null)
+            {
+                Details = response.Data;
+                FieldMap = Details.Fields.GroupBy(x => x.FieldKey).ToDictionary(x => x.Key, x => x.First());
+                foreach (var f in Details.Fields)
+                    original.Set(f.FieldKey, NormalizeLoaded(f.FieldKey, f.FieldValue));
+                form = original.Copy();
+                ViewedAt = DateTime.Now;
+            }
+            else
+            {
+                await Alert.ShowError("Unable to load the student's sensitive details. The student may not exist in this branch or you may not have access.");
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to load the student's sensitive details.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+
+        // Change History tab open (new student / after save): refresh its grid too
+        if (Details != null && ActiveTab == TabHistory)
+            await LoadHistory();
+    }
+
+    // ======================= fields =======================
+
+    private StudentSensitiveField FieldState(string key) =>
+        FieldMap.TryGetValue(key, out var f) ? f : new StudentSensitiveField { FieldKey = key };
+
+    private bool IsChanged(string key) => Edits.ContainsKey(key);
+
+    private int ChangeCount(string key) => FieldState(key).ChangeCount;
+
+    private string FieldCss(string key) => IsChanged(key) ? "changed" : Errors.ContainsKey(key) ? "invalid" : "";
+
+    private string CountCss(string key) => ChangeCount(key) == 0 ? "zero" : "";
+
+    private string CountTitle(string key) =>
+        ChangeCount(key) == 0 ? "Never changed" : $"Changed {ChangeCount(key)} time(s) - click for history";
+
+    private string LastChangedText(string key)
+    {
+        var info = FieldState(key);
+        if (!info.LastChangedOn.HasValue) return "";
+        return $"Last changed {info.LastChangedOn.Value:dd MMM yyyy, HH:mm}" + (string.IsNullOrWhiteSpace(info.LastChangedBy) ? "" : $" by {info.LastChangedBy}");
+    }
+
+    private static string Masked(string key, string? value) => SensitiveFieldCatalog.Mask(key, value);
+
+    private static bool IsOldBloodGroup(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && !SensitiveFieldCatalog.BloodGroups.Contains(value);
+
+    private int PendingCount(string tab) =>
+        TabFields.TryGetValue(tab, out var keys) ? keys.Count(k => Edits.ContainsKey(k)) : 0;
+
+    private string GuardianSubTitle
+    {
+        get
+        {
+            var h = Details?.Header;
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(h?.GuardianName)) parts.Add($"Guardian: {h.GuardianName}");
+            if (!string.IsNullOrWhiteSpace(h?.EmergencyPersonName)) parts.Add($"Emergency: {h.EmergencyPersonName}");
+            return parts.Count > 0 ? string.Join(" · ", parts) : "SMS number, guardian and emergency contact";
+        }
+    }
+
+    // saved values in the same form the inputs use (date inputs need yyyy-MM-dd, income without decimals)
+    private static string? NormalizeLoaded(string key, string? value)
+    {
+        var field = SensitiveFieldCatalog.Find(key);
+        if (field == null || string.IsNullOrWhiteSpace(value)) return value;
+        if (field.Type == SensitiveFieldType.Amount && decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var amt))
+            return decimal.Truncate(amt).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return value;
+    }
+
+    // after every bound input: compare with the saved value, keep the change list + validation up to date
+    private void OnFieldChanged(string key)
+    {
+        var field = SensitiveFieldCatalog.Find(key);
+        if (field == null) return;
+
+        var raw = form.Get(key);
+        var normalized = SensitiveFieldCatalog.Normalize(field, raw);
+        var saved = SensitiveFieldCatalog.Normalize(field, original.Get(key));
+
+        if (string.Equals(normalized ?? "", saved ?? "", StringComparison.Ordinal))
+        {
+            Edits.Remove(key);
+            Errors.Remove(key);
+            return;
+        }
+
+        Edits[key] = raw?.Trim();
+        var error = SensitiveFieldCatalog.Validate(field, normalized);
+        if (error == null) Errors.Remove(key);
+        else Errors[key] = error;
+    }
+
+    private void UndoField(string key)
+    {
+        form.Set(key, original.Get(key));
+        Edits.Remove(key);
+        Errors.Remove(key);
+    }
+
+    private async Task DiscardAll()
+    {
+        if (!await Alert.ShowConfirm($"Discard {Edits.Count} unsaved change(s)?")) return;
+        form = original.Copy();
+        Edits.Clear();
+        Errors.Clear();
+    }
+
+    private void ToggleMask() => MaskValues = !MaskValues;
+
+    // ======================= save =======================
+
+    private void OpenReview()
+    {
+        if (Edits.Count == 0 || Errors.Count > 0) return;
+        ReasonError = null;
+        ShowReview = true;
+    }
+
+    private void CloseReview()
+    {
+        if (IsSaving) return;
+        ShowReview = false;
+    }
+
+    private async Task SaveChanges()
+    {
+        if (Details == null || IsSaving) return;
+
+        var reason = SaveReason?.Trim() ?? "";
+        if (reason.Length < 5)
+        {
+            ReasonError = "Enter the reason (at least 5 characters).";
+            return;
+        }
+        ReasonError = null;
+
+        // validate once more with the shared rules (the API checks again)
+        foreach (var (key, value) in Edits)
+        {
+            var f = SensitiveFieldCatalog.Find(key)!;
+            var error = SensitiveFieldCatalog.Validate(f, SensitiveFieldCatalog.Normalize(f, value));
+            if (error != null) Errors[key] = error;
+        }
+        if (Errors.Count > 0)
+        {
+            ShowReview = false;
+            await Alert.ShowWarning("Please correct the highlighted fields.");
+            return;
+        }
+
+        IsSaving = true;
+        StateHasChanged();
+        try
+        {
+            var request = new StudentSensitiveUpdateRequest
+            {
+                GroupCode = groupcode ?? "",
+                BranchCode = branchcode ?? "",
+                SessionId = CurrentSession,
+                StudentId = Details.Header.StudentId,
+                Reason = reason,
+                Changes = Edits.Select(x => new StudentSensitiveFieldChange { FieldKey = x.Key, NewValue = x.Value }).ToList()
+            };
+            var response = await httpService.Post<ApiResponse<StudentSensitiveUpdateResult>>("StudentSensitiveDetails/Update", request);
+
+            if (response?.Success == true)
+            {
+                ShowReview = false;
+                SaveReason = null;
+                await Alert.ShowSuccess(response.Message ?? "Saved successfully.");
+                await LoadDetails(Details.Header.StudentId);
+            }
+            else if (response != null && response.Code == 3)
+            {
+                ShowReview = false;
+                Edits.Clear();
+                Errors.Clear();
+                await Alert.ShowWarning(response.Message ?? "Nothing to update.");
+            }
+            else
+            {
+                await Alert.ShowError(response?.Message ?? "Unable to save the changes. Please check the values and try again.");
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to save the changes right now. Please try again.");
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // ======================= history =======================
+
+    // field badge / header button -> Change History tab (filtered to that field)
+    private async Task OpenHistory(string? fieldKey)
+    {
+        HistoryField = fieldKey ?? "";
+        ActiveTab = TabHistory;
+        await LoadHistory();
+    }
+
+    private async Task OnTabClick(string key)
+    {
+        ActiveTab = key;
+        if (key == TabHistory)
+            await LoadHistory();
+    }
+
+    private async Task OnHistoryFieldChanged(ChangeEventArgs e)
+    {
+        HistoryField = e.Value?.ToString() ?? "";
+        await LoadHistory();
+    }
+
+    private async Task LoadHistory()
+    {
+        if (Details == null) return;
+        IsHistoryLoading = true;
+        StateHasChanged();
+        try
+        {
+            var request = new StudentSensitiveDetailsRequest
+            {
+                GroupCode = groupcode ?? "",
+                BranchCode = branchcode ?? "",
+                SessionId = CurrentSession,
+                StudentId = Details.Header.StudentId,
+                FieldKey = string.IsNullOrWhiteSpace(HistoryField) ? null : HistoryField
+            };
+            var response = await httpService.Post<ApiResponse<List<StudentSensitiveHistoryRow>>>("StudentSensitiveDetails/GetHistory", request);
+            historyRows = response?.Success == true && response.Data != null ? response.Data : new();
+            await historyPagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception)
+        {
+            historyRows = new();
+        }
+        finally
+        {
+            IsHistoryLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ======================= helpers =======================
+
+    private static string Show(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static MarkupString ShowValue(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? new MarkupString("<span class=\"ssd-empty-val\">(empty)</span>")
+            : new MarkupString(System.Net.WebUtility.HtmlEncode(value));
+}

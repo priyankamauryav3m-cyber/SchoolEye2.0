@@ -1,4 +1,5 @@
-﻿@using DomainModel.Admin
+﻿@using DomainModel.Common
+@using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using System.Net
 @using System.Text.Json
@@ -79,7 +80,7 @@
                                 <div class="form-box">
                                     <div class="border-box d-flex justify-content-between align-items-center gap-2 px-2">
                                         <p class="form-label">Mobile No : </p>
-                                        <p class="form-label">@(string.IsNullOrEmpty(StudentMobileNo) ? " " : StudentMobileNo)</p>
+                                        <p class="form-label">@PiiMask.Mobile(StudentMobileNo)</p>
                                     </div>
                                 </div>
                             </div>

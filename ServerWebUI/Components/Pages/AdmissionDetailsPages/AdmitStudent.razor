@@ -1,4 +1,5 @@
 ﻿@page "/admitStudent"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using System.Net
@@ -181,10 +182,10 @@
                                 </TemplateColumn>
                                 <TemplateColumn Class="text-center" Title="SMS No." Align="Align.Left">
                                     <ChildContent>
-                                        @(string.IsNullOrWhiteSpace(context.SMSMobileNo) ? " " : context.SMSMobileNo)
+                                        @PiiMask.Mobile(context.SMSMobileNo)
                                     </ChildContent>
                                 </TemplateColumn>
-                                <PropertyColumn Class="text-center" Sortable="true" Property="@(x => x.DateOfBirth)" Title="DOB" Align="Align.Center" />
+                                <PropertyColumn Class="text-center" Sortable="true" Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title="DOB" Align="Align.Center" />
 
                                 @* <TemplateColumn Title="ADM. DATE" Sortable="true" Align="Align.Left">
                                     <ChildContent>

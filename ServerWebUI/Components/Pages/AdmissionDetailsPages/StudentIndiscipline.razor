@@ -1,4 +1,5 @@
 @page "/StudentIndiscipline"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -633,7 +634,7 @@
                                             </ChildContent>
                                         </TemplateColumn>
                                         <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father / Guardian" Align="Align.Left" />
-                                        <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="Mobile" Class="text-center" Align="Align.Center" />
+                                        <PropertyColumn Property="@(x => PiiMask.Mobile(x.SMSMobileNo))" Title="Mobile" Class="text-center" Align="Align.Center" />
                                     </QuickGrid>
                                 </div>
                                 <div class="footer-pagination">

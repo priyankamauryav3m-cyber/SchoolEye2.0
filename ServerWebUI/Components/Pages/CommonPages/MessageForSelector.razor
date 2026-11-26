@@ -2,7 +2,7 @@
 <div class="form-box">
     <label class="form-label">@Label</label>
     <div class="border-box d-flex justify-content-center align-items-center gap-4 p-2">
-        <InputRadioGroup @bind-Value="Value">
+        <InputRadioGroup TValue="MessageType" Value="Value" ValueChanged="OnValueChanged" ValueExpression="() => Value">
             <div class="d-flex align-items-center gap-1">
                 <InputRadio Value="MessageType.SMS" />
                 <label class="form-label mb-0">SMS</label>
@@ -22,4 +22,11 @@
     [Parameter] public string Label { get; set; } = "Message For";
     [Parameter] public MessageType Value { get; set; }
     [Parameter] public EventCallback<MessageType> ValueChanged { get; set; }
+
+    // tell the parent (@bind-Value) which channel was picked
+    private async Task OnValueChanged(MessageType value)
+    {
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
 }

@@ -1,4 +1,5 @@
 ﻿@page "/ViewPublishList"
+@using DomainModel.Common
 @using System.Text.Json
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
@@ -108,7 +109,7 @@
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => x.AppliedDate.HasValue ? x.AppliedDate.Value.ToString("dd-MM-yyyy") : " ")" Title="Applied Date" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mobile No." Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Mobile(x.SMSMobileNo))" Title="SMS Mobile No." Sortable="true" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ApplicationStatus) ? " " : x.ApplicationStatus)" Title="App. Status" Sortable="true" Align="Align.Left" />
                                <PropertyColumn Property="@(x => x.Points)" Title="Points" Sortable="true" Class="text-center" Align="Align.Center" />
                             </QuickGrid>
@@ -165,7 +166,7 @@ else
 {
 
 }
-<SendMessage ShowPopup="@showSMS" OnClose="@CloseModal" />
+<SendMessage ShowPopup="@showSMS" Students="@smsStudents" OnClose="@CloseModal" />
 @code {
     // ---------------------------------------------------------------------
     // ASSUMPTIONS (adjust if different in your project):
@@ -184,6 +185,8 @@ else
     private string rightClassFilter = string.Empty;
     private bool IsAllSelected;
     private bool showSMS;
+    // students ticked in the grid, passed to the Send Message popup
+    private List<MessageRecipient> smsStudents = new();
 
     private List<SessionModel> sessionlist = new();
     private List<BranchModel> branchlist = new();
@@ -460,6 +463,15 @@ else
             JS.InvokeVoidAsync("showSelectRecordAlert");
             return;
         }
+        smsStudents = data.Select(x => new MessageRecipient
+        {
+            RegistrationId = x.RegistrationId,
+            RegistrationNo = x.RegistrationNo,
+            StudentName = x.StudentName,
+            FatherName = x.FatherName,
+            RecipientType = WhatsAppRecipientType.Student,
+            SessionId = x.SessionId
+        }).ToList();
         showSMS = true;
         StateHasChanged();
     }

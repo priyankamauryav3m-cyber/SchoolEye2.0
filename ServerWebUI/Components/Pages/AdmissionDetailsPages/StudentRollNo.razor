@@ -1,4 +1,5 @@
 @page "/StudentRollNo"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -105,7 +106,7 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SectionName) ? " " : x.SectionName)" Title="Section" Sortable="true" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title="DOB" Sortable="true" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Roll No." Sortable="true" SortBy="@RollNoSort" Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         <input class="form-input text-right" style="width:100px;" value="@context.RollNo" readonly="@(definePreference != "Yes")"

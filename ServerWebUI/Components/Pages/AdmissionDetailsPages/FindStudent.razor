@@ -1,4 +1,5 @@
 @page "/FindStudent"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.SchoolMaster
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -86,11 +87,11 @@
                                     </ColumnOptions>
                                 </PropertyColumn>
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.ClassSection) ? " " : x.ClassSection)" Title="Class" Class="text-center" Align="Align.Center" />
-                                <PropertyColumn Property="@(x => x.DateOfBirth.HasValue ? x.DateOfBirth.Value.ToString("dd-MM-yyyy") : " ")" Title="DOB" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Dob(x.DateOfBirth))" Title="DOB" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.Gender) ? " " : x.Gender)" Title="Gender" Class="text-center" Align="Align.Center" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.FatherName) ? " " : x.FatherName)" Title="Father" Align="Align.Left" />
                                 <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.MotherName) ? " " : x.MotherName)" Title="Mother" Align="Align.Left" />
-                                <PropertyColumn Property="@(x => string.IsNullOrWhiteSpace(x.SMSMobileNo) ? " " : x.SMSMobileNo)" Title="SMS Mob. No" Class="text-center" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => PiiMask.Mobile(x.SMSMobileNo))" Title="SMS Mob. No" Class="text-center" Align="Align.Center" />
                                 <TemplateColumn Title="Active" Class="text-center" Align="Align.Center">
                                     <ChildContent>
                                         <div class="action-btn-group">

@@ -1,16 +1,9 @@
 ﻿using ApplicationInterface.FinanceMNGT.FeeMNGT;
 using Dapper;
-using DomainModel.Admin;
 using DomainModel.FinanceMNGT;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using MyApp.Common;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.FinanceMNGT.FeeMNGT
 {
@@ -96,9 +89,7 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
             try
             {
                 using var connection = new SqlConnection(_connectionString);
-
                 var parameters = new DynamicParameters();
-
                 parameters.Add("@ControlNo", request.ControlNo?.Trim() ?? "", DbType.String);
                 parameters.Add("@StudentName", request.StudentName?.Trim() ?? "", DbType.String);
                 parameters.Add("@SessionId", request.SessionId, DbType.String);
@@ -106,15 +97,10 @@ namespace Infrastructure.FinanceMNGT.FeeMNGT
                 parameters.Add("@BranchCode", request.BranchCode, DbType.String);
                 parameters.Add("@ReceiptDate", request.ReceiptDate);
                 parameters.Add("@UpToDate", request.UpToDate);
-
-                var result = (await connection.QueryAsync<StudentDetailsForFee>(
-                    "dbo.V3M_FIN_GetStudentDetailsForFee",
-                    parameters,
+                var result = (await connection.QueryAsync<StudentDetailsForFee>("dbo.V3M_FIN_GetStudentDetailsForFee",parameters,
                     commandType: CommandType.StoredProcedure
                 )).ToList();
                 return result;
-
-             
             }
             catch (Exception ex)
             {

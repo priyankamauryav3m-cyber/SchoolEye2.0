@@ -1,4 +1,5 @@
 ﻿@using DomainModel.Admin
+@using DomainModel.Common
 @using Microsoft.AspNetCore.Authorization
 @inject IHttpClientFactory ClientFactory
 @using DomainModel.SchoolMaster
@@ -99,7 +100,15 @@
                                                         @tabNo
                                                     }
                                                 </span>
-                                                <i class="bi @TabInfo[tab].Icon wizard-icon"></i>
+                                                @* spinner in the tab while its data loads (popup open = Personal Details, tab click = that tab) *@
+                                                @if (IsTabLoading && tab == ActiveTab)
+                                                {
+                                                    <span class="inline-spinner wizard-icon"></span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi @TabInfo[tab].Icon wizard-icon"></i>
+                                                }
                                                 <span class="wizard-title">@TabInfo[tab].Title</span>
                                             </a>
                                         </li>
@@ -158,7 +167,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group static-label @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputDate class="floating-input" placeholder=" " @bind-Value="viewchildDetails.DateOfBirth" autocomplete="off" maxlength="12" @bind-Value:after="OnDOBChanged" />
+                                                        <PiiLockedInput Value="@PiiMask.Dob(viewchildDetails.DateOfBirth)" />
                                                         <label class="floating-label">Date of Birth <sup class="text-red fw-bold">*</sup></label>
                                                         <ValidationMessage For="@(() => viewchildDetails.DateOfBirth)" />
                                                     </div>
@@ -171,7 +180,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.BloodGroup" maxlength="10" autocomplete="off" />
+                                                        <PiiLockedInput Value="@PiiMask.Hidden(viewchildDetails.BloodGroup)" />
                                                         <label class="floating-label">Blood Group</label>
                                                     </div>
                                                 </div>
@@ -264,7 +273,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.AadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                        <PiiLockedInput Value="@PiiMask.Aadhaar(viewchildDetails.AadhaarNo)" />
                                                         <label class="floating-label">Aadhaar No</label>
                                                         <ValidationMessage For="@(() => viewchildDetails.AadhaarNo)" />
                                                     </div>
@@ -369,7 +378,7 @@
                                                   
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.NatureOfDisability" maxlength="30" autocomplete="off" />
+                                                        <PiiLockedInput Value="@PiiMask.Hidden(viewchildDetails.NatureOfDisability)" />
                                                         <label class="floating-label">Nature Of Disability</label>
                                                     </div>
                                                 </div>
@@ -417,14 +426,14 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.EmailId" autocomplete="off" maxlength="50" oninput="this.value=this.value.replace(/\s/g,'')" />
+                                                        <PiiLockedInput Value="@PiiMask.Email(viewchildDetails.EmailId)" />
                                                         <label class="floating-label">Student Email</label>
                                                         <ValidationMessage For="@(() => viewchildDetails.EmailId)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                     <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.MobileNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                        <PiiLockedInput Value="@PiiMask.Mobile(viewchildDetails.MobileNo)" />
                                                         <label class="floating-label">Student Mobile No.</label>
                                                         <ValidationMessage For="@(() => viewchildDetails.MobileNo)" />
                                                     </div>
@@ -448,14 +457,14 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.StudentBankAccount" autocomplete="off" maxlength="30" />
+                                                                <PiiLockedInput Value="@PiiMask.BankAccount(viewchildDetails.StudentBankAccount)" />
                                                                 <label class="floating-label">Account No.</label>
                                                                 <ValidationMessage For="@(() => viewchildDetails.StudentBankAccount)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_childFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="viewchildDetails.IFSC" autocomplete="off" maxlength="20" />
+                                                                <PiiLockedInput Value="@PiiMask.Ifsc(viewchildDetails.IFSC)" />
                                                                 <label class="floating-label">IFSC Code</label>
                                                                 <ValidationMessage For="@(() => viewchildDetails.IFSC)" />
                                                             </div>
@@ -678,27 +687,27 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.SMSMobileNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Mobile(parentsDetails.SMSMobileNo)" />
                                                                 <label class="floating-label">SMS Mobile <span class="required">*</span></label>
                                                                 <ValidationMessage For="@(() => parentsDetails.SMSMobileNo)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherEMail" autocomplete="off" maxlength="150" oninput="this.value=this.value.replace(/\s/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Email(parentsDetails.FatherEMail)" />
                                                                 <label class="floating-label">Email Id</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.FatherEMail)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherDOB" autocomplete="off" />
+                                                                <PiiLockedInput Value="@PiiMask.Dob(parentsDetails.FatherDOB)" />
                                                                 <label class="floating-label">DOB</label>
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Aadhaar(parentsDetails.FatherAadhaarNo)" />
                                                                 <label class="floating-label">Aadhaar No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.FatherAadhaarNo)" />
                                                             </div>
@@ -750,13 +759,13 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeAddress" autocomplete="off" maxlength="150" />
+                                                                <PiiLockedInput Value="@PiiMask.Address(parentsDetails.FatherOfficeAddress)" />
                                                                 <label class="floating-label">Office Address</label>
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherOfficeContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Mobile(parentsDetails.FatherOfficeContactNo)" />
                                                                 <label class="floating-label">Office Contact No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.FatherOfficeContactNo)" />
                                                             </div>
@@ -771,14 +780,14 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputNumber class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherAnnualIncome" autocomplete="off" maxlength="18" />
+                                                                <PiiLockedInput Value="@PiiMask.Hidden(parentsDetails.FatherAnnualIncome)" />
                                                                 <label class="floating-label">Annual Income</label>
                                                             </div>
                                                         </div>
 
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.FatherContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Mobile(parentsDetails.FatherContactNo)" />
                                                                 <label class="floating-label">Contact No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.FatherContactNo)" />
                                                             </div>
@@ -876,7 +885,7 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group static-label @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputDate class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherDOB" autocomplete="off" />
+                                                                <PiiLockedInput Value="@PiiMask.Dob(parentsDetails.MotherDOB)" />
                                                                 <label class="floating-label">DOB</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherDOB)" />
                                                             </div>
@@ -884,7 +893,7 @@
 
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAadhaarNo" autocomplete="off" maxlength="12" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Aadhaar(parentsDetails.MotherAadhaarNo)" />
                                                                 <label class="floating-label">Aadhaar No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherAadhaarNo)" />
                                                             </div>
@@ -940,14 +949,14 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeAddress" autocomplete="off" maxlength="150" />
+                                                                <PiiLockedInput Value="@PiiMask.Address(parentsDetails.MotherOfficeAddress)" />
                                                                 <label class="floating-label">Office Address</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherOfficeAddress)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherOfficeContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Mobile(parentsDetails.MotherOfficeContactNo)" />
                                                                 <label class="floating-label">Office Contact No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherOfficeContactNo)" />
                                                             </div>
@@ -962,21 +971,21 @@
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputNumber class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherAnnualIncome" autocomplete="off" maxlength="18" />
+                                                                <PiiLockedInput Value="@PiiMask.Hidden(parentsDetails.MotherAnnualIncome)" />
                                                                 <label class="floating-label">Annual Income</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherAnnualIncome)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherEMail" autocomplete="off" maxlength="100" oninput="this.value=this.value.replace(/\s/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Email(parentsDetails.MotherEMail)" />
                                                                 <label class="floating-label">Email Id</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherEMail)" />
                                                             </div>
                                                         </div>
                                                         <div class="col-12 col-sm-6 col-md-4 col-lg-3 px-1 ">
                                                             <div class="form-box-group @(_parentsFormDisabled == true ? "disabled" : "")">
-                                                                <InputText class="floating-input" placeholder=" " @bind-Value="parentsDetails.MotherContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                                <PiiLockedInput Value="@PiiMask.Mobile(parentsDetails.MotherContactNo)" />
                                                                 <label class="floating-label">Contact No.</label>
                                                                 <ValidationMessage For="@(() => parentsDetails.MotherContactNo)" />
                                                             </div>
@@ -1097,19 +1106,19 @@
                                                         <div class="border-box d-flex justify-content-around align-items-center p-2 gap-2">
                                                             <InputRadioGroup @bind-Value="SelectedAddressTo" @bind-Value:after="OnAddressToChanged">
                                                                 <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@("Father")" />
+                                                                    <InputRadio Value="@("Father")" disabled="true" />
                                                                     <label class="d-flex align-items-center form-label">
                                                                         Use Father's Info
                                                                     </label>
                                                                 </div>
                                                                 <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@("Mother")" />
+                                                                    <InputRadio Value="@("Mother")" disabled="true" />
                                                                     <label class="d-flex align-items-center form-label">
                                                                         Use Mother's Info
                                                                     </label>
                                                                 </div>
                                                                 <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                    <InputRadio Value="@("Other")" />
+                                                                    <InputRadio Value="@("Other")" disabled="true" />
                                                                     <label class="d-flex align-items-center form-label">
                                                                         Use Other
                                                                     </label>
@@ -1136,14 +1145,14 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                        <PiiLockedInput Value="@PiiMask.Mobile(addressDetails.EmergencyPersonContactNo)" />
                                                         <label class="floating-label">Contact No.</label>
                                                         <ValidationMessage For="@(() => addressDetails.EmergencyPersonContactNo)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-8 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.EmergencyPersonAddress" autocomplete="off" maxlength="100" />
+                                                        <PiiLockedInput Value="@PiiMask.Address(addressDetails.EmergencyPersonAddress)" />
                                                         <label class="floating-label">Address</label>
                                                     </div>
                                                 </div>
@@ -1188,14 +1197,14 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.ContactNo" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                        <PiiLockedInput Value="@PiiMask.Mobile(addressDetails.ContactNo)" />
                                                         <label class="floating-label">Contact No.</label>
                                                         <ValidationMessage For="@(() => addressDetails.ContactNo)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /^[0-9]$/.test(event.key)" autocomplete="off" />
+                                                        <PiiLockedInput Value="@PiiMask.PinCode(addressDetails.PinCode)" />
                                                         <label class="floating-label">PinCode</label>
                                                         <ValidationMessage For="@(() => addressDetails.PinCode)" />
                                                     </div>
@@ -1203,7 +1212,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.Line1" autocomplete="off" maxlength="100" />
+                                                        <PiiLockedInput Value="@PiiMask.Address(addressDetails.Line1)" />
                                                         <label class="floating-label">Line - 1</label>
                                                         <ValidationMessage For="@(() => addressDetails.Line1)" />
                                                     </div>
@@ -1211,7 +1220,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-8 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.Line2" autocomplete="off" maxlength="100" />
+                                                        <PiiLockedInput Value="@PiiMask.Address(addressDetails.Line2)" />
                                                         <label class="floating-label">Line - 2</label>
                                                         <ValidationMessage For="@(() => addressDetails.Line2)" />
                                                     </div>
@@ -1257,7 +1266,7 @@
                                                     <div class="form-box-group static-label @(_AddressFormDisabled == true ? "disabled" : "")">
                                                         <div class="border-box d-flex justify-content-center align-items-center p-2 gap-2">
                                                             <div class="d-flex justify-content-center align-items-center gap-1">
-                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value:after="OnCheckboxChanged" @bind-Value="IsSameAsCurrent"></InputCheckbox>
+                                                                <InputCheckbox class="form-check-label" autocomplete="off" @bind-Value:after="OnCheckboxChanged" @bind-Value="IsSameAsCurrent" disabled="true" title="Address is sensitive data (DPDP) - update it from Student Sensitive Details"></InputCheckbox>
                                                                 <label class="d-flex align-items-center form-label">
                                                                     As Current
                                                                 </label>
@@ -1268,7 +1277,7 @@
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressDetails.PermanentLine1" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="100" />
+                                                        <PiiLockedInput Value="@PiiMask.Address(addressDetails.PermanentLine1)" />
                                                         <label class="floating-label">Line - 1</label>
                                                         <ValidationMessage For="@(() => addressDetails.PermanentLine1)" />
                                                     </div>
@@ -1276,7 +1285,7 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.Line2" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="100" />
+                                                        <PiiLockedInput Value="@PiiMask.Address(addressPermanent.Line2)" />
                                                         <label class="floating-label">Line - 2</label>
                                                         <ValidationMessage For="@(() => addressPermanent.Line2)" />
                                                     </div>
@@ -1284,14 +1293,14 @@
 
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.ContactNo" disabled="@IsSameAsCurrent" autocomplete="off" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+                                                        <PiiLockedInput Value="@PiiMask.Mobile(addressPermanent.ContactNo)" />
                                                         <label class="floating-label">Contact</label>
                                                         <ValidationMessage For="@(() => addressPermanent.ContactNo)" />
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-sm-6 col-md-4 col-lg-4 px-1 ">
                                                     <div class="form-box-group @(_AddressFormDisabled == true ? "disabled" : "")">
-                                                        <InputText class="floating-input" placeholder=" " @bind-Value="addressPermanent.PinCode" maxlength="6" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)" onkeypress="return /^[0-9]$/.test(event.key)" disabled="@IsSameAsCurrent" autocomplete="off" />
+                                                        <PiiLockedInput Value="@PiiMask.PinCode(addressPermanent.PinCode)" />
                                                         <label class="floating-label">Pincode</label>
                                                         <ValidationMessage For="@(() => addressPermanent.PinCode)" />
                                                     </div>
@@ -1940,6 +1949,8 @@
     private bool ShowSuccess;
     bool IsSameAsCurrent;
     private bool IsLoading = false;
+    // true while a tab's data is being fetched (popup open / tab change) -> spinner in that tab
+    private bool IsTabLoading = false;
     private bool IsForeign = false;
     private bool childhave = false;
     public string? SelectedGender { get; set; }
@@ -1952,8 +1963,7 @@
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public long StudentId { get; set; }
     [Parameter] public long SessionId { get; set; }
-    [Parameter] public string CurrectUrl { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public string CurrectUrl { get; set; }    [Parameter] public EventCallback OnClose { get; set; }
     private string? PreviousTab;
     Stack<string> TabHistory = new();
     List<string> Tabs = new()
@@ -2190,6 +2200,8 @@
     }
     private async Task TabnextPreviuos()
     {
+        IsTabLoading = true;
+        StateHasChanged();
         try
         {
             switch (ActiveTab)
@@ -2240,6 +2252,7 @@
         }
         finally
         {
+            IsTabLoading = false;
             StateHasChanged();
         }
     }
@@ -2255,8 +2268,18 @@
             }
             searchAnyRequest.StudentId = StudentId;
             searchAnyRequest.SessionId = SessionId;
-            await LoadData();
-            OnDOBChanged();
+            IsTabLoading = true;
+            StateHasChanged();
+            try
+            {
+                await LoadData();
+                OnDOBChanged();
+            }
+            finally
+            {
+                IsTabLoading = false;
+                StateHasChanged();
+            }
         }
     }
     private async Task SearchSiblingData()

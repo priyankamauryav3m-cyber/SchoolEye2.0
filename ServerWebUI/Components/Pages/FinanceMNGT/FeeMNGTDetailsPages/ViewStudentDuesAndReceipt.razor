@@ -1,4 +1,5 @@
 @page "/ViewStudentDuesAndReceipt"
+@using DomainModel.Common
 @using DomainModel.Admin
 @using DomainModel.FinanceMNGT
 @using DomainModel.SchoolMaster
@@ -246,7 +247,7 @@
                                      &nbsp;&middot;&nbsp; Father: @selectedStudent?.FatherName
                                 </div>
                                 <div class="student-sub mt-1">
-                                     Mobile: @selectedStudent?.FatherContactNo
+                                     Mobile: @PiiMask.Mobile(selectedStudent?.FatherContactNo)
                                 </div>
                             </div>
                         </div>
