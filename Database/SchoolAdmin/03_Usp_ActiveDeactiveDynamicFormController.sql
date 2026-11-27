@@ -4,7 +4,7 @@
    column of the field is NOT dropped: deactive only hides the field.
    @IsValid 1 = activate, 0 = deactivate
    @Result   1 = changed, -1 = not found in this group / branch,
-            -4 = activate refused: the same field name is already active in this group / branch
+            -4 = activate refused: the same field name is already active in this activity
    Rollback: DROP PROCEDURE dbo.Usp_ActiveDeactiveDynamicFormController;
    ============================================================================ */
 SET ANSI_NULLS ON
@@ -30,6 +30,7 @@ BEGIN
            AND other.FieldName = me.FieldName
            AND other.GroupCode = me.GroupCode
            AND other.BranchCode = me.BranchCode
+           AND other.SAId = me.SAId          -- same name in the same activity only
         WHERE other.DFCId <> @DFCId
           AND other.IsValid = 1
           AND me.GroupCode = @GroupCode

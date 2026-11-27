@@ -19,10 +19,10 @@ namespace DomainModel.SchoolAdmin
         public string? GroupCode { get; set; }
         public string? BranchCode { get; set; }
 
-        // becomes a column of OtherActivities: letters, digits and _ only
+        // becomes a column of OtherActivities: a new field name is letters only (checked in Validate,
+        // so an older saved name with digits / _ can still be edited; the name itself never changes)
         [Required(ErrorMessage = "Field name is required.")]
         [StringLength(100, ErrorMessage = "Field name can be up to 100 characters.")]
-        [RegularExpression("^[A-Za-z][A-Za-z0-9_]*$", ErrorMessage = "Field name: start with a letter; only letters, digits and _ (no spaces).")]
         public string? FieldName { get; set; }
 
         [Required(ErrorMessage = "Display name is required.")]
@@ -36,7 +36,7 @@ namespace DomainModel.SchoolAdmin
         [Range(1, 4000, ErrorMessage = "Max length must be between 1 and 4000.")]
         public int? MaxLength { get; set; }
 
-        [Required(ErrorMessage = "Please select a field type.")]
+        [Required(ErrorMessage = "Please select a control type.")]
         public string? FieldType { get; set; }
 
         [Required(ErrorMessage = "Please select a data type.")]
@@ -65,8 +65,12 @@ namespace DomainModel.SchoolAdmin
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
+            if (DFCId == 0 && !string.IsNullOrWhiteSpace(FieldName)
+                && !System.Text.RegularExpressions.Regex.IsMatch(FieldName, "^[A-Za-z]+$"))
+                yield return new ValidationResult("Field name: letters only (no space, number, _ or special character).", new[] { nameof(FieldName) });
+
             if (!string.IsNullOrWhiteSpace(FieldType) && !FieldTypes.Contains(FieldType, StringComparer.OrdinalIgnoreCase))
-                yield return new ValidationResult("Invalid field type.", new[] { nameof(FieldType) });
+                yield return new ValidationResult("Invalid control type.", new[] { nameof(FieldType) });
 
             if (!string.IsNullOrWhiteSpace(DataType) && !DataTypes.Contains(DataType, StringComparer.OrdinalIgnoreCase))
                 yield return new ValidationResult("Invalid data type.", new[] { nameof(DataType) });

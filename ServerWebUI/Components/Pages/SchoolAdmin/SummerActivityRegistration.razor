@@ -5,6 +5,7 @@
 @using System.Globalization
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>@(form?.ActivityName is { Length: > 0 } ? $"{form.ActivityName} - Registration" : "Summer Activity Registration")</PageTitle>
@@ -102,13 +103,14 @@
                         @if (form.Fields.Count > 0)
                         {
                             <h3 class="sar-section"><span>1</span> Participant Details</h3>
-                            <div class="sar-grid">
+                            @* fewer than 12 fields: 3 per row (col-4); 12 or more: 4 per row (col-3) *@
+                            <div class="sar-grid @(form.Fields.Count >= 12 ? "cols-4" : "cols-3")">
                                 @foreach (var f in form.Fields)
                                 {
                                     var field = f;
                                     var type = (field.FieldType ?? "").Trim().ToLowerInvariant();
                                     var hasError = errors.TryGetValue(field.FieldName, out var error);
-                                    <div class="sar-cell @(type == "checkbox" && field.Options.Count > 0 ? "full" : "")">
+                                    <div class="sar-cell">
                                         <div class="sar-field @(hasError ? "invalid" : "")">
                                             <label for="@Id(field)">
                                                 @field.DisplayName
@@ -196,7 +198,7 @@
                         @if (form.Slots.Count > 0)
                         {
                             <h3 class="sar-section mt-4"><span>@(form.Fields.Count > 0 ? "2" : "1")</span> Select Slot</h3>
-                            <div class="sar-slots @(errors.ContainsKey(SlotKey) ? "invalid" : "")">
+                            <div id="sar_slot" class="sar-slots @(errors.ContainsKey(SlotKey) ? "invalid" : "")">
                                 @foreach (var s in form.Slots)
                                 {
                                     var slot = s;
@@ -294,11 +296,20 @@
     .sar-body { padding: 22px 28px 24px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
     .sar-form { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
     .sar-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 22px 28px 20px; scrollbar-width: thin; }
-    /* one even grid: every field the same width, rows line up */
-    .sar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 18px; align-items: start; }
-    .sar-cell { min-width: 0; }
-    /* checkbox list (e.g. Hobbies): the whole row, so all options stay on one line */
-    .sar-cell.full { grid-column: 1 / -1; }
+    /* every field = one cell, placed in Display Order: a row fills first, then the next row.
+       No field spans or jumps rows, so there are no gaps and nothing overlaps. */
+    .sar-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; gap: 16px 18px; align-items: start; }
+        .sar-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .sar-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @@media (max-width: 1199px) {
+        .sar-grid.cols-4 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @@media (max-width: 991px) {
+        .sar-grid.cols-3, .sar-grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .sar-cell { min-width: 0; max-width: 100%; }
+    .sar-field { min-width: 0; }
+    .sar-field label { overflow-wrap: anywhere; }
     .sar-section { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: #12304f; margin: 0 0 14px; }
         .sar-section span {
             width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
@@ -317,7 +328,7 @@
 
     /* options always on one line; if they do not fit, they scroll sideways inside the field */
     .sar-choices { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; scrollbar-width: thin; }
-        .sar-choices .sar-choice { flex: 0 0 auto; white-space: nowrap; }
+        .sar-choices .sar-choice { flex: 0 0 auto; white-space: nowrap; height: 44px; padding-top: 0; padding-bottom: 0; }
     .sar-choice {
         display: inline-flex !important; align-items: center; gap: 8px; margin: 0 !important; cursor: pointer;
         padding: 9px 14px; border-radius: 10px; border: 1px solid #d3dde8; background: #fbfcfe;
@@ -327,7 +338,11 @@
         .sar-choice.on { border-color: #2a7fc0; background: #eaf3fc; color: #0e4073 !important; }
         .sar-choice.single { height: 44px; }
 
-    .sar-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .sar-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
     .sar-slot {
         display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
         padding: 14px 16px; border-radius: 12px; border: 1.5px solid #d3dde8; background: #fff; cursor: pointer;
@@ -379,14 +394,13 @@
     .sar-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; color: #6b7c8f; font-size: 13px; }
         .sar-footer img { height: 26px; width: auto; }
 
-    @@media (max-width: 991px) { .sar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
     @@media (max-width: 767px) {
         .sar-page { padding: 16px 10px; }
         .sar-header { grid-template-columns: 1fr; text-align: center; padding: 18px; }
         .sar-v3m { margin: 0 auto; width: 140px; }
         .sar-header-space { display: none; }
-        .sar-grid { grid-template-columns: 1fr; }
+        .sar-grid, .sar-grid.cols-3, .sar-grid.cols-4 { grid-template-columns: 1fr; }
         .sar-banner, .sar-body, .sar-scroll, .sar-submit-bar { padding-left: 16px; padding-right: 16px; }
         .sar-header { padding: 12px; gap: 6px; }
         .sar-submit { width: 100%; justify-content: center; }
@@ -497,6 +511,27 @@
         errors.Remove(SlotKey);
     }
 
+    // same text as the API (SummerActivityRegistrationService.RequiredMessage)
+    private const string RequiredMessage = "This field is required.";
+
+    // first wrong field (in Display Order), then the slot: brought into view
+    private async Task ScrollToFirstError()
+    {
+        StateHasChanged();
+        var first = form?.Fields.FirstOrDefault(f => errors.ContainsKey(f.FieldName));
+        var id = first != null ? Id(first) : errors.ContainsKey(SlotKey) ? "sar_slot" : null;
+        if (id == null) return;
+        try
+        {
+            await Task.Yield();
+            await JS.InvokeVoidAsync("scrollToElement", id);
+        }
+        catch
+        {
+            // scrolling is only a help
+        }
+    }
+
     // quick checks on the page; the API checks everything again
     private bool ValidateForm()
     {
@@ -508,7 +543,7 @@
             var empty = type == "checkbox" && f.Options.Count == 0 ? value != "1" : string.IsNullOrEmpty(value);
             if (f.IsMandatory && empty)
             {
-                errors[f.FieldName] = $"{f.DisplayName} is required.";
+                errors[f.FieldName] = RequiredMessage;
                 continue;
             }
             var dataType = (f.DataType ?? "").Trim().ToLowerInvariant();
@@ -525,7 +560,11 @@
         if (IsSaving || form == null) return;
         if (!ValidateForm())
         {
-            await Alert.ShowWarning("Please fill all the required fields.");
+            var missing = errors.Values.Count(e => e == RequiredMessage) + (errors.ContainsKey(SlotKey) ? 1 : 0);
+            await Alert.ShowWarning(missing > 0
+                ? $"Please fill all the required fields ({missing} missing)."
+                : "Please correct the highlighted fields.");
+            await ScrollToFirstError();
             return;
         }
 
@@ -544,11 +583,18 @@
             {
                 result = response.Data;
                 await Alert.ShowSuccess("Registration submitted successfully.");
+                // straight to the payment page (Complete Your Payment); without a key the success screen stays
+                if (!string.IsNullOrWhiteSpace(result.PaymentKey))
+                {
+                    Nav.NavigateTo($"summer-activity-payment?key={Uri.EscapeDataString(result.PaymentKey)}");
+                    return;
+                }
             }
             else if (response?.Data?.Errors is { Count: > 0 } fieldErrors)
             {
                 errors = new Dictionary<string, string>(fieldErrors, StringComparer.OrdinalIgnoreCase);
                 await Alert.ShowWarning(response.Message ?? "Please correct the highlighted fields.");
+                await ScrollToFirstError();
             }
             else if (response?.Code is -1 or -2 or -6)
             {

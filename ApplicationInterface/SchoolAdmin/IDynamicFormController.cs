@@ -8,7 +8,7 @@ namespace ApplicationInterface.SchoolAdmin
     {
         // USP_AddUpdateDynamicFormController2:
         //  1 inserted, 2 updated, -1 not found, -2 invalid field name, -3 field name required,
-        //  -4 field already exists, -99 error;
+        //  -4 field already exists in this activity, -7 name used with another data type, -8 shared column type cannot change, -99 error;
         //  API checks: -5 activity not of this branch / session, -6 reserved (base) column name
         Task<int> AddUpdateFieldAsync(DynamicFormControllerModel model);
 

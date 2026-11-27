@@ -1,4 +1,3 @@
-@page "/SummerActivitySlot"
 @using DomainModel.Admin
 @using DomainModel.SchoolAdmin
 @using ServerWebUI.Components.Pages.CommonPages
@@ -8,7 +7,6 @@
 @inject IJSRuntime JS
 @inject Shared.IHttpService httpService
 @inject SweetAlertService Alert
-@rendermode InteractiveServer
 @implements IDisposable
 
 <div class="main-container">
@@ -55,6 +53,8 @@
                 <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddSlot" />
             </PageHeading>
         </div>
+        @* Activity / Slot / Dynamic Form tabs (from the SummerActivity page) *@
+        <div class="col-12 p-1">@Tabs</div>
         <div class="col-12 p-1">
             <div class="card">
                 <div class="card-body table-card p-0 scrollbar-thin">
@@ -159,6 +159,9 @@
 }
 
 @code {
+    // tabs of the Summer Activity page, shown between the page heading and the grid
+    [Parameter] public RenderFragment? Tabs { get; set; }
+
     private SummerActivitySlotModel slot = new();
     private string oldSlot = "";
     private List<SummerActivitySlotModel> slotlist = new();
