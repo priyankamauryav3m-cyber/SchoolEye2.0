@@ -15,6 +15,14 @@ namespace Infrastructure.SchoolAdmin
     {
         private readonly string _connectionString;
 
+        // system columns of OtherActivities: written by the registration / payment flow, never by a form field
+        private static readonly HashSet<string> ReservedColumns = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "OAId", "GroupCode", "BranchCode", "Activity", "SlotName", "Amount", "IsValid", "IsFeePaid",
+            "BankTransacId", "RefNo", "TransacDate", "SettlementDate", "UTRNo", "PaymentMode",
+            "CreatedDate", "CreatedBy", "SAId", "SASId"
+        };
+
         public DynamicFormControllerService(IConfiguration configuration)
         {
             _connectionString = configuration.GetValue<string>("DatabaseSettings1:ConnectionString")
@@ -45,13 +53,9 @@ namespace Infrastructure.SchoolAdmin
             }
             else
             {
-                // a base column of OtherActivities (OAId, Amount, ...) is not a form field
-                var reserved = await con.ExecuteScalarAsync<int>(
-                    @"SELECT COUNT(1) FROM sys.columns c
-                      WHERE c.object_id = OBJECT_ID('dbo.OtherActivities') AND c.name = @FieldName
-                        AND NOT EXISTS (SELECT 1 FROM DynamicFormController d WHERE d.FieldName = c.name)",
-                    new { FieldName = fieldName });
-                if (reserved > 0)
+                // system columns of OtherActivities (id, activity, fee, payment) are not form fields.
+                // Other existing columns (StudentName, Class, Gender, ...) are mapped to the field.
+                if (fieldName != null && ReservedColumns.Contains(fieldName))
                     return -6;
             }
 

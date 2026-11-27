@@ -1,0 +1,948 @@
+@page "/OptionalFeeGroupMaster"
+@rendermode InteractiveServer
+@using DomainModel.SchoolAdmin
+@using ServerWebUI.Components.Pages.CommonPages
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@implements IDisposable
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <PageHeading Tittle="Optional Fee Group">
+                <div class="form-box">
+                    <input type="text" class="form-input" placeholder="Activity Group Name" maxlength="50" title="Activity Group Name"
+                           @bind="search.ActivityGroupName" @onkeyup="OnNameKeyUp" />
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.Valid" class="form-input" title="Status">
+                        <option value="-1">All</option>
+                        <option value="1">Active</option>
+                        <option value="0">Deactive</option>
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchGroups" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+                <ActionButtonGroup CurrentUrl="@currentUrl" Add="AddGroup" />
+            </PageHeading>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 ">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@grouplist.AsQueryable()" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.ActivityGroupName)" Title="Activity Group Name" Sortable="true" Align="Align.Left" />
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <span class="@(context.IsValid ? "activeClr" : "inactiveClr")">
+                                        @(context.IsValid ? "Active" : "Deactive")
+                                    </span>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="ofg-action">
+                                        <button type="button" class="ofg-map-btn custom-tooltip" data-tooltip="Map Group"
+                                                disabled="@(!context.IsValid)" @onclick="() => OpenMapPopup(context)">
+                                            <i class="bi bi-diagram-3"></i>
+                                        </button>
+                                        <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnEditClick="() => EditGroup(context)" OnStatusClick="() => ChangeStatus(context)" />
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-4">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">@(group.SeedId == 0 ? "Add New Optional Fee Group" : "Edit Optional Fee Group")</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <EditForm Model="@group" OnValidSubmit="OnSave">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="row gap-10-0">
+                            <div class="col-12 px-2">
+                                <div class="form-box-group">
+                                    <InputText class="floating-input" placeholder=" " maxlength="50" @bind-Value="group.ActivityGroupName" autocomplete="off" />
+                                    <label class="floating-label">Activity Group Name <span class="required">*</span></label>
+                                    <ValidationMessage For="@(() => group.ActivityGroupName)" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="form-group btn-gr">
+                            <SaveUpdateButton Id="group.SeedId" OnClickCancel="ClosePopup" />
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@* Map Group: one full-screen popup. Left card = class wise fee heads (radio + checkbox dropdown),
+   right card = amount of each fee head picked for the selected class. Design only for now: nothing is saved yet. *@
+@if (ShowMapPopup)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-12">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Map Class with Optional Fee Group - @mapGroup?.ActivityGroupName</h5>
+                    <button data-access="Close" type="button" @onclick="CloseMapPopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body ofg-body">
+                    @if (IsMapLoading)
+                    {
+                        <div class="ofg-empty"><span class="spinner-border spinner-border-sm me-2"></span>Loading classes and fee heads...</div>
+                    }
+                    else
+                    {
+                        @* click anywhere outside the open fee head list closes it *@
+                        @if (openHeadRow != null)
+                        {
+                            <div class="ofg-dd-backdrop" @onclick="CloseHeadDropdown"></div>
+                        }
+                        <div class="ofg-layout">
+                            @* ---------- Class wise Fee Heads ---------- *@
+                            <div class="ofg-card ofg-left">
+                                <div class="ofg-card-head">
+                                    <span>🏫 Class wise Fee Heads</span>
+                                    <span class="ofg-count">@mapClasses.Count(x => x.Heads.Count > 0) / @mapClasses.Count classes mapped</span>
+                                </div>
+                                <div class="card-body table-card p-0 ">
+                                    <div class="quick-main">
+                                        <div class="grid-box ofg-grid">
+                                            <QuickGrid Items="@mapClasses.AsQueryable()" Class="table" RowClass="@MapRowClass">
+                                                @* QuickGrid has no row click: every cell is wrapped in .ofg-cell (fills the whole td),
+                                                   so a click anywhere on the row selects that class *@
+                                                <TemplateColumn Title="" Align="Align.Center">
+                                                    <div class="ofg-cell justify-content-center" @onclick="() => SelectClass(context)">
+                                                        <input type="radio" class="form-check-input m-0" name="ofgClass" checked="@(selectedClass == context)"
+                                                               @onchange="() => SelectClass(context)" />
+                                                    </div>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Class" Align="Align.Left">
+                                                    <div class="ofg-cell" @onclick="() => SelectClass(context)">
+                                                        <span class="ofg-cls">@context.ClassName</span>
+                                                    </div>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Fee Heads" Align="Align.Left">
+                                                    @{ var row = context; }
+                                                    <div class="ofg-cell" @onclick="() => SelectClass(row)">
+                                                    @* opened by Blazor (not bootstrap) so the list always drops just below this button *@
+                                                    <div class="ofg-dd w-100 @(openHeadRow == row ? "open" : "")">
+                                                            <button type="button" class="form-input ofg-dd-btn @(row.Heads.Count == 0 ? "empty" : "")"
+                                                                    disabled="@(mapHeads.Count == 0)" title="@HeadTitle(row)"
+                                                                    @onclick="() => ToggleHeadDropdown(row)">
+                                                                <span class="ofg-dd-text">@HeadText(row)</span>
+                                                                <i class="bi @(openHeadRow == row ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                                            </button>
+                                                            @if (openHeadRow == row)
+                                                            {
+                                                            <div class="ofg-dd-menu">
+                                                                <label class="ofg-dd-item ofg-dd-all">
+                                                                    <input type="checkbox" class="form-check-input"
+                                                                           checked="@(mapHeads.Count > 0 && row.Heads.Count == mapHeads.Count)"
+                                                                           @onchange="e => ToggleAllHeads(row, (bool)e.Value!)" />
+                                                                    <span>All</span>
+                                                                </label>
+                                                                @foreach (var head in mapHeads)
+                                                                {
+                                                                    var h = head;
+                                                                    <label class="ofg-dd-item">
+                                                                        <input type="checkbox" class="form-check-input"
+                                                                               checked="@row.Heads.Any(x => x.FeeHeadId == h.FeeHeadId)"
+                                                                               @onchange="e => ToggleHead(row, h, (bool)e.Value!)" />
+                                                                        <span>@h.FeeHeadName</span>
+                                                                    </label>
+                                                                }
+                                                            </div>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Till Date" Align="Align.Left">
+                                                    <div class="ofg-cell" @onclick="() => SelectClass(context)">
+                                                        <div class="form-box-group static-label m-0 ofg-till w-100">
+                                                            <InputDate class="floating-input" placeholder=" " @bind-Value="context.TillDate"
+                                                                       disabled="@(context.Heads.Count == 0)" />
+                                                        </div>
+                                                    </div>
+                                                </TemplateColumn>
+                                                <TemplateColumn Title="Status" Align="Align.Center">
+                                                    <div class="ofg-cell justify-content-center" @onclick="() => SelectClass(context)">
+                                                    @if (IsChanged(context))
+                                                    {
+                                                        <span class="ofg-st warn" title="Changed - click Save">
+                                                            <i class="bi bi-pencil"></i> @(context.Heads.Count > 0 ? "Unsaved (" + context.Heads.Count + ")" : "Will Unmap")
+                                                        </span>
+                                                    }
+                                                    else if (context.Heads.Count > 0)
+                                                    {
+                                                        <span class="ofg-st on"><i class="bi bi-check-lg"></i> Mapped (@context.Heads.Count)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="ofg-st off"><i class="bi bi-x-lg"></i> Not Mapped</span>
+                                                    }
+                                                    </div>
+                                                </TemplateColumn>
+                                            </QuickGrid>
+                                            @if (mapClasses.Count == 0)
+                                            {
+                                                <div class="ofg-empty">No class found.</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* ---------- Amount of the selected class ---------- *@
+                            <div class="ofg-card ofg-right">
+                                <div class="ofg-card-head">
+                                    <span>💰 @(selectedClass != null ? "Class " + selectedClass.ClassName + " — Amount" : "Amount")</span>
+                                    <span class="ofg-count">@(selectedClass?.Heads.Count ?? 0) heads</span>
+                                </div>
+                                <div class="ofg-card-body scrollbar-thin ofg-amt-list">
+                                    @if (selectedClass == null)
+                                    {
+                                        <div class="ofg-empty"><i class="bi bi-hand-index me-2"></i>Select a class.</div>
+                                    }
+                                    else if (selectedClass.Heads.Count == 0)
+                                    {
+                                        <div class="ofg-empty"><i class="bi bi-info-circle me-2"></i>Select fee heads of class @selectedClass.ClassName from the dropdown.</div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var head in selectedClass.Heads)
+                                        {
+                                            var h = head;
+                                            <div class="ofg-amt-row">
+                                                <span class="ofg-amt-name" title="@h.FeeHeadName">@h.FeeHeadName</span>
+                                                <InputNumber TValue="decimal?" class="form-control form-control-sm text-end ofg-amt-input" step="0.01" min="0"
+                                                             @bind-Value="h.Amount" placeholder="0.00" />
+                                                <button type="button" class="ofg-remove" title="Remove" @onclick="() => RemoveHead(selectedClass, h)">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                                <div class="ofg-total">
+                                    <span>Total</span>
+                                    <span>@((selectedClass?.Heads.Sum(x => x.Amount ?? 0) ?? 0).ToString("N2"))</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="UnmapSelectedClass"
+                                disabled="@(IsMapLoading || IsMapSaving || mapLoadFailed || selectedClass == null || !selectedClass.IsSaved)"
+                                title="@(selectedClass != null ? "Unmap class " + selectedClass.ClassName : "Select a mapped class")">
+                            <div class="visible content">Unmap</div>
+                            <div class="hidden content"><i class="bi bi-link-45deg"></i></div>
+                        </button>
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="SaveMapping"
+                                disabled="@(IsMapLoading || IsMapSaving || mapLoadFailed || !HasMapChanges)">
+                            <div class="visible content">
+                                @if (IsMapSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Save
+                            </div>
+                            <div class="hidden content"><i class="bi bi-check2"></i></div>
+                        </button>
+                        <button type="button" class="ui fade op-1 animated button form-btn" @onclick="CloseMapPopup">
+                            <div class="visible content">Close</div>
+                            <div class="hidden content"><i class="bi bi-x-lg"></i></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .ofg-action { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+    .ofg-action .action-btn-group { display: inline-flex; align-items: center; justify-content: center; margin: 0; }
+    .ofg-map-btn {
+        width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 6px; border: 1px solid #0d6efd; background: #eef4ff; color: #0d6efd; font-size: 15px;
+    }
+    .ofg-map-btn:hover:not(:disabled) { background: #0d6efd; color: #fff; }
+    .ofg-map-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* layout inside the existing popup (main-popup / head-btn / modal-body / modal-footer) */
+    .ofg-body { height: calc(100vh - 170px); min-height: 360px; }
+    .ofg-layout { height: 100%; display: flex; gap: 12px; }
+    .ofg-left { flex: 1 1 auto; min-width: 0; }
+    .ofg-right { flex: 0 0 380px; }
+    @@media (max-width: 991px) {
+        .ofg-body { height: auto; }
+        .ofg-layout { flex-direction: column; }
+        .ofg-left { max-height: 50vh; }
+        .ofg-right { flex: 0 0 auto; max-height: 45vh; }
+    }
+    /* cards - colours as the mapping screenshot */
+    .ofg-card { background: #fff; border: 1px solid #e3e8ef; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+    .ofg-card-head {
+        display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        padding: 10px 14px; background: #eef2f8; border-bottom: 1px solid #e3e8ef;
+        color: #1f2d3d; font-weight: 600; font-size: 14px;
+    }
+    .ofg-count { font-size: 12px; font-weight: 500; color: #6b7785; white-space: nowrap; }
+    .ofg-card-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+
+    /* class grid (QuickGrid) */
+    .ofg-grid table thead th { position: sticky; top: 0; z-index: 2; }
+    .ofg-grid table td { vertical-align: middle; padding: 0 !important; height: 1px; }
+    .ofg-grid table tbody tr { cursor: pointer; }
+    .ofg-grid table tbody tr:hover td { background-color: #f5f8fc; }
+    .ofg-cell { display: flex; align-items: center; height: 100%; min-height: 48px; padding: 7px 12px; cursor: pointer; }
+    .ofg-grid table tr.ofg-selected td { background-color: #eaf3fc; }
+    .ofg-cls { display: inline-block; min-width: 80px; font-weight: 600; color: #1f2d3d; cursor: pointer; }
+
+    .ofg-dd-btn { width: 100%; min-width: 260px; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; background: #fff; }
+    .ofg-dd-btn.empty { background: #f4f6f9; color: #8a94a6; }
+    .ofg-dd-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ofg-dd { position: relative; }
+    .ofg-dd.open { z-index: 20; }
+    .ofg-dd-menu {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 300px;
+        max-height: 280px; overflow-y: auto; padding: 4px 0; background: #fff;
+        border: 1px solid #dbe4ee; border-radius: 6px; box-shadow: 0 6px 16px rgba(16,42,67,.18);
+    }
+    .ofg-dd-backdrop { position: fixed; inset: 0; z-index: 10; background: transparent; }
+    .ofg-till { min-width: 150px; }
+    .ofg-till .floating-input:disabled { background: #f1f3f6; color: #8a94a6; }
+    .ofg-st { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 14px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .ofg-st.on { background: #d6f3e0; color: #198754; }
+    .ofg-st.off { background: #fbdadd; color: #c62f3b; }
+    .ofg-st.warn { background: #fff3cd; color: #997404; }
+    html.dark-mode .ofg-dd-menu { background: #1f2937; border-color: #374151; }
+    .ofg-dd-item { display: flex; align-items: center; gap: 10px; margin: 0; padding: 7px 14px; cursor: pointer; font-size: 13px; color: #1f2d3d; }
+    .ofg-dd-item:hover { background: #f1f5fb; }
+    .ofg-dd-item .form-check-input { margin: 0; }
+    .ofg-dd-all { border-bottom: 1px solid #e3e8ef; font-weight: 600; background: #f4f7fb; }
+
+    /* amount card */
+    .ofg-amt-list { padding: 10px; background: #fff; }
+    .ofg-amt-row {
+        display: flex; align-items: center; gap: 10px; padding: 7px 8px 7px 12px; margin-bottom: 8px;
+        background: #f7f9fc; border: 1px solid #e3e8ef; border-radius: 6px;
+    }
+    .ofg-amt-name { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: 13px; color: #1f2d3d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ofg-amt-input { flex: 0 0 120px; background: #fff; border: 1px solid #ced6e0; }
+    .ofg-remove { flex: 0 0 26px; height: 26px; border: 0; background: transparent; color: #d9534f; border-radius: 4px; font-size: 12px; }
+    .ofg-remove:hover { background: #fde8ea; }
+    .ofg-total { display: flex; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #e3e8ef; background: #fff; color: #1f2d3d; font-weight: 700; }
+    .ofg-empty { padding: 40px 16px; text-align: center; color: #6b7785; }
+
+    html.dark-mode .ofg-card, html.dark-mode .ofg-amt-list, html.dark-mode .ofg-total, html.dark-mode .ofg-dd-btn { background: #1f2937; color: #e5e7eb; }
+    html.dark-mode .ofg-card-head, html.dark-mode .ofg-dd-all { background: #273244; color: #e5e7eb; }
+    html.dark-mode .ofg-amt-row { background: #273244; border-color: #374151; }
+    html.dark-mode .ofg-amt-name, html.dark-mode .ofg-cls, html.dark-mode .ofg-dd-item { color: #e5e7eb; }
+    html.dark-mode .ofg-grid table tr.ofg-selected td { background-color: #1e3a5f; }
+</style>
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    private OptionalFeeGroupMasterModel group = new();
+    private string oldGroup = "";
+    private List<OptionalFeeGroupMasterModel> grouplist = new();
+    private OptionalFeeGroupMasterSearchModel search = new() { Valid = -1 };
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool IsLoading;
+    private bool ShowPopup;
+    private string? branchcode;
+    private string? groupcode;
+    private string? UserName;
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    public void Dispose() => PermissionState.OnChange -= StateHasChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            UserName = (await sessionStorage.GetAsync<string>("UserName")).Value;
+            await SearchGroups();
+        }
+    }
+
+    private async Task OnNameKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchGroups();
+    }
+
+    private async Task<List<OptionalFeeGroupMasterModel>> GetGroups(OptionalFeeGroupMasterSearchModel request)
+    {
+        request.GroupCode = groupcode;
+        request.BranchCode = branchcode;
+        var response = await httpService.Post<ApiResponse<List<OptionalFeeGroupMasterModel>>>("OptionalFeeGroupMaster/GetOptionalFeeGroups", request);
+        if (response == null || !response.Success)
+            throw new InvalidOperationException(response?.Message ?? "Unable to load the optional fee groups.");
+        return response.Data ?? new();
+    }
+
+    private async Task SearchGroups()
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            grouplist = await GetGroups(new OptionalFeeGroupMasterSearchModel
+            {
+                ActivityGroupName = search.ActivityGroupName?.Trim(),
+                Valid = search.Valid
+            });
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception ex)
+        {
+            grouplist = new();
+            await Alert.ShowError(ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ---------------- Map Group popup (V3M_FIN_DetOptionalGroupFeeHeadMapping) ----------------
+    private sealed class MapHeadRow
+    {
+        public int FeeHeadId { get; set; }
+        public string? FeeHeadName { get; set; }
+        public decimal? Amount { get; set; }
+    }
+
+    private sealed class MapClassRow
+    {
+        public string? ClassCode { get; set; }
+        public string? ClassName { get; set; }
+        // picked fee heads, in the order of the session fee head list
+        public List<MapHeadRow> Heads { get; set; } = new();
+        public DateTime? TillDate { get; set; }
+        // saved in the database (popup opened / last save)
+        public bool IsSaved { get; set; }
+        public string SavedState { get; set; } = "";
+    }
+
+    private bool IsMapSaving;
+    // saved mapping could not be read: Save / Unmap are off so nothing is overwritten
+    private bool mapLoadFailed;
+
+    // what is compared to find the changed classes (no heads = nothing, till date ignored)
+    private static string MapState(MapClassRow row) =>
+        row.Heads.Count == 0
+            ? ""
+            : (row.TillDate?.ToString("yyyy-MM-dd") ?? "") + "|" +
+              string.Join(";", row.Heads.OrderBy(h => h.FeeHeadId).Select(h => h.FeeHeadId + "=" + (h.Amount ?? 0).ToString("0.00")));
+
+    private static bool IsChanged(MapClassRow row) => MapState(row) != row.SavedState;
+
+    private bool HasMapChanges => mapClasses.Any(IsChanged);
+
+    // saved mapping of the group -> rows checked with amount / till date
+    private async Task LoadSavedMapping()
+    {
+        if (mapGroup == null) return;
+        var response = await httpService.Post<ApiResponse<List<OptionalGroupFeeHeadMapRow>>>("OptionalFeeGroupMaster/GetMapping",
+            new OptionalGroupMapSearchModel { GroupCode = groupcode, BranchCode = branchcode, OptFeeGroupId = mapGroup.SeedId });
+        if (response == null || !response.Success)
+            throw new InvalidOperationException(response?.Message ?? "Unable to load the mapping.");
+
+        var saved = (response.Data ?? new()).Where(x => !string.IsNullOrWhiteSpace(x.ClassCode)).ToList();
+        foreach (var row in mapClasses)
+        {
+            var rows = saved.Where(x => string.Equals(x.ClassCode!.Trim(), row.ClassCode?.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+            row.Heads = rows
+                .GroupBy(x => x.FeeHeadId)
+                .Select(g => new MapHeadRow
+                {
+                    FeeHeadId = g.Key,
+                    // a head mapped earlier but not in this session's list still shows (so it can be removed)
+                    FeeHeadName = mapHeads.FirstOrDefault(h => h.FeeHeadId == g.Key)?.FeeHeadName ?? "Fee Head " + g.Key,
+                    Amount = g.First().Amount
+                })
+                .ToList();
+            SortHeads(row);
+            row.TillDate = rows.Select(x => x.TillDate).FirstOrDefault(x => x != null) ?? DateTime.Today;
+            row.IsSaved = row.Heads.Count > 0;
+            row.SavedState = MapState(row);
+        }
+    }
+
+    // every changed class: with heads = map / update, without heads = unmap
+    private async Task SaveMapping()
+    {
+        if (mapGroup == null || IsMapSaving) return;
+        openHeadRow = null;
+
+        var changed = mapClasses.Where(IsChanged).ToList();
+        if (changed.Count == 0)
+        {
+            await Alert.ShowWarning("No changes detected.");
+            return;
+        }
+
+        foreach (var row in changed.Where(x => x.Heads.Count > 0))
+        {
+            if (row.TillDate == null)
+            {
+                selectedClass = row;
+                await Alert.ShowWarning("Please select the till date of class " + row.ClassName + ".");
+                return;
+            }
+            if (row.Heads.Any(h => h.Amount == null || h.Amount < 0))
+            {
+                selectedClass = row;
+                await Alert.ShowWarning("Please enter the amount of every fee head of class " + row.ClassName + ".");
+                return;
+            }
+        }
+
+        // a class whose heads were all removed is unmapped: confirm first
+        if (changed.Any(x => x.Heads.Count == 0 && x.IsSaved))
+        {
+            if (!await JS.InvokeAsync<bool>("showDeleteConfirm"))
+                return;
+        }
+
+        var request = new OptionalGroupMapSaveModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            OptFeeGroupId = mapGroup.SeedId,
+            CreatedBy = UserName,
+            Classes = changed
+                .Where(x => x.Heads.Count > 0 || x.IsSaved)
+                .Select(x => new OptionalGroupClassMapModel
+                {
+                    ClassCode = x.ClassCode,
+                    ClassName = x.ClassName,
+                    TillDate = x.TillDate,
+                    FeeHeads = x.Heads.Select(h => new OptionalGroupFeeHeadAmount { FeeHeadId = h.FeeHeadId, Amount = h.Amount ?? 0 }).ToList()
+                })
+                .ToList()
+        };
+        await PostMapping(request);
+    }
+
+    // Unmap button: selected class only
+    private async Task UnmapSelectedClass()
+    {
+        if (mapGroup == null || selectedClass == null || !selectedClass.IsSaved || IsMapSaving) return;
+        openHeadRow = null;
+        if (!await JS.InvokeAsync<bool>("showDeleteConfirm"))
+            return;
+
+        await PostMapping(new OptionalGroupMapSaveModel
+        {
+            GroupCode = groupcode,
+            BranchCode = branchcode,
+            OptFeeGroupId = mapGroup.SeedId,
+            CreatedBy = UserName,
+            Classes = new() { new OptionalGroupClassMapModel { ClassCode = selectedClass.ClassCode, ClassName = selectedClass.ClassName } }
+        });
+    }
+
+    private async Task PostMapping(OptionalGroupMapSaveModel request)
+    {
+        if (request.Classes.Count == 0)
+        {
+            await Alert.ShowWarning("No changes detected.");
+            return;
+        }
+        try
+        {
+            IsMapSaving = true;
+            StateHasChanged();
+            var response = await httpService.Post<ApiResponse<OptionalGroupMapSaveResult>>("OptionalFeeGroupMaster/SaveMapping", request);
+            if (response != null && response.Success)
+            {
+                // unsaved edits of other classes are kept; only the saved classes are reloaded
+                var pending = mapClasses.Where(x => IsChanged(x) && !request.Classes.Any(c => c.ClassCode == x.ClassCode))
+                    .Select(x => (Row: x, Heads: x.Heads.Select(h => new MapHeadRow { FeeHeadId = h.FeeHeadId, FeeHeadName = h.FeeHeadName, Amount = h.Amount }).ToList(), x.TillDate))
+                    .ToList();
+                await LoadSavedMapping();
+                foreach (var p in pending)
+                {
+                    p.Row.Heads = p.Heads;
+                    p.Row.TillDate = p.TillDate;
+                }
+                await Alert.ShowSuccess(response.Message ?? "Mapping saved successfully.");
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to save the mapping right now. Please try again.");
+        }
+        finally
+        {
+            IsMapSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // dropdown text shows up to this many fee head names, then "..."
+    private const int HeadTextLimit = 3;
+
+    private bool ShowMapPopup;
+    private bool IsMapLoading;
+    private OptionalFeeGroupMasterModel? mapGroup;
+    private List<MapClassRow> mapClasses = new();
+    private MapClassRow? selectedClass;
+    // fee heads mapped in the current session (SessionFeeHeads)
+    private List<DetSessionModel> mapHeads = new();
+    // loaded once per page: classes (BranchClass) and the current session's fee heads
+    private List<BranchClassModel>? classCache;
+    private List<DetSessionModel>? sessionHeadCache;
+
+    private async Task OpenMapPopup(OptionalFeeGroupMasterModel item)
+    {
+        mapGroup = item;
+        mapClasses = new();
+        selectedClass = null;
+        ShowMapPopup = true;
+        IsMapLoading = true;
+        StateHasChanged();
+        try
+        {
+            if (classCache == null)
+                classCache = await httpService.Get<List<BranchClassModel>>("BranchClass/GetClassCode") ?? new();
+
+            if (sessionHeadCache == null)
+            {
+                var request = new SearchAnyRequestModel
+                {
+                    GroupCode = groupcode,
+                    BranchCode = branchcode,
+                    SessionId = await CommonMethod.SetCurrentSessionData()
+                };
+                var response = await httpService.Post<ApiResponse<List<DetSessionModel>>>("SessionFeeHeads/GetSessionFeeHead", request);
+                sessionHeadCache = response != null && response.Success ? response.Data ?? new() : new();
+            }
+
+            mapHeads = sessionHeadCache
+                .GroupBy(x => x.FeeHeadId)
+                .Select(g => g.First())
+                .OrderBy(x => x.FeeHeadName)
+                .ToList();
+
+            mapClasses = classCache
+                .Where(x => x.IsValid != false)
+                .OrderBy(x => x.ClassOrder ?? int.MaxValue)
+                .Select(c => new MapClassRow { ClassCode = c.ClassCode, ClassName = c.ClassName, TillDate = DateTime.Today })
+                .ToList();
+
+            selectedClass = mapClasses.FirstOrDefault();
+        }
+        catch (Exception)
+        {
+            mapClasses = new();
+            mapHeads = new();
+            IsMapLoading = false;
+            StateHasChanged();
+            await Alert.ShowError("Unable to load the classes / fee heads right now. Please try again.");
+            return;
+        }
+
+        // saved mapping: first time (nothing mapped) every class stays unchecked with 0.00;
+        // if it cannot be loaded the classes still show, but Save / Unmap stay off (nothing is overwritten)
+        var mappingError = false;
+        try
+        {
+            mapLoadFailed = false;
+            await LoadSavedMapping();
+            selectedClass = mapClasses.FirstOrDefault(x => x.IsSaved) ?? mapClasses.FirstOrDefault();
+        }
+        catch (Exception)
+        {
+            mapLoadFailed = true;
+            mappingError = true;
+        }
+        finally
+        {
+            IsMapLoading = false;
+            StateHasChanged();
+        }
+
+        if (mappingError)
+            await Alert.ShowError("Saved mapping of this group could not be loaded, so Save is disabled. Please try again.");
+    }
+
+    private void CloseMapPopup()
+    {
+        ShowMapPopup = false;
+        openHeadRow = null;
+        mapGroup = null;
+        selectedClass = null;
+        mapClasses = new();
+    }
+
+    private void SelectClass(MapClassRow row) => selectedClass = row;
+
+    // fee head list of one class row (only one open at a time)
+    private MapClassRow? openHeadRow;
+
+    private void ToggleHeadDropdown(MapClassRow row)
+    {
+        selectedClass = row;
+        openHeadRow = openHeadRow == row ? null : row;
+    }
+
+    private void CloseHeadDropdown() => openHeadRow = null;
+
+    private string MapRowClass(MapClassRow row) => selectedClass == row ? "ofg-selected" : "";
+
+    // "A, B, C ..." - names after the 3rd are cut to "..."
+    private string HeadText(MapClassRow row)
+    {
+        if (row.Heads.Count == 0)
+            return "-- Select Fee Head --";
+        var names = string.Join(", ", row.Heads.Take(HeadTextLimit).Select(h => h.FeeHeadName));
+        return names + (row.Heads.Count > HeadTextLimit ? " ..." : "");
+    }
+
+    // tooltip: every picked fee head
+    private string HeadTitle(MapClassRow row) =>
+        row.Heads.Count == 0 ? "" : string.Join(", ", row.Heads.Select(h => h.FeeHeadName));
+
+    // keeps the picked heads in the same order as the dropdown
+    private void SortHeads(MapClassRow row)
+    {
+        var order = mapHeads.Select((h, i) => (h.FeeHeadId, i)).ToDictionary(x => x.FeeHeadId, x => x.i);
+        row.Heads = row.Heads.OrderBy(h => order.TryGetValue(h.FeeHeadId, out var i) ? i : int.MaxValue).ToList();
+    }
+
+    private void ToggleHead(MapClassRow row, DetSessionModel head, bool isChecked)
+    {
+        selectedClass = row;
+        var existing = row.Heads.FirstOrDefault(x => x.FeeHeadId == head.FeeHeadId);
+        if (isChecked && existing == null)
+        {
+            row.Heads.Add(new MapHeadRow { FeeHeadId = head.FeeHeadId, FeeHeadName = head.FeeHeadName, Amount = 0 });
+            SortHeads(row);
+        }
+        else if (!isChecked && existing != null)
+        {
+            row.Heads.Remove(existing);
+        }
+    }
+
+    // All: keeps the amounts already typed for heads that stay picked
+    private void ToggleAllHeads(MapClassRow row, bool isChecked)
+    {
+        selectedClass = row;
+        if (!isChecked)
+        {
+            row.Heads.Clear();
+            return;
+        }
+        foreach (var h in mapHeads)
+        {
+            if (!row.Heads.Any(x => x.FeeHeadId == h.FeeHeadId))
+                row.Heads.Add(new MapHeadRow { FeeHeadId = h.FeeHeadId, FeeHeadName = h.FeeHeadName, Amount = 0 });
+        }
+        SortHeads(row);
+    }
+
+    // × on the amount card = untick the head in the dropdown
+    private void RemoveHead(MapClassRow? row, MapHeadRow head)
+    {
+        row?.Heads.Remove(head);
+    }
+
+    private void AddGroup()
+    {
+        group = new OptionalFeeGroupMasterModel();
+        ShowPopup = true;
+    }
+
+    private void EditGroup(OptionalFeeGroupMasterModel item)
+    {
+        group = new OptionalFeeGroupMasterModel
+        {
+            SeedId = item.SeedId,
+            ActivityGroupName = item.ActivityGroupName
+        };
+        oldGroup = CommonMethod.CreateSnapshot(group);
+        ShowPopup = true;
+    }
+
+    private void ClosePopup()
+    {
+        group = new();
+        ShowPopup = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSave()
+    {
+        try
+        {
+            var name = group.ActivityGroupName?.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                await Alert.ShowWarning("Activity group name is required.");
+                return;
+            }
+
+            if (group.SeedId > 0)
+            {
+                ShowPopup = false;
+                var isConfirmed = await JS.InvokeAsync<bool>("showUpdateConfirm");
+                if (!isConfirmed)
+                {
+                    ShowPopup = true;
+                    return;
+                }
+                if (!CommonMethod.IsEdited(group, oldGroup))
+                {
+                    await Alert.ShowWarning("No changes detected.");
+                    ShowPopup = true;
+                    return;
+                }
+            }
+
+            group.ActivityGroupName = name;
+            group.GroupCode = groupcode;
+            group.BranchCode = branchcode;
+            group.CreatedBy = UserName;
+
+            ShowPopup = false;
+            var response = await httpService.Post<ApiResponse<object>>("OptionalFeeGroupMaster/AddUpdateOptionalFeeGroup", group);
+            if (response == null)
+            {
+                await Alert.ShowCustomAlert(Localizer["Admin"]);
+                ShowPopup = true;
+                return;
+            }
+
+            switch (response.Code)
+            {
+                case 1:
+                    await Alert.ShowSuccess(response.Message);
+                    break;
+                case 2:
+                    await Alert.ShowUpdate(response.Message ?? "Optional fee group updated successfully.");
+                    break;
+                default:
+                    await Alert.ShowCustomAlert(response.Message ?? Localizer["Admin"]);
+                    ShowPopup = true;
+                    return;
+            }
+
+            group = new();
+            await SearchGroups();
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to save the optional fee group right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task ChangeStatus(OptionalFeeGroupMasterModel item)
+    {
+        try
+        {
+            bool isActivate = !item.IsValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            var request = new OptionalFeeGroupMasterStatusModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SeedId = item.SeedId,
+                IsValid = isActivate
+            };
+            var response = await httpService.Post<ApiResponse<object>>("OptionalFeeGroupMaster/ActiveDeactiveOptionalFeeGroup", request);
+            if (response != null && response.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(response.Message ?? Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(response.Message ?? Localizer["Deleted"]);
+                await SearchGroups();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to change the status right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}

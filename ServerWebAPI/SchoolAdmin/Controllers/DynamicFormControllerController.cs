@@ -46,7 +46,9 @@ namespace ServerWebAPI.SchoolAdmin.Controllers
                     -1 => Ok(new ApiResponse<object> { Success = false, Code = -1, Status = 404, Message = "Field was not found." }),
                     -2 => Ok(new ApiResponse<object> { Success = false, Code = -2, Status = 422, Message = "Invalid field name: only letters, digits and _ are allowed." }),
                     -3 => Ok(new ApiResponse<object> { Success = false, Code = -3, Status = 422, Message = "Field name is required." }),
-                    -4 => Ok(new ApiResponse<object> { Success = false, Code = -4, Status = 409, Message = "This field name already exists." }),
+                    -4 => Ok(new ApiResponse<object> { Success = false, Code = -4, Status = 409, Message = "This field name already exists in this activity." }),
+                    -7 => Ok(new ApiResponse<object> { Success = false, Code = -7, Status = 409, Message = "This field name is already used with another data type. Select the same data type to use it in this activity." }),
+                    -8 => Ok(new ApiResponse<object> { Success = false, Code = -8, Status = 409, Message = "Data type cannot be changed: this field name is also used by another activity." }),
                     -5 => Ok(new ApiResponse<object> { Success = false, Code = -5, Status = 404, Message = "Activity was not found in this branch and session." }),
                     -6 => Ok(new ApiResponse<object> { Success = false, Code = -6, Status = 422, Message = "This field name is reserved. Use another name." }),
                     _ => Ok(new ApiResponse<object> { Success = false, Code = -99, Status = 500, Message = "Field could not be saved (the data type may not fit the saved data). Please try again." })
@@ -99,7 +101,7 @@ namespace ServerWebAPI.SchoolAdmin.Controllers
                         Status = 200,
                         Message = model.IsValid ? "Field activated successfully." : "Field deactivated successfully."
                     }),
-                    -4 => Ok(new ApiResponse<object> { Success = false, Code = -4, Status = 409, Message = "The same field name is already active. Deactivate that one first." }),
+                    -4 => Ok(new ApiResponse<object> { Success = false, Code = -4, Status = 409, Message = "The same field name is already active in this activity. Deactivate that one first." }),
                     _ => Ok(new ApiResponse<object> { Success = false, Code = -1, Status = 404, Message = "Field was not found." })
                 };
             }

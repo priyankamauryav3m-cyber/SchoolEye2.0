@@ -1,0 +1,427 @@
+@using DomainModel.Admin
+@using DomainModel.SchoolAdmin
+@using ServerWebUI.Components.Pages.CommonPages
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using MyApp.Common
+@using System.Globalization
+@inject IStringLocalizer<Resource> Localizer
+@inject IJSRuntime JS
+@inject Shared.IHttpService httpService
+@inject SweetAlertService Alert
+@implements IDisposable
+
+<div class="main-container">
+    <div class="row m-0 main-row">
+        <div class="col-12 p-1">
+            <PageHeading Tittle="Summer Activity Registrations">
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.SessionId" @bind-Value:after="OnSessionChanged" class="form-input" title="Session">
+                        <option value="0">-- Select Session --</option>
+                        @foreach (var data in sessionlist.Where(x => x.IsValid == true))
+                        {
+                            <option value="@data.SessionId">@data.SessionName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.ActivityId" class="form-input" title="Activity Name">
+                        <option value="0">-- All Activities --</option>
+                        @foreach (var data in activitylist)
+                        {
+                            <option value="@data.SAId">@data.ActivityName</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.PaymentMode" class="form-input" title="Payment Mode">
+                        <option value="">-- All Payment Modes --</option>
+                        <option value="@SummerActivityRegistrationSearchModel.NotPaid">Not Paid</option>
+                        @foreach (var mode in paymentmodes)
+                        {
+                            <option value="@mode">@mode</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <InputSelect @bind-Value="@search.Valid" class="form-input" title="Status">
+                        <option value="1">Active</option>
+                        <option value="0">Deactive</option>
+                        <option value="-1">All</option>
+                    </InputSelect>
+                </div>
+                <div class="form-box">
+                    <button class="ui fade op-1 animated button form-btn" @onclick="SearchRegistrations" tabindex="0">
+                        <div class="visible content">Search</div>
+                        <div class="hidden content">
+                            <i class="bi bi-search"></i>
+                        </div>
+                    </button>
+                </div>
+            </PageHeading>
+        </div>
+        @* Activity / Slot / Dynamic Form / Registrations tabs (from the SummerActivity page) *@
+        <div class="col-12 p-1">@Tabs</div>
+        <div class="col-12 p-1">
+            <div class="sar-stats">
+                <div class="sar-stat"><span class="ic blue"><i class="bi bi-people"></i></span><div><small>Registrations</small><b>@registrations.Count</b></div></div>
+                <div class="sar-stat"><span class="ic green"><i class="bi bi-check2-circle"></i></span><div><small>Fee Paid</small><b>@registrations.Count(x => x.IsFeePaid)</b></div></div>
+                <div class="sar-stat"><span class="ic amber"><i class="bi bi-hourglass-split"></i></span><div><small>Not Paid</small><b>@registrations.Count(x => !x.IsFeePaid)</b></div></div>
+                <div class="sar-stat"><span class="ic navy"><i class="bi bi-currency-rupee"></i></span><div><small>Amount Received</small><b>@Money(registrations.Where(x => x.IsFeePaid).Sum(x => x.Amount))</b></div></div>
+            </div>
+        </div>
+        <div class="col-12 p-1">
+            <div class="card">
+                <div class="card-body table-card p-0 scrollbar-thin">
+                    <div class="quick-main">
+                        <div class="grid-box">
+                            <QuickGrid Items="@registrations.AsQueryable()" Class="table" Pagination="@pagination">
+                                <PropertyColumn Property="@(x => x.RegistrationId)" Title="Reg. No." Sortable="true" Align="Align.Center" />
+                                <PropertyColumn Property="@(x => x.ActivityName)" Title="Activity Name" Sortable="true" Align="Align.Left" />
+                                <PropertyColumn Property="@(x => x.SlotName)" Title="Slot Name" Sortable="true" Align="Align.Left" />
+                                <TemplateColumn Title="Amount" Sortable="true" Align="Align.Right" SortBy="GridSort<SummerActivityRegistrationListModel>.ByAscending(x => x.Amount)">
+                                    @context.Amount.ToString("N2")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Payment Status" Align="Align.Center" Sortable="true" SortBy="GridSort<SummerActivityRegistrationListModel>.ByAscending(x => x.IsFeePaid)">
+                                    <span class="sar-pill @(context.IsFeePaid ? "paid" : "due")">@(context.IsFeePaid ? "Paid" : "Not Paid")</span>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Payment Mode" Align="Align.Center" Sortable="true" SortBy="GridSort<SummerActivityRegistrationListModel>.ByAscending(x => x.PaymentMode)">
+                                    @(context.IsFeePaid ? context.PaymentMode : "-")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Order ID" Align="Align.Left">@(context.OrderId ?? "-")</TemplateColumn>
+                                <TemplateColumn Title="Transaction ID" Align="Align.Left">@(context.IsFeePaid ? context.TransactionId : "-")</TemplateColumn>
+                                <TemplateColumn Title="Paid On" Align="Align.Center" Sortable="true" SortBy="GridSort<SummerActivityRegistrationListModel>.ByAscending(x => x.PaidOn)">
+                                    @(context.IsFeePaid ? Date(context.PaidOn) : "-")
+                                </TemplateColumn>
+                                <TemplateColumn Title="Registered On" Align="Align.Center" Sortable="true" SortBy="GridSort<SummerActivityRegistrationListModel>.ByAscending(x => x.RegisteredOn)">
+                                    @Date(context.RegisteredOn)
+                                </TemplateColumn>
+                                <TemplateColumn Title="Status" Align="Align.Center">
+                                    <span class="@(context.IsValid ? "activeClr" : "inactiveClr")">@(context.IsValid ? "Active" : "Deactive")</span>
+                                </TemplateColumn>
+                                <TemplateColumn Align="Align.Center" Title="Action">
+                                    <div class="d-inline-flex align-items-center gap-2">
+                                        <button class="btn-icon-data edit-btn custom-tooltip" data-tooltip="View" @onclick="() => ViewRegistration(context)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <ActionButtonGroup IsValid="context.IsValid" CurrentUrl="@currentUrl" OnStatusClick="() => ChangeStatus(context)" />
+                                    </div>
+                                </TemplateColumn>
+                            </QuickGrid>
+                        </div>
+                        <div class="footer-pagination">
+                            <div class="d-flex align-items-center">
+                                <div class="welcome-text w-100">
+                                    <Paginator State="@pagination" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ShowPopup && selected != null)
+{
+    <div class="custom-modal row m-0 align-items-center">
+        <div class="col-12 col-md-9 col-lg-7 col-xl-6">
+            <div class="modal-content clearfix main-popup">
+                <div class="head-btn">
+                    <h5 class="modal-title">Registration No. @selected.RegistrationId</h5>
+                    <button data-access="Close" type="button" @onclick="ClosePopup" class="close"><span aria-hidden="true">×</span></button>
+                </div>
+                <div class="modal-body sar-view">
+                    <div class="sar-view-head">
+                        <div>
+                            <small>Activity</small>
+                            <strong>@selected.ActivityName</strong>
+                            <span class="sar-view-slot"><i class="bi bi-clock"></i> @selected.SlotName</span>
+                        </div>
+                        <div class="text-end">
+                            <small>Fee</small>
+                            <strong>@Money(selected.Amount)</strong>
+                            <span class="sar-pill @(selected.IsFeePaid ? "paid" : "due")">@(selected.IsFeePaid ? "Paid" : "Not Paid")</span>
+                        </div>
+                    </div>
+
+                    <h6 class="sar-view-cap">Form Details</h6>
+                    @if (details.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No form details were saved for this registration.</p>
+                    }
+                    else
+                    {
+                        <div class="sar-view-grid">
+                            @foreach (var item in details)
+                            {
+                                <div><small>@item.DisplayName</small><b>@(string.IsNullOrWhiteSpace(item.Value) ? "-" : item.Value)</b></div>
+                            }
+                        </div>
+                    }
+
+                    <h6 class="sar-view-cap">Payment Details</h6>
+                    <div class="sar-view-grid">
+                        <div><small>Payment Mode</small><b>@(selected.IsFeePaid ? selected.PaymentMode : "-")</b></div>
+                        <div><small>Order ID</small><b>@(selected.OrderId ?? "-")</b></div>
+                        <div><small>Transaction ID</small><b>@(selected.IsFeePaid ? selected.TransactionId : "-")</b></div>
+                        <div><small>UTR / Bank Ref. No.</small><b>@(selected.IsFeePaid ? selected.UtrNo : "-")</b></div>
+                        <div><small>Paid On</small><b>@(selected.IsFeePaid ? Date(selected.PaidOn) : "-")</b></div>
+                        <div><small>Registered On</small><b>@Date(selected.RegisteredOn)</b></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-group btn-gr">
+                        <button type="button" class="btn btn-secondary" @onclick="ClosePopup">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="grid-loader-overlay">
+        <div class="loader-card">
+            <div class="loader-ring">
+                <div class="loader-arc"></div>
+                <div class="loader-core">
+                    <img src="/images/v3m-favicon-m.png" alt="Loading" class="loader-logo" />
+                </div>
+            </div>
+            <p class="loader-text">Loading<span class="dot d1">.</span><span class="dot d2">.</span><span class="dot d3">.</span></p>
+        </div>
+    </div>
+}
+
+<style>
+    .sar-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .sar-stat { background: #fff; border: 1px solid #e6ecf4; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
+        .sar-stat small { display: block; font-size: 12px; color: #64748b; }
+        .sar-stat b { font-size: 18px; color: #0f2547; }
+        .sar-stat .ic { width: 38px; height: 38px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .sar-stat .ic.blue { background: #e8f1fd; color: #1d6fd8; }
+        .sar-stat .ic.green { background: #dcfce7; color: #16a34a; }
+        .sar-stat .ic.amber { background: #fef3c7; color: #b45309; }
+        .sar-stat .ic.navy { background: #e6ebf5; color: #13306b; }
+    .sar-pill { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+        .sar-pill.paid { background: #dcfce7; color: #166534; }
+        .sar-pill.due { background: #fef3c7; color: #92400e; }
+
+    .sar-view { max-height: calc(100vh - 200px); overflow-y: auto; }
+    .sar-view-head { display: flex; justify-content: space-between; gap: 12px; background: #f4f7fb; border-radius: 12px; padding: 12px 16px; }
+        .sar-view-head small { display: block; font-size: 12px; color: #64748b; }
+        .sar-view-head strong { display: block; font-size: 16px; color: #0f2547; }
+    .sar-view-slot { font-size: 12.5px; color: #475569; }
+    .sar-view-cap { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #64748b; font-weight: 700; margin: 16px 0 8px; }
+    .sar-view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .sar-view-grid div { border: 1px solid #e6ecf4; border-radius: 10px; padding: 8px 12px; }
+        .sar-view-grid small { display: block; font-size: 11.5px; color: #64748b; }
+        .sar-view-grid b { font-size: 13.5px; color: #0f2547; word-break: break-word; }
+
+    @@media (max-width: 767px) {
+        .sar-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+</style>
+
+@code {
+    // tabs of the Summer Activity page, shown between the page heading and the grid
+    [Parameter] public RenderFragment? Tabs { get; set; }
+
+    private List<SummerActivityRegistrationListModel> registrations = new();
+    private List<SummerActivityModel> activitylist = new();
+    private List<SessionModel> sessionlist = new();
+    private List<string> paymentmodes = new();
+    private List<SummerActivityRegistrationFieldValue> details = new();
+    private SummerActivityRegistrationListModel? selected;
+    private SummerActivityRegistrationSearchModel search = new() { PaymentMode = "" };
+    PaginationState pagination = new() { ItemsPerPage = 15 };
+    private bool IsLoading;
+    private bool ShowPopup;
+    private string? branchcode;
+    private string? groupcode;
+    private string? currentUrl;
+
+    private static string Money(decimal amount) => "₹" + amount.ToString("N2", CultureInfo.GetCultureInfo("en-IN"));
+    private static string Date(DateTime? value) => value?.ToString("dd-MM-yyyy hh:mm tt", CultureInfo.InvariantCulture) ?? "-";
+
+    protected override void OnInitialized()
+    {
+        PermissionState.OnChange += StateHasChanged;
+        currentUrl = Nav.Uri;
+    }
+
+    public void Dispose() => PermissionState.OnChange -= StateHasChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            groupcode = (await sessionStorage.GetAsync<string>("GroupCode")).Value;
+            branchcode = (await sessionStorage.GetAsync<string>("BranchCode")).Value;
+            sessionlist = await httpService.Get<List<SessionModel>>("Session/GetSession") ?? new();
+            search.SessionId = await CommonMethod.SetCurrentSessionData();
+            await LoadPaymentModes();
+            await LoadActivities();
+            await SearchRegistrations();
+        }
+    }
+
+    private async Task OnSessionChanged()
+    {
+        search.ActivityId = 0;
+        await LoadActivities();
+    }
+
+    // activities of the session (Summer Activity master)
+    private async Task LoadActivities()
+    {
+        activitylist = new();
+        if (search.SessionId <= 0) return;
+        try
+        {
+            var request = new SummerActivitySearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = search.SessionId,
+                ActivityId = 0,
+                Valid = -1
+            };
+            var response = await httpService.Post<ApiResponse<List<SummerActivityModel>>>("SummerActivity/GetSummerActivities", request);
+            activitylist = response != null && response.Success ? response.Data ?? new() : new();
+        }
+        catch
+        {
+            activitylist = new();
+        }
+    }
+
+    private async Task LoadPaymentModes()
+    {
+        try
+        {
+            var response = await httpService.Get<ApiResponse<List<string>>>(
+                $"SummerActivityRegistrationView/GetPaymentModes?groupCode={Uri.EscapeDataString(groupcode ?? "")}&branchCode={Uri.EscapeDataString(branchcode ?? "")}");
+            paymentmodes = response != null && response.Success ? response.Data ?? new() : new();
+        }
+        catch
+        {
+            paymentmodes = new();
+        }
+    }
+
+    private async Task SearchRegistrations()
+    {
+        if (search.SessionId <= 0)
+        {
+            await Alert.ShowWarning("Please select a session.");
+            return;
+        }
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            var request = new SummerActivityRegistrationSearchModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                SessionId = search.SessionId,
+                ActivityId = search.ActivityId,
+                Valid = search.Valid,
+                PaymentMode = search.PaymentMode ?? ""
+            };
+            var response = await httpService.Post<ApiResponse<List<SummerActivityRegistrationListModel>>>("SummerActivityRegistrationView/GetRegistrations", request);
+            if (response == null || !response.Success)
+                throw new InvalidOperationException(response?.Message ?? "Unable to load the registrations.");
+            registrations = response.Data ?? new();
+            await pagination.SetCurrentPageIndexAsync(0);
+        }
+        catch (Exception ex)
+        {
+            registrations = new();
+            await Alert.ShowError(ex.Message);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ViewRegistration(SummerActivityRegistrationListModel item)
+    {
+        try
+        {
+            IsLoading = true;
+            StateHasChanged();
+            var request = new SummerActivityRegistrationKeyModel { GroupCode = groupcode, BranchCode = branchcode, RegistrationId = item.RegistrationId };
+            var response = await httpService.Post<ApiResponse<List<SummerActivityRegistrationFieldValue>>>("SummerActivityRegistrationView/GetRegistrationDetail", request);
+            if (response == null || !response.Success)
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? "Unable to load the registration.");
+                return;
+            }
+            details = response.Data ?? new();
+            selected = item;
+            ShowPopup = true;
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to load the registration right now. Please try again.");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClosePopup()
+    {
+        ShowPopup = false;
+        selected = null;
+        details = new();
+    }
+
+    private async Task ChangeStatus(SummerActivityRegistrationListModel item)
+    {
+        try
+        {
+            bool isActivate = !item.IsValid;
+            bool isConfirmed = await JS.InvokeAsync<bool>(isActivate ? "showActiveConfirm" : "showDeleteConfirm");
+            if (!isConfirmed)
+                return;
+
+            var request = new SummerActivityRegistrationStatusModel
+            {
+                GroupCode = groupcode,
+                BranchCode = branchcode,
+                RegistrationId = item.RegistrationId,
+                IsValid = isActivate
+            };
+            var response = await httpService.Post<ApiResponse<object>>("SummerActivityRegistrationView/ActiveDeactiveRegistration", request);
+            if (response != null && response.Success)
+            {
+                if (isActivate)
+                    await Alert.ShowActive(response.Message ?? Localizer["Activated"]);
+                else
+                    await Alert.ShowDeactive(response.Message ?? Localizer["Deleted"]);
+                await SearchRegistrations();
+            }
+            else
+            {
+                await Alert.ShowCustomAlert(response?.Message ?? Localizer["Admin"]);
+            }
+        }
+        catch (Exception)
+        {
+            await Alert.ShowError("Unable to change the status right now. Please try again.");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+}

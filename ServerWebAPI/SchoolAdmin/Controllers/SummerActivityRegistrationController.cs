@@ -64,6 +64,102 @@ namespace ServerWebAPI.SchoolAdmin.Controllers
             }
         }
 
+        // payment review of a saved registration (key = PaymentKey of Register)
+        [HttpPost("GetPayment")]
+        public async Task<IActionResult> GetPayment([FromBody] SummerActivityFormRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Key))
+                return BadRequest(ApiResponse<SummerActivityPaymentInfo>.Fail("This payment link is not valid."));
+
+            try
+            {
+                var info = await _service.GetPaymentAsync(request.Key);
+                if (info == null)
+                    return Ok(new ApiResponse<SummerActivityPaymentInfo> { Success = false, Code = -1, Status = 404, Message = "Registration was not found for this payment link." });
+
+                return Ok(ApiResponse<SummerActivityPaymentInfo>.Ok(info, "Payment details loaded.", code: 1));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SummerActivityRegistration GetPayment failed");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<SummerActivityPaymentInfo>.Fail("Unable to load the payment details right now. Please try again."));
+            }
+        }
+
+        // checkout: makes (or reuses) the pending order of the registration; Code 2 = already paid (receipt)
+        [EnableRateLimiting("V3MAPI_Call_Limit")]
+        [HttpPost("InitiatePayment")]
+        public async Task<IActionResult> InitiatePayment([FromBody] SummerActivityFormRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Key))
+                return BadRequest(ApiResponse<SummerActivityCheckoutInfo>.Fail("This payment link is not valid."));
+
+            try
+            {
+                var (code, info) = await _service.InitiatePaymentAsync(request.Key);
+                if ((code == 1 || code == 2) && info != null)
+                    return Ok(ApiResponse<SummerActivityCheckoutInfo>.Ok(info, code == 2 ? "Fee is already paid." : "Order created.", code: code));
+
+                return Ok(new ApiResponse<SummerActivityCheckoutInfo>
+                {
+                    Success = false,
+                    Code = code,
+                    Status = code == -1 ? 404 : code == -3 ? 422 : 500,
+                    Message = code switch
+                    {
+                        -1 => "Registration was not found for this payment link.",
+                        -3 => "There is no fee to pay for this registration.",
+                        _ => "Unable to start the payment right now. Please try again."
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SummerActivityRegistration InitiatePayment failed");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<SummerActivityCheckoutInfo>.Fail("Unable to start the payment right now. Please try again."));
+            }
+        }
+
+        // local TEST payment (no money is charged): works only when SummerActivity:TestPayment is true.
+        // The real gateway will confirm the payment server-side instead of this call.
+        [EnableRateLimiting("V3MAPI_Call_Limit")]
+        [HttpPost("PayTest")]
+        public async Task<IActionResult> PayTest([FromBody] SummerActivityPayRequest request)
+        {
+            if (request == null)
+                return BadRequest(ApiResponse<SummerActivityPaymentReceipt>.Fail("This payment link is not valid."));
+
+            try
+            {
+                var (code, receipt) = await _service.CompleteTestPaymentAsync(request);
+                if (code == 1 && receipt != null)
+                    return Ok(ApiResponse<SummerActivityPaymentReceipt>.Ok(receipt, "Payment successful.", code: 1));
+
+                return Ok(new ApiResponse<SummerActivityPaymentReceipt>
+                {
+                    Success = false,
+                    Code = code,
+                    Status = code switch { -1 => 404, -2 => 409, -3 => 410, -4 => 403, _ => 500 },
+                    Message = code switch
+                    {
+                        -1 => "Order was not found. Please start the payment again.",
+                        -2 => "Fee is already paid for this registration.",
+                        -3 => "This payment session has expired. Please start the payment again.",
+                        -4 => "Online payment is not available yet. Please contact the school.",
+                        _ => "Payment could not be completed. Please try again."
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "SummerActivityRegistration PayTest failed");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    ApiResponse<SummerActivityPaymentReceipt>.Fail("Payment could not be completed. Please try again."));
+            }
+        }
+
         // saving is throttled (same limit as the online registration form)
         [EnableRateLimiting("V3MAPI_Call_Limit")]
         [HttpPost("Register")]

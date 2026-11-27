@@ -73,7 +73,70 @@ namespace DomainModel.SchoolAdmin
         public string? ActivityName { get; set; }
         public string? SlotName { get; set; }
         public decimal Amount { get; set; }
+        // encrypted G|B|Session|OAId of the saved registration (payment step), "+" -> "V3M"
+        public string? PaymentKey { get; set; }
         // field name -> message
         public Dictionary<string, string> Errors { get; set; } = new();
+    }
+}
+
+namespace DomainModel.SchoolAdmin
+{
+    // payment review page after the registration (key = SummerActivityRegistrationResult.PaymentKey)
+    public class SummerActivityPaymentInfo
+    {
+        public int RegistrationId { get; set; }
+        public string? SchoolName { get; set; }
+        public string? ActivityName { get; set; }
+        public string? SlotName { get; set; }
+        public decimal ActivityFee { get; set; }
+        public decimal ConvenienceFee { get; set; }
+        public decimal TotalAmount => ActivityFee + ConvenienceFee;
+        public bool IsFeePaid { get; set; }
+    }
+
+    // checkout page (/summer-activity-checkout?key=PaymentKey): the order of Usp_InitiateSummerActivityPayment
+    public class SummerActivityCheckoutInfo
+    {
+        public SummerActivityPaymentInfo Payment { get; set; } = new();
+        // order id (RefNo) of the pending transaction
+        public string? OrderId { get; set; }
+        // seconds left to pay this order
+        public int SecondsLeft { get; set; }
+        // local test payment is on (no money is charged)
+        public bool IsTestMode { get; set; }
+        // filled when the fee is already paid
+        public SummerActivityPaymentReceipt? Receipt { get; set; }
+    }
+
+    public class SummerActivityPayRequest
+    {
+        [Required(ErrorMessage = "This payment link is not valid.")]
+        [StringLength(500, ErrorMessage = "This payment link is not valid.")]
+        public string? Key { get; set; }
+
+        [Required(ErrorMessage = "Order was not found.")]
+        [StringLength(100, ErrorMessage = "Order was not found.")]
+        public string? OrderId { get; set; }
+
+        // UPI id: name@bank (checked only, not saved)
+        [Required(ErrorMessage = "Please enter your UPI ID.")]
+        [StringLength(100, ErrorMessage = "Please enter a valid UPI ID.")]
+        [RegularExpression(@"^[A-Za-z0-9][A-Za-z0-9.\-_]{1,255}@[A-Za-z][A-Za-z0-9]{1,63}$", ErrorMessage = "Please enter a valid UPI ID (e.g. name@okbank).")]
+        public string? UpiId { get; set; }
+    }
+
+    public class SummerActivityPaymentReceipt
+    {
+        public int RegistrationId { get; set; }
+        public string? SchoolName { get; set; }
+        public string? ActivityName { get; set; }
+        public string? SlotName { get; set; }
+        public decimal Amount { get; set; }
+        public string? OrderId { get; set; }
+        public string? TransactionId { get; set; }
+        public string? UtrNo { get; set; }
+        public string? PaymentMode { get; set; }
+        public DateTime? PaidOn { get; set; }
     }
 }

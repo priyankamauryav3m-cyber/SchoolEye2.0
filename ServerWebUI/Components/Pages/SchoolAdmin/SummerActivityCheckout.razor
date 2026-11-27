@@ -1,0 +1,497 @@
+﻿@page "/summer-activity-checkout"
+@layout Layout.LoginLayout
+@using DomainModel.SchoolAdmin
+@using MyApp.Common
+@using System.Globalization
+@using System.Text.RegularExpressions
+@inject Shared.IHttpService httpService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>Secure Checkout</PageTitle>
+
+<div class="co-page">
+    @if (state == PageState.Loading)
+    {
+        <div class="co-card co-center">
+            <div class="co-spinner"></div>
+            <p class="co-muted mb-0">Preparing secure checkout...</p>
+        </div>
+    }
+    else if (state == PageState.Error)
+    {
+        <div class="co-card co-center">
+            <div class="co-state error"><i class="bi bi-exclamation-octagon"></i></div>
+            <h2>Payment Not Available</h2>
+            <p class="co-muted">@errorMessage</p>
+            @if (!string.IsNullOrWhiteSpace(Key))
+            {
+                <button type="button" class="co-btn ghost" @onclick="BackToSummary"><i class="bi bi-arrow-left"></i> Back</button>
+            }
+        </div>
+    }
+    else if (state == PageState.Success && receipt != null)
+    {
+        @* ---------------- success / receipt ---------------- *@
+        <div class="co-card co-success" id="co-receipt">
+            <div class="co-success-head">
+                <div class="co-tick"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" /><path d="M14 27l8 8 16-17" /></svg></div>
+                <h2>Payment Successful</h2>
+                <div class="co-success-amt">@Money(receipt.Amount)</div>
+                <p>Paid to <b>@receipt.SchoolName</b></p>
+            </div>
+
+            <div class="co-rc-grid">
+                <div><small>Transaction ID</small><strong>@receipt.TransactionId</strong></div>
+                <div><small>Order ID</small><strong>@receipt.OrderId</strong></div>
+                <div><small>UTR / Bank Ref. No.</small><strong>@receipt.UtrNo</strong></div>
+                <div><small>Paid On</small><strong>@receipt.PaidOn?.ToString("dd MMM yyyy, hh:mm tt", CultureInfo.InvariantCulture)</strong></div>
+                <div><small>Payment Mode</small><strong>@receipt.PaymentMode</strong></div>
+                <div><small>Registration No.</small><strong>@receipt.RegistrationId</strong></div>
+                <div><small>Activity</small><strong>@receipt.ActivityName</strong></div>
+                <div><small>Slot</small><strong>@receipt.SlotName</strong></div>
+            </div>
+
+            <div class="co-success-foot">
+                <span class="co-saved"><i class="bi bi-shield-fill-check"></i> Your fee has been received and saved with the school.</span>
+                <div class="co-success-btns">
+                    <button type="button" class="co-btn ghost" @onclick="PrintReceipt"><i class="bi bi-printer"></i> Print Receipt</button>
+                    <button type="button" class="co-btn" @onclick="BackToSummary"><i class="bi bi-check2-circle"></i> Done</button>
+                </div>
+            </div>
+        </div>
+    }
+    else if (checkout != null)
+    {
+        var pay = checkout.Payment;
+        <div class="co-card co-main">
+            @* ---------------- left: merchant + amount ---------------- *@
+            <aside class="co-left">
+                <div class="co-merchant">
+                    <span class="co-merchant-icon"><i class="bi bi-bank2"></i></span>
+                    <strong>@pay.SchoolName</strong>
+                </div>
+
+                <div class="co-amount">
+                    <div class="co-paying">Paying @Money(pay.TotalAmount)</div>
+                    <button type="button" class="co-link" @onclick="() => showDetails = !showDetails">
+                        Inclusive fee of @Money(pay.ConvenienceFee) <span>View Details <i class="bi @(showDetails ? "bi-chevron-up" : "bi-chevron-down")"></i></span>
+                    </button>
+                    @if (showDetails)
+                    {
+                        <div class="co-breakup">
+                            <div><span>Activity fee</span><b>@Money(pay.ActivityFee)</b></div>
+                            <div><span>Convenience fee</span><b>@Money(pay.ConvenienceFee)</b></div>
+                            <div class="total"><span>Total</span><b>@Money(pay.TotalAmount)</b></div>
+                        </div>
+                    }
+                </div>
+
+                <div class="co-order">
+                    <div><small>Activity</small><strong>@pay.ActivityName</strong></div>
+                    <div><small>Slot</small><strong>@pay.SlotName</strong></div>
+                    <div><small>Registration No.</small><strong>@pay.RegistrationId</strong></div>
+                    <div><small>Order ID</small><strong>@checkout.OrderId</strong></div>
+                </div>
+
+                <div class="co-left-foot">
+                    <i class="bi bi-shield-check"></i> 100% SECURE <span class="sep"></span> POWERED BY
+                    <img src="images/v3m-favicon.png" alt="V3M" /> <b>V3M</b>
+                </div>
+            </aside>
+
+            @* ---------------- middle: payment options ---------------- *@
+            <section class="co-options">
+                <h3>Select Payment Option</h3>
+                @foreach (var option in Options)
+                {
+                    var selected = option.Key == "UPI";
+                    <div class="co-option @(selected ? "active" : "disabled")" title="@(selected ? "" : "Available soon")">
+                        <span class="co-opt-icon"><i class="bi @option.Icon"></i></span>
+                        <div class="co-opt-text">
+                            <strong>@option.Title @if (!selected) { <em>Soon</em> }</strong>
+                            <small>@option.Hint</small>
+                        </div>
+                        <span class="co-radio @(selected ? "on" : "")"><i class="bi bi-check"></i></span>
+                    </div>
+                }
+            </section>
+
+            @* ---------------- right: UPI ---------------- *@
+            <section class="co-pay">
+                <div class="co-timer @(secondsLeft <= 60 ? "warn" : "")">
+                    <i class="bi bi-clock-history"></i> This session will expire in
+                    @foreach (var ch in TimerText)
+                    {
+                        if (ch == ':') { <span class="colon">:</span> }
+                        else { <span class="digit">@ch</span> }
+                    }
+                </div>
+
+                <div class="co-upi-card">
+                    <div class="co-upi-head">
+                        <span class="co-upi-badge">UPI</span>
+                        <div>
+                            <strong>Pay using UPI ID</strong>
+                            <small>Any UPI app: BHIM, Google Pay, PhonePe and more</small>
+                        </div>
+                    </div>
+
+                    <div class="co-input-wrap @(upiError != null ? "err" : "")">
+                        <i class="bi bi-at"></i>
+                        <input type="text" maxlength="100" placeholder="Enter UPI ID" autocomplete="off" spellcheck="false"
+                               value="@upiId" disabled="@(paying || secondsLeft <= 0)"
+                               @oninput="e => { upiId = e.Value?.ToString(); upiError = null; }"
+                               @onkeyup="OnUpiKeyUp" />
+                    </div>
+                    @if (upiError != null)
+                    {
+                        <div class="co-err"><i class="bi bi-exclamation-circle"></i> @upiError</div>
+                    }
+                    else
+                    {
+                        <div class="co-hint">Eg: yourname@okbank, 98XXXXXX03@upi</div>
+                    }
+
+                    @if (secondsLeft <= 0)
+                    {
+                        <button type="button" class="co-btn full" @onclick="Restart"><i class="bi bi-arrow-clockwise"></i> Session expired, Start Again</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="co-btn full" @onclick="Pay" disabled="@paying">
+                            <i class="bi bi-lock-fill"></i> Pay @Money(pay.TotalAmount)
+                        </button>
+                    }
+
+                    <ul class="co-steps">
+                        <li><span>1</span> Enter your UPI ID and tap Pay</li>
+                        <li><span>2</span> Approve the request in your UPI app</li>
+                        <li><span>3</span> Your receipt is shown here</li>
+                    </ul>
+                </div>
+
+                @if (checkout.IsTestMode)
+                {
+                    <div class="co-test"><i class="bi bi-info-circle"></i> Test mode: no money is charged. Any valid UPI ID completes the payment.</div>
+                }
+            </section>
+
+            @if (paying)
+            {
+                <div class="co-processing">
+                    <div class="co-pulse"><i class="bi bi-phone"></i></div>
+                    <h4>Waiting for payment confirmation</h4>
+                    <p>Approve the request of @Money(pay.TotalAmount) in your UPI app.<br />Please do not refresh or close this page.</p>
+                    <div class="co-bar"><span></span></div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    /* one screen, no page scroll */
+    .co-page { height: 100vh; height: 100dvh; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 20px;
+               background: linear-gradient(180deg, #ffffff 0%, #e6f1fb 40%, #6fb8e6 100%); color: #10223f; }
+    .co-card { background: #fff; border-radius: 18px; box-shadow: 0 30px 70px -30px rgba(15, 50, 100, .45); width: 100%; max-width: 1080px; overflow: hidden; }
+    .co-center { max-width: 460px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 44px 26px; }
+        .co-center h2 { font-size: 20px; font-weight: 800; margin: 0; }
+    .co-muted { color: #64748b; }
+
+    .co-main { position: relative; display: grid; grid-template-columns: 330px 1fr 1fr; height: min(600px, calc(100dvh - 40px)); }
+
+    /* left */
+    .co-left { background: #edf2f8; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px; min-height: 0; overflow-y: auto; }
+    .co-merchant { display: flex; align-items: center; gap: 12px; }
+        .co-merchant strong { font-size: 17px; line-height: 1.25; }
+    .co-merchant-icon { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; background: #dff3ea; color: #0b6b4f; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; }
+    .co-amount, .co-order { background: #fff; border-radius: 14px; padding: 16px; }
+    .co-paying { font-size: 25px; font-weight: 800; letter-spacing: -.3px; }
+    .co-link { background: none; border: none; padding: 0; margin-top: 4px; font-size: 13px; color: #334155; text-align: left; }
+        .co-link span { color: #1d6fd8; font-weight: 600; }
+    .co-breakup { margin-top: 10px; border-top: 1px dashed #d6dee9; padding-top: 8px; }
+        .co-breakup div { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: #475569; }
+        .co-breakup .total { color: #10223f; font-weight: 700; border-top: 1px solid #eef2f7; margin-top: 4px; padding-top: 6px; }
+    .co-order { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 14px 16px; }
+        .co-order small { display: block; font-size: 11.5px; color: #64748b; }
+        .co-order strong { font-size: 13px; word-break: break-word; }
+    .co-left-foot { margin-top: auto; font-size: 11px; letter-spacing: .6px; color: #475569; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .co-left-foot .sep { width: 1px; height: 12px; background: #94a3b8; }
+        .co-left-foot img { width: 16px; height: 16px; }
+        .co-left-foot b { color: #0b2a5b; font-size: 12px; }
+
+    /* middle */
+    .co-options { padding: 26px 18px; border-right: 1px solid #edf1f6; min-height: 0; overflow-y: auto; }
+        .co-options h3 { font-size: 16px; font-weight: 700; margin: 0 0 14px; }
+    .co-option { display: flex; align-items: center; gap: 14px; padding: 14px 12px; border-radius: 12px; border: 1px solid transparent; margin-bottom: 6px; }
+        .co-option.active { background: #f2f8ff; border-color: #cfe3fb; }
+        .co-option.disabled { opacity: .55; cursor: not-allowed; }
+    .co-opt-icon { width: 38px; height: 38px; border-radius: 10px; background: #f1f5f9; color: #1e3a8a; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
+        .co-option.active .co-opt-icon { background: linear-gradient(135deg, #ff9a3c, #16a34a); color: #fff; }
+    .co-opt-text { flex: 1; min-width: 0; }
+        .co-opt-text strong { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 600; }
+        .co-opt-text em { font-style: normal; font-size: 10.5px; background: #e2e8f0; color: #475569; border-radius: 999px; padding: 1px 8px; }
+        .co-opt-text small { font-size: 12.5px; color: #64748b; }
+    .co-radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #64748b; display: inline-flex; align-items: center; justify-content: center; color: transparent; }
+        .co-radio.on { background: #1d6fd8; border-color: #1d6fd8; color: #fff; }
+
+    /* right */
+    .co-pay { background: #f6f9fc; padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+    .co-timer { background: #e6f0fb; color: #1e3a5f; border-radius: 12px; padding: 9px 12px; font-size: 13px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .co-timer .bi { margin-right: 4px; }
+        .co-timer .digit { background: #fff; border-radius: 4px; min-width: 18px; text-align: center; font-weight: 700; padding: 1px 3px; }
+        .co-timer .colon { font-weight: 700; }
+        .co-timer.warn { background: #fdecec; color: #9b1c1c; }
+    .co-upi-card { background: #fff; border-radius: 16px; padding: 18px; box-shadow: 0 6px 20px -12px rgba(15, 50, 100, .35); }
+    .co-upi-head { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+        .co-upi-head strong { display: block; font-size: 15px; }
+        .co-upi-head small { font-size: 12px; color: #64748b; }
+    .co-upi-badge { flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #ff9a3c, #16a34a); color: #fff; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; letter-spacing: .5px; }
+    .co-input-wrap { display: flex; align-items: center; gap: 8px; border: 1.5px solid #9aa7b8; border-radius: 12px; padding: 0 12px; height: 50px; transition: border-color .15s, box-shadow .15s; }
+        .co-input-wrap:focus-within { border-color: #1d6fd8; box-shadow: 0 0 0 3px rgba(29, 111, 216, .15); }
+        .co-input-wrap.err { border-color: #dc2626; }
+        .co-input-wrap .bi { color: #64748b; font-size: 18px; }
+        .co-input-wrap input { border: none; outline: none; flex: 1; font-size: 15px; background: transparent; min-width: 0; }
+    .co-hint { font-size: 12px; color: #64748b; margin: 6px 2px 14px; }
+    .co-err { font-size: 12.5px; color: #dc2626; margin: 6px 2px 14px; }
+    .co-btn { border: none; border-radius: 12px; padding: 12px 18px; font-weight: 700; font-size: 15px; color: #fff; background: linear-gradient(115deg, #1d6fd8, #0b4aa2);
+              display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 22px -12px rgba(11, 74, 162, .8); transition: transform .12s, filter .12s; }
+        .co-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+        .co-btn:disabled { opacity: .65; cursor: not-allowed; }
+        .co-btn.full { width: 100%; }
+        .co-btn.ghost { background: #fff; color: #0b4aa2; border: 1.5px solid #c7d7ee; box-shadow: none; }
+    .co-steps { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px solid #eef2f7; }
+        .co-steps li { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: #475569; padding: 3px 0; }
+        .co-steps span { width: 20px; height: 20px; border-radius: 50%; background: #e6f0fb; color: #1d6fd8; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
+    .co-test { font-size: 12px; color: #92400e; background: #fef3c7; border-radius: 10px; padding: 8px 12px; }
+
+    /* waiting for the UPI app */
+    .co-processing { position: absolute; inset: 0; background: rgba(255, 255, 255, .96); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; z-index: 5; }
+        .co-processing h4 { font-size: 18px; font-weight: 800; margin: 18px 0 6px; }
+        .co-processing p { color: #64748b; font-size: 13.5px; }
+    .co-pulse { width: 74px; height: 74px; border-radius: 50%; background: #1d6fd8; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 30px; animation: co-pulse 1.4s ease-out infinite; }
+    @@keyframes co-pulse { 0% { box-shadow: 0 0 0 0 rgba(29, 111, 216, .45); } 100% { box-shadow: 0 0 0 26px rgba(29, 111, 216, 0); } }
+    .co-bar { width: 220px; height: 5px; border-radius: 5px; background: #e2e8f0; overflow: hidden; }
+        .co-bar span { display: block; height: 100%; width: 40%; background: #1d6fd8; border-radius: 5px; animation: co-bar 1.2s ease-in-out infinite; }
+    @@keyframes co-bar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+
+    /* success */
+    .co-success { max-width: 620px; max-height: calc(100dvh - 40px); overflow-y: auto; }
+    .co-success-head { text-align: center; padding: 26px 24px 18px; background: linear-gradient(180deg, #ecfdf5, #fff); }
+        .co-success-head h2 { font-size: 21px; font-weight: 800; margin: 10px 0 2px; color: #065f46; }
+        .co-success-head p { margin: 0; color: #475569; font-size: 13.5px; }
+    .co-success-amt { font-size: 32px; font-weight: 800; color: #10223f; }
+    .co-tick { width: 68px; height: 68px; margin: 0 auto; }
+        .co-tick svg { width: 100%; height: 100%; }
+        .co-tick circle { fill: #16a34a; stroke: none; animation: co-pop .35s ease-out; transform-origin: center; }
+        .co-tick path { fill: none; stroke: #fff; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: co-draw .4s .25s ease-out forwards; }
+    @@keyframes co-pop { from { transform: scale(.4); } to { transform: scale(1); } }
+    @@keyframes co-draw { to { stroke-dashoffset: 0; } }
+    .co-rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; padding: 18px 26px; border-top: 1px dashed #d6dee9; border-bottom: 1px dashed #d6dee9; }
+        .co-rc-grid small { display: block; font-size: 11.5px; color: #64748b; }
+        .co-rc-grid strong { font-size: 13.5px; word-break: break-all; }
+    .co-success-foot { padding: 16px 26px 22px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+    .co-saved { font-size: 12.5px; color: #166534; }
+    .co-success-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+    .co-state { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+        .co-state.error { background: #fdecec; color: #c62828; }
+    .co-spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #dbe4f0; border-top-color: #1d6fd8; animation: co-spin .7s linear infinite; }
+    @@keyframes co-spin { to { transform: rotate(360deg); } }
+
+    @@media (max-width: 991px) {
+        .co-page { align-items: stretch; padding: 10px; }
+        .co-main { grid-template-columns: 1fr 1fr; height: calc(100dvh - 20px); overflow-y: auto; }
+        .co-left { grid-column: 1 / -1; overflow: visible; }
+        .co-options, .co-pay { overflow: visible; }
+    }
+    @@media (max-width: 640px) {
+        .co-main { grid-template-columns: 1fr; }
+        .co-options { border-right: none; }
+        .co-rc-grid { grid-template-columns: 1fr; }
+    }
+    @@media print {
+        .co-page { height: auto; background: #fff; padding: 0; }
+        .co-success { box-shadow: none; max-height: none; }
+        .co-success-btns { display: none; }
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery(Name = "key")]
+    public string? Key { get; set; }
+
+    private enum PageState { Loading, Ready, Success, Error }
+    private PageState state = PageState.Loading;
+    private SummerActivityCheckoutInfo? checkout;
+    private SummerActivityPaymentReceipt? receipt;
+    private string? errorMessage;
+    private bool loaded, paying, showDetails;
+    private string? upiId, upiError;
+    private int secondsLeft;
+    private System.Threading.Timer? timer;
+
+    private record PayOption(string Key, string Title, string Hint, string Icon);
+    private static readonly PayOption[] Options =
+    {
+        new("UPI", "UPI", "Pay using any UPI app", "bi-phone"),
+        new("CARD", "Cards", "Debit / credit card", "bi-credit-card-2-front"),
+        new("NB", "Net Banking", "All major banks supported", "bi-bank"),
+        new("WALLET", "Wallet", "Pay using a wallet", "bi-wallet2")
+    };
+
+    private static readonly Regex UpiPattern = new(@"^[A-Za-z0-9][A-Za-z0-9.\-_]{1,255}@[A-Za-z][A-Za-z0-9]{1,63}$", RegexOptions.Compiled);
+
+    private string TimerText => $"{Math.Max(secondsLeft, 0) / 60:00}:{Math.Max(secondsLeft, 0) % 60:00}";
+
+    private static string Money(decimal amount) => "₹" + amount.ToString("N2", CultureInfo.GetCultureInfo("en-IN"));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || loaded) return;
+        loaded = true;
+        await StartCheckout();
+    }
+
+    private async Task StartCheckout()
+    {
+        if (string.IsNullOrWhiteSpace(Key))
+        {
+            Fail("This payment link is not valid.");
+            return;
+        }
+        state = PageState.Loading;
+        StateHasChanged();
+        try
+        {
+            var response = await httpService.Post<ApiResponse<SummerActivityCheckoutInfo>>("SummerActivityRegistration/InitiatePayment",
+                new SummerActivityFormRequest { Key = Key });
+            if (response != null && response.Success && response.Data != null)
+            {
+                checkout = response.Data;
+                if (response.Code == 2 && checkout.Receipt != null)
+                {
+                    receipt = checkout.Receipt;
+                    state = PageState.Success;
+                }
+                else
+                {
+                    secondsLeft = checkout.SecondsLeft;
+                    StartTimer();
+                    state = PageState.Ready;
+                }
+            }
+            else
+            {
+                Fail(response?.Message ?? "Unable to start the payment right now. Please try again.");
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            Fail("Unable to start the payment right now. Please try again after some time.");
+            return;
+        }
+        StateHasChanged();
+    }
+
+    private void StartTimer()
+    {
+        timer?.Dispose();
+        timer = new System.Threading.Timer(_ =>
+        {
+            if (secondsLeft <= 0 || paying) return;
+            secondsLeft--;
+            if (secondsLeft <= 0) timer?.Dispose();
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    private async Task OnUpiKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Pay();
+    }
+
+    private async Task Pay()
+    {
+        if (paying || checkout == null || secondsLeft <= 0) return;
+
+        var value = upiId?.Trim();
+        if (string.IsNullOrEmpty(value))
+        {
+            upiError = "Please enter your UPI ID.";
+            return;
+        }
+        if (!UpiPattern.IsMatch(value))
+        {
+            upiError = "Please enter a valid UPI ID (e.g. name@okbank).";
+            return;
+        }
+
+        paying = true;
+        upiError = null;
+        StateHasChanged();
+        try
+        {
+            // same wait as a UPI collect request before the confirmation
+            await Task.Delay(2200);
+            var response = await httpService.Post<ApiResponse<SummerActivityPaymentReceipt>>("SummerActivityRegistration/PayTest",
+                new SummerActivityPayRequest { Key = Key, OrderId = checkout.OrderId, UpiId = value });
+
+            if (response != null && response.Success && response.Data != null)
+            {
+                timer?.Dispose();
+                receipt = response.Data;
+                state = PageState.Success;
+            }
+            else if (response?.Code == 2 || response?.Code == -2)
+            {
+                // paid already (another tab): show the receipt
+                await StartCheckout();
+            }
+            else if (response?.Code == -3)
+            {
+                secondsLeft = 0;
+                upiError = response.Message;
+            }
+            else
+            {
+                upiError = response?.Message ?? "Payment could not be completed. Please try again.";
+            }
+        }
+        catch (Exception)
+        {
+            upiError = "Payment could not be completed. Please try again.";
+        }
+        finally
+        {
+            paying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Restart()
+    {
+        upiError = null;
+        await StartCheckout();
+    }
+
+    private async Task PrintReceipt() => await JS.InvokeVoidAsync("print");
+
+    private void BackToSummary() =>
+        Navigation.NavigateTo($"summer-activity-payment?key={Uri.EscapeDataString(Key ?? "")}");
+
+    private void Fail(string message)
+    {
+        timer?.Dispose();
+        errorMessage = message;
+        state = PageState.Error;
+        StateHasChanged();
+    }
+
+    public void Dispose() => timer?.Dispose();
+}
